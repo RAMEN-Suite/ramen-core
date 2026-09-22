@@ -1,5 +1,6 @@
 import {
   Bounds,
+  BuiltinType,
   GAttribute,
   GConstraint,
   GDataType,
@@ -52,6 +53,7 @@ export interface CreateRelationInput {
 /** Values needed to create an initially unrestricted data type. */
 export interface CreateDataTypeInput {
   readonly name: string;
+  readonly baseType: BuiltinType;
 }
 
 /** Duplicated node together with the duplicated relations connected to it. */
@@ -64,11 +66,11 @@ export interface ConnectedNode {
 export class ModelFactory {
   /** Creates an empty model with an exact import of the supplied base model. */
   public static createModel(base: GModel, input: CreateModelInput): GModel {
-    const schemaId: string | undefined = SchemaValidator.getSchemaNode().$id;
-    if (!schemaId) throw new Error('GCore schema has no $id.');
+    const schemaUri: string | undefined = SchemaValidator.getSchemaNode().$id;
+    if (!schemaUri) throw new Error('GCore schema has no $id.');
 
     return {
-      $schema: schemaId,
+      $schema: schemaUri,
       $id: input.uri,
       id: input.id,
       version: input.version,
@@ -77,7 +79,7 @@ export class ModelFactory {
 
       imports: [
         {
-          schemaId: base.$id,
+          modelUri: base.$id,
           modelId: base.id,
           version: base.version,
           name: base.name,
@@ -125,6 +127,7 @@ export class ModelFactory {
       kind: 'GDataType',
       id: this.createIdentifier(),
       name: input.name,
+      baseType: input.baseType,
       literals: undefined,
       constraints: [],
       ext: {},

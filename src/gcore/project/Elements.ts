@@ -20,7 +20,7 @@ export class ModelElementIndex {
   public constructor(public readonly model: GModel) {
     const imports: Map<Id, string> = new Map<Id, string>();
     for (const imp of this.model.imports) {
-      imports.set(imp.modelId, imp.schemaId);
+      imports.set(imp.modelId, imp.modelUri);
     }
 
     const nodes: Map<Id, GNode> = new Map<Id, GNode>();

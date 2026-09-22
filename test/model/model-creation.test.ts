@@ -46,9 +46,10 @@ void test('createAttribute preserves type, bounds and modifiers', () => {
 });
 
 void test('createDataType creates an empty custom data type', () => {
-  const dataType = ModelFactory.createDataType({ name: 'EditorialStatus' });
+  const dataType = ModelFactory.createDataType({ name: 'EditorialStatus', baseType: 'String' });
 
   assert.equal(dataType.kind, 'GDataType');
+  assert.equal(dataType.baseType, 'String');
   assert.equal(dataType.name, 'EditorialStatus');
   assert.equal(dataType.id.length, 16);
   assert.equal(dataType.literals, undefined);

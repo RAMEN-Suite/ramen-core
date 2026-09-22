@@ -1,11 +1,9 @@
 import { GAttribute, GClassifier, GDataType, GModel, GNode, GRelation, Id } from './Types';
-import { NodeInheritance } from '../project/Inheritance';
-import { RelationDefinitions } from '../project/Relations';
 
 /** Editable node fields. */
 export type UpdateNodeInput = Partial<Pick<GNode, 'name' | 'superTypes' | 'attributes'>>;
 /** Editable data type fields. */
-export type UpdateDataTypeInput = Partial<Pick<GDataType, 'name' | 'literals'>>;
+export type UpdateDataTypeInput = Partial<Pick<GDataType, 'name' | 'baseType' | 'literals'>>;
 /** Editable relation fields. */
 export type UpdateRelationInput = Partial<Pick<GRelation, 'name' | 'from' | 'to'>>;
 /** Editable attribute fields. */
@@ -105,16 +103,8 @@ export class ModelEditor {
     return { ...model, relations: filtered };
   }
 
-  /** Adds an attribute after checking inherited names and relation roles. */
-  public static addAttribute(model: GModel, nodeId: Id, attribute: GAttribute, modelsById: ReadonlyMap<Id, GModel>): GModel {
-    const startModelId: Id = model.id;
-
-    const blockedNames: ReadonlySet<string> = NodeInheritance.resolveAttributeNames(startModelId, nodeId, modelsById);
-    if (blockedNames.has(attribute.name)) throw new Error(`Attribute already exists: '${attribute.name}'`);
-
-    const roleNames: ReadonlySet<string> = RelationDefinitions.resolveReservedRoleNames(startModelId, nodeId, modelsById);
-    if (roleNames.has(attribute.name)) throw new Error(`Attribute reserved by role: '${attribute.name}'`);
-
+  /** Adds an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
+  public static addAttribute(model: GModel, nodeId: Id, attribute: GAttribute): GModel {
     const classifiers: readonly GClassifier[] = model.classifiers ?? [];
     let foundNode: boolean = false;
 
@@ -132,24 +122,9 @@ export class ModelEditor {
     return { ...model, classifiers: patched };
   }
 
-  /** Updates an attribute after checking inherited names and relation roles. */
-  public static updateAttribute(
-    model: GModel,
-    nodeId: Id,
-    name: string,
-    patch: UpdateAttributeInput,
-    modelsById: ReadonlyMap<Id, GModel>,
-  ): GModel {
+  /** Updates an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
+  public static updateAttribute(model: GModel, nodeId: Id, name: string, patch: UpdateAttributeInput): GModel {
     const newName: string = patch.name ?? name;
-
-    if (newName !== name) {
-      const blocked: Set<string> = new Set<string>(NodeInheritance.resolveAttributeNames(model.id, nodeId, modelsById));
-      blocked.delete(name);
-      if (blocked.has(newName)) throw new Error(`Attribute already exists: '${newName}'`);
-
-      const roleNames: ReadonlySet<string> = RelationDefinitions.resolveReservedRoleNames(model.id, nodeId, modelsById);
-      if (roleNames.has(newName)) throw new Error(`Attribute reserved by role: '${newName}'`);
-    }
 
     const classifiers: readonly GClassifier[] = model.classifiers ?? [];
     let foundNode: boolean = false;

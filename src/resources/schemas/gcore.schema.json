@@ -7,8 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "$schema": {
-      "type": "string",
-      "format": "uri"
+      "const": "https://ramen-schema.org/gcore/1.0.0/schema.json"
     },
     "$id": {
       "type": "string",
@@ -110,11 +109,11 @@
     },
     "Import": {
       "type": "object",
-      "required": ["schemaId", "modelId", "version"],
+      "required": ["modelUri", "modelId", "version"],
       "additionalProperties": false,
       "$comment": "Import declaration for another model.",
       "properties": {
-        "schemaId": {
+        "modelUri": {
           "type": "string",
           "format": "uri"
         },
@@ -186,13 +185,6 @@
         "code": {
           "type": "string"
         },
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": []
-        },
         "ext": {
           "type": "object",
           "additionalProperties": true,
@@ -230,7 +222,8 @@
           "items": {
             "$ref": "#/$defs/Ref"
           },
-          "default": []
+          "default": [],
+          "maxItems": 1
         },
         "attributes": {
           "type": "array",
@@ -255,9 +248,9 @@
     },
     "GDataType": {
       "type": "object",
-      "required": ["kind", "id", "name"],
+      "required": ["kind", "id", "name", "baseType"],
       "additionalProperties": false,
-      "$comment": "User-defined datatype; if literals are present, this represents an enum.",
+      "$comment": "User-defined scalar datatype with a JSON-compatible primitive representation; literals make the value domain an enumeration.",
       "properties": {
         "kind": {
           "const": "GDataType"
@@ -267,6 +260,10 @@
         },
         "name": {
           "type": "string"
+        },
+        "baseType": {
+          "$ref": "#/$defs/BuiltinType",
+          "$comment": "Primitive representation validated before datatype literals and constraints."
         },
         "literals": {
           "type": "array",
@@ -390,7 +387,8 @@
           "items": {
             "$ref": "#/$defs/Ref"
           },
-          "default": []
+          "default": [],
+          "maxItems": 1
         },
         "name": {
           "type": "string",

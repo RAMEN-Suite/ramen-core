@@ -11,7 +11,7 @@ export function model(id: Id, imports: readonly GModel[] = []): GModel {
     kind: 'GModel',
     name: id,
     imports: imports.map((imported: GModel) => ({
-      schemaId: imported.$id,
+      modelUri: imported.$id,
       modelId: imported.id,
       version: imported.version,
     })),

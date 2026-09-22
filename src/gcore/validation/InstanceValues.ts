@@ -4,7 +4,7 @@ import { EffectiveModel, EffectiveNode } from '../project/Effective';
 import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { ConstraintRegistry } from './Constraints';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
-import { InstanceValidationOptions, ModelInstance, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
+import { ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
 import { ValidationCode } from './Codes';
 
 /** Validates instance properties against effective node attributes and constraints. */
@@ -13,12 +13,7 @@ export class InstanceValueValidator {
   public constructor(private readonly constraints: ConstraintRegistry) {}
 
   /** Resolves instance node types and validates their modeled properties. */
-  public validate(
-    graph: ProjectGraph,
-    instance: ModelInstance,
-    options: InstanceValidationOptions,
-    diagnostics: Diagnostic[],
-  ): Map<Id, ResolvedInstanceNode> {
+  public validate(graph: ProjectGraph, instance: ModelInstanceGraph, diagnostics: Diagnostic[]): Map<Id, ResolvedInstanceNode> {
     const nodesById: Map<Id, ResolvedInstanceNode> = new Map<Id, ResolvedInstanceNode>();
     instance.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
@@ -39,7 +34,7 @@ export class InstanceValueValidator {
         return;
       }
       nodesById.set(node.id, { instance: node, type: type });
-      this.validateProperties(graph, type, node, path, options, diagnostics);
+      this.validateProperties(graph, type, node, path, diagnostics);
     });
     return nodesById;
   }
@@ -49,7 +44,6 @@ export class InstanceValueValidator {
     type: ResolvedModelElement<GNode>,
     instance: ModelInstanceNode,
     path: DiagnosticPath,
-    options: InstanceValidationOptions,
     diagnostics: Diagnostic[],
   ): void {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, type.modelId, type.element.id);
@@ -63,7 +57,7 @@ export class InstanceValueValidator {
     for (const attribute of effective.attributes) {
       const value: unknown = instance.properties[attribute.name];
       const attributePath: DiagnosticPath = path.property('properties').property(attribute.name);
-      this.validateAttributeValue(graph, type.modelId, attribute, value, attributePath, options, diagnostics);
+      this.validateAttributeValue(graph, type.modelId, attribute, value, attributePath, diagnostics);
     }
     this.validateNodeConstraints(type, instance, effective.constraints, path, diagnostics);
   }
@@ -100,6 +94,7 @@ export class InstanceValueValidator {
         ...this.constraints.evaluate(constraint, {
           modelId: type.modelId,
           ownerId: type.element.id,
+          target: 'node',
           value: instance.properties,
           path: path.property('properties'),
         }),
@@ -113,7 +108,6 @@ export class InstanceValueValidator {
     attribute: GAttribute,
     value: unknown,
     path: DiagnosticPath,
-    options: InstanceValidationOptions,
     diagnostics: Diagnostic[],
   ): void {
     const isMissing: boolean = value === undefined || value === null;
@@ -125,12 +119,6 @@ export class InstanceValueValidator {
       }
       return;
     }
-    if (options.operation === 'update' && attribute.isReadOnly === true) {
-      diagnostics.push(
-        this.error('INSTANCE_PROPERTY_READ_ONLY', `Property '${attribute.name}' is read-only.`, path, attribute.id),
-      );
-    }
-
     const values: readonly unknown[] = this.readValues(attribute, value, path, diagnostics);
     if (values.length === 0 && !Array.isArray(value)) return;
     this.validateCount(attribute.name, attribute.bounds, values.length, path, attribute.id, diagnostics);
@@ -198,6 +186,7 @@ export class InstanceValueValidator {
         ...this.constraints.evaluate(constraint, {
           modelId: modelId,
           ownerId: attribute.id,
+          target: 'attribute',
           value: value,
           path: path,
         }),
@@ -212,8 +201,42 @@ export class InstanceValueValidator {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
+    if (!this.matchesBuiltin(dataType.element.baseType, value)) {
+      diagnostics.push(
+        this.error(
+          'INSTANCE_PROPERTY_TYPE_INVALID',
+          `Property '${attribute.name}' must contain ${dataType.element.baseType} values for data type '${dataType.element.name}'.`,
+          path,
+          attribute.id,
+        ),
+      );
+      return;
+    }
+    this.validateLiteralValue(dataType, attribute, value, path, diagnostics);
+    for (const constraint of dataType.element.constraints ?? []) {
+      diagnostics.push(
+        ...this.constraints.evaluate(constraint, {
+          modelId: dataType.modelId,
+          ownerId: dataType.element.id,
+          target: 'dataType',
+          value: value,
+          path: path,
+        }),
+      );
+    }
+  }
+
+  private validateLiteralValue(
+    dataType: ResolvedModelElement<GDataType>,
+    attribute: GAttribute,
+    value: unknown,
+    path: DiagnosticPath,
+    diagnostics: Diagnostic[],
+  ): void {
     const literals: readonly GLiteral[] | undefined = dataType.element.literals;
-    if (literals && !literals.some((literal: GLiteral): boolean => this.matchesLiteral(literal, value))) {
+    if (!literals) return;
+    const literal: GLiteral | undefined = literals.find((item: GLiteral): boolean => this.matchesLiteral(item, value));
+    if (!literal) {
       diagnostics.push(
         this.error(
           'INSTANCE_PROPERTY_LITERAL_INVALID',
@@ -222,12 +245,14 @@ export class InstanceValueValidator {
           attribute.id,
         ),
       );
+      return;
     }
-    for (const constraint of dataType.element.constraints ?? []) {
+    for (const constraint of literal.constraints ?? []) {
       diagnostics.push(
         ...this.constraints.evaluate(constraint, {
           modelId: dataType.modelId,
-          ownerId: dataType.element.id,
+          ownerId: literal.id,
+          target: 'literal',
           value: value,
           path: path,
         }),

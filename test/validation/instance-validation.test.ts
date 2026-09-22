@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildProjectGraph, InstanceValidator } from '../../dist/index.js';
-import type { GModel, ModelInstance, ProjectGraph } from '../../dist/index.js';
+import type { GModel, ModelInstanceGraph, ProjectGraph } from '../../dist/index.js';
 import { attribute, boundsOf, model, node, relation } from '../models.ts';
 
 const MODEL_ID = 'instanceModel001';
@@ -32,7 +32,7 @@ function graph(): ProjectGraph {
 }
 
 void test('validates closed properties, values, arrays, and constraints', () => {
-  const instance: ModelInstance = {
+  const instance: ModelInstanceGraph = {
     modelId: MODEL_ID,
     nodes: [
       {
@@ -51,7 +51,7 @@ void test('validates closed properties, values, arrays, and constraints', () => 
 });
 
 void test('accepts valid nodes and relation cardinalities', () => {
-  const instance: ModelInstance = {
+  const instance: ModelInstanceGraph = {
     modelId: MODEL_ID,
     nodes: [
       { id: 'personInstance01', typeId: PERSON_ID, properties: { name: 'Ada', tags: ['researcher'] } },
@@ -64,7 +64,7 @@ void test('accepts valid nodes and relation cardinalities', () => {
 });
 
 void test('validates relation endpoint types and required cardinalities', () => {
-  const instance: ModelInstance = {
+  const instance: ModelInstanceGraph = {
     modelId: MODEL_ID,
     nodes: [
       { id: 'personInstance01', typeId: PERSON_ID, properties: { name: 'Ada', tags: [] } },
@@ -76,4 +76,30 @@ void test('validates relation endpoint types and required cardinalities', () => 
   const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
   assert.ok(codes.includes('INSTANCE_RELATION_END_TYPE_INVALID'));
   assert.ok(codes.includes('INSTANCE_CARDINALITY_INVALID'));
+});
+
+void test('validates a modeled Date datatype as a constrained String', () => {
+  const schema: GModel = model('dateModel0000001');
+  schema.classifiers.push(
+    {
+      kind: 'GDataType',
+      id: 'dateDataType0001',
+      name: 'Date',
+      baseType: 'String',
+      constraints: [{ id: 'dateConstraint01', name: 'ISO date', language: 'format', expression: 'date' }],
+    },
+    {
+      ...node('eventNode0000001', 'Event'),
+      attributes: [attribute('eventDateAttr001', 'date', 'dateDataType0001', boundsOf(1, 1))],
+    },
+  );
+  const built = buildProjectGraph({ rootModelId: schema.id, models: [schema] });
+  assert.equal(built.ok, true);
+  if (!built.ok) return;
+  const result = new InstanceValidator().validate(built.graph, {
+    modelId: schema.id,
+    nodes: [{ id: 'eventInstance001', typeId: 'eventNode0000001', properties: { date: '2026-02-30' } }],
+    relations: [],
+  });
+  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'CONSTRAINT_FORMAT_MISMATCH'));
 });

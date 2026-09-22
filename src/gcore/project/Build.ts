@@ -141,12 +141,12 @@ function resolveImportedModel(
     state.diagnostics.push(error('IMPORTED_MODEL_NOT_FOUND', `Imported model not found: '${modelImport.modelId}'.`, importPath));
     return;
   }
-  if (modelImport.schemaId !== importedModel.$id) {
+  if (modelImport.modelUri !== importedModel.$id) {
     state.diagnostics.push(
       error(
-        'IMPORTED_SCHEMA_ID_MISMATCH',
-        `Import schema '${modelImport.schemaId}' does not match '${importedModel.$id}'.`,
-        importPath.property('schemaId'),
+        'IMPORTED_MODEL_URI_MISMATCH',
+        `Import model URI '${modelImport.modelUri}' does not match '${importedModel.$id}'.`,
+        importPath.property('modelUri'),
       ),
     );
   }

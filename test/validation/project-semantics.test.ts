@@ -18,7 +18,7 @@ void test('validates all reachable levels instead of one base-derived pair', () 
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'ATTRIBUTE_BOUNDS_INVALID'));
 });
 
-void test('allows direct reuse and rejects multiple refinement supertypes', () => {
+void test('allows direct reuse and structurally rejects multiple refinement supertypes', () => {
   const base = model('baseReuseModel01');
   base.classifiers.push(node('firstBaseNode001', 'Entity'), node('secondBaseNode01', 'Content'));
   const project = model('projectReuseModel', [base]);
@@ -26,7 +26,7 @@ void test('allows direct reuse and rejects multiple refinement supertypes', () =
   project.relations.push(relation('directReuseRel01', 'USES', `${base.id}:firstBaseNode001`, `${base.id}:secondBaseNode01`));
 
   const result = new ModelValidator().validateProject(project.id, [project, base]);
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED'));
+  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'SCHEMA_INVALID'));
   assert.ok(!result.diagnostics.some((diagnostic) => diagnostic.ref === 'directReuseRel01'));
 });
 
@@ -57,6 +57,7 @@ void test('validates duplicate imports and data type literals across the project
     kind: 'GDataType',
     id: 'statusDataType01',
     name: 'Status',
+    baseType: 'String',
     literals: [
       { id: 'statusLiteral001', name: 'Open', literal: 'open' },
       { id: 'statusLiteral002', name: 'Other', literal: 'open' },

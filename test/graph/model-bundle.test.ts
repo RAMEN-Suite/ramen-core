@@ -15,7 +15,7 @@ function model(id: string, imported?: GModel): GModel {
     version: '1.0.0',
     kind: 'GModel',
     name: id,
-    imports: imported ? [{ schemaId: imported.$id, modelId: imported.id, version: imported.version }] : [],
+    imports: imported ? [{ modelUri: imported.$id, modelId: imported.id, version: imported.version }] : [],
     classifiers: [],
     relations: [],
   };
@@ -48,7 +48,7 @@ void test('excludes models outside the root import closure', () => {
 });
 
 void test('rejects malformed bundle JSON', () => {
-  assert.throws((): readonly GModel[] => splitModelBundle({ kind: 'GModelBundle' }), /bundle schema/);
+  assert.throws((): readonly GModel[] => splitModelBundle({ kind: 'GModelBundle' }), /Invalid model bundle/);
 });
 
 void test('rejects a bundle whose root cannot be resolved', () => {

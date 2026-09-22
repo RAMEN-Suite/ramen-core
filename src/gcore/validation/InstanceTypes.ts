@@ -16,16 +16,11 @@ export interface ModelInstanceRelation {
   readonly toId: Id;
 }
 
-/** Instance graph interpreted from the context of one model. */
-export interface ModelInstance {
+/** Complete instance graph interpreted from the context of one model. */
+export interface ModelInstanceGraph {
   readonly modelId: Id;
   readonly nodes: readonly ModelInstanceNode[];
   readonly relations: readonly ModelInstanceRelation[];
-}
-
-/** Controls validation rules that differ between creation and update. */
-export interface InstanceValidationOptions {
-  readonly operation?: 'create' | 'update';
 }
 
 /** @internal Resolved instance node and its model type. */

@@ -18,7 +18,7 @@ function model(id: string, imports: readonly string[] = [], classifiers: GModel[
     version: '1.0.0',
     kind: 'GModel',
     name: id,
-    imports: imports.map((modelId) => ({ schemaId: `https://example.org/${modelId}`, modelId, version: '1.0.0' })),
+    imports: imports.map((modelId) => ({ modelUri: `https://example.org/${modelId}`, modelId, version: '1.0.0' })),
     classifiers: [...classifiers],
     relations: [],
   };
@@ -95,7 +95,11 @@ void test('reports an import cycle and includes the cycle in its message', () =>
 
 void test('reports duplicate element identifiers across element kinds', () => {
   const duplicateId = 'duplicateElement1';
-  const root = model(ROOT_ID, [], [node(duplicateId), { kind: 'GDataType', id: duplicateId, name: 'Duplicate' }]);
+  const root = model(
+    ROOT_ID,
+    [],
+    [node(duplicateId), { kind: 'GDataType', id: duplicateId, name: 'Duplicate', baseType: 'String' }],
+  );
   const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
@@ -122,7 +126,11 @@ void test('reports references to models outside the root import closure', () => 
 
 void test('reports a reference that resolves to the wrong element kind', () => {
   const typeId = 'dataType00000001';
-  const root = model(ROOT_ID, [], [{ kind: 'GDataType', id: typeId, name: 'Type' }, node(CHILD_ID, [typeId])]);
+  const root = model(
+    ROOT_ID,
+    [],
+    [{ kind: 'GDataType', id: typeId, name: 'Type', baseType: 'String' }, node(CHILD_ID, [typeId])],
+  );
   const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
@@ -152,7 +160,7 @@ void test('resolves custom data types and relation endpoints', () => {
     ROOT_ID,
     [],
     [
-      { kind: 'GDataType', id: dataTypeId, name: 'Status' },
+      { kind: 'GDataType', id: dataTypeId, name: 'Status', baseType: 'String' },
       {
         ...node(sourceId),
         attributes: [{ id: 'statusAttr000001', name: 'status', typeId: dataTypeId, bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -197,17 +205,17 @@ void test('reports a node inheritance cycle', () => {
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'INHERITANCE_CYCLE'));
 });
 
-void test('reports an import schema URI that does not match its target model', () => {
+void test('reports an import model URI that does not match its target model', () => {
   const base = model(BASE_ID);
   const root = model(ROOT_ID, [BASE_ID]);
   const firstImport = root.imports[0];
   assert.ok(firstImport);
-  firstImport.schemaId = 'https://example.org/wrong-schema';
+  firstImport.modelUri = 'https://example.org/wrong-schema';
 
   const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
   assert.equal(result.ok, false);
   if (result.ok) return;
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_SCHEMA_ID_MISMATCH'));
+  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_MODEL_URI_MISMATCH'));
 });
 
 void test('reports an imported model version mismatch', () => {

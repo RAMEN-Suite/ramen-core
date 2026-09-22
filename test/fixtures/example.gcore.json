@@ -7,7 +7,7 @@
   "name": "Simple Example",
   "imports": [
     {
-      "schemaId": "https://ramen-schema.org/ramen/1.0.0/schema.json",
+      "modelUri": "https://ramen-schema.org/ramen/1.0.0/schema.json",
       "modelId": "lW611f30a2ky4276g3l8N",
       "name": "RAMEN",
       "version": "1.0.0"

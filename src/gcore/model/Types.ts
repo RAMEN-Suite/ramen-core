@@ -27,7 +27,8 @@ export interface GModel {
 
 /** Exact dependency on another versioned GCore model. */
 export interface Import {
-  schemaId: string;
+  /** Canonical URI (`$id`) of the imported model document. */
+  modelUri: string;
   modelId: Id;
   version: string;
   name?: string;
@@ -73,15 +74,16 @@ export interface GConstraint {
   severity?: 'error' | 'warn' | 'info';
   message?: string;
   code?: string;
-  tags?: string[];
   ext?: Record<string, unknown>;
 }
 
-/** Declared value type, optionally restricted to a set of literals. */
+/** Declared scalar value domain, optionally restricted to a set of literals. */
 export interface GDataType {
   kind: 'GDataType';
   id: Id;
   name: string;
+  /** JSON-compatible primitive representation used before domain constraints are evaluated. */
+  baseType: BuiltinType;
   literals?: [GLiteral, ...GLiteral[]];
   constraints?: GConstraint[];
   ext?: Record<string, unknown>;

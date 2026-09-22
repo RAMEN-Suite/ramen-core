@@ -10,7 +10,17 @@
     {
       "kind": "GDataType",
       "id": "Q9mT2aL7vK0pX4sN1cDz",
-      "name": "UUID"
+      "name": "UUID",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "uuidFormat0000001",
+          "name": "Valid UUID",
+          "language": "format",
+          "expression": "uuid",
+          "message": "Value must be a UUID."
+        }
+      ]
     },
     {
       "kind": "GNode",

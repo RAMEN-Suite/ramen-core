@@ -1,15 +1,19 @@
 import { Bounds, GNode, GRelation, Id, Ref } from '../model/Types';
 import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
-import { ModelInstance, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
+import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
 import { ValidationCode } from './Codes';
+import { ConstraintRegistry } from './Constraints';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {
+  /** Creates a relation validator with the supplied constraint languages. */
+  public constructor(private readonly constraints: ConstraintRegistry) {}
+
   /** Resolves and validates every relation in an instance graph. */
   public validate(
     graph: ProjectGraph,
-    instance: ModelInstance,
+    instance: ModelInstanceGraph,
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
     diagnostics: Diagnostic[],
   ): readonly ResolvedInstanceRelation[] {
@@ -69,7 +73,45 @@ export class InstanceRelationValidator {
     if (!from || !to) return undefined;
     this.validateRelationEndpoint(graph, type, type.element.from.nodeId, from, path.property('fromId'), diagnostics);
     this.validateRelationEndpoint(graph, type, type.element.to.nodeId, to, path.property('toId'), diagnostics);
+    this.validateConstraints(type, relation, from, to, path, diagnostics);
     return { instance: relation, type: type };
+  }
+
+  private validateConstraints(
+    type: ResolvedModelElement<GRelation>,
+    relation: ModelInstanceRelation,
+    from: ResolvedInstanceNode,
+    to: ResolvedInstanceNode,
+    path: DiagnosticPath,
+    diagnostics: Diagnostic[],
+  ): void {
+    for (const constraint of type.element.constraints ?? []) {
+      diagnostics.push(
+        ...this.constraints.evaluate(constraint, {
+          modelId: type.modelId,
+          ownerId: type.element.id,
+          target: 'relation',
+          value: relation,
+          path: path,
+        }),
+      );
+    }
+    for (const [end, node, endPath] of [
+      [type.element.from, from, path.property('fromId')],
+      [type.element.to, to, path.property('toId')],
+    ] as const) {
+      for (const constraint of end.constraints ?? []) {
+        diagnostics.push(
+          ...this.constraints.evaluate(constraint, {
+            modelId: type.modelId,
+            ownerId: end.id,
+            target: 'relationEnd',
+            value: node.instance,
+            path: endPath,
+          }),
+        );
+      }
+    }
   }
 
   private registerRelationId(id: Id, path: DiagnosticPath, ids: Set<Id>, diagnostics: Diagnostic[]): boolean {

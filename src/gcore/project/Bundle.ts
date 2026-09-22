@@ -2,11 +2,14 @@ import { GModel, GModelBundle, Id } from '../model/Types';
 import { SchemaValidator } from '../validation/Schema';
 import { Diagnostic } from '../validation/Diagnostics';
 import { buildProjectGraph, ProjectGraphResult } from './Build';
+import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
+import bundleSchema from '../../resources/schemas/gcore-bundle.schema.json';
 
 /** Canonical schema identifier of the supported model bundle envelope. */
 export const MODEL_BUNDLE_SCHEMA: string = 'https://ramen-schema.org/gcore/1.0.0/bundle.json';
 /** Version of the supported model bundle envelope. */
 export const MODEL_BUNDLE_VERSION: string = '1.0.0';
+const BUNDLE_SCHEMA_NODE: SchemaNode = compileSchema(bundleSchema);
 
 /** Bundle creation result with graph diagnostics on failure. */
 export type CreateBundleResult =
@@ -42,14 +45,25 @@ export function splitModelBundle(input: unknown): readonly GModel[] {
 }
 
 function readBundle(input: unknown): GModelBundle {
-  if (!isRecord(input)) throw new Error('Invalid model bundle: expected an object.');
-  if (input.$schema !== MODEL_BUNDLE_SCHEMA) throw new Error('Invalid model bundle schema.');
-  if (input.kind !== 'GModelBundle') throw new Error('Invalid model bundle kind.');
-  if (input.version !== MODEL_BUNDLE_VERSION) throw new Error('Unsupported model bundle version.');
-  if (typeof input.rootModelId !== 'string') throw new Error('Invalid model bundle rootModelId.');
-  if (!Array.isArray(input.models)) throw new Error('Invalid model bundle models.');
+  const envelope: { readonly valid: boolean; readonly errors: JsonError[] } = BUNDLE_SCHEMA_NODE.validate(input);
+  if (!envelope.valid) {
+    const details: string = envelope.errors.map((error: JsonError): string => error.message).join('\n');
+    throw new Error(`Invalid model bundle: ${details}`);
+  }
+  if (!isRecord(input) || typeof input.$schema !== 'string' || typeof input.kind !== 'string') {
+    throw new Error('Invalid model bundle envelope.');
+  }
+  if (typeof input.version !== 'string' || typeof input.rootModelId !== 'string' || !Array.isArray(input.models)) {
+    throw new Error('Invalid model bundle envelope.');
+  }
   const models: GModel[] = input.models.map((model: unknown, index: number): GModel => readModel(model, index));
-  return { $schema: input.$schema, kind: input.kind, version: input.version, rootModelId: input.rootModelId, models: models };
+  return {
+    $schema: MODEL_BUNDLE_SCHEMA,
+    kind: 'GModelBundle',
+    version: MODEL_BUNDLE_VERSION,
+    rootModelId: input.rootModelId,
+    models: models,
+  };
 }
 
 function readModel(input: unknown, index: number): GModel {

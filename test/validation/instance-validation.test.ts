@@ -39,7 +39,6 @@ void test('validates closed properties, values, arrays, and constraints', () => 
         id: 'personInstance01',
         typeId: PERSON_ID,
         properties: { name: 'lowercase', tags: 'not-an-array', unexpected: true },
-        systemProperties: { createdAt: '2026-09-22T10:00:00Z' },
       },
     ],
     relations: [],
@@ -49,7 +48,6 @@ void test('validates closed properties, values, arrays, and constraints', () => 
   assert.ok(codes.includes('INSTANCE_PROPERTY_UNKNOWN'));
   assert.ok(codes.includes('INSTANCE_PROPERTY_ARRAY_REQUIRED'));
   assert.ok(codes.includes('CONSTRAINT_REGEX_MISMATCH'));
-  assert.ok(!result.diagnostics.some((diagnostic) => diagnostic.message.includes('createdAt')));
 });
 
 void test('accepts valid nodes and relation cardinalities', () => {

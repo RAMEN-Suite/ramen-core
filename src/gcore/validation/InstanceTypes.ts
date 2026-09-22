@@ -1,12 +1,11 @@
 import type { GNode, GRelation, Id, Ref } from '../model/Types';
 import type { ResolvedModelElement } from '../project/Graph';
 
-/** One modeled object with user properties separated from tool-managed system data. */
+/** One modeled object containing only properties declared by its GCore node type. */
 export interface ModelInstanceNode {
   readonly id: Id;
   readonly typeId: Ref;
   readonly properties: Readonly<Record<string, unknown>>;
-  readonly systemProperties?: Readonly<Record<string, unknown>>;
 }
 
 /** One modeled connection between two instance nodes. */
@@ -15,7 +14,6 @@ export interface ModelInstanceRelation {
   readonly typeId: Ref;
   readonly fromId: Id;
   readonly toId: Id;
-  readonly systemProperties?: Readonly<Record<string, unknown>>;
 }
 
 /** Instance graph interpreted from the context of one model. */

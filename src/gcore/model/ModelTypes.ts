@@ -21,6 +21,7 @@ export interface GModel {
 export interface Import {
   schemaId: string;
   modelId: Id;
+  version: string;
   name?: string;
 }
 
@@ -35,6 +36,7 @@ export interface GNode {
 }
 
 export interface GAttribute {
+  id: Id;
   name: string;
   typeId: TypeRef;
   bounds: Bounds;
@@ -73,6 +75,7 @@ export interface GDataType {
 }
 
 export interface GLiteral {
+  id: Id;
   name: string;
   value?: number;
   literal?: string;
@@ -92,6 +95,7 @@ export interface GRelation {
 }
 
 export interface RelationEnd {
+  id: Id;
   nodeId: Ref;
   role: string;
   bounds: Bounds;
@@ -99,4 +103,12 @@ export interface RelationEnd {
   isComposite?: boolean;
   constraints?: GConstraint[];
   ext?: Record<string, unknown>;
+}
+
+export interface GModelBundle {
+  $schema: string;
+  kind: 'GModelBundle';
+  version: string;
+  rootModelId: Id;
+  models: GModel[];
 }

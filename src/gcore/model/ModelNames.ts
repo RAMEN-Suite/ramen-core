@@ -1,15 +1,15 @@
-const NODE_NAME_START = /(?:^|[^\p{L}\p{N}_]+)(\p{L})/gu;
-const NODE_NAME_INVALID_CHARS = /[^\p{L}\p{N}_]/gu;
-const NODE_NAME_VALID_START = /^\p{L}/u;
+const NODE_NAME_START: RegExp = /(?:^|[^\p{L}\p{N}_]+)(\p{L})/gu;
+const NODE_NAME_INVALID_CHARS: RegExp = /[^\p{L}\p{N}_]/gu;
+const NODE_NAME_VALID_START: RegExp = /^\p{L}/u;
 
-const PROPERTY_NAME_START = /(?:^|[^\p{L}\p{N}_]+)(\p{L})/gu;
-const PROPERTY_NAME_INVALID_CHARS = /[^\p{L}\p{N}_]/gu;
-const PROPERTY_VALID_START = /^\p{L}/u;
+const PROPERTY_NAME_START: RegExp = /(?:^|[^\p{L}\p{N}_]+)(\p{L})/gu;
+const PROPERTY_NAME_INVALID_CHARS: RegExp = /[^\p{L}\p{N}_]/gu;
+const PROPERTY_VALID_START: RegExp = /^\p{L}/u;
 
-const RELATIONSHIP_NAME = /[\p{L}\p{N}]+/gu;
-const RELATIONSHIP_VALID_START = /^\p{Lu}/u;
+const RELATIONSHIP_NAME: RegExp = /[\p{L}\p{N}]+/gu;
+const RELATIONSHIP_VALID_START: RegExp = /^\p{Lu}/u;
 
-export class ModelNameTransformer {
+export class ModelNames {
   public static toPascalName(str: string): string {
     const pascalized: string = str
       .replace(NODE_NAME_START, (_: string, letter: string): string => letter.toUpperCase())

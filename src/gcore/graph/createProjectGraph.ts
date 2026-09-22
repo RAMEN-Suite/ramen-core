@@ -1,8 +1,8 @@
 import { BuiltinDataTypes } from '../model/BuiltinDataTypes';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/ValidationDiagnostic';
-import { GClassifier, GModel, GNode, GRelation, Id, Import, Ref } from '../model/ModelTypes';
+import { GClassifier, GConstraint, GModel, GNode, GRelation, Id, Import, Ref } from '../model/ModelTypes';
 import { ModelElementIndex } from './ModelElementIndex';
-import { ModelReference } from '../reference/ModelReference';
+import { ModelRef } from './ModelRef';
 import { ProjectGraph } from './ProjectGraph';
 
 export interface CreateProjectGraphInput {
@@ -13,6 +13,11 @@ export interface CreateProjectGraphInput {
 export type ProjectGraphResult =
   | { readonly ok: true; readonly graph: ProjectGraph; readonly diagnostics: readonly [] }
   | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] };
+
+interface ResolvedRef {
+  readonly modelId: Id;
+  readonly refId: Id;
+}
 
 interface GraphBuildState {
   readonly modelsById: Map<Id, GModel>;
@@ -39,15 +44,15 @@ export function createProjectGraph(input: CreateProjectGraphInput): ProjectGraph
 
   resolveImports(input.rootModelId, state);
   buildElementIndexes(state);
-  validateModelReferences(state);
+  validateModelRefs(state);
   if (state.diagnostics.length === 0) validateInheritanceCycles(state);
   if (state.diagnostics.length > 0) return { ok: false, diagnostics: state.diagnostics };
 
-  const reachableModels = new Map<Id, GModel>();
-  const reachableIndexes = new Map<Id, ModelElementIndex>();
+  const reachableModels: Map<Id, GModel> = new Map<Id, GModel>();
+  const reachableIndexes: Map<Id, ModelElementIndex> = new Map<Id, ModelElementIndex>();
   for (const modelId of state.reachableModelIds) {
-    const model = state.modelsById.get(modelId);
-    const index = state.indexesByModelId.get(modelId);
+    const model: GModel | undefined = state.modelsById.get(modelId);
+    const index: ModelElementIndex | undefined = state.indexesByModelId.get(modelId);
     if (model && index) {
       reachableModels.set(modelId, model);
       reachableIndexes.set(modelId, index);
@@ -78,7 +83,7 @@ function resolveImports(rootModelId: Id, state: GraphBuildState): void {
   const active: Id[] = [];
   const reportedCycles: Set<string> = new Set<string>();
 
-  const visit = (modelId: Id): void => {
+  const visit: (modelId: Id) => void = (modelId: Id): void => {
     if (completed.has(modelId)) return;
     const cycleStart: number = active.indexOf(modelId);
     if (cycleStart >= 0) {
@@ -114,7 +119,11 @@ function resolveImportedModel(
   state: GraphBuildState,
   visit: (modelId: Id) => void,
 ): void {
-  const importPath = DiagnosticPath.root().property('models').property(ownerModelId).property('imports').index(importIndex);
+  const importPath: DiagnosticPath = DiagnosticPath.root()
+    .property('models')
+    .property(ownerModelId)
+    .property('imports')
+    .index(importIndex);
   const importedModel: GModel | undefined = state.modelsById.get(modelImport.modelId);
   if (!importedModel) {
     state.diagnostics.push(error('IMPORTED_MODEL_NOT_FOUND', `Imported model not found: '${modelImport.modelId}'.`, importPath));
@@ -129,6 +138,15 @@ function resolveImportedModel(
       ),
     );
   }
+  if (modelImport.version !== importedModel.version) {
+    state.diagnostics.push(
+      error(
+        'IMPORTED_VERSION_MISMATCH',
+        `Import version '${modelImport.version}' does not match '${importedModel.version}'.`,
+        importPath.property('version'),
+      ),
+    );
+  }
   visit(modelImport.modelId);
 }
 
@@ -137,74 +155,126 @@ function buildElementIndexes(state: GraphBuildState): void {
     const model: GModel | undefined = state.modelsById.get(modelId);
     if (!model) continue;
     const seen: Set<Id> = new Set<Id>();
+    const modelPath: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id);
 
-    for (const classifier of model.classifiers) registerElementId(model, classifier, seen, state);
-    for (const relation of model.relations) registerElementId(model, relation, seen, state);
+    model.classifiers.forEach((classifier: GClassifier, index: number): void => {
+      registerClassifierIds(model.id, classifier, modelPath.property('classifiers').index(index), seen, state);
+    });
+    model.relations.forEach((relation: GRelation, index: number): void => {
+      registerRelationIds(model.id, relation, modelPath.property('relations').index(index), seen, state);
+    });
     state.indexesByModelId.set(modelId, new ModelElementIndex(model));
   }
 }
 
-function registerElementId(model: GModel, element: GClassifier | GRelation, seen: Set<Id>, state: GraphBuildState): void {
-  if (seen.has(element.id)) {
-    state.diagnostics.push(
-      error(
-        'DUPLICATE_ELEMENT_ID',
-        `Duplicate element id '${element.id}' in model '${model.id}'.`,
-        DiagnosticPath.root().property('models').property(model.id),
-      ),
-    );
+function registerClassifierIds(
+  modelId: Id,
+  classifier: GClassifier,
+  path: DiagnosticPath,
+  seen: Set<Id>,
+  state: GraphBuildState,
+): void {
+  registerId(modelId, classifier.id, path.property('id'), seen, state);
+  registerConstraintIds(modelId, classifier.constraints, path.property('constraints'), seen, state);
+  if (classifier.kind === 'GNode') {
+    classifier.attributes.forEach((attribute, index: number): void => {
+      const attributePath: DiagnosticPath = path.property('attributes').index(index);
+      registerId(modelId, attribute.id, attributePath.property('id'), seen, state);
+      registerConstraintIds(modelId, attribute.constraints, attributePath.property('constraints'), seen, state);
+    });
+  } else {
+    classifier.literals?.forEach((literal, index: number): void => {
+      const literalPath: DiagnosticPath = path.property('literals').index(index);
+      registerId(modelId, literal.id, literalPath.property('id'), seen, state);
+      registerConstraintIds(modelId, literal.constraints, literalPath.property('constraints'), seen, state);
+    });
   }
-  seen.add(element.id);
 }
 
-function validateModelReferences(state: GraphBuildState): void {
+function registerRelationIds(
+  modelId: Id,
+  relation: GRelation,
+  path: DiagnosticPath,
+  seen: Set<Id>,
+  state: GraphBuildState,
+): void {
+  registerId(modelId, relation.id, path.property('id'), seen, state);
+  registerId(modelId, relation.from.id, path.property('from').property('id'), seen, state);
+  registerId(modelId, relation.to.id, path.property('to').property('id'), seen, state);
+  registerConstraintIds(modelId, relation.constraints, path.property('constraints'), seen, state);
+  registerConstraintIds(modelId, relation.from.constraints, path.property('from').property('constraints'), seen, state);
+  registerConstraintIds(modelId, relation.to.constraints, path.property('to').property('constraints'), seen, state);
+}
+
+function registerConstraintIds(
+  modelId: Id,
+  constraints: readonly GConstraint[] | undefined,
+  path: DiagnosticPath,
+  seen: Set<Id>,
+  state: GraphBuildState,
+): void {
+  constraints?.forEach((constraint: GConstraint, index: number): void => {
+    registerId(modelId, constraint.id, path.index(index).property('id'), seen, state);
+  });
+}
+
+function registerId(modelId: Id, id: Id, path: DiagnosticPath, seen: Set<Id>, state: GraphBuildState): void {
+  if (seen.has(id)) {
+    state.diagnostics.push(error('DUPLICATE_ELEMENT_ID', `Duplicate element id '${id}' in model '${modelId}'.`, path));
+  }
+  seen.add(id);
+}
+
+function validateModelRefs(state: GraphBuildState): void {
   for (const modelId of state.reachableModelIds) {
     const model: GModel | undefined = state.modelsById.get(modelId);
     if (!model) continue;
 
-    model.classifiers.forEach((classifier, classifierIndex) => {
-      const path = DiagnosticPath.root().property('models').property(modelId).property('classifiers').index(classifierIndex);
-      if (classifier.kind === 'GNode') validateNodeModelReferences(modelId, classifier, path, state);
+    model.classifiers.forEach((classifier: GClassifier, classifierIndex: number): void => {
+      const path: DiagnosticPath = DiagnosticPath.root()
+        .property('models')
+        .property(modelId)
+        .property('classifiers')
+        .index(classifierIndex);
+      if (classifier.kind === 'GNode') validateNodeModelRefs(modelId, classifier, path, state);
     });
 
-    model.relations.forEach((relation, relationIndex) => {
-      const path = DiagnosticPath.root().property('models').property(modelId).property('relations').index(relationIndex);
-      relation.superTypes.forEach((ref, index) =>
-        validateModelReference(modelId, ref, 'relation', path.property('superTypes').index(index), state),
+    model.relations.forEach((relation: GRelation, relationIndex: number): void => {
+      const path: DiagnosticPath = DiagnosticPath.root()
+        .property('models')
+        .property(modelId)
+        .property('relations')
+        .index(relationIndex);
+      relation.superTypes.forEach((ref: Ref, index: number): void =>
+        validateModelRef(modelId, ref, 'relation', path.property('superTypes').index(index), state),
       );
-      validateModelReference(modelId, relation.from.nodeId, 'node', path.property('from').property('nodeId'), state);
-      validateModelReference(modelId, relation.to.nodeId, 'node', path.property('to').property('nodeId'), state);
+      validateModelRef(modelId, relation.from.nodeId, 'node', path.property('from').property('nodeId'), state);
+      validateModelRef(modelId, relation.to.nodeId, 'node', path.property('to').property('nodeId'), state);
     });
   }
 }
 
-function validateNodeModelReferences(modelId: Id, node: GNode, path: DiagnosticPath, state: GraphBuildState): void {
-  node.superTypes.forEach((ref, index) =>
-    validateModelReference(modelId, ref, 'node', path.property('superTypes').index(index), state),
+function validateNodeModelRefs(modelId: Id, node: GNode, path: DiagnosticPath, state: GraphBuildState): void {
+  node.superTypes.forEach((ref: Ref, index: number): void =>
+    validateModelRef(modelId, ref, 'node', path.property('superTypes').index(index), state),
   );
-  node.attributes.forEach((attribute, index) => {
+  node.attributes.forEach((attribute, index: number): void => {
     if (BuiltinDataTypes.isBuiltin(attribute.typeId)) return;
-    validateModelReference(
-      modelId,
-      attribute.typeId,
-      'dataType',
-      path.property('attributes').index(index).property('typeId'),
-      state,
-    );
+    validateModelRef(modelId, attribute.typeId, 'dataType', path.property('attributes').index(index).property('typeId'), state);
   });
 }
 
 type ExpectedElementKind = 'node' | 'dataType' | 'relation';
 
-function validateModelReference(
+function validateModelRef(
   ownerModelId: Id,
   reference: Ref,
   expectedKind: ExpectedElementKind,
   path: DiagnosticPath,
   state: GraphBuildState,
 ): void {
-  const target = ModelReference.isQualified(reference)
-    ? ModelReference.splitQualified(reference)
+  const target: ResolvedRef = ModelRef.isQualified(reference)
+    ? ModelRef.splitQualified(reference)
     : { modelId: ownerModelId, refId: reference };
 
   if (!state.reachableModelIds.has(target.modelId)) {
@@ -238,7 +308,11 @@ function validateInheritanceCycles(state: GraphBuildState): void {
   const completed: Set<string> = new Set<string>();
   const active: string[] = [];
 
-  const visit = (kind: 'node' | 'relation', modelId: Id, elementId: Id): void => {
+  const visit: (kind: 'node' | 'relation', modelId: Id, elementId: Id) => void = (
+    kind: 'node' | 'relation',
+    modelId: Id,
+    elementId: Id,
+  ): void => {
     const key: string = `${kind}:${modelId}:${elementId}`;
     if (completed.has(key)) return;
     const cycleStart: number = active.indexOf(key);
@@ -252,8 +326,8 @@ function validateInheritanceCycles(state: GraphBuildState): void {
     if (!element) return;
     active.push(key);
     for (const superType of element.superTypes) {
-      const target = ModelReference.isQualified(superType)
-        ? ModelReference.splitQualified(superType)
+      const target: ResolvedRef = ModelRef.isQualified(superType)
+        ? ModelRef.splitQualified(superType)
         : { modelId, refId: superType };
       visit(kind, target.modelId, target.refId);
     }

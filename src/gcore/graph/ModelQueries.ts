@@ -1,8 +1,8 @@
 import { GDataType, GModel, GNode, GRelation, Id } from '../model/ModelTypes';
-import { ModelElementIndex } from '../graph/ModelElementIndex';
-import { QualifiedParts, ModelReference } from '../reference/ModelReference';
-import { NodeInheritanceResolver, ResolvedNode } from '../resolution/NodeInheritanceResolver';
-import { ImportClosureResolver } from '../resolution/ImportClosureResolver';
+import { ModelElementIndex } from './ModelElementIndex';
+import { QualifiedParts, ModelRef } from './ModelRef';
+import { NodeInheritance, ResolvedNode } from './NodeInheritance';
+import { ImportClosure } from './ImportClosure';
 
 export type Direction = 'OUT' | 'IN';
 export interface SelectableRelation {
@@ -25,7 +25,7 @@ export class ModelQueries {
     modelsById: ReadonlyMap<Id, GModel>,
   ): readonly ResolvedNode[] {
     try {
-      return NodeInheritanceResolver.resolveSuperTypeChain(startModelId, startNodeId, modelsById);
+      return NodeInheritance.resolveSuperTypeChain(startModelId, startNodeId, modelsById);
     } catch (error: unknown) {
       console.error(error);
       return [];
@@ -37,7 +37,7 @@ export class ModelQueries {
     const groupedNodes: Map<Id, GNode[]> = new Map<Id, GNode[]>();
 
     for (const node of modelIndex.nodesById.values()) {
-      const superType: QualifiedParts | null = NodeInheritanceResolver.resolveLocalSuperType(node.superTypes, base.id);
+      const superType: QualifiedParts | null = NodeInheritance.resolveLocalSuperType(node.superTypes, base.id);
       if (!superType) continue;
 
       const refId: Id = superType.refId;
@@ -69,7 +69,7 @@ export class ModelQueries {
     const node: GNode | undefined = modelIndex.nodesById.get(nodeId);
     if (!node) return [];
 
-    const superType: QualifiedParts | null = NodeInheritanceResolver.resolveLocalSuperType(node.superTypes, base.id);
+    const superType: QualifiedParts | null = NodeInheritance.resolveLocalSuperType(node.superTypes, base.id);
     if (!superType) return [];
 
     const baseNodeId: Id = superType.refId;
@@ -120,7 +120,7 @@ export class ModelQueries {
     const allowed: GNode[] = [];
 
     for (const node of modelIndex.nodesById.values()) {
-      const superType: QualifiedParts | null = NodeInheritanceResolver.resolveLocalSuperType(node.superTypes, base.id);
+      const superType: QualifiedParts | null = NodeInheritance.resolveLocalSuperType(node.superTypes, base.id);
       if (!superType) continue;
       if (superType.refId === expectedFromBaseId) allowed.push(node);
     }
@@ -139,7 +139,7 @@ export class ModelQueries {
     const allowed: GNode[] = [];
 
     for (const node of modelIndex.nodesById.values()) {
-      const superType: QualifiedParts | null = NodeInheritanceResolver.resolveLocalSuperType(node.superTypes, base.id);
+      const superType: QualifiedParts | null = NodeInheritance.resolveLocalSuperType(node.superTypes, base.id);
       if (!superType) continue;
       if (superType.refId === expectedToBaseId) allowed.push(node);
     }
@@ -154,7 +154,7 @@ export class ModelQueries {
   }
 
   public static listGlobalDataTypes(model: GModel, modelsById: ReadonlyMap<Id, GModel>): readonly GDataType[] {
-    const closures: readonly GModel[] = ImportClosureResolver.resolveImports(model.id, modelsById);
+    const closures: readonly GModel[] = ImportClosure.resolveImports(model.id, modelsById);
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
     const available: GDataType[] = [...modelIndex.dataTypesById.values()];
 
@@ -163,7 +163,7 @@ export class ModelQueries {
 
       const index: ModelElementIndex = new ModelElementIndex(closure);
       for (const dataType of index.dataTypesById.values()) {
-        available.push({ ...dataType, id: ModelReference.qualify(closure.id, dataType.id) });
+        available.push({ ...dataType, id: ModelRef.qualify(closure.id, dataType.id) });
       }
     }
     return available.sort((a: GDataType, b: GDataType): number => a.name.localeCompare(b.name));

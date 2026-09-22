@@ -3,8 +3,8 @@ import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic
 import { VALIDATION_ERROR } from '../ValidationErrorCode';
 import { ValidationContext } from '../SemanticValidator';
 import { ModelSemantics } from '../ModelSemantics';
-import { QualifiedParts } from '../../reference/ModelReference';
-import { NodeInheritanceResolver } from '../../resolution/NodeInheritanceResolver';
+import { QualifiedParts } from '../../graph/ModelRef';
+import { NodeInheritance } from '../../graph/NodeInheritance';
 import { AbstractRules } from './AbstractRules';
 
 export class RelationEndRules extends AbstractRules {
@@ -112,7 +112,7 @@ export class RelationEndRules extends AbstractRules {
   ): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
 
-    const fromParts: QualifiedParts | null = NodeInheritanceResolver.resolveLocalSuperType(fromNode.superTypes, ctx.baseId);
+    const fromParts: QualifiedParts | null = NodeInheritance.resolveLocalSuperType(fromNode.superTypes, ctx.baseId);
     diagnostics.push(
       ...this.validateNodeHasBaseSuperType(
         fromParts,
@@ -124,7 +124,7 @@ export class RelationEndRules extends AbstractRules {
     );
     if (!fromParts) return diagnostics;
 
-    const toParts: QualifiedParts | null = NodeInheritanceResolver.resolveLocalSuperType(toNode.superTypes, ctx.baseId);
+    const toParts: QualifiedParts | null = NodeInheritance.resolveLocalSuperType(toNode.superTypes, ctx.baseId);
     diagnostics.push(
       ...this.validateNodeHasBaseSuperType(
         toParts,

@@ -1,6 +1,6 @@
 import { GModel, Id, Import } from '../model/ModelTypes';
 
-export class ImportClosureResolver {
+export class ImportClosure {
   public static resolveImports(startModelId: Id, modelsById: ReadonlyMap<Id, GModel>): readonly GModel[] {
     const result: GModel[] = [];
     const visited: Set<Id> = new Set<Id>();

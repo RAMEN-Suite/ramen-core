@@ -11,7 +11,7 @@ function derivedModel(): GModel {
     version: '1.0.0',
     kind: 'GModel',
     name: 'Project',
-    imports: [{ schemaId: RAMEN_MODEL.$id, modelId: RAMEN_MODEL.id, name: RAMEN_MODEL.name }],
+    imports: [{ schemaId: RAMEN_MODEL.$id, modelId: RAMEN_MODEL.id, version: RAMEN_MODEL.version, name: RAMEN_MODEL.name }],
     classifiers: [],
     relations: [],
   };
@@ -69,6 +69,7 @@ void test('project graph errors stop semantic validation', () => {
   project.imports.push({
     schemaId: 'https://example.org/missing',
     modelId: 'missingModel0001',
+    version: '1.0.0',
     name: 'Missing',
   });
 
@@ -83,4 +84,30 @@ void test('project graph errors stop semantic validation', () => {
 
   assert.equal(result.hasErrors, true);
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_MODEL_NOT_FOUND'));
+});
+
+void test('schema rejects imports without an exact model version', () => {
+  const project: GModel = derivedModel();
+  const invalid: unknown = {
+    ...project,
+    imports: [{ schemaId: RAMEN_MODEL.$id, modelId: RAMEN_MODEL.id }],
+  };
+  assert.equal(SchemaValidator.isValid(invalid), false);
+});
+
+void test('schema rejects nested model elements without stable ids', () => {
+  const project: GModel = derivedModel();
+  const invalid: unknown = {
+    ...project,
+    classifiers: [
+      {
+        kind: 'GNode',
+        id: 'schemaNode000001',
+        name: 'Document',
+        superTypes: [],
+        attributes: [{ name: 'title', typeId: 'String', bounds: { lowerBound: 1, upperBound: 1 } }],
+      },
+    ],
+  };
+  assert.equal(SchemaValidator.isValid(invalid), false);
 });

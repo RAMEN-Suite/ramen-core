@@ -1,3 +1,5 @@
+// Exact property inference is required by reference validation.
+// eslint-disable-next-line @typescript-eslint/typedef
 export const REGEXP = {
   // SemVer 2.0.0 (MAJOR.MINOR.PATCH) + optional pre-release + optional build metadata
   SEMANTIC_VER:

@@ -1,3 +1,5 @@
+// Exact diagnostic code inference is part of the validator contract.
+// eslint-disable-next-line @typescript-eslint/typedef
 export const VALIDATION_ERROR = {
   // Schema / parsing
   SCHEMA_INVALID: 'SCHEMA_INVALID',

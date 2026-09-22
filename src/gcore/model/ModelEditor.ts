@@ -1,6 +1,6 @@
-import { GAttribute, GClassifier, GDataType, GModel, GNode, GRelation, Id } from '../model/ModelTypes';
-import { NodeInheritanceResolver } from '../resolution/NodeInheritanceResolver';
-import { RelationDefinitionResolver } from '../resolution/RelationDefinitionResolver';
+import { GAttribute, GClassifier, GDataType, GModel, GNode, GRelation, Id } from './ModelTypes';
+import { NodeInheritance } from '../graph/NodeInheritance';
+import { RelationDefinitions } from '../graph/RelationDefinitions';
 
 export type UpdateNodeInput = Partial<Pick<GNode, 'name' | 'superTypes' | 'attributes'>>;
 export type UpdateDataTypeInput = Partial<Pick<GDataType, 'name' | 'literals'>>;
@@ -95,10 +95,10 @@ export class ModelEditor {
   public static addAttribute(model: GModel, nodeId: Id, attribute: GAttribute, modelsById: ReadonlyMap<Id, GModel>): GModel {
     const startModelId: Id = model.id;
 
-    const blockedNames: ReadonlySet<string> = NodeInheritanceResolver.resolveAttributeNames(startModelId, nodeId, modelsById);
+    const blockedNames: ReadonlySet<string> = NodeInheritance.resolveAttributeNames(startModelId, nodeId, modelsById);
     if (blockedNames.has(attribute.name)) throw new Error(`Attribute already exists: '${attribute.name}'`);
 
-    const roleNames: ReadonlySet<string> = RelationDefinitionResolver.resolveReservedRoleNames(startModelId, nodeId, modelsById);
+    const roleNames: ReadonlySet<string> = RelationDefinitions.resolveReservedRoleNames(startModelId, nodeId, modelsById);
     if (roleNames.has(attribute.name)) throw new Error(`Attribute reserved by role: '${attribute.name}'`);
 
     const classifiers: readonly GClassifier[] = model.classifiers ?? [];
@@ -128,11 +128,11 @@ export class ModelEditor {
     const newName: string = patch.name ?? name;
 
     if (newName !== name) {
-      const blocked: Set<string> = new Set<string>(NodeInheritanceResolver.resolveAttributeNames(model.id, nodeId, modelsById));
+      const blocked: Set<string> = new Set<string>(NodeInheritance.resolveAttributeNames(model.id, nodeId, modelsById));
       blocked.delete(name);
       if (blocked.has(newName)) throw new Error(`Attribute already exists: '${newName}'`);
 
-      const roleNames: ReadonlySet<string> = RelationDefinitionResolver.resolveReservedRoleNames(model.id, nodeId, modelsById);
+      const roleNames: ReadonlySet<string> = RelationDefinitions.resolveReservedRoleNames(model.id, nodeId, modelsById);
       if (roleNames.has(newName)) throw new Error(`Attribute reserved by role: '${newName}'`);
     }
 

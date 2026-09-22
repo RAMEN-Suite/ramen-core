@@ -33,10 +33,19 @@ export default defineConfig(
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       '@typescript-eslint/typedef': [
         'error',
-        { memberVariableDeclaration: true, parameter: true, propertyDeclaration: true, variableDeclaration: false },
+        { memberVariableDeclaration: true, parameter: true, propertyDeclaration: true, variableDeclaration: true },
       ],
       complexity: ['error', 12],
       'max-lines-per-function': ['error', { max: 40, skipBlankLines: true, skipComments: true, IIFEs: true }],
+    },
+  },
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/typedef': [
+        'error',
+        { memberVariableDeclaration: true, parameter: true, propertyDeclaration: true, variableDeclaration: false },
+      ],
     },
   },
   prettier,

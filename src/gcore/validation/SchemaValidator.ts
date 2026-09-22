@@ -1,5 +1,5 @@
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
-import schema from '../schema/gcore.json';
+import schema from '../model/gcore.schema.json';
 import { GModel } from '../model/ModelTypes';
 
 export class SchemaValidator {

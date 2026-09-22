@@ -2,7 +2,7 @@ import { GNode, Id, Ref } from '../../model/ModelTypes';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
 import { VALIDATION_ERROR } from '../ValidationErrorCode';
 import { ValidationContext } from '../SemanticValidator';
-import { QualifiedParts, ModelReference } from '../../reference/ModelReference';
+import { QualifiedParts, ModelRef } from '../../graph/ModelRef';
 import { AbstractRules } from './AbstractRules';
 
 export class NodeRules extends AbstractRules {
@@ -16,10 +16,10 @@ export class NodeRules extends AbstractRules {
     const superType: Ref | undefined = superTypes[0];
     if (superType === undefined) return diagnostics;
     diagnostics.push(...this.validateSuperTypeQualified(ctx, node, superType, classifierPath));
-    if (!ModelReference.isQualified(superType)) return diagnostics;
+    if (!ModelRef.isQualified(superType)) return diagnostics;
 
-    const parts: QualifiedParts = ModelReference.splitQualified(superType);
-    diagnostics.push(...this.validateSuperTypeModelReferencesBase(ctx, node, parts, classifierPath));
+    const parts: QualifiedParts = ModelRef.splitQualified(superType);
+    diagnostics.push(...this.validateSuperTypeModelRefsBase(ctx, node, parts, classifierPath));
     if (parts.modelId !== ctx.baseId) return diagnostics;
 
     diagnostics.push(...this.validateBaseNodeExists(ctx, parts.refId, classifierPath));
@@ -50,7 +50,7 @@ export class NodeRules extends AbstractRules {
     superType: Ref,
     classifierPath: DiagnosticPath,
   ): Diagnostic[] {
-    if (ModelReference.isQualified(superType)) return [];
+    if (ModelRef.isQualified(superType)) return [];
 
     return [
       Diagnostics.error({
@@ -62,7 +62,7 @@ export class NodeRules extends AbstractRules {
     ];
   }
 
-  private validateSuperTypeModelReferencesBase(
+  private validateSuperTypeModelRefsBase(
     ctx: ValidationContext,
     node: GNode,
     parts: QualifiedParts,

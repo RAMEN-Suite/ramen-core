@@ -2,45 +2,57 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ramen-schema.org/gcore/1.0.0/schema.json",
   "title": "GCore",
-
   "type": "object",
   "required": ["$schema", "$id", "id", "version", "kind", "name", "imports", "classifiers", "relations"],
   "additionalProperties": false,
-
   "properties": {
-    "$schema": { "type": "string", "format": "uri" },
-    "$id": { "type": "string", "format": "uri" },
-
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "$id": {
+      "type": "string",
+      "format": "uri"
+    },
     "id": {
       "$ref": "#/$defs/Id",
       "$comment": "Stable model identifier used for imports and versioning (independent of JSON Schema $id)."
     },
-    "version": { "$ref": "#/$defs/Version" },
-
-    "kind": { "const": "GModel" },
-    "name": { "type": "string", "minLength": 1, "$comment": "Human-readable name of the model." },
-
+    "version": {
+      "$ref": "#/$defs/Version"
+    },
+    "kind": {
+      "const": "GModel"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "$comment": "Human-readable name of the model."
+    },
     "imports": {
       "type": "array",
-      "items": { "$ref": "#/$defs/Import" },
+      "items": {
+        "$ref": "#/$defs/Import"
+      },
       "default": [],
       "$comment": "Imported models whose elements may be referenced via qualified ids."
     },
-
     "classifiers": {
       "type": "array",
-      "items": { "$ref": "#/$defs/GClassifier" },
+      "items": {
+        "$ref": "#/$defs/GClassifier"
+      },
       "default": [],
       "$comment": "Declared classifiers (node and datatype definitions)."
     },
-
     "relations": {
       "type": "array",
-      "items": { "$ref": "#/$defs/GRelation" },
+      "items": {
+        "$ref": "#/$defs/GRelation"
+      },
       "default": [],
       "$comment": "Declared relation types between node types."
     },
-
     "ext": {
       "type": "object",
       "additionalProperties": true,
@@ -48,9 +60,7 @@
       "$comment": "Tool-specific metadata; no semantic meaning."
     }
   },
-
   "$comment": "GCore: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modeling rather than full behavioral or reflective semantics.",
-
   "$defs": {
     "Id": {
       "type": "string",
@@ -58,48 +68,70 @@
       "minLength": 16,
       "$comment": "Stable local identifier (minimum length 16)."
     },
-
     "Version": {
       "type": "string",
       "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
       "$comment": "Semantic version string (MAJOR.MINOR.PATCH)."
     },
-
     "BuiltinType": {
       "type": "string",
       "enum": ["String", "Boolean", "Integer", "Float"],
       "$comment": "Built-in scalar datatypes."
     },
-
-    "LocalRef": { "$ref": "#/$defs/Id" },
+    "LocalRef": {
+      "$ref": "#/$defs/Id"
+    },
     "QualifiedRef": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,}$",
       "$comment": "Qualified reference into an imported model: 'modelId:id'."
     },
-
     "Ref": {
-      "oneOf": [{ "$ref": "#/$defs/LocalRef" }, { "$ref": "#/$defs/QualifiedRef" }],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LocalRef"
+        },
+        {
+          "$ref": "#/$defs/QualifiedRef"
+        }
+      ],
       "$comment": "Reference to a local or imported element."
     },
-
     "TypeRef": {
-      "oneOf": [{ "$ref": "#/$defs/BuiltinType" }, { "$ref": "#/$defs/Ref" }],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BuiltinType"
+        },
+        {
+          "$ref": "#/$defs/Ref"
+        }
+      ],
       "$comment": "Reference to a builtin or user-defined datatype."
     },
-
     "Import": {
       "type": "object",
-      "required": ["schemaId", "modelId"],
+      "required": ["schemaId", "modelId", "version"],
       "additionalProperties": false,
       "$comment": "Import declaration for another model.",
       "properties": {
-        "schemaId": { "type": "string", "format": "uri" },
-        "modelId": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string", "minLength": 1, "$comment": "Human-readable name of the model." }
+        "schemaId": {
+          "type": "string",
+          "format": "uri"
+        },
+        "modelId": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Human-readable name of the model."
+        },
+        "version": {
+          "$ref": "#/$defs/Version",
+          "$comment": "Exact imported model version required for reproducible resolution."
+        }
       }
     },
-
     "Bounds": {
       "type": "object",
       "required": ["lowerBound", "upperBound"],
@@ -118,29 +150,47 @@
         }
       }
     },
-
     "GConstraint": {
       "type": "object",
       "required": ["id", "name", "language", "expression"],
       "additionalProperties": false,
       "$comment": "Declarative semantic constraint evaluated by tools.",
       "properties": {
-        "id": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string" },
-        "language": { "type": "string" },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
         "expression": {
-          "oneOf": [{ "type": "string" }, { "type": "object" }]
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "severity": {
           "type": "string",
           "enum": ["error", "warn", "info"],
           "default": "error"
         },
-        "message": { "type": "string" },
-        "code": { "type": "string" },
+        "message": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
         "tags": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": []
         },
         "ext": {
@@ -150,39 +200,52 @@
         }
       }
     },
-
     "GClassifier": {
-      "oneOf": [{ "$ref": "#/$defs/GNode" }, { "$ref": "#/$defs/GDataType" }]
+      "oneOf": [
+        {
+          "$ref": "#/$defs/GNode"
+        },
+        {
+          "$ref": "#/$defs/GDataType"
+        }
+      ]
     },
-
     "GNode": {
       "type": "object",
       "required": ["kind", "id", "name", "superTypes", "attributes"],
       "additionalProperties": false,
       "$comment": "Node type (class) declaration.",
       "properties": {
-        "kind": { "const": "GNode" },
-        "id": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string" },
-
+        "kind": {
+          "const": "GNode"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
         "superTypes": {
           "type": "array",
-          "items": { "$ref": "#/$defs/Ref" },
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
           "default": []
         },
-
         "attributes": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GAttribute" },
+          "items": {
+            "$ref": "#/$defs/GAttribute"
+          },
           "default": []
         },
-
         "constraints": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GConstraint" },
+          "items": {
+            "$ref": "#/$defs/GConstraint"
+          },
           "default": []
         },
-
         "ext": {
           "type": "object",
           "additionalProperties": true,
@@ -190,29 +253,35 @@
         }
       }
     },
-
     "GDataType": {
       "type": "object",
       "required": ["kind", "id", "name"],
       "additionalProperties": false,
       "$comment": "User-defined datatype; if literals are present, this represents an enum.",
       "properties": {
-        "kind": { "const": "GDataType" },
-        "id": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string" },
-
+        "kind": {
+          "const": "GDataType"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
         "literals": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GLiteral" },
+          "items": {
+            "$ref": "#/$defs/GLiteral"
+          },
           "minItems": 1
         },
-
         "constraints": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GConstraint" },
+          "items": {
+            "$ref": "#/$defs/GConstraint"
+          },
           "default": []
         },
-
         "ext": {
           "type": "object",
           "additionalProperties": true,
@@ -220,19 +289,29 @@
         }
       }
     },
-
     "GLiteral": {
       "type": "object",
-      "required": ["name"],
+      "required": ["id", "name"],
       "additionalProperties": false,
       "$comment": "Enumeration literal.",
       "properties": {
-        "name": { "type": "string" },
-        "value": { "type": "integer" },
-        "literal": { "type": "string" },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer"
+        },
+        "literal": {
+          "type": "string"
+        },
         "constraints": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GConstraint" },
+          "items": {
+            "$ref": "#/$defs/GConstraint"
+          },
           "default": []
         },
         "ext": {
@@ -242,47 +321,51 @@
         }
       }
     },
-
     "GAttribute": {
       "type": "object",
-      "required": ["name", "typeId", "bounds"],
+      "required": ["id", "name", "typeId", "bounds"],
       "additionalProperties": false,
       "$comment": "Structural attribute (property) of a node type.",
       "properties": {
-        "name": { "type": "string" },
-        "typeId": { "$ref": "#/$defs/TypeRef" },
-        "bounds": { "$ref": "#/$defs/Bounds" },
-
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "typeId": {
+          "$ref": "#/$defs/TypeRef"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        },
         "isKey": {
           "type": "boolean",
           "default": false,
           "$comment": "Marks this attribute as identifying."
         },
-
         "isReadOnly": {
           "type": "boolean",
           "default": false,
           "$comment": "Value cannot be modified generally."
         },
-
         "isOrdered": {
           "type": "boolean",
           "default": true,
           "$comment": "Order matters for multi-valued attributes."
         },
-
         "isUnique": {
           "type": "boolean",
           "default": true,
           "$comment": "Duplicate values are not allowed for multi-valued attributes."
         },
-
         "constraints": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GConstraint" },
+          "items": {
+            "$ref": "#/$defs/GConstraint"
+          },
           "default": []
         },
-
         "ext": {
           "type": "object",
           "additionalProperties": true,
@@ -290,33 +373,42 @@
         }
       }
     },
-
     "GRelation": {
       "type": "object",
       "required": ["kind", "id", "superTypes", "name", "from", "to"],
       "additionalProperties": false,
       "$comment": "Relation type connecting node types.",
       "properties": {
-        "kind": { "const": "GRelation" },
-        "id": { "$ref": "#/$defs/Id" },
-
+        "kind": {
+          "const": "GRelation"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
         "superTypes": {
           "type": "array",
-          "items": { "$ref": "#/$defs/Ref" },
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
           "default": []
         },
-
-        "name": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
-
-        "from": { "$ref": "#/$defs/RelationEnd" },
-        "to": { "$ref": "#/$defs/RelationEnd" },
-
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "from": {
+          "$ref": "#/$defs/RelationEnd"
+        },
+        "to": {
+          "$ref": "#/$defs/RelationEnd"
+        },
         "constraints": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GConstraint" },
+          "items": {
+            "$ref": "#/$defs/GConstraint"
+          },
           "default": []
         },
-
         "ext": {
           "type": "object",
           "additionalProperties": true,
@@ -324,35 +416,41 @@
         }
       }
     },
-
     "RelationEnd": {
       "type": "object",
-      "required": ["nodeId", "role", "bounds"],
+      "required": ["id", "nodeId", "role", "bounds"],
       "additionalProperties": false,
       "$comment": "Association end with role name and multiplicity.",
       "properties": {
-        "nodeId": { "$ref": "#/$defs/Ref" },
-        "role": { "type": "string" },
-        "bounds": { "$ref": "#/$defs/Bounds" },
-
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "nodeId": {
+          "$ref": "#/$defs/Ref"
+        },
+        "role": {
+          "type": "string"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        },
         "isComposite": {
           "type": "boolean",
           "default": false,
           "$comment": "Composition/containment: this end is the owning (whole) end. Typically only one end is composite."
         },
-
         "isNavigable": {
           "type": "boolean",
           "default": false,
           "$comment": "Controls navigability of this relation end only."
         },
-
         "constraints": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GConstraint" },
+          "items": {
+            "$ref": "#/$defs/GConstraint"
+          },
           "default": []
         },
-
         "ext": {
           "type": "object",
           "additionalProperties": true,

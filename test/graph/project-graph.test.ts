@@ -18,7 +18,7 @@ function model(id: string, imports: readonly string[] = [], classifiers: GModel[
     version: '1.0.0',
     kind: 'GModel',
     name: id,
-    imports: imports.map((modelId) => ({ schemaId: `https://example.org/${modelId}`, modelId })),
+    imports: imports.map((modelId) => ({ schemaId: `https://example.org/${modelId}`, modelId, version: '1.0.0' })),
     classifiers: [...classifiers],
     relations: [],
   };
@@ -155,7 +155,7 @@ void test('resolves custom data types and relation endpoints', () => {
       { kind: 'GDataType', id: dataTypeId, name: 'Status' },
       {
         ...node(sourceId),
-        attributes: [{ name: 'status', typeId: dataTypeId, bounds: { lowerBound: 1, upperBound: 1 } }],
+        attributes: [{ id: 'statusAttr000001', name: 'status', typeId: dataTypeId, bounds: { lowerBound: 1, upperBound: 1 } }],
       },
       node(targetId),
     ],
@@ -165,8 +165,8 @@ void test('resolves custom data types and relation endpoints', () => {
     id: relationId,
     name: 'links',
     superTypes: [],
-    from: { nodeId: sourceId, role: 'source', bounds: { lowerBound: 1, upperBound: 1 } },
-    to: { nodeId: targetId, role: 'target', bounds: { lowerBound: 0, upperBound: -1 } },
+    from: { id: 'sourceEnd0000001', nodeId: sourceId, role: 'source', bounds: { lowerBound: 1, upperBound: 1 } },
+    to: { id: 'targetEnd0000001', nodeId: targetId, role: 'target', bounds: { lowerBound: 0, upperBound: -1 } },
   });
 
   const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
@@ -208,4 +208,37 @@ void test('reports an import schema URI that does not match its target model', (
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_SCHEMA_ID_MISMATCH'));
+});
+
+void test('reports an imported model version mismatch', () => {
+  const base = model(BASE_ID);
+  const root = model(ROOT_ID, [BASE_ID]);
+  const firstImport = root.imports[0];
+  assert.ok(firstImport);
+  firstImport.version = '2.0.0';
+  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_VERSION_MISMATCH'));
+});
+
+void test('reports duplicate ids on nested model elements', () => {
+  const duplicateId: string = 'nestedDuplicate01';
+  const owner = node(NODE_ID);
+  owner.attributes.push({
+    id: duplicateId,
+    name: 'first',
+    typeId: 'String',
+    bounds: { lowerBound: 0, upperBound: 1 },
+  });
+  owner.attributes.push({
+    id: duplicateId,
+    name: 'second',
+    typeId: 'String',
+    bounds: { lowerBound: 0, upperBound: 1 },
+  });
+  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [model(ROOT_ID, [], [owner])] });
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'DUPLICATE_ELEMENT_ID'));
 });

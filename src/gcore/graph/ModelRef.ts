@@ -1,4 +1,4 @@
-import { REGEXP } from './GCorePatterns';
+import { REGEXP } from '../model/GCorePatterns';
 import { Id, QualifiedRef, Ref } from '../model/ModelTypes';
 
 export interface QualifiedParts {
@@ -6,13 +6,13 @@ export interface QualifiedParts {
   readonly refId: Id;
 }
 
-export class ModelReference {
+export class ModelRef {
   public static isQualified(ref: Ref): boolean {
     return REGEXP.QUALIFIED_REF.test(ref);
   }
 
   public static splitQualified(ref: QualifiedRef): QualifiedParts {
-    if (!ModelReference.isQualified(ref)) {
+    if (!ModelRef.isQualified(ref)) {
       throw new Error(`Invalid QualifiedRef: '${ref}'`);
     }
 

@@ -1,7 +1,19 @@
-import { Bounds, GAttribute, GConstraint, GDataType, GModel, GNode, GRelation, Id, TypeRef } from '../model/ModelTypes';
+import {
+  Bounds,
+  GAttribute,
+  GConstraint,
+  GDataType,
+  GLiteral,
+  GModel,
+  GNode,
+  GRelation,
+  Id,
+  RelationEnd,
+  TypeRef,
+} from './ModelTypes';
 import { SchemaValidator } from '../validation/SchemaValidator';
 import ShortUniqueId from 'short-unique-id';
-import { ModelReference } from '../reference/ModelReference';
+import { ModelRef } from '../graph/ModelRef';
 import { ModelElementIndex } from '../graph/ModelElementIndex';
 
 export interface CreateModelInput {
@@ -42,7 +54,7 @@ export interface ConnectedNode {
   readonly relations: readonly GRelation[];
 }
 
-export class ModelElementFactory {
+export class ModelFactory {
   public static createModel(base: GModel, input: CreateModelInput): GModel {
     const schemaId: string | undefined = SchemaValidator.getSchemaNode().$id;
     if (!schemaId) throw new Error('GCore schema has no $id.');
@@ -59,6 +71,7 @@ export class ModelElementFactory {
         {
           schemaId: base.$id,
           modelId: base.id,
+          version: base.version,
           name: base.name,
         },
       ],
@@ -74,7 +87,7 @@ export class ModelElementFactory {
       kind: 'GNode',
       id: this.createIdentifier(),
       name: input.name,
-      superTypes: [ModelReference.qualify(baseId, input.baseNodeId)],
+      superTypes: [ModelRef.qualify(baseId, input.baseNodeId)],
       attributes: [],
       constraints: [],
       ext: {},
@@ -83,6 +96,7 @@ export class ModelElementFactory {
 
   public static createAttribute(input: CreateAttributeInput): GAttribute {
     return {
+      id: this.createIdentifier(),
       name: input.name,
       typeId: input.typeId,
       bounds: input.bounds,
@@ -114,9 +128,10 @@ export class ModelElementFactory {
     return {
       kind: 'GRelation',
       id: this.createIdentifier(),
-      superTypes: [ModelReference.qualify(baseId, input.baseRelationId)],
+      superTypes: [ModelRef.qualify(baseId, input.baseRelationId)],
       name: baseRelation.name,
       from: {
+        id: this.createIdentifier(),
         nodeId: input.fromNodeId,
         role: baseRelation.from.role,
         bounds: { ...baseRelation.from.bounds },
@@ -124,6 +139,7 @@ export class ModelElementFactory {
         ext: {},
       },
       to: {
+        id: this.createIdentifier(),
         nodeId: input.toNodeId,
         role: baseRelation.to.role,
         bounds: { ...baseRelation.to.bounds },
@@ -145,7 +161,7 @@ export class ModelElementFactory {
     };
     cloned.constraints = cloned.constraints?.map(constraintFn);
     cloned.attributes = cloned.attributes.map((attribute: GAttribute): GAttribute => {
-      return { ...attribute, constraints: attribute.constraints?.map(constraintFn) };
+      return { ...attribute, id: this.createIdentifier(), constraints: attribute.constraints?.map(constraintFn) };
     });
 
     return cloned;
@@ -165,6 +181,8 @@ export class ModelElementFactory {
 
       const clonedRelation: GRelation = structuredClone(relation);
       clonedRelation.id = this.createIdentifier();
+      clonedRelation.from.id = this.createIdentifier();
+      clonedRelation.to.id = this.createIdentifier();
 
       if (clonedRelation.from.nodeId === sourceNodeId) clonedRelation.from.nodeId = clonedNode.id;
       if (clonedRelation.to.nodeId === sourceNodeId) clonedRelation.to.nodeId = clonedNode.id;
@@ -181,6 +199,28 @@ export class ModelElementFactory {
     }
 
     return { node: clonedNode, relations: related };
+  }
+
+  public static createLiteral(name: string, literal?: string, value?: number): GLiteral {
+    return {
+      id: this.createIdentifier(),
+      name: name,
+      literal: literal,
+      value: value,
+      constraints: [],
+      ext: {},
+    };
+  }
+
+  public static createRelationEnd(nodeId: Id, role: string, bounds: Bounds): RelationEnd {
+    return {
+      id: this.createIdentifier(),
+      nodeId: nodeId,
+      role: role,
+      bounds: { ...bounds },
+      constraints: [],
+      ext: {},
+    };
   }
 
   public static createIdentifier(): string {

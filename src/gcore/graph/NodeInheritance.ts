@@ -1,21 +1,21 @@
 import { GAttribute, GModel, GNode, Id, Ref } from '../model/ModelTypes';
-import { QualifiedParts, ModelReference } from '../reference/ModelReference';
-import { ModelElementIndex } from '../graph/ModelElementIndex';
+import { QualifiedParts, ModelRef } from './ModelRef';
+import { ModelElementIndex } from './ModelElementIndex';
 
 export interface ResolvedNode {
   readonly modelId: Id;
   readonly node: GNode;
 }
 
-export class NodeInheritanceResolver {
+export class NodeInheritance {
   public static resolveLocalSuperType(superTypes: readonly Ref[], baseModelId: Id): QualifiedParts | null {
     if (superTypes.length !== 1) return null;
 
     const ref: Ref | undefined = superTypes[0];
     if (ref === undefined) return null;
-    if (!ModelReference.isQualified(ref)) return null;
+    if (!ModelRef.isQualified(ref)) return null;
 
-    const parts: QualifiedParts = ModelReference.splitQualified(ref);
+    const parts: QualifiedParts = ModelRef.splitQualified(ref);
     if (parts.modelId !== baseModelId) return null;
 
     return parts;
@@ -51,8 +51,8 @@ export class NodeInheritanceResolver {
       if (superTypes.length !== 1) throw Error(`Invalid superTypes for '${currentNodeId}' expected(1).`);
       const superType: Ref = superTypes[0];
 
-      if (ModelReference.isQualified(superType)) {
-        const parts: QualifiedParts = ModelReference.splitQualified(superType);
+      if (ModelRef.isQualified(superType)) {
+        const parts: QualifiedParts = ModelRef.splitQualified(superType);
         currentModelId = parts.modelId;
         currentNodeId = parts.refId;
       } else currentNodeId = superType;

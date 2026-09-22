@@ -1,8 +1,8 @@
 import { GModel, GRelation, Id, Ref } from '../model/ModelTypes';
-import { QualifiedParts, ModelReference } from '../reference/ModelReference';
-import { ModelElementIndex } from '../graph/ModelElementIndex';
+import { QualifiedParts, ModelRef } from './ModelRef';
+import { ModelElementIndex } from './ModelElementIndex';
 
-export class RelationDefinitionResolver {
+export class RelationDefinitions {
   public static resolveReservedRoleNames(startModelId: Id, nodeId: Id, modelsById: ReadonlyMap<Id, GModel>): ReadonlySet<string> {
     const reserved: Set<string> = new Set<string>();
 
@@ -24,9 +24,9 @@ export class RelationDefinitionResolver {
 
     const superType: Ref | undefined = superTypes[0];
     if (superType === undefined) return null;
-    if (!ModelReference.isQualified(superType)) return null;
+    if (!ModelRef.isQualified(superType)) return null;
 
-    const parts: QualifiedParts = ModelReference.splitQualified(superType);
+    const parts: QualifiedParts = ModelRef.splitQualified(superType);
     if (parts.modelId !== baseModelId) return null;
 
     return parts.refId;

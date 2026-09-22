@@ -1,5 +1,5 @@
 import { Bounds, GRelation } from '../model/ModelTypes';
-import { ModelReference } from '../reference/ModelReference';
+import { ModelRef } from '../graph/ModelRef';
 
 export class ModelSemantics {
   public static readonly UNBOUNDED: -1 = -1;
@@ -19,6 +19,6 @@ export class ModelSemantics {
   }
 
   public static areRelationEndsLocal(relation: GRelation): boolean {
-    return !ModelReference.isQualified(relation.from.nodeId) && !ModelReference.isQualified(relation.to.nodeId);
+    return !ModelRef.isQualified(relation.from.nodeId) && !ModelRef.isQualified(relation.to.nodeId);
   }
 }

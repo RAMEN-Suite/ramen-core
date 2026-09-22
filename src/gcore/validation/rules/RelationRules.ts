@@ -2,7 +2,7 @@ import { GRelation, Id, Ref } from '../../model/ModelTypes';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
 import { VALIDATION_ERROR } from '../ValidationErrorCode';
 import { ValidationContext } from '../SemanticValidator';
-import { QualifiedParts, ModelReference } from '../../reference/ModelReference';
+import { QualifiedParts, ModelRef } from '../../graph/ModelRef';
 import { AbstractRules } from './AbstractRules';
 import { RelationEndRules } from './RelationEndRules';
 
@@ -76,10 +76,10 @@ export class RelationRules extends AbstractRules {
     const superType: Ref | undefined = superTypes[0];
     if (superType === undefined) return { baseRelationId: null, diagnostics };
     diagnostics.push(...this.validateRelationSuperTypeQualified(ctx, relation, superType, relationPath));
-    if (!ModelReference.isQualified(superType)) return { baseRelationId: null, diagnostics };
+    if (!ModelRef.isQualified(superType)) return { baseRelationId: null, diagnostics };
 
-    const parts: QualifiedParts = ModelReference.splitQualified(superType);
-    diagnostics.push(...this.validateRelationSuperTypeModelReferencesBase(ctx, relation, parts, relationPath));
+    const parts: QualifiedParts = ModelRef.splitQualified(superType);
+    diagnostics.push(...this.validateRelationSuperTypeModelRefsBase(ctx, relation, parts, relationPath));
     if (parts.modelId !== ctx.baseId) return { baseRelationId: null, diagnostics };
 
     return { baseRelationId: parts.refId, diagnostics };
@@ -109,7 +109,7 @@ export class RelationRules extends AbstractRules {
     superType: Ref,
     relationPath: DiagnosticPath,
   ): Diagnostic[] {
-    if (ModelReference.isQualified(superType)) return [];
+    if (ModelRef.isQualified(superType)) return [];
 
     return [
       Diagnostics.error({
@@ -121,7 +121,7 @@ export class RelationRules extends AbstractRules {
     ];
   }
 
-  private validateRelationSuperTypeModelReferencesBase(
+  private validateRelationSuperTypeModelRefsBase(
     ctx: ValidationContext,
     relation: GRelation,
     parts: QualifiedParts,

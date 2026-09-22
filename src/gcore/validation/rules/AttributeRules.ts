@@ -5,10 +5,10 @@ import { ValidationContext } from '../SemanticValidator';
 import { ModelSemantics } from '../ModelSemantics';
 import { AbstractRules } from './AbstractRules';
 import { BuiltinDataTypes } from '../../model/BuiltinDataTypes';
-import { QualifiedParts, ModelReference } from '../../reference/ModelReference';
-import { ImportClosureResolver } from '../../resolution/ImportClosureResolver';
+import { QualifiedParts, ModelRef } from '../../graph/ModelRef';
+import { ImportClosure } from '../../graph/ImportClosure';
 import { ModelElementIndex } from '../../graph/ModelElementIndex';
-import { NodeInheritanceResolver, ResolvedNode } from '../../resolution/NodeInheritanceResolver';
+import { NodeInheritance, ResolvedNode } from '../../graph/NodeInheritance';
 
 export class AttributeRules extends AbstractRules {
   public validate(ctx: ValidationContext, node: GNode, classifierPath: DiagnosticPath): Diagnostic[] {
@@ -166,7 +166,7 @@ export class AttributeRules extends AbstractRules {
   private resolveInheritedAttributeNames(ctx: ValidationContext, nodeId: Id): ReadonlySet<string> {
     const names: Set<string> = new Set<string>();
     const startModelId: Id = ctx.derivedIndex.model.id;
-    const chain: readonly ResolvedNode[] = NodeInheritanceResolver.resolveSuperTypeChain(startModelId, nodeId, ctx.models);
+    const chain: readonly ResolvedNode[] = NodeInheritance.resolveSuperTypeChain(startModelId, nodeId, ctx.models);
 
     for (const item of chain) {
       for (const attribute of item.node.attributes ?? []) {
@@ -178,10 +178,10 @@ export class AttributeRules extends AbstractRules {
 
   private isTypeRefResolvable(ctx: ValidationContext, typeRef: TypeRef): boolean {
     if (BuiltinDataTypes.isBuiltin(typeRef)) return true;
-    if (!ModelReference.isQualified(typeRef)) return ctx.derivedIndex.dataTypesById.has(typeRef);
+    if (!ModelRef.isQualified(typeRef)) return ctx.derivedIndex.dataTypesById.has(typeRef);
 
-    const parts: QualifiedParts = ModelReference.splitQualified(typeRef);
-    const closure: readonly GModel[] = ImportClosureResolver.resolveImports(ctx.derivedIndex.model.id, ctx.models);
+    const parts: QualifiedParts = ModelRef.splitQualified(typeRef);
+    const closure: readonly GModel[] = ImportClosure.resolveImports(ctx.derivedIndex.model.id, ctx.models);
 
     const allowedModelIds: Set<Id> = new Set<Id>(closure.map((m: GModel): Id => m.id));
     if (!allowedModelIds.has(parts.modelId)) return false;
@@ -189,7 +189,7 @@ export class AttributeRules extends AbstractRules {
     const targetModel: GModel | undefined = ctx.models.get(parts.modelId);
     if (!targetModel) return false;
 
-    const targetIndex = new ModelElementIndex(targetModel);
+    const targetIndex: ModelElementIndex = new ModelElementIndex(targetModel);
     return targetIndex.dataTypesById.has(parts.refId);
   }
 }

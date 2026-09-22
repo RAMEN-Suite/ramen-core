@@ -1,4 +1,4 @@
-import { GDataType, GModel, GNode, GRelation, Id } from '../model/ModelTypes';
+import { GDataType, GModel, GNode, GRelation, Id } from '../model/Types';
 
 export class ModelElementIndex {
   public readonly importsByModelId: ReadonlyMap<Id, string>;

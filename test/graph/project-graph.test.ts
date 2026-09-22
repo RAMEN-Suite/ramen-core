@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createProjectGraph } from '../../dist/index.js';
+import { buildProjectGraph } from '../../dist/index.js';
 import type { GModel, GNode } from '../../dist/index.js';
 
 const SCHEMA = 'https://ramen-schema.org/gcore/1.0.0/schema.json';
@@ -33,7 +33,7 @@ void test('builds a graph for a model chain and resolves an imported node', () =
   const middle = model(MIDDLE_ID, [BASE_ID]);
   const root = model(ROOT_ID, [MIDDLE_ID], [node(CHILD_ID, [`${BASE_ID}:${NODE_ID}`])]);
 
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, middle, base] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, middle, base] });
 
   assert.equal(result.ok, true);
   if (!result.ok) return;
@@ -56,19 +56,19 @@ void test('accepts a diamond import graph without reporting a cycle', () => {
   const right = model(rightId, [BASE_ID]);
   const root = model(ROOT_ID, [leftId, rightId]);
 
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, left, right, base] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, left, right, base] });
   assert.equal(result.ok, true);
 });
 
 void test('reports a missing root model', () => {
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.diagnostics[0]?.code, 'PROJECT_ROOT_NOT_FOUND');
 });
 
 void test('reports duplicate model identifiers', () => {
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [model(ROOT_ID), model(ROOT_ID)] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [model(ROOT_ID), model(ROOT_ID)] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.diagnostics[0]?.code, 'DUPLICATE_MODEL_ID');
@@ -76,7 +76,7 @@ void test('reports duplicate model identifiers', () => {
 
 void test('reports a missing imported model with its source path', () => {
   const root = model(ROOT_ID, [BASE_ID]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.diagnostics[0]?.code, 'IMPORTED_MODEL_NOT_FOUND');
@@ -86,7 +86,7 @@ void test('reports a missing imported model with its source path', () => {
 void test('reports an import cycle and includes the cycle in its message', () => {
   const root = model(ROOT_ID, [BASE_ID]);
   const base = model(BASE_ID, [ROOT_ID]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.diagnostics[0]?.code, 'IMPORT_CYCLE');
@@ -96,7 +96,7 @@ void test('reports an import cycle and includes the cycle in its message', () =>
 void test('reports duplicate element identifiers across element kinds', () => {
   const duplicateId = 'duplicateElement1';
   const root = model(ROOT_ID, [], [node(duplicateId), { kind: 'GDataType', id: duplicateId, name: 'Duplicate' }]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'DUPLICATE_ELEMENT_ID'));
@@ -104,7 +104,7 @@ void test('reports duplicate element identifiers across element kinds', () => {
 
 void test('reports unresolved references', () => {
   const root = model(ROOT_ID, [], [node(CHILD_ID, [NODE_ID])]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'ELEMENT_REFERENCE_NOT_FOUND'));
@@ -114,7 +114,7 @@ void test('reports references to models outside the root import closure', () => 
   const unrelatedId = 'otherModel000001';
   const root = model(ROOT_ID, [], [node(CHILD_ID, [`${unrelatedId}:${NODE_ID}`])]);
   const unrelated = model(unrelatedId, [], [node(NODE_ID)]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, unrelated] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, unrelated] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'REFERENCE_MODEL_NOT_REACHABLE'));
@@ -123,7 +123,7 @@ void test('reports references to models outside the root import closure', () => 
 void test('reports a reference that resolves to the wrong element kind', () => {
   const typeId = 'dataType00000001';
   const root = model(ROOT_ID, [], [{ kind: 'GDataType', id: typeId, name: 'Type' }, node(CHILD_ID, [typeId])]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'ELEMENT_REFERENCE_KIND_MISMATCH'));
@@ -137,7 +137,7 @@ void test('resolves a chain across four model levels', () => {
   const levelThree = model(levelThreeId, [levelTwoId]);
   const root = model(ROOT_ID, [levelThreeId], [node(CHILD_ID, [`${BASE_ID}:${NODE_ID}`])]);
 
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, levelThree, levelTwo, base] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, levelThree, levelTwo, base] });
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.graph.getModels().length, 4);
@@ -169,7 +169,7 @@ void test('resolves custom data types and relation endpoints', () => {
     to: { id: 'targetEnd0000001', nodeId: targetId, role: 'target', bounds: { lowerBound: 0, upperBound: -1 } },
   });
 
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.graph.getDataType(ROOT_ID, dataTypeId)?.name, 'Status');
@@ -178,7 +178,7 @@ void test('resolves custom data types and relation endpoints', () => {
 
 void test('protects graph models from mutations of the source model', () => {
   const root = model(ROOT_ID, [], [node(NODE_ID)]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, true);
   if (!result.ok) return;
 
@@ -191,7 +191,7 @@ void test('reports a node inheritance cycle', () => {
   const firstId = 'firstNode0000001';
   const secondId = 'secondNode000001';
   const root = model(ROOT_ID, [], [node(firstId, [secondId]), node(secondId, [firstId])]);
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'INHERITANCE_CYCLE'));
@@ -204,7 +204,7 @@ void test('reports an import schema URI that does not match its target model', (
   assert.ok(firstImport);
   firstImport.schemaId = 'https://example.org/wrong-schema';
 
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_SCHEMA_ID_MISMATCH'));
@@ -216,7 +216,7 @@ void test('reports an imported model version mismatch', () => {
   const firstImport = root.imports[0];
   assert.ok(firstImport);
   firstImport.version = '2.0.0';
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_VERSION_MISMATCH'));
@@ -237,7 +237,7 @@ void test('reports duplicate ids on nested model elements', () => {
     typeId: 'String',
     bounds: { lowerBound: 0, upperBound: 1 },
   });
-  const result = createProjectGraph({ rootModelId: ROOT_ID, models: [model(ROOT_ID, [], [owner])] });
+  const result = buildProjectGraph({ rootModelId: ROOT_ID, models: [model(ROOT_ID, [], [owner])] });
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'DUPLICATE_ELEMENT_ID'));

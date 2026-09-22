@@ -1,10 +1,10 @@
-import { GModel, Id } from '../model/ModelTypes';
-import { ModelElementIndex } from '../graph/ModelElementIndex';
-import { Diagnostic } from './ValidationDiagnostic';
+import { GModel, Id } from '../model/Types';
+import { ModelElementIndex } from '../project/Elements';
+import { Diagnostic } from './Diagnostics';
 import { RelationRules } from './rules/RelationRules';
 import { ClassifierRules } from './rules/ClassifierRules';
 import { ImportRules } from './rules/ImportRules';
-import { VALIDATION_ERROR } from './ValidationErrorCode';
+import { VALIDATION_ERROR } from './Codes';
 
 export interface ValidationOptions {
   readonly baseId: string;

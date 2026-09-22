@@ -1,5 +1,5 @@
-import { REGEXP } from '../model/GCorePatterns';
-import { Id, QualifiedRef, Ref } from '../model/ModelTypes';
+import { REGEXP } from '../model/Patterns';
+import { Id, QualifiedRef, Ref } from '../model/Types';
 
 export interface QualifiedParts {
   readonly modelId: Id;

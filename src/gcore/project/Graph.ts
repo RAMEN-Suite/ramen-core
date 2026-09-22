@@ -1,6 +1,6 @@
-import { GDataType, GModel, GNode, GRelation, Id, Ref } from '../model/ModelTypes';
-import { ModelElementIndex } from './ModelElementIndex';
-import { ModelRef, QualifiedParts } from './ModelRef';
+import { GDataType, GModel, GNode, GRelation, Id, Ref } from '../model/Types';
+import { ModelElementIndex } from './Elements';
+import { ModelRef, QualifiedParts } from './Refs';
 
 interface ResolvedRef {
   readonly modelId: Id;
@@ -12,7 +12,9 @@ export interface ResolvedModelElement<T> {
   readonly element: T;
 }
 
+/** Read-only resolved view of all models in one GCore project. */
 export class ProjectGraph {
+  /** @internal */
   public constructor(
     private readonly rootModelId: Id,
     private readonly modelsById: ReadonlyMap<Id, GModel>,

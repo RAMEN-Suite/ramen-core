@@ -1,7 +1,7 @@
-import { GModel, Id, Import } from '../../model/ModelTypes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
-import { VALIDATION_ERROR } from '../ValidationErrorCode';
-import { ValidationContext } from '../SemanticValidator';
+import { GModel, Id, Import } from '../../model/Types';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../Diagnostics';
+import { VALIDATION_ERROR } from '../Codes';
+import { ValidationContext } from '../Semantic';
 import { AbstractRules } from './AbstractRules';
 
 export class ImportRules extends AbstractRules {

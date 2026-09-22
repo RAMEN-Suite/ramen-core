@@ -1,8 +1,8 @@
-import { GDataType, GModel, GNode, GRelation, Id } from '../model/ModelTypes';
-import { ModelElementIndex } from './ModelElementIndex';
-import { QualifiedParts, ModelRef } from './ModelRef';
-import { NodeInheritance, ResolvedNode } from './NodeInheritance';
-import { ImportClosure } from './ImportClosure';
+import { GDataType, GModel, GNode, GRelation, Id } from '../model/Types';
+import { ModelElementIndex } from './Elements';
+import { QualifiedParts, ModelRef } from './Refs';
+import { NodeInheritance, ResolvedNode } from './Inheritance';
+import { ImportClosure } from './Imports';
 
 export type Direction = 'OUT' | 'IN';
 export interface SelectableRelation {

@@ -1,6 +1,6 @@
-import { GModel, GRelation, Id, Ref } from '../model/ModelTypes';
-import { QualifiedParts, ModelRef } from './ModelRef';
-import { ModelElementIndex } from './ModelElementIndex';
+import { GModel, GRelation, Id, Ref } from '../model/Types';
+import { QualifiedParts, ModelRef } from './Refs';
+import { ModelElementIndex } from './Elements';
 
 export class RelationDefinitions {
   public static resolveReservedRoleNames(startModelId: Id, nodeId: Id, modelsById: ReadonlyMap<Id, GModel>): ReadonlySet<string> {

@@ -1,7 +1,8 @@
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
-import schema from '../model/gcore.schema.json';
-import { GModel } from '../model/ModelTypes';
+import schema from '../../resources/schemas/gcore.schema.json';
+import { GModel } from '../model/Types';
 
+/** Validates unknown JSON values against the versioned GCore JSON Schema. */
 export class SchemaValidator {
   private static schemaNode: SchemaNode = compileSchema(schema);
 

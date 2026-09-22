@@ -1,14 +1,14 @@
-import { GAttribute, GModel, GNode, Id, TypeRef } from '../../model/ModelTypes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
-import { VALIDATION_ERROR } from '../ValidationErrorCode';
-import { ValidationContext } from '../SemanticValidator';
-import { ModelSemantics } from '../ModelSemantics';
+import { GAttribute, GModel, GNode, Id, TypeRef } from '../../model/Types';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../Diagnostics';
+import { VALIDATION_ERROR } from '../Codes';
+import { ValidationContext } from '../Semantic';
+import { ModelSemantics } from '../Semantics';
 import { AbstractRules } from './AbstractRules';
-import { BuiltinDataTypes } from '../../model/BuiltinDataTypes';
-import { QualifiedParts, ModelRef } from '../../graph/ModelRef';
-import { ImportClosure } from '../../graph/ImportClosure';
-import { ModelElementIndex } from '../../graph/ModelElementIndex';
-import { NodeInheritance, ResolvedNode } from '../../graph/NodeInheritance';
+import { BuiltinDataTypes } from '../../model/Builtins';
+import { QualifiedParts, ModelRef } from '../../project/Refs';
+import { ImportClosure } from '../../project/Imports';
+import { ModelElementIndex } from '../../project/Elements';
+import { NodeInheritance, ResolvedNode } from '../../project/Inheritance';
 
 export class AttributeRules extends AbstractRules {
   public validate(ctx: ValidationContext, node: GNode, classifierPath: DiagnosticPath): Diagnostic[] {

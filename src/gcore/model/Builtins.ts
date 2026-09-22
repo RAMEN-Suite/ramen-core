@@ -1,4 +1,4 @@
-import { BuiltinType, TypeRef } from './ModelTypes';
+import { BuiltinType, TypeRef } from './Types';
 
 export class BuiltinDataTypes {
   public static readonly set: ReadonlySet<string> = new Set(['String', 'Boolean', 'Float', 'Integer']);

@@ -1,9 +1,9 @@
-import { SemanticValidator, ValidationOptions } from './SemanticValidator';
-import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './ValidationDiagnostic';
-import { SchemaValidator } from './SchemaValidator';
-import { VALIDATION_ERROR } from './ValidationErrorCode';
-import { GModel, Id } from '../model/ModelTypes';
-import { createProjectGraph, ProjectGraphResult } from '../graph/createProjectGraph';
+import { SemanticValidator, ValidationOptions } from './Semantic';
+import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
+import { SchemaValidator } from './Schema';
+import { VALIDATION_ERROR } from './Codes';
+import { GModel, Id } from '../model/Types';
+import { buildProjectGraph, ProjectGraphResult } from '../project/Build';
 
 export type SchemaKind = 'BASE' | 'DERIVED';
 
@@ -12,6 +12,10 @@ export interface ValidationResult {
   readonly hasErrors: boolean;
 }
 
+/**
+ * Validates schema conformance, project graph resolution, and semantic model rules.
+ * Graph construction failures stop later semantic phases to avoid misleading errors.
+ */
 export class ModelValidator {
   private readonly strict: SemanticValidator = new SemanticValidator();
 
@@ -24,7 +28,7 @@ export class ModelValidator {
     let hasErrors: boolean = diagnostics.some((d: Diagnostic): boolean => d.severity === 'error');
     if (diagnostics.length > 0) return { diagnostics, hasErrors };
 
-    const graphResult: ProjectGraphResult = createProjectGraph({ rootModelId: derived.id, models: [...models.values()] });
+    const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: derived.id, models: [...models.values()] });
     if (!graphResult.ok) {
       const graphDiagnostics: Diagnostic[] = [...graphResult.diagnostics];
       return { diagnostics: graphDiagnostics, hasErrors: true };

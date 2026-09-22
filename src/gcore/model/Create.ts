@@ -10,11 +10,11 @@ import {
   Id,
   RelationEnd,
   TypeRef,
-} from './ModelTypes';
-import { SchemaValidator } from '../validation/SchemaValidator';
+} from './Types';
+import { SchemaValidator } from '../validation/Schema';
 import ShortUniqueId from 'short-unique-id';
-import { ModelRef } from '../graph/ModelRef';
-import { ModelElementIndex } from '../graph/ModelElementIndex';
+import { ModelRef } from '../project/Refs';
+import { ModelElementIndex } from '../project/Elements';
 
 export interface CreateModelInput {
   readonly uri: string;
@@ -54,6 +54,7 @@ export interface ConnectedNode {
   readonly relations: readonly GRelation[];
 }
 
+/** Creates valid GCore model elements with stable identifiers and empty extension data. */
 export class ModelFactory {
   public static createModel(base: GModel, input: CreateModelInput): GModel {
     const schemaId: string | undefined = SchemaValidator.getSchemaNode().$id;

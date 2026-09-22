@@ -1,5 +1,5 @@
-import { Bounds, GRelation } from '../model/ModelTypes';
-import { ModelRef } from '../graph/ModelRef';
+import { Bounds, GRelation } from '../model/Types';
+import { ModelRef } from '../project/Refs';
 
 export class ModelSemantics {
   public static readonly UNBOUNDED: -1 = -1;

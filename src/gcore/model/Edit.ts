@@ -1,12 +1,13 @@
-import { GAttribute, GClassifier, GDataType, GModel, GNode, GRelation, Id } from './ModelTypes';
-import { NodeInheritance } from '../graph/NodeInheritance';
-import { RelationDefinitions } from '../graph/RelationDefinitions';
+import { GAttribute, GClassifier, GDataType, GModel, GNode, GRelation, Id } from './Types';
+import { NodeInheritance } from '../project/Inheritance';
+import { RelationDefinitions } from '../project/Relations';
 
 export type UpdateNodeInput = Partial<Pick<GNode, 'name' | 'superTypes' | 'attributes'>>;
 export type UpdateDataTypeInput = Partial<Pick<GDataType, 'name' | 'literals'>>;
 export type UpdateRelationInput = Partial<Pick<GRelation, 'name' | 'from' | 'to'>>;
 export type UpdateAttributeInput = Partial<GAttribute>;
 
+/** Applies immutable editing operations to an existing GCore model. */
 export class ModelEditor {
   public static addClassifier(model: GModel, classifier: GClassifier): GModel {
     return { ...model, classifiers: [...(model.classifiers ?? []), classifier] };

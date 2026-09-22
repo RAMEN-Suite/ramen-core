@@ -1,7 +1,7 @@
-import { GClassifier, GDataType, GNode, Id } from '../../model/ModelTypes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
-import { VALIDATION_ERROR } from '../ValidationErrorCode';
-import { ValidationContext } from '../SemanticValidator';
+import { GClassifier, GDataType, GNode, Id } from '../../model/Types';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../Diagnostics';
+import { VALIDATION_ERROR } from '../Codes';
+import { ValidationContext } from '../Semantic';
 import { NodeRules } from './NodeRules';
 import { DataTypeRules } from './DataTypeRules';
 import { AttributeRules } from './AttributeRules';

@@ -1,4 +1,4 @@
-import { GModel, Id, Import } from '../model/ModelTypes';
+import { GModel, Id, Import } from '../model/Types';
 
 export class ImportClosure {
   public static resolveImports(startModelId: Id, modelsById: ReadonlyMap<Id, GModel>): readonly GModel[] {

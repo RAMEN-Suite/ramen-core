@@ -1,11 +1,11 @@
-import { BuiltinDataTypes } from '../model/BuiltinDataTypes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/ValidationDiagnostic';
-import { GClassifier, GConstraint, GModel, GNode, GRelation, Id, Import, Ref } from '../model/ModelTypes';
-import { ModelElementIndex } from './ModelElementIndex';
-import { ModelRef } from './ModelRef';
-import { ProjectGraph } from './ProjectGraph';
+import { BuiltinDataTypes } from '../model/Builtins';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
+import { GClassifier, GConstraint, GModel, GNode, GRelation, Id, Import, Ref } from '../model/Types';
+import { ModelElementIndex } from './Elements';
+import { ModelRef } from './Refs';
+import { ProjectGraph } from './Graph';
 
-export interface CreateProjectGraphInput {
+export interface ProjectGraphInput {
   readonly rootModelId: Id;
   readonly models: readonly GModel[];
 }
@@ -26,7 +26,16 @@ interface GraphBuildState {
   readonly diagnostics: Diagnostic[];
 }
 
-export function createProjectGraph(input: CreateProjectGraphInput): ProjectGraphResult {
+/**
+ * Resolves every model reachable from a root model into an immutable project graph.
+ *
+ * The result contains diagnostics instead of a graph when imports, identifiers,
+ * references, element kinds, or inheritance cannot be resolved deterministically.
+ *
+ * @param input - Root model identifier and all models available for resolution.
+ * @returns A project graph on success, otherwise structured diagnostics.
+ */
+export function buildProjectGraph(input: ProjectGraphInput): ProjectGraphResult {
   const state: GraphBuildState = {
     modelsById: new Map<Id, GModel>(),
     reachableModelIds: new Set<Id>(),

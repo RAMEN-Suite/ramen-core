@@ -1,8 +1,8 @@
-import { GRelation, Id, Ref } from '../../model/ModelTypes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
-import { VALIDATION_ERROR } from '../ValidationErrorCode';
-import { ValidationContext } from '../SemanticValidator';
-import { QualifiedParts, ModelRef } from '../../graph/ModelRef';
+import { GRelation, Id, Ref } from '../../model/Types';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../Diagnostics';
+import { VALIDATION_ERROR } from '../Codes';
+import { ValidationContext } from '../Semantic';
+import { QualifiedParts, ModelRef } from '../../project/Refs';
 import { AbstractRules } from './AbstractRules';
 import { RelationEndRules } from './RelationEndRules';
 

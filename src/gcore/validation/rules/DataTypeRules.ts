@@ -1,6 +1,6 @@
-import { GDataType, GLiteral } from '../../model/ModelTypes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
-import { VALIDATION_ERROR } from '../ValidationErrorCode';
+import { GDataType, GLiteral } from '../../model/Types';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../Diagnostics';
+import { VALIDATION_ERROR } from '../Codes';
 import { AbstractRules } from './AbstractRules';
 
 export class DataTypeRules extends AbstractRules {

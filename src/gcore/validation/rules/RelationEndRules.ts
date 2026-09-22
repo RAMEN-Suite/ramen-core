@@ -1,10 +1,10 @@
-import { GNode, GRelation, Id } from '../../model/ModelTypes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../ValidationDiagnostic';
-import { VALIDATION_ERROR } from '../ValidationErrorCode';
-import { ValidationContext } from '../SemanticValidator';
-import { ModelSemantics } from '../ModelSemantics';
-import { QualifiedParts } from '../../graph/ModelRef';
-import { NodeInheritance } from '../../graph/NodeInheritance';
+import { GNode, GRelation, Id } from '../../model/Types';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../Diagnostics';
+import { VALIDATION_ERROR } from '../Codes';
+import { ValidationContext } from '../Semantic';
+import { ModelSemantics } from '../Semantics';
+import { QualifiedParts } from '../../project/Refs';
+import { NodeInheritance } from '../../project/Inheritance';
 import { AbstractRules } from './AbstractRules';
 
 export class RelationEndRules extends AbstractRules {

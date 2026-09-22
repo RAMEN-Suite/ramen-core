@@ -1,7 +1,7 @@
-import { GModel, GModelBundle, Id } from '../model/ModelTypes';
-import { SchemaValidator } from '../validation/SchemaValidator';
-import { Diagnostic } from '../validation/ValidationDiagnostic';
-import { createProjectGraph, ProjectGraphResult } from './createProjectGraph';
+import { GModel, GModelBundle, Id } from '../model/Types';
+import { SchemaValidator } from '../validation/Schema';
+import { Diagnostic } from '../validation/Diagnostics';
+import { buildProjectGraph, ProjectGraphResult } from './Build';
 
 export const MODEL_BUNDLE_SCHEMA: string = 'https://ramen-schema.org/gcore/1.0.0/bundle.json';
 export const MODEL_BUNDLE_VERSION: string = '1.0.0';
@@ -9,8 +9,12 @@ export const MODEL_BUNDLE_VERSION: string = '1.0.0';
 export type CreateBundleResult =
   { readonly ok: true; readonly bundle: GModelBundle } | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] };
 
+/**
+ * Creates a portable single-file container for every model reachable from the root.
+ * Model boundaries, identifiers, versions, and imports remain unchanged.
+ */
 export function createModelBundle(rootModelId: Id, models: readonly GModel[]): CreateBundleResult {
-  const graphResult: ProjectGraphResult = createProjectGraph({ rootModelId: rootModelId, models: models });
+  const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
   if (!graphResult.ok) return { ok: false, diagnostics: graphResult.diagnostics };
   const bundle: GModelBundle = {
     $schema: MODEL_BUNDLE_SCHEMA,
@@ -22,9 +26,14 @@ export function createModelBundle(rootModelId: Id, models: readonly GModel[]): C
   return { ok: true, bundle: bundle };
 }
 
+/**
+ * Validates an unknown bundle value and restores its separate GCore models.
+ *
+ * @throws Error when the envelope, contained models, or project graph is invalid.
+ */
 export function splitModelBundle(input: unknown): readonly GModel[] {
   const bundle: GModelBundle = readBundle(input);
-  const result: ProjectGraphResult = createProjectGraph({ rootModelId: bundle.rootModelId, models: bundle.models });
+  const result: ProjectGraphResult = buildProjectGraph({ rootModelId: bundle.rootModelId, models: bundle.models });
   if (!result.ok) throw new Error(formatBundleErrors(result.diagnostics));
   return result.graph.getModels().map((model: GModel): GModel => structuredClone(model));
 }

@@ -1,6 +1,6 @@
-import { GAttribute, GModel, GNode, Id, Ref } from '../model/ModelTypes';
-import { QualifiedParts, ModelRef } from './ModelRef';
-import { ModelElementIndex } from './ModelElementIndex';
+import { GAttribute, GModel, GNode, Id, Ref } from '../model/Types';
+import { QualifiedParts, ModelRef } from './Refs';
+import { ModelElementIndex } from './Elements';
 
 export interface ResolvedNode {
   readonly modelId: Id;

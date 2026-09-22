@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ramen-schema.org/ramen/1.0.0/extension.schema.json",
+  "title": "RAMEN GCore Extension",
+  "description": "RAMEN-specific model definitions stored below GModel.ext.ramen.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Annotation"
+      },
+      "default": []
+    }
+  },
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16,}$"
+    },
+    "Ref": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z0-9_-]{16,}|[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,})$"
+    },
+    "Bounds": {
+      "type": "object",
+      "required": ["lowerBound", "upperBound"],
+      "additionalProperties": false,
+      "properties": {
+        "lowerBound": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upperBound": {
+          "type": "integer",
+          "minimum": -1
+        }
+      }
+    },
+    "AnnotationProperty": {
+      "type": "object",
+      "required": ["attributeId"],
+      "additionalProperties": false,
+      "properties": {
+        "attributeId": {
+          "$ref": "#/$defs/Ref"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        }
+      }
+    },
+    "AnnotationRelation": {
+      "type": "object",
+      "required": ["relationId", "direction", "bounds"],
+      "additionalProperties": false,
+      "properties": {
+        "relationId": {
+          "$ref": "#/$defs/Ref"
+        },
+        "direction": {
+          "enum": ["outgoing", "incoming"]
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        }
+      }
+    },
+    "Annotation": {
+      "type": "object",
+      "required": ["id", "annotationId", "type", "properties", "relations"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "annotationId": {
+          "$ref": "#/$defs/Ref"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refines": {
+          "$ref": "#/$defs/Ref"
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnnotationProperty"
+          },
+          "default": []
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnnotationRelation"
+          },
+          "default": []
+        }
+      }
+    }
+  }
+}

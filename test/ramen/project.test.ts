@@ -3,9 +3,11 @@ import test from 'node:test';
 import {
   RAMEN_ELEMENT,
   RAMEN_MODEL,
+  RAMEN_SCHEMA_URI,
   RamenAdvisor,
   RamenInstanceValidator,
   RamenProject,
+  RamenSchemaValidator,
   createModelBundle,
   splitModelBundle,
 } from '../../dist/index.js';
@@ -34,6 +36,13 @@ void test('RAMEN provides reusable standard string datatypes', () => {
     .filter((classifier) => classifier.kind === 'GDataType')
     .map((classifier) => classifier.name);
   assert.deepEqual(names, ['UUID', 'Date', 'DateTime', 'URI', 'Email']);
+});
+
+void test('publishes a versioned JSON Schema for the RAMEN extension', () => {
+  assert.equal(RamenSchemaValidator.getSchemaNode().$id, RAMEN_SCHEMA_URI);
+  assert.equal(RamenSchemaValidator.isValid({ annotations: [] }), true);
+  assert.equal(RamenSchemaValidator.isValid({ annotations: [{ id: 'incomplete' }] }), false);
+  assert.equal(RamenSchemaValidator.isValid({ annotations: [], unknown: true }), false);
 });
 
 void test('creates and validates a RAMEN project after every model change', () => {
@@ -226,6 +235,28 @@ void test('suggests annotations for their owning Annotation node', () => {
   );
 });
 
+void test('suggests annotation properties, relations, targets, and cardinalities', () => {
+  const fixture: AnnotationFixture = annotationFixture();
+  const ramenProject: RamenProject = RamenProject.load(fixture.model);
+  const url = ramenProject.createAttribute(fixture.annotationNode.id, {
+    name: 'url',
+    typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.URI}`,
+    bounds: { lowerBound: 0, upperBound: 1 },
+  }).element;
+  const advice = ramenProject.createAdvisor()?.adviseAnnotation(fixture.model.id, fixture.annotationNode.id);
+  assert.ok(advice);
+  const property = advice.properties.find((item) => item.attributeId === url.id);
+  assert.ok(property);
+  assert.deepEqual(property.cardinalityOptions, [
+    { lowerBound: 0, upperBound: 1 },
+    { lowerBound: 1, upperBound: 1 },
+  ]);
+  const relation = advice.relations.find((item) => item.relationId === fixture.relation.id && item.direction === 'outgoing');
+  assert.ok(relation);
+  assert.equal(relation.targetName, 'Person');
+  assert.ok(relation.compatibleTargetNodeIds.includes(fixture.person.id));
+});
+
 void test('rejects an unknown annotation type and missing required annotation relation', () => {
   const fixture: AnnotationFixture = annotationFixture();
   const validator: RamenInstanceValidator = new RamenInstanceValidator();
@@ -344,6 +375,72 @@ void test('inherits annotations when their Annotation node is refined', () => {
       .map((item) => item.type),
     ['persName'],
   );
+});
+
+void test('carries the complete dependency chain through arbitrary model levels', () => {
+  const levelOne: RamenProject = project();
+  const firstNode: GNode = levelOne.createNode({
+    name: 'TextAnnotation',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+  }).element;
+  levelOne.createAnnotation({ annotationId: firstNode.id, type: 'persName' });
+  const levelTwo: RamenProject = levelOne.createNextLevel({
+    uri: 'https://example.org/models/level-two',
+    id: 'refinementLevel02',
+    name: 'Level Two',
+    version: '1.0.0',
+  });
+  const secondNode: GNode = levelTwo.createNode({
+    name: 'ScholarlyAnnotation',
+    refines: { modelId: levelOne.getModel().id, elementId: firstNode.id },
+  }).element;
+  const levelThree: RamenProject = levelTwo.createNextLevel({
+    uri: 'https://example.org/models/level-three',
+    id: 'refinementLevel03',
+    name: 'Level Three',
+    version: '1.0.0',
+  });
+  const thirdNode: GNode = levelThree.createNode({
+    name: 'DetailedAnnotation',
+    refines: { modelId: levelTwo.getModel().id, elementId: secondNode.id },
+  }).element;
+  assert.equal(levelThree.validate().valid, true);
+  assert.equal(levelThree.getModels().length, 4);
+  assert.deepEqual(
+    levelThree
+      .createAdvisor()
+      ?.suggestAnnotations('refinementLevel03', thirdNode.id)
+      .map((item) => item.type),
+    ['persName'],
+  );
+});
+
+void test('limits refinement advice to inherited annotation relations and bounds', () => {
+  const base: AnnotationFixture = annotationFixture();
+  const child: RamenProject = RamenProject.load(base.model).createNextLevel({
+    uri: 'https://example.org/models/advice-level',
+    id: 'adviceLevelModel01',
+    name: 'Advice Level',
+    version: '1.0.0',
+  });
+  const person: GNode = child.createNode({
+    name: 'HistoricalPerson',
+    refines: { modelId: base.model.id, elementId: base.person.id },
+  }).element;
+  const annotation: GNode = child.createNode({
+    name: 'ScholarlyAnnotation',
+    refines: { modelId: base.model.id, elementId: base.annotationNode.id },
+  }).element;
+  const advice = child
+    .createAdvisor()
+    ?.adviseAnnotation('adviceLevelModel01', annotation.id, `${base.model.id}:${base.annotation.id}`);
+  assert.ok(advice);
+  const relation = advice.relations.find((item) => item.relationId === base.relation.id && item.direction === 'outgoing');
+  assert.ok(relation);
+  assert.deepEqual(relation.inheritedBounds, { lowerBound: 1, upperBound: 1 });
+  assert.deepEqual(relation.cardinalityOptions, [{ lowerBound: 1, upperBound: 1 }]);
+  assert.ok(relation.compatibleTargetNodeIds.includes(person.id));
+  assert.ok(advice.relations.every((item) => item.inherited));
 });
 
 void test('refines an inherited annotation explicitly and narrows its cardinality', () => {

@@ -1,4 +1,5 @@
 import { Bounds, GModel, Id, Ref } from '../gcore/model/Types';
+import { RamenSchemaValidator } from './Schema';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
 export interface RamenAnnotationProperty {
@@ -32,18 +33,15 @@ export class RamenAnnotations {
   /** Returns a detached list of annotations declared by the model. */
   public static get(model: GModel): readonly RamenAnnotation[] {
     const ramen: unknown = model.ext?.ramen;
-    if (!this.isRecord(ramen) || ramen.annotations === undefined) return [];
-    if (!this.isAnnotationList(ramen.annotations)) return [];
-    return structuredClone(ramen.annotations);
+    if (!RamenSchemaValidator.isValid(ramen) || !this.isRecord(ramen) || !Array.isArray(ramen.annotations)) return [];
+    return structuredClone(ramen.annotations) as readonly RamenAnnotation[];
   }
 
   /** Reports whether a present `ramen.annotations` value has the complete serialized shape. */
   public static hasValidSection(model: GModel): boolean {
     const ramen: unknown = model.ext?.ramen;
     if (ramen === undefined) return true;
-    if (!this.isRecord(ramen)) return false;
-    if (ramen.annotations === undefined) return true;
-    return this.isAnnotationList(ramen.annotations);
+    return RamenSchemaValidator.isValid(ramen);
   }
 
   /** Returns a model with the annotation appended to its RAMEN section. */
@@ -89,47 +87,5 @@ export class RamenAnnotations {
 
   private static isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-
-  private static isAnnotationList(value: unknown): value is readonly RamenAnnotation[] {
-    return Array.isArray(value) && value.every((item: unknown): boolean => this.isAnnotation(item));
-  }
-
-  private static isAnnotation(value: unknown): value is RamenAnnotation {
-    if (!this.isRecord(value)) return false;
-    if (!this.hasOnlyKeys(value, ['id', 'annotationId', 'type', 'refines', 'properties', 'relations'])) return false;
-    if (typeof value.id !== 'string' || typeof value.annotationId !== 'string' || typeof value.type !== 'string') return false;
-    if (value.refines !== undefined && typeof value.refines !== 'string') return false;
-    if (!Array.isArray(value.properties) || !value.properties.every((item: unknown): boolean => this.isProperty(item)))
-      return false;
-    return Array.isArray(value.relations) && value.relations.every((item: unknown): boolean => this.isRelation(item));
-  }
-
-  private static isProperty(value: unknown): value is RamenAnnotationProperty {
-    if (!this.isRecord(value) || typeof value.attributeId !== 'string') return false;
-    if (!this.hasOnlyKeys(value, ['attributeId', 'bounds'])) return false;
-    return value.bounds === undefined || this.isBounds(value.bounds);
-  }
-
-  private static isRelation(value: unknown): value is RamenAnnotationRelation {
-    if (!this.isRecord(value) || typeof value.relationId !== 'string') return false;
-    if (!this.hasOnlyKeys(value, ['relationId', 'direction', 'bounds'])) return false;
-    if (value.direction !== 'outgoing' && value.direction !== 'incoming') return false;
-    return this.isBounds(value.bounds);
-  }
-
-  private static isBounds(value: unknown): value is Bounds {
-    return (
-      this.isRecord(value) &&
-      typeof value.lowerBound === 'number' &&
-      typeof value.upperBound === 'number' &&
-      Number.isInteger(value.lowerBound) &&
-      Number.isInteger(value.upperBound)
-    );
-  }
-
-  private static hasOnlyKeys(value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean {
-    const allowed: ReadonlySet<string> = new Set<string>(keys);
-    return Object.keys(value).every((key: string): boolean => allowed.has(key));
   }
 }

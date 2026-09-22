@@ -4,6 +4,7 @@ import { ProjectGraph, ResolvedModelElement } from '../gcore/project/Graph';
 import { ModelRef } from '../gcore/project/Refs';
 import { ValidProjectResult } from '../gcore/validation/Validate';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
+import { AnnotationAdvice, RamenAnnotationAdvisor } from './AnnotationAdvice';
 
 /** One node type that a new project node can refine. */
 export interface NodeRefinementSuggestion {
@@ -153,6 +154,11 @@ export class RamenAdvisor {
         type: candidate.annotation.type,
       }))
       .sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number => left.type.localeCompare(right.type));
+  }
+
+  /** Suggests valid properties, relations, targets, and cardinalities for an annotation definition. */
+  public adviseAnnotation(modelId: Id, annotationNodeId: Id, refines?: Ref): AnnotationAdvice | undefined {
+    return new RamenAnnotationAdvisor(this.graph).advise(modelId, annotationNodeId, refines);
   }
 
   /** Returns the refinement lineage, effective attributes, and possible relations for one local node. */

@@ -83,6 +83,11 @@ export class RamenProject {
     return new RamenProject(ModelFactory.createModel(base, input), [...models.values()]);
   }
 
+  /** Creates the next model level while retaining the complete dependency chain. */
+  public createNextLevel(input: CreateModelInput): RamenProject {
+    return RamenProject.createLevel(this.model, input, [...this.dependencies.values()]);
+  }
+
   /** Loads a project with all models needed to resolve its imports. */
   public static load(model: GModel, dependencies: readonly GModel[] = [RAMEN_MODEL]): RamenProject {
     return new RamenProject(model, dependencies);
@@ -91,6 +96,11 @@ export class RamenProject {
   /** Returns a detached snapshot of the current project model. */
   public getModel(): GModel {
     return structuredClone(this.model);
+  }
+
+  /** Returns detached snapshots of the current model and every transitive dependency. */
+  public getModels(): readonly GModel[] {
+    return this.validationInputs().map((model: GModel): GModel => structuredClone(model));
   }
 
   /** Validates the complete current project and returns its graph on success. */

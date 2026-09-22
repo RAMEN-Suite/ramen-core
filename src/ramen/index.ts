@@ -2,6 +2,8 @@ export * from './Model';
 export * from './Elements';
 export * from './Annotations';
 export * from './AnnotationGraph';
+export * from './AnnotationAdvice';
+export * from './Schema';
 export * from './Project';
 export * from './Advisor';
 export * from './ModelValidation';

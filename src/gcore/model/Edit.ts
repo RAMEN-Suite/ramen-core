@@ -2,17 +2,23 @@ import { GAttribute, GClassifier, GDataType, GModel, GNode, GRelation, Id } from
 import { NodeInheritance } from '../project/Inheritance';
 import { RelationDefinitions } from '../project/Relations';
 
+/** Editable node fields. */
 export type UpdateNodeInput = Partial<Pick<GNode, 'name' | 'superTypes' | 'attributes'>>;
+/** Editable data type fields. */
 export type UpdateDataTypeInput = Partial<Pick<GDataType, 'name' | 'literals'>>;
+/** Editable relation fields. */
 export type UpdateRelationInput = Partial<Pick<GRelation, 'name' | 'from' | 'to'>>;
+/** Editable attribute fields. */
 export type UpdateAttributeInput = Partial<GAttribute>;
 
 /** Applies immutable editing operations to an existing GCore model. */
 export class ModelEditor {
+  /** Returns a model with the classifier appended. */
   public static addClassifier(model: GModel, classifier: GClassifier): GModel {
     return { ...model, classifiers: [...(model.classifiers ?? []), classifier] };
   }
 
+  /** Returns a model without the classifier, or throws when it does not exist. */
   public static removeClassifierById(model: GModel, classifierId: string): GModel {
     const classifiers: GClassifier[] = model.classifiers ?? [];
 
@@ -21,6 +27,7 @@ export class ModelEditor {
     return { ...model, classifiers: filtered };
   }
 
+  /** Applies a partial update to a node without mutating the source model. */
   public static updateNode(model: GModel, nodeId: string, patch: UpdateNodeInput): GModel {
     const classifiers: GClassifier[] = model.classifiers ?? [];
     let found: boolean = false;
@@ -37,6 +44,7 @@ export class ModelEditor {
     return { ...model, classifiers: patched };
   }
 
+  /** Removes a node and every local relation connected to it. */
   public static removeNode(model: GModel, nodeId: string): GModel {
     let newModel: GModel = ModelEditor.removeClassifierById(model, nodeId);
 
@@ -51,6 +59,7 @@ export class ModelEditor {
     return newModel;
   }
 
+  /** Applies a partial update to a data type without mutating the source model. */
   public static updateDataType(model: GModel, dataTypeId: string, patch: UpdateDataTypeInput): GModel {
     const classifiers: GClassifier[] = model.classifiers ?? [];
     let found: boolean = false;
@@ -67,10 +76,12 @@ export class ModelEditor {
     return { ...model, classifiers: patched };
   }
 
+  /** Returns a model with the relation appended. */
   public static addRelation(model: GModel, relation: GRelation): GModel {
     return { ...model, relations: [...(model.relations ?? []), relation] };
   }
 
+  /** Applies a partial update to a relation without mutating the source model. */
   public static updateRelation(model: GModel, relationId: string, patch: UpdateRelationInput): GModel {
     const relations: GRelation[] = model.relations ?? [];
     let found: boolean = false;
@@ -86,6 +97,7 @@ export class ModelEditor {
     return { ...model, relations: patched };
   }
 
+  /** Returns a model without the relation, or throws when it does not exist. */
   public static removeRelationById(model: GModel, relationId: string): GModel {
     const relations: GRelation[] = model.relations ?? [];
     const filtered: GRelation[] = relations.filter((relation: GRelation): boolean => relation.id !== relationId);
@@ -93,6 +105,7 @@ export class ModelEditor {
     return { ...model, relations: filtered };
   }
 
+  /** Adds an attribute after checking inherited names and relation roles. */
   public static addAttribute(model: GModel, nodeId: Id, attribute: GAttribute, modelsById: ReadonlyMap<Id, GModel>): GModel {
     const startModelId: Id = model.id;
 
@@ -119,6 +132,7 @@ export class ModelEditor {
     return { ...model, classifiers: patched };
   }
 
+  /** Updates an attribute after checking inherited names and relation roles. */
   public static updateAttribute(
     model: GModel,
     nodeId: Id,
@@ -163,6 +177,7 @@ export class ModelEditor {
     return { ...model, classifiers: patched };
   }
 
+  /** Removes a named attribute from a node without mutating the source model. */
   public static removeAttribute(model: GModel, nodeId: Id, name: string): GModel {
     const classifiers: readonly GClassifier[] = model.classifiers ?? [];
     let foundNode: boolean = false;

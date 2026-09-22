@@ -6,5 +6,11 @@
   "githubPages": false,
   "categorizeByGroup": true,
   "disableGit": true,
-  "disableSources": true
+  "disableSources": true,
+  "requiredToBeDocumented": ["Class", "Interface", "Function", "Method", "TypeAlias", "Variable"],
+  "validation": {
+    "notDocumented": true
+  },
+  "treatValidationWarningsAsErrors": true,
+  "treatWarningsAsErrors": true
 }

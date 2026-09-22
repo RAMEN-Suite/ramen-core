@@ -1,10 +1,17 @@
+/** Classifier kinds that can be declared by a GCore model. */
 export type GClassifier = GNode | GDataType;
+/** Stable identifier of a model or model element. */
 export type Id = string;
+/** Local or qualified reference to a model element. */
 export type Ref = string;
+/** Reference in the `<modelId>:<elementId>` form. */
 export type QualifiedRef = string;
+/** Primitive data types available without a model declaration. */
 export type BuiltinType = 'String' | 'Boolean' | 'Integer' | 'Float';
+/** Reference to a built-in or declared data type. */
 export type TypeRef = Ref;
 
+/** Versioned GCore model containing classifiers, relations, and imports. */
 export interface GModel {
   $schema: string;
   $id: string;
@@ -18,6 +25,7 @@ export interface GModel {
   ext?: Record<string, unknown>;
 }
 
+/** Exact dependency on another versioned GCore model. */
 export interface Import {
   schemaId: string;
   modelId: Id;
@@ -25,6 +33,7 @@ export interface Import {
   name?: string;
 }
 
+/** Node classifier whose attributes and supertypes describe modeled objects. */
 export interface GNode {
   kind: 'GNode';
   id: Id;
@@ -35,6 +44,7 @@ export interface GNode {
   ext?: Record<string, unknown>;
 }
 
+/** Typed structural feature owned by a node. */
 export interface GAttribute {
   id: Id;
   name: string;
@@ -48,11 +58,13 @@ export interface GAttribute {
   ext?: Record<string, unknown>;
 }
 
+/** Inclusive cardinality bounds, where `-1` denotes an unbounded upper value. */
 export interface Bounds {
   lowerBound: number;
   upperBound: number;
 }
 
+/** Portable constraint declaration interpreted by its named constraint language. */
 export interface GConstraint {
   id: Id;
   name: string;
@@ -65,6 +77,7 @@ export interface GConstraint {
   ext?: Record<string, unknown>;
 }
 
+/** Declared value type, optionally restricted to a set of literals. */
 export interface GDataType {
   kind: 'GDataType';
   id: Id;
@@ -74,6 +87,7 @@ export interface GDataType {
   ext?: Record<string, unknown>;
 }
 
+/** Named literal of a declared data type. */
 export interface GLiteral {
   id: Id;
   name: string;
@@ -83,6 +97,7 @@ export interface GLiteral {
   ext?: Record<string, unknown>;
 }
 
+/** Typed connection between two node ends. */
 export interface GRelation {
   kind: 'GRelation';
   id: Id;
@@ -94,6 +109,7 @@ export interface GRelation {
   ext?: Record<string, unknown>;
 }
 
+/** One endpoint of a relation, including role and cardinality. */
 export interface RelationEnd {
   id: Id;
   nodeId: Ref;
@@ -105,6 +121,7 @@ export interface RelationEnd {
   ext?: Record<string, unknown>;
 }
 
+/** Portable envelope that keeps multiple GCore models and their boundaries in one file. */
 export interface GModelBundle {
   $schema: string;
   kind: 'GModelBundle';

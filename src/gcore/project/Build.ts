@@ -5,11 +5,13 @@ import { ModelElementIndex } from './Elements';
 import { ModelRef } from './Refs';
 import { ProjectGraph } from './Graph';
 
+/** Root selection and available models used to build a project graph. */
 export interface ProjectGraphInput {
   readonly rootModelId: Id;
   readonly models: readonly GModel[];
 }
 
+/** Successful immutable graph or the diagnostics that prevented construction. */
 export type ProjectGraphResult =
   | { readonly ok: true; readonly graph: ProjectGraph; readonly diagnostics: readonly [] }
   | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] };

@@ -3,9 +3,12 @@ import { SchemaValidator } from '../validation/Schema';
 import { Diagnostic } from '../validation/Diagnostics';
 import { buildProjectGraph, ProjectGraphResult } from './Build';
 
+/** Canonical schema identifier of the supported model bundle envelope. */
 export const MODEL_BUNDLE_SCHEMA: string = 'https://ramen-schema.org/gcore/1.0.0/bundle.json';
+/** Version of the supported model bundle envelope. */
 export const MODEL_BUNDLE_VERSION: string = '1.0.0';
 
+/** Bundle creation result with graph diagnostics on failure. */
 export type CreateBundleResult =
   { readonly ok: true; readonly bundle: GModelBundle } | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] };
 

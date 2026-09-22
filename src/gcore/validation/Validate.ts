@@ -5,8 +5,10 @@ import { VALIDATION_ERROR } from './Codes';
 import { GModel, Id } from '../model/Types';
 import { buildProjectGraph, ProjectGraphResult } from '../project/Build';
 
+/** Role of a model while validating a refinement pair. */
 export type SchemaKind = 'BASE' | 'DERIVED';
 
+/** Diagnostics and summarized error state produced by model validation. */
 export interface ValidationResult {
   readonly diagnostics: Diagnostic[];
   readonly hasErrors: boolean;
@@ -19,6 +21,13 @@ export interface ValidationResult {
 export class ModelValidator {
   private readonly strict: SemanticValidator = new SemanticValidator();
 
+  /**
+   * Validates a derived model against its base and the complete project context.
+   *
+   * @param base - Expected base model as an untrusted value.
+   * @param derived - Model that refines the base as an untrusted value.
+   * @param models - All models available for import and reference resolution.
+   */
   public validate(base: unknown, derived: unknown, models: ReadonlyMap<Id, GModel>): ValidationResult {
     const diagnostics: Diagnostic[] = [];
 

@@ -16,6 +16,7 @@ import ShortUniqueId from 'short-unique-id';
 import { ModelRef } from '../project/Refs';
 import { ModelElementIndex } from '../project/Elements';
 
+/** Values needed to create a model that imports a base model. */
 export interface CreateModelInput {
   readonly uri: string;
   readonly id: string;
@@ -23,11 +24,13 @@ export interface CreateModelInput {
   readonly version: string;
 }
 
+/** Values needed to create a node that refines a base node. */
 export interface CreateNodeInput {
   readonly name: string;
   readonly baseNodeId: Id;
 }
 
+/** Values needed to create a node attribute. */
 export interface CreateAttributeInput {
   readonly name: string;
   readonly typeId: TypeRef;
@@ -39,16 +42,19 @@ export interface CreateAttributeInput {
   readonly isOrdered?: boolean;
 }
 
+/** Values needed to create a relation that refines a base relation. */
 export interface CreateRelationInput {
   readonly baseRelationId: Id;
   readonly fromNodeId: Id;
   readonly toNodeId: Id;
 }
 
+/** Values needed to create an initially unrestricted data type. */
 export interface CreateDataTypeInput {
   readonly name: string;
 }
 
+/** Duplicated node together with the duplicated relations connected to it. */
 export interface ConnectedNode {
   readonly node: GNode;
   readonly relations: readonly GRelation[];
@@ -56,6 +62,7 @@ export interface ConnectedNode {
 
 /** Creates valid GCore model elements with stable identifiers and empty extension data. */
 export class ModelFactory {
+  /** Creates an empty model with an exact import of the supplied base model. */
   public static createModel(base: GModel, input: CreateModelInput): GModel {
     const schemaId: string | undefined = SchemaValidator.getSchemaNode().$id;
     if (!schemaId) throw new Error('GCore schema has no $id.');
@@ -83,6 +90,7 @@ export class ModelFactory {
     };
   }
 
+  /** Creates a node with a qualified reference to its base node. */
   public static createNode(baseId: Id, input: CreateNodeInput): GNode {
     return {
       kind: 'GNode',
@@ -95,6 +103,7 @@ export class ModelFactory {
     };
   }
 
+  /** Creates an attribute with the requested type, bounds, and feature flags. */
   public static createAttribute(input: CreateAttributeInput): GAttribute {
     return {
       id: this.createIdentifier(),
@@ -110,6 +119,7 @@ export class ModelFactory {
     };
   }
 
+  /** Creates a data type without literals or constraints. */
   public static createDataType(input: CreateDataTypeInput): GDataType {
     return {
       kind: 'GDataType',
@@ -121,6 +131,7 @@ export class ModelFactory {
     };
   }
 
+  /** Creates a relation whose roles and bounds are copied from a base relation. */
   public static createRelation(base: GModel, baseId: Id, input: CreateRelationInput): GRelation {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
     const baseRelation: GRelation | undefined = baseIndex.relationsById.get(input.baseRelationId);
@@ -152,6 +163,7 @@ export class ModelFactory {
     };
   }
 
+  /** Deeply duplicates a node and assigns new identifiers to its owned elements. */
   public static duplicateNode(node: GNode): GNode {
     const cloned: GNode = structuredClone(node);
     cloned.id = this.createIdentifier();
@@ -168,6 +180,7 @@ export class ModelFactory {
     return cloned;
   }
 
+  /** Duplicates a node and every local relation connected to it. */
   public static duplicateConnectedNode(model: GModel, sourceNodeId: Id): ConnectedNode {
     const index: ModelElementIndex = new ModelElementIndex(model);
     const source: GNode | undefined = index.nodesById.get(sourceNodeId);
@@ -202,6 +215,7 @@ export class ModelFactory {
     return { node: clonedNode, relations: related };
   }
 
+  /** Creates a named data type literal with optional serialized and numeric values. */
   public static createLiteral(name: string, literal?: string, value?: number): GLiteral {
     return {
       id: this.createIdentifier(),
@@ -213,6 +227,7 @@ export class ModelFactory {
     };
   }
 
+  /** Creates a relation end for a node, role, and cardinality. */
   public static createRelationEnd(nodeId: Id, role: string, bounds: Bounds): RelationEnd {
     return {
       id: this.createIdentifier(),
@@ -224,6 +239,7 @@ export class ModelFactory {
     };
   }
 
+  /** Generates a random 16-character identifier for a new model element. */
   public static createIdentifier(): string {
     return new ShortUniqueId({ length: 16 }).rnd();
   }

@@ -1,4 +1,5 @@
 // Exact diagnostic code inference is part of the validator contract.
+/** Stable error codes emitted by the semantic model validator. */
 // eslint-disable-next-line @typescript-eslint/typedef
 export const VALIDATION_ERROR = {
   // Schema / parsing

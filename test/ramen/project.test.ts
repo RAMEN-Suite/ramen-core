@@ -62,6 +62,38 @@ void test('suggests node refinements and available data types from a valid graph
   assert.ok(dataTypeNames.includes('UUID'));
 });
 
+void test('advises inherited attributes, name conflicts, and possible relations', () => {
+  const ramenProject: RamenProject = project();
+  const person = ramenProject.createNode({
+    name: 'Person',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
+  }).element;
+  const annotation = ramenProject.createAnnotationType({ name: 'PersonName', typeValue: 'persName' }).element;
+  const advisor: RamenAdvisor | undefined = ramenProject.createAdvisor();
+  assert.ok(advisor);
+  const advice = advisor.adviseNode('editorialModel01', person.id);
+  assert.ok(advice);
+  assert.deepEqual(
+    advice.lineage.map((item) => item.name),
+    ['Entity', 'Person'],
+  );
+  assert.deepEqual(
+    advice.attributes.map((item) => [item.name, item.inherited]),
+    [
+      ['uuid', true],
+      ['label', true],
+    ],
+  );
+  assert.deepEqual(advisor.adviseAttributeCreation('editorialModel01', person.id, 'label').conflicts, ['attribute']);
+  assert.deepEqual(advisor.adviseAttributeCreation('editorialModel01', person.id, '_annotations').conflicts, ['relationRole']);
+  assert.equal(advisor.adviseAttributeCreation('editorialModel01', person.id, 'birthDate').allowed, true);
+  assert.ok(
+    advice.relations.some(
+      (relation) => relation.name === 'HAS_ANNOTATION' && relation.compatibleTargetNodeIds.includes(annotation.id),
+    ),
+  );
+});
+
 void test('suggests compatible relation reuse and refinement', () => {
   const ramenProject: RamenProject = project();
   const person = ramenProject.createNode({
@@ -197,4 +229,24 @@ void test('rejects duplicate annotation type values', () => {
   const duplicate = ramenProject.createAnnotationType({ name: 'PlaceName', typeValue: 'name' });
   assert.equal(duplicate.validation.valid, false);
   assert.ok(duplicate.validation.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_VALUE_DUPLICATE'));
+});
+
+void test('supports annotation-on-annotation and annotation type refinement', () => {
+  const ramenProject: RamenProject = project();
+  const personName = ramenProject.createAnnotationType({ name: 'PersonName', typeValue: 'persName' }).element;
+  const reusedType = ramenProject.createNode({
+    name: 'DetailedPersonName',
+    refines: { modelId: 'editorialModel01', elementId: personName.id },
+  });
+  assert.equal(reusedType.validation.valid, true);
+  const comment = ramenProject.createAnnotationType({
+    name: 'Comment',
+    typeValue: 'comment',
+    refines: { modelId: 'editorialModel01', elementId: personName.id },
+  });
+  assert.equal(comment.validation.valid, true);
+  const advisor: RamenAdvisor | undefined = ramenProject.createAdvisor();
+  assert.ok(advisor);
+  const relations = advisor.suggestRelations('editorialModel01', comment.element.id, personName.id);
+  assert.ok(relations.some((relation) => relation.name === 'HAS_ANNOTATION'));
 });

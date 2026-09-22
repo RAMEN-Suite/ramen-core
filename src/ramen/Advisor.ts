@@ -1,5 +1,5 @@
 import { BuiltinDataTypes } from '../gcore/model/Builtins';
-import { BuiltinType, GDataType, GModel, GNode, GRelation, Id, Ref } from '../gcore/model/Types';
+import { Bounds, BuiltinType, GAttribute, GDataType, GModel, GNode, GRelation, Id, Ref } from '../gcore/model/Types';
 import { ProjectGraph, ResolvedModelElement } from '../gcore/project/Graph';
 import { ModelRef } from '../gcore/project/Refs';
 import { ValidProjectResult } from '../gcore/validation/Validate';
@@ -39,6 +39,50 @@ export interface AnnotationTypeSuggestion {
   readonly ref: Ref;
   readonly name: string;
   readonly typeValue: string;
+}
+
+/** One node in the selected node's base-first refinement lineage. */
+export interface NodeLineageItem {
+  readonly modelId: Id;
+  readonly nodeId: Id;
+  readonly ref: Ref;
+  readonly name: string;
+}
+
+/** One local or inherited attribute visible on a refined node. */
+export interface AttributeSuggestion {
+  readonly attributeId: Id;
+  readonly name: string;
+  readonly typeId: Ref;
+  readonly bounds: Bounds;
+  readonly declaredBy: NodeLineageItem;
+  readonly inherited: boolean;
+}
+
+/** One relation role that can apply to a selected node and its compatible local targets. */
+export interface NodeRelationSuggestion {
+  readonly modelId: Id;
+  readonly relationId: Id;
+  readonly ref: Ref;
+  readonly name: string;
+  readonly direction: 'outgoing' | 'incoming';
+  readonly role: string;
+  readonly requiredTarget: NodeLineageItem;
+  readonly compatibleTargetNodeIds: readonly Id[];
+  readonly actions: readonly ('reuse' | 'refine')[];
+}
+
+/** Complete deterministic advice for one local node in a validated project. */
+export interface NodeAdvice {
+  readonly lineage: readonly NodeLineageItem[];
+  readonly attributes: readonly AttributeSuggestion[];
+  readonly relations: readonly NodeRelationSuggestion[];
+}
+
+/** Result of checking whether an attribute name can be declared locally. */
+export interface AttributeCreationAdvice {
+  readonly allowed: boolean;
+  readonly conflicts: readonly ('attribute' | 'relationRole')[];
 }
 
 /** Computes deterministic modeling suggestions from an already validated project graph. */
@@ -118,6 +162,35 @@ export class RamenAdvisor {
       );
   }
 
+  /** Returns the refinement lineage, effective attributes, and possible relations for one local node. */
+  public adviseNode(modelId: Id, nodeId: Id): NodeAdvice | undefined {
+    const actual: ResolvedModelElement<GNode> | undefined = this.resolveLocalNode(modelId, nodeId);
+    if (!actual) return undefined;
+    const ancestors: ResolvedModelElement<GNode>[] = [...this.graph.getNodeAncestors(modelId, nodeId)].reverse();
+    const lineage: readonly ResolvedModelElement<GNode>[] = [...ancestors, actual];
+    return {
+      lineage: lineage.map((item: ResolvedModelElement<GNode>): NodeLineageItem => this.lineageItem(item, modelId)),
+      attributes: this.attributeSuggestions(lineage, actual),
+      relations: this.nodeRelationSuggestions(modelId, actual),
+    };
+  }
+
+  /** Lists all inherited and local attributes visible on one node. */
+  public suggestAttributes(modelId: Id, nodeId: Id): readonly AttributeSuggestion[] {
+    return this.adviseNode(modelId, nodeId)?.attributes ?? [];
+  }
+
+  /** Checks inherited attributes and applicable relation roles before an attribute is created. */
+  public adviseAttributeCreation(modelId: Id, nodeId: Id, name: string): AttributeCreationAdvice {
+    const advice: NodeAdvice | undefined = this.adviseNode(modelId, nodeId);
+    if (!advice) return { allowed: false, conflicts: [] };
+    const conflicts: ('attribute' | 'relationRole')[] = [];
+    if (advice.attributes.some((attribute: AttributeSuggestion): boolean => attribute.name === name)) conflicts.push('attribute');
+    if (advice.relations.some((relation: NodeRelationSuggestion): boolean => relation.role === name))
+      conflicts.push('relationRole');
+    return { allowed: conflicts.length === 0, conflicts: conflicts };
+  }
+
   /** Lists imported relations whose endpoint types accept the selected source and target nodes. */
   public suggestRelations(modelId: Id, fromNodeId: Id, toNodeId: Id): readonly RelationRefinementSuggestion[] {
     const from: ResolvedModelElement<GNode> | undefined = this.resolveLocalNode(modelId, fromNodeId);
@@ -147,6 +220,91 @@ export class RamenAdvisor {
 
   private importedModels(modelId: Id): readonly GModel[] {
     return this.graph.getModels().filter((model: GModel): boolean => model.id !== modelId);
+  }
+
+  private attributeSuggestions(
+    lineage: readonly ResolvedModelElement<GNode>[],
+    actual: ResolvedModelElement<GNode>,
+  ): readonly AttributeSuggestion[] {
+    return lineage.flatMap((owner: ResolvedModelElement<GNode>): AttributeSuggestion[] =>
+      owner.element.attributes.map((attribute: GAttribute): AttributeSuggestion => ({
+        attributeId: attribute.id,
+        name: attribute.name,
+        typeId: attribute.typeId,
+        bounds: { ...attribute.bounds },
+        declaredBy: this.lineageItem(owner, actual.modelId),
+        inherited: owner.modelId !== actual.modelId || owner.element.id !== actual.element.id,
+      })),
+    );
+  }
+
+  private nodeRelationSuggestions(modelId: Id, actual: ResolvedModelElement<GNode>): readonly NodeRelationSuggestion[] {
+    const suggestions: NodeRelationSuggestion[] = [];
+    for (const owner of this.graph.getModels()) {
+      for (const relation of owner.relations) {
+        if (this.accepts(owner.id, relation.from.nodeId, actual)) {
+          const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
+            modelId,
+            owner,
+            relation,
+            'outgoing',
+          );
+          if (suggestion) suggestions.push(suggestion);
+        }
+        if (this.accepts(owner.id, relation.to.nodeId, actual)) {
+          const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
+            modelId,
+            owner,
+            relation,
+            'incoming',
+          );
+          if (suggestion) suggestions.push(suggestion);
+        }
+      }
+    }
+    return suggestions;
+  }
+
+  private nodeRelationSuggestion(
+    modelId: Id,
+    owner: GModel,
+    relation: GRelation,
+    direction: 'outgoing' | 'incoming',
+  ): NodeRelationSuggestion | undefined {
+    const targetRef: Ref = direction === 'outgoing' ? relation.to.nodeId : relation.from.nodeId;
+    const target: ResolvedModelElement<GNode> | undefined = this.graph.resolveNode(owner.id, targetRef);
+    if (!target) return undefined;
+    const compatibleTargetNodeIds: Id[] = this.localNodes(modelId)
+      .filter((candidate: ResolvedModelElement<GNode>): boolean => this.accepts(owner.id, targetRef, candidate))
+      .map((candidate: ResolvedModelElement<GNode>): Id => candidate.element.id);
+    return {
+      modelId: owner.id,
+      relationId: relation.id,
+      ref: owner.id === modelId ? relation.id : ModelRef.qualify(owner.id, relation.id),
+      name: relation.name,
+      direction: direction,
+      role: direction === 'outgoing' ? relation.to.role : relation.from.role,
+      requiredTarget: this.lineageItem(target, modelId),
+      compatibleTargetNodeIds: compatibleTargetNodeIds,
+      actions: owner.id === modelId ? ['reuse'] : ['reuse', 'refine'],
+    };
+  }
+
+  private localNodes(modelId: Id): readonly ResolvedModelElement<GNode>[] {
+    const model: GModel | undefined = this.graph.getModel(modelId);
+    if (!model) return [];
+    return model.classifiers.flatMap((classifier): ResolvedModelElement<GNode>[] =>
+      classifier.kind === 'GNode' ? [{ modelId: modelId, element: classifier }] : [],
+    );
+  }
+
+  private lineageItem(item: ResolvedModelElement<GNode>, ownerModelId: Id): NodeLineageItem {
+    return {
+      modelId: item.modelId,
+      nodeId: item.element.id,
+      ref: item.modelId === ownerModelId ? item.element.id : ModelRef.qualify(item.modelId, item.element.id),
+      name: item.element.name,
+    };
   }
 
   private resolveLocalNode(modelId: Id, nodeId: Id): ResolvedModelElement<GNode> | undefined {

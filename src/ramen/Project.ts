@@ -33,6 +33,7 @@ export interface CreateRamenRelationInput {
 export interface CreateAnnotationTypeInput {
   readonly name: string;
   readonly typeValue: string;
+  readonly refines?: RamenElementRef;
 }
 
 /** Result of a model change together with immediate whole-project validation. */
@@ -90,8 +91,9 @@ export class RamenProject {
 
   /** Adds a node refining RAMEN Annotation and associates its stable serialized type value. */
   public createAnnotationType(input: CreateAnnotationTypeInput): RamenChange<GNode> {
+    const base: RamenElementRef = input.refines ?? { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION };
     const node: GNode = AnnotationTypes.write(
-      ModelFactory.createNode(RAMEN_MODEL.id, { name: input.name, baseNodeId: RAMEN_ELEMENT.ANNOTATION }),
+      ModelFactory.createNode(base.modelId, { name: input.name, baseNodeId: base.elementId }),
       input.typeValue,
     );
     this.model = ModelEditor.addClassifier(this.model, node);

@@ -2,7 +2,9 @@ import { GModel, GRelation, Id, Ref } from '../model/Types';
 import { QualifiedParts, ModelRef } from './Refs';
 import { ModelElementIndex } from './Elements';
 
+/** Resolves relation refinement metadata and role names reserved on nodes. */
 export class RelationDefinitions {
+  /** Returns relation role names that cannot also be used as node attributes. */
   public static resolveReservedRoleNames(startModelId: Id, nodeId: Id, modelsById: ReadonlyMap<Id, GModel>): ReadonlySet<string> {
     const reserved: Set<string> = new Set<string>();
 
@@ -18,6 +20,7 @@ export class RelationDefinitions {
     return reserved;
   }
 
+  /** Returns the refined relation identifier when it belongs to the requested base model. */
   public static resolveBaseRelationId(baseModelId: Id, relation: GRelation): Id | null {
     const superTypes: readonly Ref[] = relation.superTypes ?? [];
     if (superTypes.length !== 1) return null;
@@ -32,6 +35,7 @@ export class RelationDefinitions {
     return parts.refId;
   }
 
+  /** Returns the name of the relation refined in the supplied base model. */
   public static resolveBaseRelationName(base: GModel, relation: GRelation): string | null {
     const baseRelationId: Id | null = this.resolveBaseRelationId(base.id, relation);
     if (!baseRelationId) return null;

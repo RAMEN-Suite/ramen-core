@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["test/**/*.ts", "dist/**/*.d.ts"]
 }

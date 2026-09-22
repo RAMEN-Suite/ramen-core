@@ -4,7 +4,9 @@ import { QualifiedParts, ModelRef } from './Refs';
 import { NodeInheritance, ResolvedNode } from './Inheritance';
 import { ImportClosure } from './Imports';
 
+/** Direction from the selected node to a relation's opposite endpoint. */
 export type Direction = 'OUT' | 'IN';
+/** Relation option prepared for model editor selection controls. */
 export interface SelectableRelation {
   readonly baseRelationId: Id;
   readonly relationName: string;
@@ -12,13 +14,16 @@ export interface SelectableRelation {
   readonly direction: Direction;
 }
 
+/** Legacy read queries used by model editors before project graph construction. */
 export class ModelQueries {
+  /** Returns all node classifiers declared by a model. */
   public static listNodes(model: GModel): readonly GNode[] {
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
     const nodes: GNode[] = Array.from(modelIndex.nodesById.values());
     return nodes.sort((a: GNode, b: GNode): number => a.name.localeCompare(b.name));
   }
 
+  /** Returns the resolved inheritance chain for a node. */
   public static listNodeChain(
     startModelId: string,
     startNodeId: string,
@@ -32,6 +37,7 @@ export class ModelQueries {
     }
   }
 
+  /** Groups local node refinements by their base node identifier. */
   public static listGroupedNodesByBaseId(base: GModel, model: GModel): ReadonlyMap<Id, readonly GNode[]> {
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
     const groupedNodes: Map<Id, GNode[]> = new Map<Id, GNode[]>();
@@ -56,12 +62,14 @@ export class ModelQueries {
     return groupedNodes;
   }
 
+  /** Returns all relations declared by a model. */
   public static listRelations(model: GModel): readonly GRelation[] {
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
     const relations: GRelation[] = Array.from(modelIndex.relationsById.values());
     return relations.sort((a: GRelation, b: GRelation): number => a.name.localeCompare(b.name));
   }
 
+  /** Returns base relations that may be refined for a selected node. */
   public static listSelectableRelations(base: GModel, model: GModel, nodeId: Id): readonly SelectableRelation[] {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
@@ -98,6 +106,7 @@ export class ModelQueries {
     return relations.sort((a: SelectableRelation, b: SelectableRelation): number => a.relationName.localeCompare(b.relationName));
   }
 
+  /** Returns relation roles visible from a node in one model. */
   public static listRelationRoles(model: GModel, nodeId: Id): ReadonlySet<string> {
     const roles: Set<string> = new Set<string>();
 
@@ -109,6 +118,7 @@ export class ModelQueries {
     return roles;
   }
 
+  /** Returns local nodes compatible with a base relation's source end. */
   public static listRelationFromNodes(base: GModel, model: GModel, baseRelationId: Id): readonly GNode[] {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
@@ -128,6 +138,7 @@ export class ModelQueries {
     return allowed.sort((a: GNode, b: GNode): number => a.name.localeCompare(b.name));
   }
 
+  /** Returns local nodes compatible with a base relation's target end. */
   public static listRelationToNodes(base: GModel, model: GModel, baseRelationId: Id): readonly GNode[] {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
@@ -147,12 +158,14 @@ export class ModelQueries {
     return allowed.sort((a: GNode, b: GNode): number => a.name.localeCompare(b.name));
   }
 
+  /** Returns all data types declared by a model. */
   public static listDataTypes(model: GModel): readonly GDataType[] {
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);
     const types: GDataType[] = Array.from(modelIndex.dataTypesById.values());
     return types.sort((a: GDataType, b: GDataType): number => a.name.localeCompare(b.name));
   }
 
+  /** Returns data types declared locally or by imported models. */
   public static listGlobalDataTypes(model: GModel, modelsById: ReadonlyMap<Id, GModel>): readonly GDataType[] {
     const closures: readonly GModel[] = ImportClosure.resolveImports(model.id, modelsById);
     const modelIndex: ModelElementIndex = new ModelElementIndex(model);

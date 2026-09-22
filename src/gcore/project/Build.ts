@@ -4,6 +4,7 @@ import { GClassifier, GConstraint, GModel, GNode, GRelation, Id, Import, Ref } f
 import { ModelElementIndex } from './Elements';
 import { ModelRef } from './Refs';
 import { ProjectGraph } from './Graph';
+import { ValidationCode } from '../validation/Codes';
 
 /** Root selection and available models used to build a project graph. */
 export interface ProjectGraphInput {
@@ -371,6 +372,6 @@ function findElementKind(index: ModelElementIndex, elementId: Id): ExpectedEleme
   return undefined;
 }
 
-function error(code: string, message: string, path: DiagnosticPath, ref?: string): Diagnostic {
+function error(code: ValidationCode, message: string, path: DiagnosticPath, ref?: string): Diagnostic {
   return Diagnostics.error({ code, message, path, ref });
 }

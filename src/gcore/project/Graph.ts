@@ -112,6 +112,26 @@ export class ProjectGraph {
     return result;
   }
 
+  /** Returns all resolvable transitive supertypes of a relation in nearest-first order. */
+  public getRelationAncestors(modelId: Id, relationId: Id): readonly ResolvedModelElement<GRelation>[] {
+    const result: ResolvedModelElement<GRelation>[] = [];
+    const visited: Set<string> = new Set<string>();
+    let current: ResolvedModelElement<GRelation> | undefined;
+    const relation: GRelation | undefined = this.getRelation(modelId, relationId);
+    const superType: Ref | undefined = relation?.superTypes[0];
+    if (superType) current = this.resolveRelation(modelId, superType);
+
+    while (current) {
+      const key: string = `${current.modelId}:${current.element.id}`;
+      if (visited.has(key)) break;
+      visited.add(key);
+      result.push(current);
+      const nextRef: Ref | undefined = current.element.superTypes[0];
+      current = nextRef ? this.resolveRelation(current.modelId, nextRef) : undefined;
+    }
+    return result;
+  }
+
   /** Reports whether a model is reachable from the graph root. */
   public hasModel(modelId: Id): boolean {
     return this.modelsById.has(modelId);

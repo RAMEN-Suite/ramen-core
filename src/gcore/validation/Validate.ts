@@ -1,9 +1,9 @@
-import { SemanticValidator, ValidationOptions } from './Semantic';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
 import { SchemaValidator } from './Schema';
 import { VALIDATION_ERROR } from './Codes';
 import { GModel, Id } from '../model/Types';
 import { buildProjectGraph, ProjectGraphResult } from '../project/Build';
+import { ProjectSemanticValidator } from './Project';
 
 /** Role of a model while validating a refinement pair. */
 export type SchemaKind = 'BASE' | 'DERIVED';
@@ -19,7 +19,7 @@ export interface ValidationResult {
  * Graph construction failures stop later semantic phases to avoid misleading errors.
  */
 export class ModelValidator {
-  private readonly strict: SemanticValidator = new SemanticValidator();
+  private readonly semantics: ProjectSemanticValidator = new ProjectSemanticValidator();
 
   /**
    * Validates a derived model against its base and the complete project context.
@@ -43,12 +43,52 @@ export class ModelValidator {
       return { diagnostics: graphDiagnostics, hasErrors: true };
     }
 
-    const options: ValidationOptions = { baseId: base.id };
-    const strict: Diagnostic[] = this.strict.validate(base, derived, models, options);
-    const all: Diagnostic[] = [...diagnostics, ...strict];
+    if (!derived.imports.some((modelImport): boolean => modelImport.modelId === base.id)) {
+      diagnostics.push(
+        Diagnostics.error({
+          code: VALIDATION_ERROR.MISSING_BASE_IMPORT,
+          message: `Model '${derived.id}' must import base model '${base.id}'.`,
+          path: DiagnosticPath.root().property('imports'),
+          ref: base.id,
+        }),
+      );
+    }
+
+    const semanticDiagnostics: readonly Diagnostic[] = this.semantics.validate(graphResult.graph);
+    const all: Diagnostic[] = [...diagnostics, ...semanticDiagnostics];
 
     hasErrors = all.some((d: Diagnostic): boolean => d.severity === 'error');
     return { diagnostics: all, hasErrors };
+  }
+
+  /** Validates schema conformance, graph integrity, and semantics for a complete model project. */
+  public validateProject(rootModelId: Id, inputs: readonly unknown[]): ValidationResult {
+    const diagnostics: Diagnostic[] = [];
+    const models: GModel[] = [];
+
+    inputs.forEach((input: unknown, index: number): void => {
+      try {
+        SchemaValidator.assertValid(input);
+        models.push(input);
+      } catch (error: unknown) {
+        const message: string = error instanceof Error ? error.message : String(error);
+        diagnostics.push(
+          Diagnostics.error({
+            code: VALIDATION_ERROR.SCHEMA_INVALID,
+            message: message,
+            path: DiagnosticPath.root().property('models').index(index),
+          }),
+        );
+      }
+    });
+    if (diagnostics.length > 0) return { diagnostics: diagnostics, hasErrors: true };
+
+    const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
+    if (!graphResult.ok) return { diagnostics: [...graphResult.diagnostics], hasErrors: true };
+
+    const semanticDiagnostics: Diagnostic[] = [...this.semantics.validate(graphResult.graph)];
+    const hasErrors: boolean = semanticDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error');
+    return { diagnostics: semanticDiagnostics, hasErrors: hasErrors };
   }
 
   private validateSchema(kind: SchemaKind, input: unknown, diags: Diagnostic[]): asserts input is GModel {

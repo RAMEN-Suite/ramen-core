@@ -1,6 +1,8 @@
 import { GModel, Id, Import } from '../model/Types';
 
+/** Resolves the transitive set of models reachable through imports. */
 export class ImportClosure {
+  /** Returns every resolvable model imported directly or transitively by a model. */
   public static resolveImports(startModelId: Id, modelsById: ReadonlyMap<Id, GModel>): readonly GModel[] {
     const result: GModel[] = [];
     const visited: Set<Id> = new Set<Id>();

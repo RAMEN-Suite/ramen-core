@@ -2,12 +2,15 @@ import { GAttribute, GModel, GNode, Id, Ref } from '../model/Types';
 import { QualifiedParts, ModelRef } from './Refs';
 import { ModelElementIndex } from './Elements';
 
+/** Node paired with the identifier of its owning model. */
 export interface ResolvedNode {
   readonly modelId: Id;
   readonly node: GNode;
 }
 
+/** Resolves node refinement chains and their inherited attributes. */
 export class NodeInheritance {
+  /** Returns the single qualified supertype in the requested base model. */
   public static resolveLocalSuperType(superTypes: readonly Ref[], baseModelId: Id): QualifiedParts | null {
     if (superTypes.length !== 1) return null;
 
@@ -21,6 +24,7 @@ export class NodeInheritance {
     return parts;
   }
 
+  /** Returns a node's transitive supertypes in base-first order. */
   public static resolveSuperTypeChain(
     startModelId: Id,
     startNodeId: Id,
@@ -61,6 +65,7 @@ export class NodeInheritance {
     return superTypeChain.slice(1).reverse();
   }
 
+  /** Returns the names of local and inherited attributes. */
   public static resolveAttributeNames(
     startModelId: Id,
     startNodeId: Id,
@@ -80,6 +85,7 @@ export class NodeInheritance {
     return attributeNames;
   }
 
+  /** Returns only the names inherited from transitive supertypes. */
   public static resolveInheritedAttributeNames(
     startModelId: Id,
     startNodeId: Id,

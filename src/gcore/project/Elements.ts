@@ -1,11 +1,22 @@
 import { GDataType, GModel, GNode, GRelation, Id } from '../model/Types';
 
+/**
+ * Builds constant-time lookup tables for the elements owned by one model.
+ *
+ * The index does not resolve imports or inheritance. ProjectGraph combines
+ * one index per model to resolve references across a complete project.
+ */
 export class ModelElementIndex {
+  /** Imports keyed by imported model identifier. */
   public readonly importsByModelId: ReadonlyMap<Id, string>;
+  /** Nodes declared by this model, keyed by element identifier. */
   public readonly nodesById: ReadonlyMap<Id, GNode>;
+  /** Data types declared by this model, keyed by element identifier. */
   public readonly dataTypesById: ReadonlyMap<Id, GDataType>;
+  /** Relations declared by this model, keyed by element identifier. */
   public readonly relationsById: ReadonlyMap<Id, GRelation>;
 
+  /** Indexes the supplied model without modifying it. */
   public constructor(public readonly model: GModel) {
     const imports: Map<Id, string> = new Map<Id, string>();
     for (const imp of this.model.imports) {

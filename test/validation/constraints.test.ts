@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ConstraintRegistry, DiagnosticPath } from '../../dist/index.js';
-import type { ConstraintContext, GConstraint } from '../../dist/index.js';
+import type { ConstraintContext, Diagnostic, GConstraint } from '../../dist/index.js';
 
 function constraint(expression: GConstraint['expression'], language: string = 'regex'): GConstraint {
   return {
@@ -14,8 +14,8 @@ function constraint(expression: GConstraint['expression'], language: string = 'r
 }
 
 void test('evaluates regex constraints with structured diagnostics', () => {
-  const registry = ConstraintRegistry.createDefault();
-  const diagnostics = registry.evaluate(constraint('^[A-Z]'), {
+  const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
+  const diagnostics: readonly Diagnostic[] = registry.evaluate(constraint('^[A-Z]'), {
     modelId: 'constraintModel1',
     ownerId: 'constraintOwner1',
     target: 'attribute',
@@ -27,7 +27,7 @@ void test('evaluates regex constraints with structured diagnostics', () => {
 });
 
 void test('reports invalid expressions and unregistered languages', () => {
-  const registry = ConstraintRegistry.createDefault();
+  const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   const context: ConstraintContext = {
     modelId: 'constraintModel1',
     ownerId: 'constraintOwner1',
@@ -40,7 +40,7 @@ void test('reports invalid expressions and unregistered languages', () => {
 });
 
 void test('validates standard date and date-time formats', () => {
-  const registry = ConstraintRegistry.createDefault();
+  const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   const context: ConstraintContext = {
     modelId: 'constraintModel1',
     ownerId: 'constraintOwner1',

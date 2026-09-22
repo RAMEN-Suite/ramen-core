@@ -1,5 +1,5 @@
-import { Bounds, GModel, Id, Ref } from '../gcore/model/Types';
-import { RamenSchemaValidator } from './Schema';
+import type { Bounds, GModel, Id, Ref } from '../../gcore/index';
+import { RamenAnnotationSchemaValidator } from '../validation/AnnotationSchema';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
 export interface RamenAnnotationProperty {
@@ -33,7 +33,7 @@ export class RamenAnnotations {
   /** Returns a detached list of annotations declared by the model. */
   public static get(model: GModel): readonly RamenAnnotation[] {
     const ramen: unknown = model.ext?.ramen;
-    if (!RamenSchemaValidator.isValid(ramen) || !this.isRecord(ramen) || !Array.isArray(ramen.annotations)) return [];
+    if (!RamenAnnotationSchemaValidator.isValid(ramen) || !this.isRecord(ramen) || !Array.isArray(ramen.annotations)) return [];
     return structuredClone(ramen.annotations) as readonly RamenAnnotation[];
   }
 
@@ -41,7 +41,7 @@ export class RamenAnnotations {
   public static hasValidSection(model: GModel): boolean {
     const ramen: unknown = model.ext?.ramen;
     if (ramen === undefined) return true;
-    return RamenSchemaValidator.isValid(ramen);
+    return RamenAnnotationSchemaValidator.isValid(ramen);
   }
 
   /** Returns a model with the annotation appended to its RAMEN section. */

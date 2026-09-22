@@ -324,7 +324,7 @@ export class ProjectSemanticValidator {
 
     const actualNode: ResolvedModelElement<GNode> | undefined = graph.resolveNode(modelId, end.nodeId);
     const requiredNode: ResolvedModelElement<GNode> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
-    if (actualNode && requiredNode && !this.isSameOrSubtype(graph, actualNode, requiredNode)) {
+    if (actualNode && requiredNode && !graph.isNodeSameOrSubtype(actualNode, requiredNode)) {
       diagnostics.push(
         this.error(
           'RELATION_END_TYPE_INCOMPATIBLE',
@@ -334,20 +334,6 @@ export class ProjectSemanticValidator {
         ),
       );
     }
-  }
-
-  private isSameOrSubtype(
-    graph: ProjectGraph,
-    actual: ResolvedModelElement<GNode>,
-    expected: ResolvedModelElement<GNode>,
-  ): boolean {
-    if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
-    return graph
-      .getNodeAncestors(actual.modelId, actual.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GNode>): boolean =>
-          ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
-      );
   }
 
   private elementPath(modelId: Id, collection: 'classifiers' | 'relations', index: number): DiagnosticPath {

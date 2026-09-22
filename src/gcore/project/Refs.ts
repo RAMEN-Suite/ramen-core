@@ -28,4 +28,9 @@ export class ModelRef {
   public static qualify(baseId: Id, nodeId: Id): QualifiedRef {
     return `${baseId}:${nodeId}`;
   }
+
+  /** Returns the local element identifier from a local or qualified reference. */
+  public static localId(ref: Ref): Id {
+    return ModelRef.isQualified(ref) ? ModelRef.splitQualified(ref).refId : ref;
+  }
 }

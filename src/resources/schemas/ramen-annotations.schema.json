@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ramen-schema.org/ramen/1.0.0/extension.schema.json",
-  "title": "RAMEN GCore Extension",
-  "description": "RAMEN-specific model definitions stored below GModel.ext.ramen.",
+  "$id": "https://ramen-schema.org/ramen/1.0.0/annotations.schema.json",
+  "title": "RAMEN Annotation Definitions",
+  "description": "Closed RAMEN annotation definitions stored below GModel.ext.ramen.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

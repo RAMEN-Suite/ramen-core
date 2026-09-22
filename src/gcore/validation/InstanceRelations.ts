@@ -168,7 +168,7 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): void {
     const required: ResolvedModelElement<GNode> | undefined = graph.resolveNode(relationType.modelId, requiredRef);
-    if (required && !this.isSameOrSubtype(graph, actual.type, required)) {
+    if (required && !graph.isNodeSameOrSubtype(actual.type, required)) {
       diagnostics.push(
         this.error(
           'INSTANCE_RELATION_END_TYPE_INVALID',
@@ -205,8 +205,8 @@ export class InstanceRelationValidator {
   ): void {
     const relationRef: Ref = relationModelId === ownerModelId ? relation.id : `${relationModelId}:${relation.id}`;
     for (const node of nodesById.values()) {
-      const acceptsFrom: boolean = this.acceptsNode(graph, relationModelId, relation.from.nodeId, node.type);
-      const acceptsTo: boolean = this.acceptsNode(graph, relationModelId, relation.to.nodeId, node.type);
+      const acceptsFrom: boolean = graph.acceptsNode(relationModelId, relation.from.nodeId, node.type);
+      const acceptsTo: boolean = graph.acceptsNode(relationModelId, relation.to.nodeId, node.type);
       if (acceptsFrom) {
         const count: number = this.countRelations(graph, relations, node.instance.id, 'from', relationModelId, relation.id);
         this.validateCount(
@@ -242,37 +242,8 @@ export class InstanceRelationValidator {
   ): number {
     return relations.filter((item: ResolvedInstanceRelation): boolean => {
       const matchesNode: boolean = end === 'from' ? item.instance.fromId === nodeId : item.instance.toId === nodeId;
-      return matchesNode && this.isRelationType(graph, item.type, modelId, relationId);
+      return matchesNode && graph.isRelationRefSameOrSubtype(item.type.modelId, item.type.element.id, modelId, relationId);
     }).length;
-  }
-
-  private acceptsNode(graph: ProjectGraph, relationModelId: Id, requiredRef: Ref, actual: ResolvedModelElement<GNode>): boolean {
-    const required: ResolvedModelElement<GNode> | undefined = graph.resolveNode(relationModelId, requiredRef);
-    return required ? this.isSameOrSubtype(graph, actual, required) : false;
-  }
-
-  private isSameOrSubtype(
-    graph: ProjectGraph,
-    actual: ResolvedModelElement<GNode>,
-    expected: ResolvedModelElement<GNode>,
-  ): boolean {
-    if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
-    return graph
-      .getNodeAncestors(actual.modelId, actual.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GNode>): boolean =>
-          ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
-      );
-  }
-
-  private isRelationType(graph: ProjectGraph, type: ResolvedModelElement<GRelation>, modelId: Id, relationId: Id): boolean {
-    if (type.modelId === modelId && type.element.id === relationId) return true;
-    return graph
-      .getRelationAncestors(type.modelId, type.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GRelation>): boolean =>
-          ancestor.modelId === modelId && ancestor.element.id === relationId,
-      );
   }
 
   private validateCount(

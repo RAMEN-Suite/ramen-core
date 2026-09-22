@@ -1,11 +1,11 @@
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
-import schema from '../resources/schemas/ramen.schema.json';
+import schema from '../../resources/schemas/ramen-annotations.schema.json';
 
-/** Canonical identifier of the supported RAMEN extension schema. */
-export const RAMEN_SCHEMA_URI: string = 'https://ramen-schema.org/ramen/1.0.0/extension.schema.json';
+/** Canonical identifier of the schema for `GModel.ext.ramen` annotation definitions. */
+export const RAMEN_ANNOTATION_SCHEMA_URI: string = 'https://ramen-schema.org/ramen/1.0.0/annotations.schema.json';
 
 /** Validates the object stored below `GModel.ext.ramen`. */
-export class RamenSchemaValidator {
+export class RamenAnnotationSchemaValidator {
   private static readonly schemaNode: SchemaNode = compileSchema(schema);
 
   /** Returns the compiled, versioned RAMEN JSON Schema node. */

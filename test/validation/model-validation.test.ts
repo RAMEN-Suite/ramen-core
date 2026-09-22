@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { RAMEN_MODEL, ModelValidator, RamenValidator, SchemaValidator } from '../../dist/index.js';
-import type { GModel } from '../../dist/index.js';
+import type { GModel, ProjectValidationResult } from '../../dist/index.js';
 
 function derivedModel(): GModel {
   return {
@@ -18,18 +18,18 @@ function derivedModel(): GModel {
 }
 
 void test('RAMEN model and minimal project pass schema and semantic validation', () => {
-  const project = derivedModel();
+  const project: GModel = derivedModel();
   assert.equal(SchemaValidator.isValid(RAMEN_MODEL), true);
   assert.equal(SchemaValidator.isValid(project), true);
-  const result = new ModelValidator().validateProject(project.id, [project, RAMEN_MODEL]);
+  const result: ProjectValidationResult = new ModelValidator().validateProject(project.id, [project, RAMEN_MODEL]);
   assert.equal(result.hasErrors, false);
   assert.deepEqual(result.diagnostics, []);
 });
 
 void test('a missing base import produces a stable diagnostic', () => {
-  const project = derivedModel();
+  const project: GModel = derivedModel();
   project.imports = [];
-  const result = new RamenValidator().validateProject(project.id, [project, RAMEN_MODEL]);
+  const result: ProjectValidationResult = new RamenValidator().validateProject(project.id, [project, RAMEN_MODEL]);
   assert.equal(result.hasErrors, true);
   assert.ok(result.diagnostics.some((d: { code: string }) => d.code === 'RAMEN_BASE_MODEL_REQUIRED'));
 });
@@ -38,13 +38,13 @@ void test('project example resolves against the current RAMEN model', async () =
   const { readFileSync } = await import('node:fs');
   const example: unknown = JSON.parse(readFileSync(new URL('../fixtures/example.gcore.json', import.meta.url), 'utf8'));
   SchemaValidator.assertValid(example);
-  const result = new ModelValidator().validateProject(example.id, [example, RAMEN_MODEL]);
+  const result: ProjectValidationResult = new ModelValidator().validateProject(example.id, [example, RAMEN_MODEL]);
   assert.equal(result.hasErrors, false, JSON.stringify(result.diagnostics));
   assert.deepEqual(result.diagnostics, []);
 });
 
 void test('project graph errors stop semantic validation', () => {
-  const project = derivedModel();
+  const project: GModel = derivedModel();
   project.imports.push({
     modelUri: 'https://example.org/missing',
     modelId: 'missingModel0001',
@@ -52,7 +52,7 @@ void test('project graph errors stop semantic validation', () => {
     name: 'Missing',
   });
 
-  const result = new ModelValidator().validateProject(project.id, [project, RAMEN_MODEL]);
+  const result: ProjectValidationResult = new ModelValidator().validateProject(project.id, [project, RAMEN_MODEL]);
 
   assert.equal(result.hasErrors, true);
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_MODEL_NOT_FOUND'));

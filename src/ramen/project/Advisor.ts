@@ -1,10 +1,20 @@
-import { BuiltinDataTypes } from '../gcore/model/Builtins';
-import { Bounds, BuiltinType, GAttribute, GDataType, GModel, GNode, GRelation, Id, Ref } from '../gcore/model/Types';
-import { ProjectGraph, ResolvedModelElement } from '../gcore/project/Graph';
-import { ModelRef } from '../gcore/project/Refs';
-import { ValidProjectResult } from '../gcore/validation/Validate';
+import { ModelRef, ProjectGraph } from '../../gcore/index';
+import { BuiltinDataTypes } from '../../gcore/model/Builtins';
+import type {
+  Bounds,
+  BuiltinType,
+  GAttribute,
+  GDataType,
+  GModel,
+  GNode,
+  GRelation,
+  Id,
+  Ref,
+  ResolvedModelElement,
+  ValidProjectResult,
+} from '../../gcore/index';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
-import { AnnotationAdvice, RamenAnnotationAdvisor } from './AnnotationAdvice';
+import { AnnotationAdvice, AnnotationRelationAdvice, RamenAnnotationAdvisor } from './AnnotationAdvice';
 
 /** One node type that a new project node can refine. */
 export interface NodeRefinementSuggestion {
@@ -156,9 +166,34 @@ export class RamenAdvisor {
       .sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number => left.type.localeCompare(right.type));
   }
 
+  /** Lists effective annotation variants attachable to one local node through modeled relations. */
+  public suggestAnnotationsForNode(modelId: Id, nodeId: Id): readonly AnnotationSuggestion[] {
+    const actual: ResolvedModelElement<GNode> | undefined = this.resolveLocalNode(modelId, nodeId);
+    if (!actual) return [];
+    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph);
+    const result: Map<string, AnnotationSuggestion> = new Map<string, AnnotationSuggestion>();
+    for (const relation of this.nodeRelationSuggestions(modelId, actual)) {
+      if (relation.direction !== 'outgoing') continue;
+      for (const targetId of relation.compatibleTargetNodeIds) {
+        if (!annotations.isAnnotationNode(modelId, targetId)) continue;
+        for (const suggestion of this.suggestAnnotations(modelId, targetId)) {
+          result.set(`${suggestion.modelId}:${suggestion.annotationId}`, suggestion);
+        }
+      }
+    }
+    return [...result.values()].sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number =>
+      left.type.localeCompare(right.type),
+    );
+  }
+
   /** Suggests valid properties, relations, targets, and cardinalities for an annotation definition. */
   public adviseAnnotation(modelId: Id, annotationNodeId: Id, refines?: Ref): AnnotationAdvice | undefined {
     return new RamenAnnotationAdvisor(this.graph).advise(modelId, annotationNodeId, refines);
+  }
+
+  /** Lists the modeled relations permitted by one effective annotation type. */
+  public suggestRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly AnnotationRelationAdvice[] {
+    return new RamenAnnotationAdvisor(this.graph).adviseEffective(modelId, annotationNodeId, type)?.relations ?? [];
   }
 
   /** Returns the refinement lineage, effective attributes, and possible relations for one local node. */
@@ -177,6 +212,11 @@ export class RamenAdvisor {
   /** Lists all inherited and local attributes visible on one node. */
   public suggestAttributes(modelId: Id, nodeId: Id): readonly AttributeSuggestion[] {
     return this.adviseNode(modelId, nodeId)?.attributes ?? [];
+  }
+
+  /** Lists possible incoming and outgoing connections for one local node. */
+  public suggestConnections(modelId: Id, nodeId: Id): readonly NodeRelationSuggestion[] {
+    return this.adviseNode(modelId, nodeId)?.relations ?? [];
   }
 
   /** Checks inherited attributes and applicable relation roles before an attribute is created. */
@@ -199,7 +239,8 @@ export class RamenAdvisor {
     return this.importedModels(modelId)
       .flatMap((model: GModel): RelationRefinementSuggestion[] =>
         model.relations.flatMap((relation: GRelation): RelationRefinementSuggestion[] => {
-          if (!this.accepts(model.id, relation.from.nodeId, from) || !this.accepts(model.id, relation.to.nodeId, to)) return [];
+          if (!this.graph.acceptsNode(model.id, relation.from.nodeId, from)) return [];
+          if (!this.graph.acceptsNode(model.id, relation.to.nodeId, to)) return [];
           return [
             {
               modelId: model.id,
@@ -241,7 +282,7 @@ export class RamenAdvisor {
     const suggestions: NodeRelationSuggestion[] = [];
     for (const owner of this.graph.getModels()) {
       for (const relation of owner.relations) {
-        if (this.accepts(owner.id, relation.from.nodeId, actual)) {
+        if (this.graph.acceptsNode(owner.id, relation.from.nodeId, actual)) {
           const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
             modelId,
             owner,
@@ -250,7 +291,7 @@ export class RamenAdvisor {
           );
           if (suggestion) suggestions.push(suggestion);
         }
-        if (this.accepts(owner.id, relation.to.nodeId, actual)) {
+        if (this.graph.acceptsNode(owner.id, relation.to.nodeId, actual)) {
           const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
             modelId,
             owner,
@@ -274,7 +315,7 @@ export class RamenAdvisor {
     const target: ResolvedModelElement<GNode> | undefined = this.graph.resolveNode(owner.id, targetRef);
     if (!target) return undefined;
     const compatibleTargetNodeIds: Id[] = this.localNodes(modelId)
-      .filter((candidate: ResolvedModelElement<GNode>): boolean => this.accepts(owner.id, targetRef, candidate))
+      .filter((candidate: ResolvedModelElement<GNode>): boolean => this.graph.acceptsNode(owner.id, targetRef, candidate))
       .map((candidate: ResolvedModelElement<GNode>): Id => candidate.element.id);
     return {
       modelId: owner.id,
@@ -309,17 +350,5 @@ export class RamenAdvisor {
   private resolveLocalNode(modelId: Id, nodeId: Id): ResolvedModelElement<GNode> | undefined {
     const node: GNode | undefined = this.graph.getNode(modelId, nodeId);
     return node ? { modelId: modelId, element: node } : undefined;
-  }
-
-  private accepts(ownerModelId: Id, requiredRef: Ref, actual: ResolvedModelElement<GNode>): boolean {
-    const required: ResolvedModelElement<GNode> | undefined = this.graph.resolveNode(ownerModelId, requiredRef);
-    if (!required) return false;
-    if (required.modelId === actual.modelId && required.element.id === actual.element.id) return true;
-    return this.graph
-      .getNodeAncestors(actual.modelId, actual.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GNode>): boolean =>
-          ancestor.modelId === required.modelId && ancestor.element.id === required.element.id,
-      );
   }
 }

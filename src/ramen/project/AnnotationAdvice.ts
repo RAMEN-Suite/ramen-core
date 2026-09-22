@@ -1,11 +1,19 @@
-import { Bounds, GAttribute, GModel, GNode, GRelation, Id, Ref } from '../gcore/model/Types';
-import { EffectiveModel, EffectiveNode } from '../gcore/project/Effective';
-import { ProjectGraph, ResolvedModelElement } from '../gcore/project/Graph';
-import { ModelRef } from '../gcore/project/Refs';
-import { RamenAnnotationProperty, RamenAnnotationRelation } from './Annotations';
+import { EffectiveModel, ModelRef, ProjectGraph } from '../../gcore/index';
+import { ModelSemantics } from '../../gcore/validation/Semantics';
+import type {
+  Bounds,
+  EffectiveNode,
+  GAttribute,
+  GModel,
+  GNode,
+  GRelation,
+  Id,
+  Ref,
+  ResolvedModelElement,
+} from '../../gcore/index';
+import { RamenAnnotationProperty, RamenAnnotationRelation } from '../model/Annotations';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
-import { RAMEN_ELEMENT } from './Elements';
-import { RAMEN_MODEL } from './Model';
 
 /** Property that can be selected for a new or refined annotation definition. */
 export interface AnnotationPropertyAdvice {
@@ -65,7 +73,7 @@ export class RamenAnnotationAdvisor {
   /** Advises a new annotation, or a refinement when `refines` identifies its parent definition. */
   public advise(modelId: Id, annotationNodeId: Id, refines?: Ref): AnnotationAdvice | undefined {
     const node: GNode | undefined = this.graph.getNode(modelId, annotationNodeId);
-    if (!node || !this.isAnnotationNode(modelId, annotationNodeId)) return undefined;
+    if (!node || !this.annotations.isAnnotationNode(modelId, annotationNodeId)) return undefined;
     const parent: ResolvedRamenAnnotation | undefined = refines ? this.annotations.resolve(modelId, refines) : undefined;
     if (refines && !parent) return undefined;
     const actual: ResolvedModelElement<GNode> = { modelId: modelId, element: node };
@@ -73,6 +81,35 @@ export class RamenAnnotationAdvisor {
       properties: this.propertyAdvice(actual, parent),
       relations: this.relationAdvice(actual, parent),
     };
+  }
+
+  /** Returns the effective properties and relations selected by one annotation type. */
+  public adviseEffective(modelId: Id, annotationNodeId: Id, type: string): AnnotationAdvice | undefined {
+    const definition: ResolvedRamenAnnotation | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
+    if (!definition) return undefined;
+    const node: GNode | undefined = this.graph.getNode(modelId, annotationNodeId);
+    if (!node) return undefined;
+    const actual: ResolvedModelElement<GNode> = { modelId: modelId, element: node };
+    return {
+      properties: this.selectedPropertyAdvice(actual, definition),
+      relations: this.relationAdvice(actual, definition),
+    };
+  }
+
+  private selectedPropertyAdvice(
+    actual: ResolvedModelElement<GNode>,
+    definition: ResolvedRamenAnnotation,
+  ): readonly AnnotationPropertyAdvice[] {
+    const selected: ReadonlySet<Id> = new Set<Id>(
+      this.annotations
+        .getRefinementLineage(definition)
+        .flatMap((item: ResolvedRamenAnnotation): Id[] =>
+          item.annotation.properties.map((property: RamenAnnotationProperty): Id => this.refId(property.attributeId)),
+        ),
+    );
+    return this.propertyAdvice(actual, definition).filter((property: AnnotationPropertyAdvice): boolean =>
+      selected.has(property.attributeId),
+    );
   }
 
   private propertyAdvice(
@@ -132,11 +169,11 @@ export class RamenAnnotationAdvisor {
     isRefinement: boolean,
   ): void {
     const annotationRef: Ref = direction === 'outgoing' ? relation.from.nodeId : relation.to.nodeId;
-    if (!this.accepts(owner.id, annotationRef, actual)) return;
+    if (!this.graph.acceptsNode(owner.id, annotationRef, actual)) return;
     const selected: ResolvedAnnotationRelation | undefined = inherited.find(
       (candidate: ResolvedAnnotationRelation): boolean =>
         candidate.relation.direction === direction &&
-        this.relationRefines(owner.id, relation.id, candidate.modelId, candidate.relation.relationId),
+        this.graph.isRelationRefSameOrSubtype(owner.id, relation.id, candidate.modelId, candidate.relation.relationId),
     );
     if (isRefinement && !selected) return;
     const targetRef: Ref = direction === 'outgoing' ? relation.to.nodeId : relation.from.nodeId;
@@ -163,7 +200,7 @@ export class RamenAnnotationAdvisor {
 
   private inheritedProperties(parent: ResolvedRamenAnnotation | undefined): ReadonlyMap<Id, ResolvedAnnotationProperty> {
     const result: Map<Id, ResolvedAnnotationProperty> = new Map<Id, ResolvedAnnotationProperty>();
-    for (const definition of this.annotationLineage(parent).reverse()) {
+    for (const definition of [...this.annotations.getRefinementLineage(parent)].reverse()) {
       for (const property of definition.annotation.properties) {
         const attributeId: Id = this.refId(property.attributeId);
         const previous: ResolvedAnnotationProperty | undefined = result.get(attributeId);
@@ -178,31 +215,22 @@ export class RamenAnnotationAdvisor {
 
   private inheritedRelations(parent: ResolvedRamenAnnotation | undefined): readonly ResolvedAnnotationRelation[] {
     const result: ResolvedAnnotationRelation[] = [];
-    for (const definition of this.annotationLineage(parent).reverse()) {
+    for (const definition of [...this.annotations.getRefinementLineage(parent)].reverse()) {
       for (const relation of definition.annotation.relations) {
         const index: number = result.findIndex(
           (candidate: ResolvedAnnotationRelation): boolean =>
             candidate.relation.direction === relation.direction &&
-            this.relationRefines(definition.modelId, relation.relationId, candidate.modelId, candidate.relation.relationId),
+            this.graph.isRelationRefSameOrSubtype(
+              definition.modelId,
+              relation.relationId,
+              candidate.modelId,
+              candidate.relation.relationId,
+            ),
         );
         const resolved: ResolvedAnnotationRelation = { modelId: definition.modelId, relation: relation };
         if (index < 0) result.push(resolved);
         else result.splice(index, 1, resolved);
       }
-    }
-    return result;
-  }
-
-  private annotationLineage(parent: ResolvedRamenAnnotation | undefined): ResolvedRamenAnnotation[] {
-    const result: ResolvedRamenAnnotation[] = [];
-    const visited: Set<string> = new Set<string>();
-    let current: ResolvedRamenAnnotation | undefined = parent;
-    while (current) {
-      const key: string = `${current.modelId}:${current.annotation.id}`;
-      if (visited.has(key)) break;
-      visited.add(key);
-      result.push(current);
-      current = current.annotation.refines ? this.annotations.resolve(current.modelId, current.annotation.refines) : undefined;
     }
     return result;
   }
@@ -231,7 +259,7 @@ export class RamenAnnotationAdvisor {
     return model.classifiers.flatMap((classifier): Id[] => {
       if (classifier.kind !== 'GNode') return [];
       const candidate: ResolvedModelElement<GNode> = { modelId: modelId, element: classifier };
-      return this.accepts(relationModelId, targetRef, candidate) ? [classifier.id] : [];
+      return this.graph.acceptsNode(relationModelId, targetRef, candidate) ? [classifier.id] : [];
     });
   }
 
@@ -251,48 +279,11 @@ export class RamenAnnotationAdvisor {
     return [...unique.values()];
   }
 
-  private relationRefines(actualModelId: Id, actualRef: Ref, requiredModelId: Id, requiredRef: Ref): boolean {
-    const actual: ResolvedModelElement<GRelation> | undefined = this.graph.resolveRelation(actualModelId, actualRef);
-    const required: ResolvedModelElement<GRelation> | undefined = this.graph.resolveRelation(requiredModelId, requiredRef);
-    if (!actual || !required) return false;
-    if (actual.modelId === required.modelId && actual.element.id === required.element.id) return true;
-    return this.graph
-      .getRelationAncestors(actual.modelId, actual.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GRelation>): boolean =>
-          ancestor.modelId === required.modelId && ancestor.element.id === required.element.id,
-      );
-  }
-
-  private accepts(ownerModelId: Id, requiredRef: Ref, actual: ResolvedModelElement<GNode>): boolean {
-    const required: ResolvedModelElement<GNode> | undefined = this.graph.resolveNode(ownerModelId, requiredRef);
-    if (!required) return false;
-    if (required.modelId === actual.modelId && required.element.id === actual.element.id) return true;
-    return this.graph
-      .getNodeAncestors(actual.modelId, actual.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GNode>): boolean =>
-          ancestor.modelId === required.modelId && ancestor.element.id === required.element.id,
-      );
-  }
-
-  private isAnnotationNode(modelId: Id, nodeId: Id): boolean {
-    if (modelId === RAMEN_MODEL.id && nodeId === RAMEN_ELEMENT.ANNOTATION) return true;
-    return this.graph
-      .getNodeAncestors(modelId, nodeId)
-      .some(
-        (ancestor: ResolvedModelElement<GNode>): boolean =>
-          ancestor.modelId === RAMEN_MODEL.id && ancestor.element.id === RAMEN_ELEMENT.ANNOTATION,
-      );
-  }
-
   private narrows(actual: Bounds, allowed: Bounds): boolean {
-    if (actual.lowerBound < allowed.lowerBound || actual.upperBound < -1) return false;
-    if (allowed.upperBound === -1) return actual.upperBound === -1 || actual.upperBound >= actual.lowerBound;
-    return actual.upperBound !== -1 && actual.upperBound >= actual.lowerBound && actual.upperBound <= allowed.upperBound;
+    return ModelSemantics.isModelBoundsCompatible(allowed, actual);
   }
 
   private refId(reference: Ref): Id {
-    return ModelRef.isQualified(reference) ? ModelRef.splitQualified(reference).refId : reference;
+    return ModelRef.localId(reference);
   }
 }

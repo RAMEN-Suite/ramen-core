@@ -1,24 +1,37 @@
-import { Bounds, GAttribute, GModel, GNode, GRelation, Id, Ref } from '../gcore/model/Types';
-import { EffectiveModel } from '../gcore/project/Effective';
-import { ProjectGraph, ResolvedModelElement } from '../gcore/project/Graph';
-import { ModelRef } from '../gcore/project/Refs';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../gcore/validation/Diagnostics';
-import { InstanceSchemaValidator } from '../gcore/validation/InstanceSchema';
-import { ModelInstanceGraph, ModelInstanceNode, ModelInstanceRelation } from '../gcore/validation/InstanceTypes';
-import { InstanceValidator } from '../gcore/validation/Instances';
-import { ProjectValidationResult, ValidationResult } from '../gcore/validation/Validate';
-import { RamenAnnotationProperty, RamenAnnotationRelation } from './Annotations';
-import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
-import { RAMEN_ELEMENT } from './Elements';
-import { RAMEN_MODEL } from './Model';
-import { RamenValidator } from './ModelValidation';
+import {
+  DiagnosticPath,
+  Diagnostics,
+  EffectiveModel,
+  InstanceSchemaValidator,
+  InstanceValidator,
+  ModelRef,
+  ProjectGraph,
+} from '../../gcore/index';
+import type {
+  Bounds,
+  Diagnostic,
+  GAttribute,
+  GModel,
+  GNode,
+  Id,
+  ModelInstanceGraph,
+  ModelInstanceNode,
+  ModelInstanceRelation,
+  ProjectValidationResult,
+  Ref,
+  ResolvedModelElement,
+  ValidationResult,
+} from '../../gcore/index';
+import { RamenAnnotationProperty, RamenAnnotationRelation } from '../model/Annotations';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
+import { RamenAnnotationGraph, ResolvedRamenAnnotation } from '../project/AnnotationGraph';
+import { RamenValidator } from './ModelValidator';
 
 interface ResolvedAnnotationRelation {
   readonly modelId: Id;
   readonly relation: RamenAnnotationRelation;
 }
 
-/** Stable diagnostics emitted while validating RAMEN instance semantics. */
 /** Stable diagnostic codes emitted while validating RAMEN instances. */
 export const RAMEN_INSTANCE_ERROR: Readonly<{
   ANNOTATION_REQUIRED: 'RAMEN_INSTANCE_ANNOTATION_REQUIRED';
@@ -70,7 +83,7 @@ export class RamenInstanceValidator {
     diagnostics: Diagnostic[],
   ): void {
     const resolved: ResolvedModelElement<GNode> | undefined = graph.resolveNode(instance.modelId, node.typeId);
-    if (!resolved || !this.isAnnotation(graph, resolved)) return;
+    if (!resolved || !annotations.isAnnotationNode(resolved.modelId, resolved.element.id)) return;
     const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
     const type: unknown = node.properties.type;
     if (typeof type !== 'string') {
@@ -115,7 +128,7 @@ export class RamenInstanceValidator {
       ) ?? [],
     );
     const allowedIds: Set<Id> = new Set<Id>(commonIds);
-    for (const definition of this.annotationLineage(annotations, selected)) {
+    for (const definition of annotations.getRefinementLineage(selected)) {
       for (const property of definition.annotation.properties) allowedIds.add(this.refId(property.attributeId));
     }
     const allowedNames: Set<string> = new Set<string>(
@@ -192,8 +205,7 @@ export class RamenInstanceValidator {
       const count: number = connected.filter(
         (relation: ModelInstanceRelation): boolean =>
           this.hasDirection(requirement.relation, relation, node.id) &&
-          this.instanceRelationMatches(
-            graph,
+          graph.isRelationRefSameOrSubtype(
             instance.modelId,
             relation.typeId,
             requirement.modelId,
@@ -225,8 +237,7 @@ export class RamenInstanceValidator {
       const allowed: boolean = requirements.some(
         (requirement: ResolvedAnnotationRelation): boolean =>
           this.hasDirection(requirement.relation, relation, node.id) &&
-          this.instanceRelationMatches(
-            graph,
+          graph.isRelationRefSameOrSubtype(
             instanceModelId,
             relation.typeId,
             requirement.modelId,
@@ -249,7 +260,7 @@ export class RamenInstanceValidator {
     selected: ResolvedRamenAnnotation,
   ): readonly RamenAnnotationProperty[] {
     const result: Map<Id, RamenAnnotationProperty> = new Map<Id, RamenAnnotationProperty>();
-    for (const definition of [...this.annotationLineage(annotations, selected)].reverse()) {
+    for (const definition of [...annotations.getRefinementLineage(selected)].reverse()) {
       for (const property of definition.annotation.properties) {
         const attributeId: Id = this.refId(property.attributeId);
         const inherited: RamenAnnotationProperty | undefined = result.get(attributeId);
@@ -265,13 +276,12 @@ export class RamenInstanceValidator {
     selected: ResolvedRamenAnnotation,
   ): readonly ResolvedAnnotationRelation[] {
     const result: ResolvedAnnotationRelation[] = [];
-    for (const definition of [...this.annotationLineage(annotations, selected)].reverse()) {
+    for (const definition of [...annotations.getRefinementLineage(selected)].reverse()) {
       for (const requirement of definition.annotation.relations) {
         const index: number = result.findIndex(
           (candidate: ResolvedAnnotationRelation): boolean =>
             candidate.relation.direction === requirement.direction &&
-            this.relationDefinitionMatches(
-              graph,
+            graph.isRelationRefSameOrSubtype(
               definition.modelId,
               requirement.relationId,
               candidate.modelId,
@@ -286,73 +296,8 @@ export class RamenInstanceValidator {
     return result;
   }
 
-  private annotationLineage(
-    annotations: RamenAnnotationGraph,
-    selected: ResolvedRamenAnnotation,
-  ): readonly ResolvedRamenAnnotation[] {
-    const result: ResolvedRamenAnnotation[] = [];
-    const visited: Set<string> = new Set<string>();
-    let current: ResolvedRamenAnnotation | undefined = selected;
-    while (current) {
-      const key: string = `${current.modelId}:${current.annotation.id}`;
-      if (visited.has(key)) break;
-      visited.add(key);
-      result.push(current);
-      current = current.annotation.refines ? annotations.resolve(current.modelId, current.annotation.refines) : undefined;
-    }
-    return result;
-  }
-
-  private instanceRelationMatches(
-    graph: ProjectGraph,
-    instanceModelId: Id,
-    actualRef: Ref,
-    requirementModelId: Id,
-    requiredRef: Ref,
-  ): boolean {
-    const actual: ResolvedModelElement<GRelation> | undefined = graph.resolveRelation(instanceModelId, actualRef);
-    const required: ResolvedModelElement<GRelation> | undefined = graph.resolveRelation(requirementModelId, requiredRef);
-    if (!actual || !required) return false;
-    if (actual.modelId === required.modelId && actual.element.id === required.element.id) return true;
-    return graph
-      .getRelationAncestors(actual.modelId, actual.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GRelation>): boolean =>
-          ancestor.modelId === required.modelId && ancestor.element.id === required.element.id,
-      );
-  }
-
-  private relationDefinitionMatches(
-    graph: ProjectGraph,
-    actualModelId: Id,
-    actualRef: Ref,
-    requiredModelId: Id,
-    requiredRef: Ref,
-  ): boolean {
-    const actual: ResolvedModelElement<GRelation> | undefined = graph.resolveRelation(actualModelId, actualRef);
-    const required: ResolvedModelElement<GRelation> | undefined = graph.resolveRelation(requiredModelId, requiredRef);
-    if (!actual || !required) return false;
-    if (actual.modelId === required.modelId && actual.element.id === required.element.id) return true;
-    return graph
-      .getRelationAncestors(actual.modelId, actual.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GRelation>): boolean =>
-          ancestor.modelId === required.modelId && ancestor.element.id === required.element.id,
-      );
-  }
-
   private hasDirection(requirement: RamenAnnotationRelation, relation: ModelInstanceRelation, nodeId: Id): boolean {
     return requirement.direction === 'outgoing' ? relation.fromId === nodeId : relation.toId === nodeId;
-  }
-
-  private isAnnotation(graph: ProjectGraph, type: ResolvedModelElement<GNode>): boolean {
-    if (type.modelId === RAMEN_MODEL.id && type.element.id === RAMEN_ELEMENT.ANNOTATION) return true;
-    return graph
-      .getNodeAncestors(type.modelId, type.element.id)
-      .some(
-        (ancestor: ResolvedModelElement<GNode>): boolean =>
-          ancestor.modelId === RAMEN_MODEL.id && ancestor.element.id === RAMEN_ELEMENT.ANNOTATION,
-      );
   }
 
   private within(count: number, bounds: Bounds): boolean {
@@ -364,7 +309,7 @@ export class RamenInstanceValidator {
   }
 
   private refId(reference: Ref): Id {
-    return ModelRef.isQualified(reference) ? ModelRef.splitQualified(reference).refId : reference;
+    return ModelRef.localId(reference);
   }
 
   private error(diagnostics: Diagnostic[], code: string, message: string, path: DiagnosticPath, ref: Id): void {

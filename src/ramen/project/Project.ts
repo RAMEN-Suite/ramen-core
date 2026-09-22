@@ -1,11 +1,21 @@
-import { CreateAttributeInput, CreateDataTypeInput, CreateModelInput, ModelFactory } from '../gcore/model/Create';
-import { ModelEditor } from '../gcore/model/Edit';
-import { Bounds, GAttribute, GDataType, GModel, GNode, GRelation, Id } from '../gcore/model/Types';
-import { ProjectValidationResult } from '../gcore/validation/Validate';
+import { ModelEditor, ModelFactory } from '../../gcore/index';
+import type {
+  Bounds,
+  CreateAttributeInput,
+  CreateDataTypeInput,
+  CreateModelInput,
+  GAttribute,
+  GDataType,
+  GModel,
+  GNode,
+  GRelation,
+  Id,
+  ProjectValidationResult,
+} from '../../gcore/index';
+import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
+import { RAMEN_MODEL } from '../model/ReferenceModel';
+import { RamenValidator } from '../validation/ModelValidator';
 import { RamenAdvisor } from './Advisor';
-import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from './Annotations';
-import { RAMEN_MODEL } from './Model';
-import { RamenValidator } from './ModelValidation';
 
 /** Reference to one node or relation in a specific model. */
 export interface RamenElementRef {

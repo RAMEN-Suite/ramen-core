@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createModelBundle, splitModelBundle } from '../../dist/index.js';
-import type { GModel } from '../../dist/index.js';
+import type { CreateBundleResult, GModel } from '../../dist/index.js';
 
 const BASE_ID: string = 'bundleBase000001';
 const ROOT_ID: string = 'bundleRoot000001';
@@ -24,7 +24,7 @@ function model(id: string, imported?: GModel): GModel {
 void test('bundles reachable models and restores their boundaries', () => {
   const base: GModel = model(BASE_ID);
   const root: GModel = model(ROOT_ID, base);
-  const result = createModelBundle(ROOT_ID, [root, base]);
+  const result: CreateBundleResult = createModelBundle(ROOT_ID, [root, base]);
   assert.equal(result.ok, true);
   if (!result.ok) return;
   const serialized: string = JSON.stringify(result.bundle);
@@ -38,7 +38,7 @@ void test('excludes models outside the root import closure', () => {
   const base: GModel = model(BASE_ID);
   const root: GModel = model(ROOT_ID, base);
   const unrelated: GModel = model('unrelated0000001');
-  const result = createModelBundle(ROOT_ID, [root, base, unrelated]);
+  const result: CreateBundleResult = createModelBundle(ROOT_ID, [root, base, unrelated]);
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.deepEqual(
@@ -53,9 +53,12 @@ void test('rejects malformed bundle JSON', () => {
 
 void test('rejects a bundle whose root cannot be resolved', () => {
   const base: GModel = model(BASE_ID);
-  const result = createModelBundle(BASE_ID, [base]);
+  const result: CreateBundleResult = createModelBundle(BASE_ID, [base]);
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const invalid = { ...result.bundle, rootModelId: ROOT_ID };
+  const invalid: { rootModelId: string; $schema: string; kind: 'GModelBundle'; version: string; models: GModel[] } = {
+    ...result.bundle,
+    rootModelId: ROOT_ID,
+  };
   assert.throws((): readonly GModel[] => splitModelBundle(invalid), /Root model not found/);
 });

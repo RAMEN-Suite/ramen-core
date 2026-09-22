@@ -1,18 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildProjectGraph, InstanceValidator } from '../../dist/index.js';
-import type { GModel, ModelInstanceGraph, ProjectGraph } from '../../dist/index.js';
+import type {
+  GAttribute,
+  GModel,
+  GNode,
+  ModelInstanceGraph,
+  ProjectGraph,
+  ProjectGraphResult,
+  ValidationResult,
+} from '../../dist/index.js';
 import { attribute, boundsOf, model, node, relation } from '../models.ts';
 
-const MODEL_ID = 'instanceModel001';
-const PERSON_ID = 'personNode000001';
-const PLACE_ID = 'placeNode0000001';
-const RELATION_ID = 'locatedRelation1';
+const MODEL_ID: string = 'instanceModel001';
+const PERSON_ID: string = 'personNode000001';
+const PLACE_ID: string = 'placeNode0000001';
+const RELATION_ID: string = 'locatedRelation1';
 
 function graph(): ProjectGraph {
   const schema: GModel = model(MODEL_ID);
-  const person = node(PERSON_ID, 'Person');
-  const name = attribute('personNameAttr01', 'name', 'String', boundsOf(1, 1));
+  const person: GNode = node(PERSON_ID, 'Person');
+  const name: GAttribute = attribute('personNameAttr01', 'name', 'String', boundsOf(1, 1));
   name.constraints = [
     {
       id: 'personNameRule01',
@@ -25,7 +33,7 @@ function graph(): ProjectGraph {
   person.attributes.push(name, attribute('personTagsAttr01', 'tags', 'String', boundsOf(0, -1)));
   schema.classifiers.push(person, node(PLACE_ID, 'Place'));
   schema.relations.push(relation(RELATION_ID, 'LOCATED_AT', PERSON_ID, PLACE_ID, boundsOf(1, 1)));
-  const result = buildProjectGraph({ rootModelId: MODEL_ID, models: [schema] });
+  const result: ProjectGraphResult = buildProjectGraph({ rootModelId: MODEL_ID, models: [schema] });
   assert.equal(result.ok, true);
   if (!result.ok) throw new Error('Test graph could not be built.');
   return result.graph;
@@ -43,8 +51,8 @@ void test('validates closed properties, values, arrays, and constraints', () => 
     ],
     relations: [],
   };
-  const result = new InstanceValidator().validate(graph(), instance);
-  const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
+  const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
+  const codes: string[] = result.diagnostics.map((diagnostic) => diagnostic.code);
   assert.ok(codes.includes('INSTANCE_PROPERTY_UNKNOWN'));
   assert.ok(codes.includes('INSTANCE_PROPERTY_ARRAY_REQUIRED'));
   assert.ok(codes.includes('CONSTRAINT_REGEX_MISMATCH'));
@@ -63,7 +71,7 @@ void test('rejects undeclared fields outside the modeled properties object', () 
     ],
     relations: [],
   };
-  const result = new InstanceValidator().validate(graph(), input);
+  const result: ValidationResult = new InstanceValidator().validate(graph(), input);
   assert.equal(result.diagnostics[0]?.code, 'INSTANCE_SCHEMA_INVALID');
 });
 
@@ -76,7 +84,7 @@ void test('accepts valid nodes and relation cardinalities', () => {
     ],
     relations: [{ id: 'locatedInstance1', typeId: RELATION_ID, fromId: 'personInstance01', toId: 'placeInstance001' }],
   };
-  const result = new InstanceValidator().validate(graph(), instance);
+  const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
   assert.deepEqual(result.diagnostics, []);
 });
 
@@ -89,8 +97,8 @@ void test('validates relation endpoint types and required cardinalities', () => 
     ],
     relations: [{ id: 'locatedInstance1', typeId: RELATION_ID, fromId: 'personInstance01', toId: 'personInstance02' }],
   };
-  const result = new InstanceValidator().validate(graph(), instance);
-  const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
+  const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
+  const codes: string[] = result.diagnostics.map((diagnostic) => diagnostic.code);
   assert.ok(codes.includes('INSTANCE_RELATION_END_TYPE_INVALID'));
   assert.ok(codes.includes('INSTANCE_CARDINALITY_INVALID'));
 });
@@ -110,10 +118,10 @@ void test('validates a modeled Date datatype as a constrained String', () => {
       attributes: [attribute('eventDateAttr001', 'date', 'dateDataType0001', boundsOf(1, 1))],
     },
   );
-  const built = buildProjectGraph({ rootModelId: schema.id, models: [schema] });
+  const built: ProjectGraphResult = buildProjectGraph({ rootModelId: schema.id, models: [schema] });
   assert.equal(built.ok, true);
   if (!built.ok) return;
-  const result = new InstanceValidator().validate(built.graph, {
+  const result: ValidationResult = new InstanceValidator().validate(built.graph, {
     modelId: schema.id,
     nodes: [{ id: 'eventInstance001', typeId: 'eventNode0000001', properties: { date: '2026-02-30' } }],
     relations: [],

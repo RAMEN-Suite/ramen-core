@@ -1,7 +1,7 @@
-import { GModel, GNode, Id, Ref } from '../gcore/model/Types';
-import { ProjectGraph, ResolvedModelElement } from '../gcore/project/Graph';
-import { ModelRef, QualifiedParts } from '../gcore/project/Refs';
-import { RamenAnnotation, RamenAnnotations } from './Annotations';
+import { ModelRef, ProjectGraph } from '../../gcore/index';
+import type { GModel, GNode, Id, QualifiedParts, Ref, ResolvedModelElement } from '../../gcore/index';
+import { RamenAnnotation, RamenAnnotations } from '../model/Annotations';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 
 /** Annotation definition resolved together with the model that declares it. */
 export interface ResolvedRamenAnnotation {
@@ -73,5 +73,29 @@ export class RamenAnnotationGraph {
     return this.getEffective(modelId, nodeId).find(
       (candidate: ResolvedRamenAnnotation): boolean => candidate.annotation.type === type,
     );
+  }
+
+  /** Returns one annotation definition and all definitions it transitively refines, nearest first. */
+  public getRefinementLineage(start: ResolvedRamenAnnotation | undefined): readonly ResolvedRamenAnnotation[] {
+    const result: ResolvedRamenAnnotation[] = [];
+    const visited: Set<string> = new Set<string>();
+    let current: ResolvedRamenAnnotation | undefined = start;
+    while (current) {
+      const key: string = `${current.modelId}:${current.annotation.id}`;
+      if (visited.has(key)) break;
+      visited.add(key);
+      result.push(current);
+      current = current.annotation.refines ? this.resolve(current.modelId, current.annotation.refines) : undefined;
+    }
+    return result;
+  }
+
+  /** Reports whether a reachable node is RAMEN Annotation or one of its transitive refinements. */
+  public isAnnotationNode(modelId: Id, nodeId: Id): boolean {
+    const actual: GNode | undefined = this.graph.getNode(modelId, nodeId);
+    const expected: GNode | undefined = this.graph.getNode(RAMEN_MODEL.id, RAMEN_ELEMENT.ANNOTATION);
+    return actual && expected
+      ? this.graph.isNodeSameOrSubtype({ modelId: modelId, element: actual }, { modelId: RAMEN_MODEL.id, element: expected })
+      : false;
   }
 }

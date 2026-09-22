@@ -1,6 +1,6 @@
 import type { Bounds, GAttribute, GModel, GNode, GRelation, Id, Ref, TypeRef } from '../dist/index.js';
 
-export const TEST_SCHEMA = 'https://ramen-schema.org/gcore/1.0.0/schema.json';
+export const TEST_SCHEMA: string = 'https://ramen-schema.org/gcore/1.0.0/schema.json';
 
 export function model(id: Id, imports: readonly GModel[] = []): GModel {
   return {

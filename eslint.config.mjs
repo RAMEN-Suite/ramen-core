@@ -44,7 +44,7 @@ export default defineConfig(
     rules: {
       '@typescript-eslint/typedef': [
         'error',
-        { memberVariableDeclaration: true, parameter: true, propertyDeclaration: true, variableDeclaration: false },
+        { memberVariableDeclaration: true, parameter: true, propertyDeclaration: true, variableDeclaration: true },
       ],
     },
   },

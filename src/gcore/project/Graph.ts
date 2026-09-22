@@ -132,6 +132,37 @@ export class ProjectGraph {
     return result;
   }
 
+  /** Reports whether an actual node is the expected node or one of its transitive refinements. */
+  public isNodeSameOrSubtype(actual: ResolvedModelElement<GNode>, expected: ResolvedModelElement<GNode>): boolean {
+    if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
+    return this.getNodeAncestors(actual.modelId, actual.element.id).some(
+      (ancestor: ResolvedModelElement<GNode>): boolean =>
+        ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
+    );
+  }
+
+  /** Reports whether an actual relation is the expected relation or one of its transitive refinements. */
+  public isRelationSameOrSubtype(actual: ResolvedModelElement<GRelation>, expected: ResolvedModelElement<GRelation>): boolean {
+    if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
+    return this.getRelationAncestors(actual.modelId, actual.element.id).some(
+      (ancestor: ResolvedModelElement<GRelation>): boolean =>
+        ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
+    );
+  }
+
+  /** Reports whether an actual node satisfies a local or qualified expected node reference. */
+  public acceptsNode(ownerModelId: Id, expectedRef: Ref, actual: ResolvedModelElement<GNode>): boolean {
+    const expected: ResolvedModelElement<GNode> | undefined = this.resolveNode(ownerModelId, expectedRef);
+    return expected ? this.isNodeSameOrSubtype(actual, expected) : false;
+  }
+
+  /** Compares two local or qualified relation references including transitive refinement. */
+  public isRelationRefSameOrSubtype(actualOwnerModelId: Id, actualRef: Ref, expectedOwnerModelId: Id, expectedRef: Ref): boolean {
+    const actual: ResolvedModelElement<GRelation> | undefined = this.resolveRelation(actualOwnerModelId, actualRef);
+    const expected: ResolvedModelElement<GRelation> | undefined = this.resolveRelation(expectedOwnerModelId, expectedRef);
+    return actual && expected ? this.isRelationSameOrSubtype(actual, expected) : false;
+  }
+
   /** Reports whether a model is reachable from the graph root. */
   public hasModel(modelId: Id): boolean {
     return this.modelsById.has(modelId);

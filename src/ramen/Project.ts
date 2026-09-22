@@ -3,8 +3,7 @@ import { ModelEditor } from '../gcore/model/Edit';
 import { Bounds, GAttribute, GDataType, GModel, GNode, GRelation, Id } from '../gcore/model/Types';
 import { ProjectValidationResult } from '../gcore/validation/Validate';
 import { RamenAdvisor } from './Advisor';
-import { AnnotationTypes } from './AnnotationTypes';
-import { RAMEN_ELEMENT } from './Elements';
+import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from './Annotations';
 import { RAMEN_MODEL } from './Model';
 import { RamenValidator } from './Validate';
 
@@ -29,11 +28,27 @@ export interface CreateRamenRelationInput {
   readonly toBounds?: Bounds;
 }
 
-/** Values needed to create a concrete annotation type in a project model. */
-export interface CreateAnnotationTypeInput {
-  readonly name: string;
-  readonly typeValue: string;
-  readonly refines?: RamenElementRef;
+/** Values needed to declare one closed annotation variant for a local Annotation node. */
+export interface CreateRamenAnnotationInput {
+  readonly annotationId: Id;
+  readonly type: string;
+  readonly properties?: readonly RamenAnnotationProperty[];
+  readonly relations?: readonly RamenAnnotationRelation[];
+}
+
+/** Values needed to narrow an inherited annotation definition for a refined Annotation node. */
+export interface RefineRamenAnnotationInput {
+  readonly annotationId: Id;
+  readonly refines: RamenElementRef;
+  readonly properties?: readonly RamenAnnotationProperty[];
+  readonly relations?: readonly RamenAnnotationRelation[];
+}
+
+/** Editable fields of a locally declared annotation definition. */
+export interface UpdateRamenAnnotationInput {
+  readonly type?: string;
+  readonly properties?: readonly RamenAnnotationProperty[];
+  readonly relations?: readonly RamenAnnotationRelation[];
 }
 
 /** Result of a model change together with immediate whole-project validation. */
@@ -55,7 +70,17 @@ export class RamenProject {
 
   /** Creates an empty project that imports the current RAMEN reference model. */
   public static create(input: CreateModelInput): RamenProject {
-    return new RamenProject(ModelFactory.createModel(RAMEN_MODEL, input), [RAMEN_MODEL]);
+    return this.createLevel(RAMEN_MODEL, input);
+  }
+
+  /** Creates another model level that imports an existing RAMEN project model. */
+  public static createLevel(base: GModel, input: CreateModelInput, dependencies: readonly GModel[] = []): RamenProject {
+    const models: Map<Id, GModel> = new Map<Id, GModel>([
+      [RAMEN_MODEL.id, RAMEN_MODEL],
+      ...dependencies.map((model: GModel): [Id, GModel] => [model.id, model]),
+      [base.id, base],
+    ]);
+    return new RamenProject(ModelFactory.createModel(base, input), [...models.values()]);
   }
 
   /** Loads a project with all models needed to resolve its imports. */
@@ -89,15 +114,64 @@ export class RamenProject {
     return this.change(node);
   }
 
-  /** Adds a node refining RAMEN Annotation and associates its stable serialized type value. */
-  public createAnnotationType(input: CreateAnnotationTypeInput): RamenChange<GNode> {
-    const base: RamenElementRef = input.refines ?? { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION };
-    const node: GNode = AnnotationTypes.write(
-      ModelFactory.createNode(base.modelId, { name: input.name, baseNodeId: base.elementId }),
-      input.typeValue,
+  /** Returns the closed annotation variants declared directly by the project model. */
+  public getAnnotations(): readonly RamenAnnotation[] {
+    return RamenAnnotations.get(this.model);
+  }
+
+  /** Declares a new annotation variant without creating another GCore node. */
+  public createAnnotation(input: CreateRamenAnnotationInput): RamenChange<RamenAnnotation> {
+    const annotation: RamenAnnotation = {
+      id: ModelFactory.createIdentifier(),
+      annotationId: input.annotationId,
+      type: input.type,
+      properties: structuredClone(input.properties ?? []),
+      relations: structuredClone(input.relations ?? []),
+    };
+    this.model = RamenAnnotations.add(this.model, annotation);
+    return this.change(annotation);
+  }
+
+  /** Narrows an inherited annotation definition for a refined local Annotation node. */
+  public refineAnnotation(input: RefineRamenAnnotationInput): RamenChange<RamenAnnotation> {
+    const parent: RamenAnnotation | undefined = this.findAnnotation(input.refines);
+    if (!parent) throw new Error(`Annotation definition not found: '${input.refines.modelId}:${input.refines.elementId}'.`);
+    const annotation: RamenAnnotation = {
+      id: ModelFactory.createIdentifier(),
+      annotationId: input.annotationId,
+      type: parent.type,
+      refines: `${input.refines.modelId}:${input.refines.elementId}`,
+      properties: structuredClone(input.properties ?? []),
+      relations: structuredClone(input.relations ?? []),
+    };
+    this.model = RamenAnnotations.add(this.model, annotation);
+    return this.change(annotation);
+  }
+
+  /** Updates a locally declared annotation and validates the complete project. */
+  public updateAnnotation(annotationId: Id, input: UpdateRamenAnnotationInput): RamenChange<RamenAnnotation> {
+    const current: RamenAnnotation | undefined = this.getAnnotations().find(
+      (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
     );
-    this.model = ModelEditor.addClassifier(this.model, node);
-    return this.change(node);
+    if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
+    const annotation: RamenAnnotation = {
+      ...current,
+      type: input.type ?? current.type,
+      properties: structuredClone(input.properties ?? current.properties),
+      relations: structuredClone(input.relations ?? current.relations),
+    };
+    this.model = RamenAnnotations.update(this.model, annotationId, annotation);
+    return this.change(annotation);
+  }
+
+  /** Removes a locally declared annotation and validates the complete project. */
+  public removeAnnotation(annotationId: Id): RamenChange<RamenAnnotation> {
+    const current: RamenAnnotation | undefined = this.getAnnotations().find(
+      (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
+    );
+    if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
+    this.model = RamenAnnotations.remove(this.model, annotationId);
+    return this.change(current);
   }
 
   /** Adds an attribute to a local node and immediately validates the resulting project. */
@@ -145,5 +219,11 @@ export class RamenProject {
   private findModel(modelId: Id): GModel | undefined {
     if (modelId === this.model.id) return this.model;
     return this.dependencies.get(modelId);
+  }
+
+  private findAnnotation(reference: RamenElementRef): RamenAnnotation | undefined {
+    const model: GModel | undefined = this.findModel(reference.modelId);
+    if (!model) return undefined;
+    return RamenAnnotations.get(model).find((annotation: RamenAnnotation): boolean => annotation.id === reference.elementId);
   }
 }

@@ -8,6 +8,7 @@ import type {
   GRelation,
   ModelInstanceNode,
   NodeRefinementSuggestion,
+  RamenAnnotation,
   RelationRefinementSuggestion,
 } from '../../dist/index.js';
 
@@ -21,7 +22,7 @@ function project(): RamenProject {
 }
 
 void test('RAMEN provides reusable standard string datatypes', () => {
-  const names = RAMEN_MODEL.classifiers
+  const names: readonly string[] = RAMEN_MODEL.classifiers
     .filter((classifier) => classifier.kind === 'GDataType')
     .map((classifier) => classifier.name);
   assert.deepEqual(names, ['UUID', 'Date', 'DateTime', 'URI', 'Email']);
@@ -59,16 +60,18 @@ void test('suggests node refinements and available data types from a valid graph
     .map((item: DataTypeSuggestion): string => item.name);
   assert.ok(dataTypeNames.includes('String'));
   assert.ok(dataTypeNames.includes('DateTime'));
-  assert.ok(dataTypeNames.includes('UUID'));
 });
 
-void test('advises inherited attributes, name conflicts, and possible relations', () => {
+void test('advises inherited attributes, conflicts, and possible relations', () => {
   const ramenProject: RamenProject = project();
-  const person = ramenProject.createNode({
+  const person: GNode = ramenProject.createNode({
     name: 'Person',
     refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
   }).element;
-  const annotation = ramenProject.createAnnotationType({ name: 'PersonName', typeValue: 'persName' }).element;
+  const annotation: GNode = ramenProject.createNode({
+    name: 'TextAnnotation',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+  }).element;
   const advisor: RamenAdvisor | undefined = ramenProject.createAdvisor();
   assert.ok(advisor);
   const advice = advisor.adviseNode('editorialModel01', person.id);
@@ -85,7 +88,6 @@ void test('advises inherited attributes, name conflicts, and possible relations'
     ],
   );
   assert.deepEqual(advisor.adviseAttributeCreation('editorialModel01', person.id, 'label').conflicts, ['attribute']);
-  assert.deepEqual(advisor.adviseAttributeCreation('editorialModel01', person.id, '_annotations').conflicts, ['relationRole']);
   assert.equal(advisor.adviseAttributeCreation('editorialModel01', person.id, 'birthDate').allowed, true);
   assert.ok(
     advice.relations.some(
@@ -96,38 +98,27 @@ void test('advises inherited attributes, name conflicts, and possible relations'
 
 void test('suggests compatible relation reuse and refinement', () => {
   const ramenProject: RamenProject = project();
-  const person = ramenProject.createNode({
+  const person: GNode = ramenProject.createNode({
     name: 'Person',
     refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
   }).element;
-  const annotation = ramenProject.createNode({
-    name: 'PersonName',
+  const annotation: GNode = ramenProject.createNode({
+    name: 'TextAnnotation',
     refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
   }).element;
   const advisor: RamenAdvisor | undefined = ramenProject.createAdvisor();
   assert.ok(advisor);
   const suggestions: readonly RelationRefinementSuggestion[] = advisor.suggestRelations(
     'editorialModel01',
-    person.id,
     annotation.id,
+    person.id,
   );
-  const hasAnnotation: RelationRefinementSuggestion | undefined = suggestions.find(
-    (item: RelationRefinementSuggestion): boolean => item.name === 'HAS_ANNOTATION',
-  );
-  assert.ok(hasAnnotation);
-  assert.deepEqual(hasAnnotation.actions, ['reuse', 'refine']);
-
-  const relation = ramenProject.createRelation({
-    refines: { modelId: hasAnnotation.modelId, elementId: hasAnnotation.relationId },
-    fromNodeId: person.id,
-    toNodeId: annotation.id,
-  });
-  assert.equal(relation.validation.valid, true, JSON.stringify(relation.validation.diagnostics));
+  assert.ok(suggestions.some((item: RelationRefinementSuggestion): boolean => item.name === 'REFERS_TO'));
 });
 
 void test('returns semantic diagnostics for an invalid modeling change', () => {
   const ramenProject: RamenProject = project();
-  const person = ramenProject.createNode({
+  const person: GNode = ramenProject.createNode({
     name: 'Person',
     refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
   }).element;
@@ -143,44 +134,51 @@ void test('returns semantic diagnostics for an invalid modeling change', () => {
 interface AnnotationFixture {
   readonly model: GModel;
   readonly person: GNode;
-  readonly annotation: GNode;
+  readonly annotationNode: GNode;
+  readonly annotation: RamenAnnotation;
   readonly relation: GRelation;
-  readonly baseRelationRef: string;
 }
 
 function annotationFixture(): AnnotationFixture {
   const ramenProject: RamenProject = project();
-  const person = ramenProject.createNode({
+  const person: GNode = ramenProject.createNode({
     name: 'Person',
     refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
   }).element;
-  const annotation = ramenProject.createAnnotationType({ name: 'PersonName', typeValue: 'persName' }).element;
+  const annotationNode: GNode = ramenProject.createNode({
+    name: 'TextAnnotation',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+  }).element;
   const advisor: RamenAdvisor | undefined = ramenProject.createAdvisor();
   assert.ok(advisor);
-  assert.deepEqual(
-    advisor.suggestAnnotationTypes('editorialModel01').map((item) => item.typeValue),
-    ['persName'],
-  );
-  const suggestion = advisor
-    .suggestRelations('editorialModel01', annotation.id, person.id)
-    .find((item) => item.name === 'REFERS_TO');
+  const suggestion: RelationRefinementSuggestion | undefined = advisor
+    .suggestRelations('editorialModel01', annotationNode.id, person.id)
+    .find((item: RelationRefinementSuggestion): boolean => item.name === 'REFERS_TO');
   assert.ok(suggestion);
-  const relation = ramenProject.createRelation({
+  const relation: GRelation = ramenProject.createRelation({
     refines: { modelId: suggestion.modelId, elementId: suggestion.relationId },
-    fromNodeId: annotation.id,
+    fromNodeId: annotationNode.id,
     toNodeId: person.id,
-    toBounds: { lowerBound: 1, upperBound: 1 },
+  }).element;
+  const annotation = ramenProject.createAnnotation({
+    annotationId: annotationNode.id,
+    type: 'persName',
+    relations: [{ relationId: relation.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
-  assert.equal(relation.validation.valid, true, JSON.stringify(relation.validation.diagnostics));
-  return { model: ramenProject.getModel(), person, annotation, relation: relation.element, baseRelationRef: suggestion.ref };
+  assert.equal(annotation.validation.valid, true, JSON.stringify(annotation.validation.diagnostics));
+  return { model: ramenProject.getModel(), person, annotationNode, annotation: annotation.element, relation };
 }
 
-function annotationNodes(fixture: AnnotationFixture, typeValue: string): readonly ModelInstanceNode[] {
+function annotationNodes(
+  fixture: AnnotationFixture,
+  type: string,
+  extra: Readonly<Record<string, unknown>> = {},
+): readonly ModelInstanceNode[] {
   return [
     {
       id: 'annotationInst01',
-      typeId: fixture.annotation.id,
-      properties: { uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', type: typeValue },
+      typeId: fixture.annotationNode.id,
+      properties: { uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', type: type, ...extra },
     },
     {
       id: 'personInstance01',
@@ -190,30 +188,44 @@ function annotationNodes(fixture: AnnotationFixture, typeValue: string): readonl
   ];
 }
 
-void test('models closed annotation types with required typed relations', () => {
+void test('stores annotation variants separately from GCore nodes', () => {
   const fixture: AnnotationFixture = annotationFixture();
-  const result = new RamenInstanceValidator().validate(fixture.model.id, [fixture.model, RAMEN_MODEL], {
+  assert.equal(fixture.model.classifiers.filter((item) => item.kind === 'GNode').length, 2);
+  assert.deepEqual(fixture.model.ext?.ramen, { annotations: [fixture.annotation] });
+  assert.equal(fixture.annotation.type, 'persName');
+  assert.equal(fixture.annotation.annotationId, fixture.annotationNode.id);
+});
+
+void test('suggests annotations for their owning Annotation node', () => {
+  const fixture: AnnotationFixture = annotationFixture();
+  const ramenProject: RamenProject = RamenProject.load(fixture.model);
+  const advisor: RamenAdvisor | undefined = ramenProject.createAdvisor();
+  assert.ok(advisor);
+  assert.deepEqual(
+    advisor.suggestAnnotations(fixture.model.id, fixture.annotationNode.id).map((item) => item.type),
+    ['persName'],
+  );
+});
+
+void test('rejects an unknown annotation type and missing required annotation relation', () => {
+  const fixture: AnnotationFixture = annotationFixture();
+  const validator: RamenInstanceValidator = new RamenInstanceValidator();
+  const unknown = validator.validate(fixture.model.id, [fixture.model, RAMEN_MODEL], {
     modelId: fixture.model.id,
-    nodes: annotationNodes(fixture, 'wrong'),
+    nodes: annotationNodes(fixture, 'placeName'),
     relations: [],
   });
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_TYPE_MISMATCH'));
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'INSTANCE_CARDINALITY_INVALID'));
-});
+  assert.ok(unknown.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN'));
 
-void test('rejects generic RAMEN relations for closed annotation types', () => {
-  const fixture: AnnotationFixture = annotationFixture();
-  const result = new RamenInstanceValidator().validate(fixture.model.id, [fixture.model, RAMEN_MODEL], {
+  const missing = validator.validate(fixture.model.id, [fixture.model, RAMEN_MODEL], {
     modelId: fixture.model.id,
     nodes: annotationNodes(fixture, 'persName'),
-    relations: [
-      { id: 'genericRefers001', typeId: fixture.baseRelationRef, fromId: 'annotationInst01', toId: 'personInstance01' },
-    ],
+    relations: [],
   });
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_DECLARED'));
+  assert.ok(missing.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY'));
 });
 
-void test('accepts a valid declared annotation relation', () => {
+void test('accepts a valid annotation and its declared relation', () => {
   const fixture: AnnotationFixture = annotationFixture();
   const result = new RamenInstanceValidator().validate(fixture.model.id, [fixture.model, RAMEN_MODEL], {
     modelId: fixture.model.id,
@@ -223,30 +235,258 @@ void test('accepts a valid declared annotation relation', () => {
   assert.deepEqual(result.diagnostics, []);
 });
 
-void test('rejects duplicate annotation type values', () => {
+function annotationPropertyFixture(): { readonly model: GModel; readonly annotationNode: GNode } {
   const ramenProject: RamenProject = project();
-  ramenProject.createAnnotationType({ name: 'PersonName', typeValue: 'name' });
-  const duplicate = ramenProject.createAnnotationType({ name: 'PlaceName', typeValue: 'name' });
-  assert.equal(duplicate.validation.valid, false);
-  assert.ok(duplicate.validation.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_VALUE_DUPLICATE'));
+  const annotationNode: GNode = ramenProject.createNode({
+    name: 'TextAnnotation',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+  }).element;
+  const url = ramenProject.createAttribute(annotationNode.id, {
+    name: 'url',
+    typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.URI}`,
+    bounds: { lowerBound: 0, upperBound: 1 },
+  }).element;
+  ramenProject.createAnnotation({ annotationId: annotationNode.id, type: 'persName' });
+  ramenProject.createAnnotation({
+    annotationId: annotationNode.id,
+    type: 'externalReference',
+    properties: [{ attributeId: url.id, bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  return { model: ramenProject.getModel(), annotationNode: annotationNode };
+}
+
+void test('allows only properties selected by the annotation definition', () => {
+  const { model, annotationNode } = annotationPropertyFixture();
+  const validator: RamenInstanceValidator = new RamenInstanceValidator();
+  const persName = validator.validate(model.id, [model, RAMEN_MODEL], {
+    modelId: model.id,
+    nodes: [
+      {
+        id: 'annotationInst01',
+        typeId: annotationNode.id,
+        properties: { uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', type: 'persName', url: 'https://example.org' },
+      },
+    ],
+    relations: [],
+  });
+  assert.ok(persName.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED'));
+
+  const reference = validator.validate(model.id, [model, RAMEN_MODEL], {
+    modelId: model.id,
+    nodes: [
+      {
+        id: 'annotationInst02',
+        typeId: annotationNode.id,
+        properties: {
+          uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6',
+          type: 'externalReference',
+          url: 'https://example.org',
+        },
+      },
+    ],
+    relations: [],
+  });
+  assert.deepEqual(reference.diagnostics, []);
 });
 
-void test('supports annotation-on-annotation and annotation type refinement', () => {
+void test('enforces annotation-specific property cardinality', () => {
+  const { model, annotationNode } = annotationPropertyFixture();
+  const validator: RamenInstanceValidator = new RamenInstanceValidator();
+  const missingUrl = validator.validate(model.id, [model, RAMEN_MODEL], {
+    modelId: model.id,
+    nodes: [
+      {
+        id: 'annotationInst03',
+        typeId: annotationNode.id,
+        properties: { uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', type: 'externalReference' },
+      },
+    ],
+    relations: [],
+  });
+  assert.ok(missingUrl.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_CARDINALITY'));
+});
+
+void test('inherits annotations when their Annotation node is refined', () => {
+  const base: AnnotationFixture = annotationFixture();
+  const ramenProject: RamenProject = RamenProject.createLevel(base.model, {
+    uri: 'https://example.org/models/scholarly',
+    id: 'scholarlyModel01',
+    name: 'Scholarly',
+    version: '1.0.0',
+  });
+  const detailed: GNode = ramenProject.createNode({
+    name: 'DetailedTextAnnotation',
+    refines: { modelId: base.model.id, elementId: base.annotationNode.id },
+  }).element;
+  assert.deepEqual(
+    ramenProject
+      .createAdvisor()
+      ?.suggestAnnotations('scholarlyModel01', detailed.id)
+      .map((item) => item.type),
+    ['persName'],
+  );
+});
+
+void test('refines an inherited annotation explicitly and narrows its cardinality', () => {
+  const base: AnnotationFixture = annotationFixture();
+  const ramenProject: RamenProject = RamenProject.createLevel(base.model, {
+    uri: 'https://example.org/models/scholarly',
+    id: 'scholarlyModel01',
+    name: 'Scholarly',
+    version: '1.0.0',
+  });
+  const detailed: GNode = ramenProject.createNode({
+    name: 'DetailedTextAnnotation',
+    refines: { modelId: base.model.id, elementId: base.annotationNode.id },
+  }).element;
+  const refined = ramenProject.refineAnnotation({
+    annotationId: detailed.id,
+    refines: { modelId: base.model.id, elementId: base.annotation.id },
+    relations: [
+      {
+        relationId: `${base.model.id}:${base.relation.id}`,
+        direction: 'outgoing',
+        bounds: { lowerBound: 1, upperBound: 1 },
+      },
+    ],
+  });
+  assert.equal(refined.element.type, 'persName');
+  assert.equal(refined.validation.valid, true, JSON.stringify(refined.validation.diagnostics));
+});
+
+void test('rejects cardinality widening in an annotation refinement', () => {
+  const base: AnnotationFixture = annotationFixture();
+  const child: RamenProject = RamenProject.createLevel(base.model, {
+    uri: 'https://example.org/models/scholarly',
+    id: 'scholarlyModel01',
+    name: 'Scholarly',
+    version: '1.0.0',
+  });
+  const detailed: GNode = child.createNode({
+    name: 'DetailedTextAnnotation',
+    refines: { modelId: base.model.id, elementId: base.annotationNode.id },
+  }).element;
+  const refined = child.refineAnnotation({
+    annotationId: detailed.id,
+    refines: { modelId: base.model.id, elementId: base.annotation.id },
+    relations: [
+      {
+        relationId: `${base.model.id}:${base.relation.id}`,
+        direction: 'outgoing',
+        bounds: { lowerBound: 0, upperBound: 1 },
+      },
+    ],
+  });
+  assert.equal(refined.validation.valid, false);
+  assert.ok(refined.validation.diagnostics.some((item) => item.code === 'RAMEN_ANNOTATION_BOUNDS_INVALID'));
+});
+
+void test('requires explicit refinement instead of silently replacing an inherited annotation', () => {
+  const base: AnnotationFixture = annotationFixture();
+  const ramenProject: RamenProject = RamenProject.createLevel(base.model, {
+    uri: 'https://example.org/models/scholarly',
+    id: 'scholarlyModel01',
+    name: 'Scholarly',
+    version: '1.0.0',
+  });
+  const detailed: GNode = ramenProject.createNode({
+    name: 'DetailedTextAnnotation',
+    refines: { modelId: base.model.id, elementId: base.annotationNode.id },
+  }).element;
+  const replacement = ramenProject.createAnnotation({ annotationId: detailed.id, type: 'persName' });
+  assert.equal(replacement.validation.valid, false);
+  assert.ok(replacement.validation.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED'));
+});
+
+void test('rejects duplicate annotation types on the same Annotation node', () => {
   const ramenProject: RamenProject = project();
-  const personName = ramenProject.createAnnotationType({ name: 'PersonName', typeValue: 'persName' }).element;
-  const reusedType = ramenProject.createNode({
-    name: 'DetailedPersonName',
-    refines: { modelId: 'editorialModel01', elementId: personName.id },
+  const annotationNode: GNode = ramenProject.createNode({
+    name: 'TextAnnotation',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+  }).element;
+  ramenProject.createAnnotation({ annotationId: annotationNode.id, type: 'name' });
+  const duplicate = ramenProject.createAnnotation({ annotationId: annotationNode.id, type: 'name' });
+  assert.equal(duplicate.validation.valid, false);
+  assert.ok(duplicate.validation.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE'));
+});
+
+void test('updates and removes annotations through the public project API', () => {
+  const ramenProject: RamenProject = project();
+  const annotationNode: GNode = ramenProject.createNode({
+    name: 'TextAnnotation',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+  }).element;
+  const created: RamenAnnotation = ramenProject.createAnnotation({ annotationId: annotationNode.id, type: 'name' }).element;
+  const updated = ramenProject.updateAnnotation(created.id, { type: 'persName' });
+  assert.equal(updated.validation.valid, true);
+  assert.equal(ramenProject.getAnnotations()[0]?.type, 'persName');
+  const removed = ramenProject.removeAnnotation(created.id);
+  assert.equal(removed.validation.valid, true);
+  assert.deepEqual(ramenProject.getAnnotations(), []);
+});
+
+void test('rejects malformed serialized annotation sections', () => {
+  const malformed: GModel = {
+    ...project().getModel(),
+    ext: { ramen: { annotations: [{ id: 'incomplete' }] } },
+  };
+  const validation = RamenProject.load(malformed).validate();
+  assert.equal(validation.valid, false);
+  assert.ok(validation.diagnostics.some((diagnostic) => diagnostic.code === 'RAMEN_ANNOTATIONS_INVALID'));
+});
+
+void test('rejects new relations introduced by an annotation refinement', () => {
+  const base: AnnotationFixture = annotationFixture();
+  const child: RamenProject = RamenProject.createLevel(base.model, {
+    uri: 'https://example.org/models/scholarly',
+    id: 'scholarlyModel01',
+    name: 'Scholarly',
+    version: '1.0.0',
   });
-  assert.equal(reusedType.validation.valid, true);
-  const comment = ramenProject.createAnnotationType({
-    name: 'Comment',
-    typeValue: 'comment',
-    refines: { modelId: 'editorialModel01', elementId: personName.id },
+  const detailed: GNode = child.createNode({
+    name: 'DetailedTextAnnotation',
+    refines: { modelId: base.model.id, elementId: base.annotationNode.id },
+  }).element;
+  const suggestion = child
+    .createAdvisor()
+    ?.suggestRelations('scholarlyModel01', detailed.id, detailed.id)
+    .find((item) => item.name === 'HAS_ANNOTATION');
+  assert.ok(suggestion);
+  const relation: GRelation = child.createRelation({
+    refines: { modelId: suggestion.modelId, elementId: suggestion.relationId },
+    fromNodeId: detailed.id,
+    toNodeId: detailed.id,
+  }).element;
+  const refined = child.refineAnnotation({
+    annotationId: detailed.id,
+    refines: { modelId: base.model.id, elementId: base.annotation.id },
+    relations: [{ relationId: relation.id, direction: 'outgoing', bounds: { lowerBound: 0, upperBound: 1 } }],
   });
-  assert.equal(comment.validation.valid, true);
-  const advisor: RamenAdvisor | undefined = ramenProject.createAdvisor();
-  assert.ok(advisor);
-  const relations = advisor.suggestRelations('editorialModel01', comment.element.id, personName.id);
-  assert.ok(relations.some((relation) => relation.name === 'HAS_ANNOTATION'));
+  assert.equal(refined.validation.valid, false);
+  assert.ok(refined.validation.diagnostics.some((item) => item.code === 'RAMEN_ANNOTATION_RELATION_EXTENSION'));
+});
+
+void test('models annotation-on-annotation without creating annotation nodes per type', () => {
+  const ramenProject: RamenProject = project();
+  const node: GNode = ramenProject.createNode({
+    name: 'TextAnnotation',
+    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+  }).element;
+  const relationSuggestion = ramenProject
+    .createAdvisor()
+    ?.suggestRelations('editorialModel01', node.id, node.id)
+    .find((item) => item.name === 'HAS_ANNOTATION');
+  assert.ok(relationSuggestion);
+  const relation: GRelation = ramenProject.createRelation({
+    refines: { modelId: relationSuggestion.modelId, elementId: relationSuggestion.relationId },
+    fromNodeId: node.id,
+    toNodeId: node.id,
+  }).element;
+  const comment = ramenProject.createAnnotation({
+    annotationId: node.id,
+    type: 'comment',
+    relations: [{ relationId: relation.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  assert.equal(comment.validation.valid, true, JSON.stringify(comment.validation.diagnostics));
+  assert.equal(ramenProject.getModel().classifiers.filter((item) => item.kind === 'GNode').length, 1);
 });

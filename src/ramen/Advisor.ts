@@ -3,7 +3,7 @@ import { Bounds, BuiltinType, GAttribute, GDataType, GModel, GNode, GRelation, I
 import { ProjectGraph, ResolvedModelElement } from '../gcore/project/Graph';
 import { ModelRef } from '../gcore/project/Refs';
 import { ValidProjectResult } from '../gcore/validation/Validate';
-import { AnnotationTypes, RamenAnnotationType } from './AnnotationTypes';
+import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
 
 /** One node type that a new project node can refine. */
 export interface NodeRefinementSuggestion {
@@ -32,13 +32,13 @@ export interface RelationRefinementSuggestion {
   readonly explanation: string;
 }
 
-/** One concrete annotation type declared by a reachable project model. */
-export interface AnnotationTypeSuggestion {
+/** One closed annotation variant declared by a reachable RAMEN model. */
+export interface AnnotationSuggestion {
   readonly modelId: Id;
-  readonly nodeId: Id;
+  readonly annotationId: Id;
+  readonly ownerNodeId: Ref;
   readonly ref: Ref;
-  readonly name: string;
-  readonly typeValue: string;
+  readonly type: string;
 }
 
 /** One node in the selected node's base-first refinement lineage. */
@@ -137,29 +137,22 @@ export class RamenAdvisor {
     );
   }
 
-  /** Lists concrete annotation types declared in the selected model and its imports. */
-  public suggestAnnotationTypes(modelId: Id): readonly AnnotationTypeSuggestion[] {
-    return [this.graph.getModel(modelId), ...this.importedModels(modelId)]
-      .flatMap((model: GModel | undefined): AnnotationTypeSuggestion[] => {
-        if (!model) return [];
-        return model.classifiers.flatMap((classifier): AnnotationTypeSuggestion[] => {
-          if (classifier.kind !== 'GNode') return [];
-          const metadata: RamenAnnotationType | undefined = AnnotationTypes.read(classifier);
-          if (!metadata) return [];
-          return [
-            {
-              modelId: model.id,
-              nodeId: classifier.id,
-              ref: model.id === modelId ? classifier.id : ModelRef.qualify(model.id, classifier.id),
-              name: classifier.name,
-              typeValue: metadata.typeValue,
-            },
-          ];
-        });
-      })
-      .sort((left: AnnotationTypeSuggestion, right: AnnotationTypeSuggestion): number =>
-        left.typeValue.localeCompare(right.typeValue),
-      );
+  /** Lists all reachable annotations, or only the effective variants of one Annotation node. */
+  public suggestAnnotations(modelId: Id, annotationNodeId?: Id): readonly AnnotationSuggestion[] {
+    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph);
+    const candidates: readonly ResolvedRamenAnnotation[] = annotationNodeId
+      ? annotations.getEffective(modelId, annotationNodeId)
+      : annotations.getAll();
+    return candidates
+      .map((candidate: ResolvedRamenAnnotation): AnnotationSuggestion => ({
+        modelId: candidate.modelId,
+        annotationId: candidate.annotation.id,
+        ownerNodeId: candidate.annotation.annotationId,
+        ref:
+          candidate.modelId === modelId ? candidate.annotation.id : ModelRef.qualify(candidate.modelId, candidate.annotation.id),
+        type: candidate.annotation.type,
+      }))
+      .sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number => left.type.localeCompare(right.type));
   }
 
   /** Returns the refinement lineage, effective attributes, and possible relations for one local node. */

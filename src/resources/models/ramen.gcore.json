@@ -14,11 +14,71 @@
       "baseType": "String",
       "constraints": [
         {
-          "id": "uuidFormat0000001",
+          "id": "K8tKZTPud1b5JDZV",
           "name": "Valid UUID",
           "language": "format",
           "expression": "uuid",
           "message": "Value must be a UUID."
+        }
+      ]
+    },
+    {
+      "kind": "GDataType",
+      "id": "WdlVlvh7jqs6DEUC",
+      "name": "Date",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "YdW8qnQHAtYBiAN8",
+          "name": "Valid date",
+          "language": "format",
+          "expression": "date",
+          "message": "Value must be an RFC 3339 full-date."
+        }
+      ]
+    },
+    {
+      "kind": "GDataType",
+      "id": "mXhHHuR4mQoDq31D",
+      "name": "DateTime",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "VWUbg6WMufCNlIo4",
+          "name": "Valid date-time",
+          "language": "format",
+          "expression": "date-time",
+          "message": "Value must be an RFC 3339 date-time."
+        }
+      ]
+    },
+    {
+      "kind": "GDataType",
+      "id": "T3YiJGOy7M7g1lTQ",
+      "name": "URI",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "3UrCtNdlE5qh9RDe",
+          "name": "Valid URI",
+          "language": "format",
+          "expression": "uri",
+          "message": "Value must be an absolute URI."
+        }
+      ]
+    },
+    {
+      "kind": "GDataType",
+      "id": "DJRorIpghXJGAi41",
+      "name": "Email",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "L65BaGOJP4W9lUKQ",
+          "name": "Valid email",
+          "language": "format",
+          "expression": "email",
+          "message": "Value must be an email address."
         }
       ]
     },

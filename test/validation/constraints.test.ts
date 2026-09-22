@@ -54,4 +54,9 @@ void test('validates standard date and date-time formats', () => {
     'CONSTRAINT_FORMAT_MISMATCH',
   );
   assert.deepEqual(registry.evaluate(constraint('date-time', 'format'), { ...context, value: '2026-09-22T10:30:00Z' }), []);
+  assert.deepEqual(registry.evaluate(constraint('email', 'format'), { ...context, value: 'name@example.org' }), []);
+  assert.equal(
+    registry.evaluate(constraint('email', 'format'), { ...context, value: 'invalid' })[0]?.code,
+    'CONSTRAINT_FORMAT_MISMATCH',
+  );
 });

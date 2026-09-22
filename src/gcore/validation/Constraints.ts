@@ -1,6 +1,14 @@
 import { GConstraint, Id } from '../model/Types';
+import { compileSchema, SchemaNode } from 'json-schema-library';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
 import { VALIDATION_ERROR } from './Codes';
+
+const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string, SchemaNode>(
+  ['uuid', 'date', 'date-time', 'email'].map((format: string): [string, SchemaNode] => [
+    format,
+    compileSchema({ type: 'string', format: format }),
+  ]),
+);
 
 /** Model element kind that supplies the context for a constraint evaluation. */
 export type ConstraintTarget = 'node' | 'attribute' | 'dataType' | 'literal' | 'relation' | 'relationEnd';
@@ -108,38 +116,20 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
 export class FormatConstraintEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'format';
 
-  /** Validates `uuid`, `date`, `date-time`, or `uri` string values. */
+  /** Validates standard JSON Schema string formats used by GCore data types. */
   public evaluate(constraint: GConstraint, context: ConstraintContext): readonly Diagnostic[] {
     if (typeof constraint.expression !== 'string' || typeof context.value !== 'string') {
       return [this.invalid(constraint, context, 'expected a format name and a string value')];
     }
-    const checks: Readonly<Record<string, (value: string) => boolean>> = {
-      uuid: (value: string): boolean =>
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.exec(value) !== null,
-      date: (value: string): boolean => this.isDate(value),
-      'date-time': (value: string): boolean => this.isDateTime(value),
-      uri: (value: string): boolean => this.isUri(value),
-    };
-    const check: ((value: string) => boolean) | undefined = checks[constraint.expression];
-    if (!check) return [this.invalid(constraint, context, `unsupported format '${constraint.expression}'`)];
-    if (check(context.value)) return [];
+    const schema: SchemaNode | undefined = STANDARD_FORMAT_SCHEMAS.get(constraint.expression);
+    const supported: boolean = schema !== undefined || constraint.expression === 'uri';
+    if (!supported) return [this.invalid(constraint, context, `unsupported format '${constraint.expression}'`)];
+    const valid: boolean = schema ? schema.validate(context.value).valid : this.isAbsoluteUri(context.value);
+    if (valid) return [];
     return [this.diagnostic(constraint, context, constraint.message ?? `Value is not a valid ${constraint.expression}.`)];
   }
 
-  private isDate(value: string): boolean {
-    const match: RegExpExecArray | null = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
-    if (!match) return false;
-    const date: Date = new Date(`${value}T00:00:00.000Z`);
-    return !Number.isNaN(date.valueOf()) && date.toISOString().startsWith(value);
-  }
-
-  private isDateTime(value: string): boolean {
-    return (
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(value) && !Number.isNaN(Date.parse(value))
-    );
-  }
-
-  private isUri(value: string): boolean {
+  private isAbsoluteUri(value: string): boolean {
     try {
       return new URL(value).protocol.length > 1;
     } catch {

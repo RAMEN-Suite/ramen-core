@@ -11,6 +11,7 @@ export * from './validation/Validate';
 export * from './validation/Project';
 export * from './validation/Constraints';
 export * from './validation/Instances';
+export * from './validation/InstanceSchema';
 export * from './validation/Schema';
 export * from './validation/Diagnostics';
 export * from './validation/Codes';

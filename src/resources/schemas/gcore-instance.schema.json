@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ramen-schema.org/gcore/1.0.0/instance.json",
+  "title": "GCore instance graph",
+  "type": "object",
+  "required": ["modelId", "nodes", "relations"],
+  "additionalProperties": false,
+  "properties": {
+    "modelId": { "$ref": "#/$defs/Id" },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/Node" } },
+    "relations": { "type": "array", "items": { "$ref": "#/$defs/Relation" } }
+  },
+  "$defs": {
+    "Id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$", "minLength": 16 },
+    "Ref": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z0-9_-]{16,}|[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,})$"
+    },
+    "Node": {
+      "type": "object",
+      "required": ["id", "typeId", "properties"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "typeId": { "$ref": "#/$defs/Ref" },
+        "properties": { "type": "object" }
+      }
+    },
+    "Relation": {
+      "type": "object",
+      "required": ["id", "typeId", "fromId", "toId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "typeId": { "$ref": "#/$defs/Ref" },
+        "fromId": { "$ref": "#/$defs/Id" },
+        "toId": { "$ref": "#/$defs/Id" }
+      }
+    }
+  }
+}

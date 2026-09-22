@@ -50,6 +50,23 @@ void test('validates closed properties, values, arrays, and constraints', () => 
   assert.ok(codes.includes('CONSTRAINT_REGEX_MISMATCH'));
 });
 
+void test('rejects undeclared fields outside the modeled properties object', () => {
+  const input: unknown = {
+    modelId: MODEL_ID,
+    nodes: [
+      {
+        id: 'personInstance01',
+        typeId: PERSON_ID,
+        properties: { name: 'Ada', tags: [] },
+        createdAt: '2026-09-22T10:30:00Z',
+      },
+    ],
+    relations: [],
+  };
+  const result = new InstanceValidator().validate(graph(), input);
+  assert.equal(result.diagnostics[0]?.code, 'INSTANCE_SCHEMA_INVALID');
+});
+
 void test('accepts valid nodes and relation cardinalities', () => {
   const instance: ModelInstanceGraph = {
     modelId: MODEL_ID,

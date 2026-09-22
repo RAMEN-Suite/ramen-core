@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenAdvisor, RamenInstanceValidator, RamenProject } from '../../dist/index.js';
+import {
+  RAMEN_ELEMENT,
+  RAMEN_MODEL,
+  RamenAdvisor,
+  RamenInstanceValidator,
+  RamenProject,
+  createModelBundle,
+  splitModelBundle,
+} from '../../dist/index.js';
 import type {
   DataTypeSuggestion,
   GModel,
@@ -194,6 +202,17 @@ void test('stores annotation variants separately from GCore nodes', () => {
   assert.deepEqual(fixture.model.ext?.ramen, { annotations: [fixture.annotation] });
   assert.equal(fixture.annotation.type, 'persName');
   assert.equal(fixture.annotation.annotationId, fixture.annotationNode.id);
+});
+
+void test('preserves annotations when models are bundled and separated again', () => {
+  const fixture: AnnotationFixture = annotationFixture();
+  const result = createModelBundle(fixture.model.id, [fixture.model, RAMEN_MODEL]);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const restored: readonly GModel[] = splitModelBundle(result.bundle);
+  const projectModel: GModel | undefined = restored.find((model: GModel): boolean => model.id === fixture.model.id);
+  assert.ok(projectModel);
+  assert.deepEqual(projectModel.ext?.ramen, fixture.model.ext?.ramen);
 });
 
 void test('suggests annotations for their owning Annotation node', () => {

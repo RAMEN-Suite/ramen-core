@@ -4,5 +4,5 @@ export * from './Annotations';
 export * from './AnnotationGraph';
 export * from './Project';
 export * from './Advisor';
-export * from './Validate';
+export * from './ModelValidation';
 export * from './InstanceValidation';

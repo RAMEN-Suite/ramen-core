@@ -5,7 +5,7 @@ import { ProjectValidationResult } from '../gcore/validation/Validate';
 import { RamenAdvisor } from './Advisor';
 import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from './Annotations';
 import { RAMEN_MODEL } from './Model';
-import { RamenValidator } from './Validate';
+import { RamenValidator } from './ModelValidation';
 
 /** Reference to one node or relation in a specific model. */
 export interface RamenElementRef {

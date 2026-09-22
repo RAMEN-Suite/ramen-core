@@ -11,7 +11,7 @@ import { RamenAnnotationProperty, RamenAnnotationRelation } from './Annotations'
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
 import { RAMEN_ELEMENT } from './Elements';
 import { RAMEN_MODEL } from './Model';
-import { RamenValidator } from './Validate';
+import { RamenValidator } from './ModelValidation';
 
 interface ResolvedAnnotationRelation {
   readonly modelId: Id;

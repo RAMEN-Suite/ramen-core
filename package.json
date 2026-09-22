@@ -31,21 +31,28 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
-    "verify": "npm run build && npm run lint && npm run format && npm run typecheck && npm test",
+    "verify": "npm run build && npm run lint && npm run format && npm run typecheck && npm run docs:check && npm test",
     "test:watch": "node --experimental-strip-types --test --watch test/**/*.test.ts",
-    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit"
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
+    "prepare": "husky",
+    "docs": "typedoc",
+    "docs:check": "typedoc --emit none"
   },
   "dependencies": {
     "json-schema-library": "^11.0.4",
     "short-unique-id": "^5.3.2"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.2",
     "esbuild": "^0.25.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "prettier": "^3.9.6",
+    "typedoc": "^0.28.20",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.67.0"
   },

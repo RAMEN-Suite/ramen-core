@@ -1,0 +1,10 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "api-docs",
+  "excludeInternal": true,
+  "readme": "none",
+  "githubPages": false,
+  "categorizeByGroup": true,
+  "disableGit": true,
+  "disableSources": true
+}

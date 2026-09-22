@@ -1,0 +1,56 @@
+{
+  "name": "@ramen-suite/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Shared GCore and RAMEN model validation kernel",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./gcore": {
+      "types": "./dist/gcore/index.d.ts",
+      "default": "./dist/gcore/index.js"
+    },
+    "./ramen": {
+      "types": "./dist/ramen/index.d.ts",
+      "default": "./dist/ramen/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && esbuild src/index.ts src/gcore/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist --outbase=src --external:json-schema-library --external:short-unique-id",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --check . --ignore-unknown",
+    "format:fix": "prettier --write . --ignore-unknown",
+    "verify": "npm run build && npm run lint && npm run format && npm run typecheck && npm test",
+    "test:watch": "node --experimental-strip-types --test --watch test/**/*.test.ts",
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit"
+  },
+  "dependencies": {
+    "json-schema-library": "^11.0.4",
+    "short-unique-id": "^5.3.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.2",
+    "esbuild": "^0.25.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.6",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.67.0"
+  },
+  "author": {
+    "name": "Sebastian Enns",
+    "email": "mail@sebenns.com"
+  }
+}

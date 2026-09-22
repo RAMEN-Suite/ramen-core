@@ -1,0 +1,282 @@
+{
+  "$schema": "https://ramen-schema.org/gcore/1.0.0/schema.json",
+  "$id": "https://ramen-schema.org/ramen/1.0.0/schema.json",
+
+  "id": "lW611f30a2ky4276g3l8N",
+  "version": "1.0.0",
+  "kind": "GModel",
+  "name": "RAMEN",
+
+  "imports": [],
+
+  "classifiers": [
+    { "kind": "GDataType", "id": "Q9mT2aL7vK0pX4sN1cDz", "name": "UUID" },
+
+    {
+      "kind": "GNode",
+      "id": "aP3xK8nV1qR6tY2uZ9wB",
+      "name": "Collection",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": { "lowerBound": 1, "upperBound": 1 },
+          "isKey": true,
+          "isReadOnly": true
+        },
+        {
+          "name": "label",
+          "typeId": "String",
+          "bounds": { "lowerBound": 1, "upperBound": 1 }
+        }
+      ]
+    },
+
+    {
+      "kind": "GNode",
+      "id": "n7Vb2Qx0Lm9P3sT6yK1h",
+      "name": "Entity",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": { "lowerBound": 1, "upperBound": 1 },
+          "isKey": true,
+          "isReadOnly": true
+        },
+        {
+          "name": "label",
+          "typeId": "String",
+          "bounds": { "lowerBound": 1, "upperBound": 1 }
+        }
+      ]
+    },
+
+    {
+      "kind": "GNode",
+      "id": "Z4kq1M8sV0bN2xR7pT6u",
+      "name": "Content",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": { "lowerBound": 1, "upperBound": 1 },
+          "isKey": true,
+          "isReadOnly": true
+        }
+      ]
+    },
+
+    {
+      "kind": "GNode",
+      "id": "m2Xv8qL0sP6tN1yK7rB3",
+      "name": "Annotation",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": { "lowerBound": 1, "upperBound": 1 },
+          "isKey": true,
+          "isReadOnly": true
+        },
+        {
+          "name": "type",
+          "typeId": "String",
+          "bounds": { "lowerBound": 1, "upperBound": 1 },
+          "constraints": []
+        }
+      ]
+    }
+  ],
+
+  "relations": [
+    {
+      "kind": "GRelation",
+      "id": "V7pQ2xL9mR0sT6yK1nB3",
+      "superTypes": [],
+      "name": "PART_OF",
+      "from": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "role": "_collections",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "role": "_collectionOf",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+    {
+      "kind": "GRelation",
+      "id": "K0mT3aL7vQ9pX4sN1cDz",
+      "superTypes": [],
+      "name": "PART_OF",
+      "from": {
+        "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+        "role": "_content",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "role": "_collections",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+
+    {
+      "kind": "GRelation",
+      "id": "sT6yK1nB3xV7pQ2L9mR0",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "role": "_annotatesCollections",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_annotations",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+    {
+      "kind": "GRelation",
+      "id": "pX4sN1cDzK0mT3aL7vQ9",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+        "role": "_annotatesContent",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_annotations",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+    {
+      "kind": "GRelation",
+      "id": "Q2yT6vL9mR0sT6yK1nB3",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
+        "role": "_annotatesEntities",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_annotations",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+    {
+      "kind": "GRelation",
+      "id": "xL9mR0sT6yK1nB3xV7pQ",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_annotatesAnnotations",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_annotations",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+
+    {
+      "kind": "GRelation",
+      "id": "tN1yK7rB3m2Xv8qL0sP6",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_referredToBy",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "role": "_refersToCollections",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+    {
+      "kind": "GRelation",
+      "id": "vQ9pX4sN1cDzK0mT3aL7",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_referredToBy",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+        "role": "_refersToContent",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+    {
+      "kind": "GRelation",
+      "id": "mR0sT6yK1nB3xV7pQ2xL9",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_referredToBy",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
+        "role": "_refersToEntities",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    },
+    {
+      "kind": "GRelation",
+      "id": "K7rB3m2Xv8qL0sP6tN1y",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_referredToBy",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "role": "_refersToAnnotations",
+        "bounds": { "lowerBound": 0, "upperBound": -1 },
+        "isNavigable": true
+      }
+    }
+  ],
+
+  "ext": {}
+}

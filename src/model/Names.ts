@@ -9,7 +9,7 @@ const PROPERTY_VALID_START: RegExp = /^\p{L}/u;
 const RELATIONSHIP_NAME: RegExp = /[\p{L}\p{N}]+/gu;
 const RELATIONSHIP_VALID_START: RegExp = /^\p{Lu}/u;
 
-/** Converts user input into valid conventional GCore element names. */
+/** Converts user input into valid conventional RAMEN model format element names. */
 export class ModelNames {
   /** Converts text to a PascalCase node or type name of at most 40 characters. */
   public static toPascalName(str: string): string {

@@ -6,13 +6,13 @@ import {
   InstanceValidator,
   ModelRef,
   ProjectGraph,
-} from '../../gcore/index';
+} from '../../model/index';
 import type {
   Bounds,
   Diagnostic,
-  GAttribute,
-  GModel,
-  GNode,
+  Attribute,
+  Model,
+  Node,
   Id,
   ModelInstanceGraph,
   ModelInstanceNode,
@@ -21,7 +21,7 @@ import type {
   Ref,
   ResolvedModelElement,
   ValidationResult,
-} from '../../gcore/index';
+} from '../../model/index';
 import { RamenAnnotationProperty, RamenAnnotationRelation } from '../model/Annotations';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from '../project/AnnotationGraph';
@@ -49,7 +49,7 @@ export const RAMEN_INSTANCE_ERROR: Readonly<{
   ANNOTATION_RELATION_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY',
 } as const;
 
-/** Validates a complete instance graph against GCore and closed RAMEN annotation definitions. */
+/** Validates a complete instance graph against the RAMEN model format and closed annotation definitions. */
 export class RamenInstanceValidator {
   public constructor(
     private readonly projects: RamenValidator = new RamenValidator(),
@@ -57,7 +57,7 @@ export class RamenInstanceValidator {
   ) {}
 
   /** Validates the project first and then validates a complete instance graph against it. */
-  public validate(rootModelId: Id, models: readonly GModel[], input: unknown): ValidationResult {
+  public validate(rootModelId: Id, models: readonly Model[], input: unknown): ValidationResult {
     const project: ProjectValidationResult = this.projects.validateProject(rootModelId, models);
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
     const base: ValidationResult = this.instances.validate(project.graph, input);
@@ -82,7 +82,7 @@ export class RamenInstanceValidator {
     index: number,
     diagnostics: Diagnostic[],
   ): void {
-    const resolved: ResolvedModelElement<GNode> | undefined = graph.resolveNode(instance.modelId, node.typeId);
+    const resolved: ResolvedModelElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
     if (!resolved || !annotations.isAnnotationNode(resolved.modelId, resolved.element.id)) return;
     const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
     const type: unknown = node.properties.type;
@@ -114,17 +114,17 @@ export class RamenInstanceValidator {
   private validateProperties(
     graph: ProjectGraph,
     annotations: RamenAnnotationGraph,
-    nodeType: ResolvedModelElement<GNode>,
+    nodeType: ResolvedModelElement<Node>,
     selected: ResolvedRamenAnnotation,
     node: ModelInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const effectiveAttributes: readonly GAttribute[] =
+    const effectiveAttributes: readonly Attribute[] =
       EffectiveModel.resolveNode(graph, nodeType.modelId, nodeType.element.id)?.attributes ?? [];
     const commonIds: Set<Id> = new Set<Id>(
       EffectiveModel.resolveNode(graph, RAMEN_MODEL.id, RAMEN_ELEMENT.ANNOTATION)?.attributes.map(
-        (attribute: GAttribute): Id => attribute.id,
+        (attribute: Attribute): Id => attribute.id,
       ) ?? [],
     );
     const allowedIds: Set<Id> = new Set<Id>(commonIds);
@@ -133,8 +133,8 @@ export class RamenInstanceValidator {
     }
     const allowedNames: Set<string> = new Set<string>(
       effectiveAttributes
-        .filter((attribute: GAttribute): boolean => allowedIds.has(attribute.id))
-        .map((attribute: GAttribute): string => attribute.name),
+        .filter((attribute: Attribute): boolean => allowedIds.has(attribute.id))
+        .map((attribute: Attribute): string => attribute.name),
     );
     this.validateAllowedProperties(node, selected, allowedNames, path, diagnostics);
     this.validatePropertyCardinalities(annotations, selected, effectiveAttributes, node, path, diagnostics);
@@ -162,7 +162,7 @@ export class RamenInstanceValidator {
   private validatePropertyCardinalities(
     annotations: RamenAnnotationGraph,
     selected: ResolvedRamenAnnotation,
-    effectiveAttributes: readonly GAttribute[],
+    effectiveAttributes: readonly Attribute[],
     node: ModelInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -170,8 +170,8 @@ export class RamenInstanceValidator {
     for (const requirement of this.effectiveProperties(annotations, selected)) {
       if (!requirement.bounds) continue;
       const attributeId: Id = this.refId(requirement.attributeId);
-      const attribute: GAttribute | undefined = effectiveAttributes.find(
-        (candidate: GAttribute): boolean => candidate.id === attributeId,
+      const attribute: Attribute | undefined = effectiveAttributes.find(
+        (candidate: Attribute): boolean => candidate.id === attributeId,
       );
       if (!attribute) continue;
       const value: unknown = node.properties[attribute.name];

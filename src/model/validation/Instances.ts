@@ -10,7 +10,7 @@ import type { ValidationResult } from './Validate';
 
 export * from './InstanceTypes';
 
-/** Validates modeled objects and connections against effective GCore features. */
+/** Validates modeled objects and connections against effective RAMEN model format features. */
 export class InstanceValidator {
   private readonly values: InstanceValueValidator;
   private readonly relations: InstanceRelationValidator;

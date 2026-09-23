@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ramen-schema.org/gcore/1.0.0/instance.json",
-  "title": "GCore instance graph",
+  "$id": "https://ramen-schema.org/model/1.0.0/instances.schema.json",
+  "title": "RAMEN model instance graph",
   "type": "object",
   "required": ["modelId", "nodes", "relations"],
   "additionalProperties": false,

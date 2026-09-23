@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProjectGraph, InstanceValidator } from '../../dist/index.js';
+import { MODEL_INSTANCES_SCHEMA_URI, InstanceSchemaValidator, InstanceValidator, buildProjectGraph } from '../../dist/index.js';
 import type {
-  GAttribute,
-  GModel,
-  GNode,
+  Attribute,
+  Model,
+  Node,
   ModelInstanceGraph,
   ProjectGraph,
   ProjectGraphResult,
@@ -17,10 +17,14 @@ const PERSON_ID: string = 'personNode000001';
 const PLACE_ID: string = 'placeNode0000001';
 const RELATION_ID: string = 'locatedRelation1';
 
+void test('publishes the canonical instance schema identifier', (): void => {
+  assert.equal(InstanceSchemaValidator.getSchemaNode().$id, MODEL_INSTANCES_SCHEMA_URI);
+});
+
 function graph(): ProjectGraph {
-  const schema: GModel = model(MODEL_ID);
-  const person: GNode = node(PERSON_ID, 'Person');
-  const name: GAttribute = attribute('personNameAttr01', 'name', 'String', boundsOf(1, 1));
+  const schema: Model = model(MODEL_ID);
+  const person: Node = node(PERSON_ID, 'Person');
+  const name: Attribute = attribute('personNameAttr01', 'name', 'String', boundsOf(1, 1));
   name.constraints = [
     {
       id: 'personNameRule01',
@@ -104,10 +108,10 @@ void test('validates relation endpoint types and required cardinalities', () => 
 });
 
 void test('validates a modeled Date datatype as a constrained String', () => {
-  const schema: GModel = model('dateModel0000001');
+  const schema: Model = model('dateModel0000001');
   schema.classifiers.push(
     {
-      kind: 'GDataType',
+      kind: 'DataType',
       id: 'dateDataType0001',
       name: 'Date',
       baseType: 'String',

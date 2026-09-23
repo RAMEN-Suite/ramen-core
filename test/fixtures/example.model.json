@@ -1,13 +1,13 @@
 {
-  "$schema": "https://ramen-schema.org/gcore/1.0.0/schema.json",
+  "$schema": "https://ramen-schema.org/model/1.0.0/schema.json",
   "$id": "https://example.com/",
   "id": "ORlgn98lkIzh5cIb",
   "version": "1.0.0",
-  "kind": "GModel",
+  "kind": "Model",
   "name": "Simple Example",
   "imports": [
     {
-      "modelUri": "https://ramen-schema.org/ramen/1.0.0/schema.json",
+      "modelUri": "https://ramen-schema.org/ramen/1.0.0/model.json",
       "modelId": "lW611f30a2ky4276g3l8N",
       "name": "RAMEN",
       "version": "1.0.0"
@@ -15,7 +15,7 @@
   ],
   "classifiers": [
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "k1nsqV4EImkrzZ2j",
       "name": "Letter",
       "superTypes": ["lW611f30a2ky4276g3l8N:aP3xK8nV1qR6tY2uZ9wB"],
@@ -24,7 +24,7 @@
       "ext": {}
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "Seg0cKcMGCKmCll1",
       "name": "Corpus",
       "superTypes": ["lW611f30a2ky4276g3l8N:aP3xK8nV1qR6tY2uZ9wB"],
@@ -33,7 +33,7 @@
       "ext": {}
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "qR7aST8pHEnrnUWu",
       "name": "Annotation",
       "superTypes": ["lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3"],
@@ -73,7 +73,7 @@
       "ext": {}
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "q9zvfhsvTeaC5tYJ",
       "name": "Text",
       "superTypes": ["lW611f30a2ky4276g3l8N:Z4kq1M8sV0bN2xR7pT6u"],
@@ -98,7 +98,7 @@
       "ext": {}
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "x0YgCFFNElWeMgzw",
       "name": "Person",
       "superTypes": ["lW611f30a2ky4276g3l8N:n7Vb2Qx0Lm9P3sT6yK1h"],
@@ -138,7 +138,7 @@
       "ext": {}
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "Dw1IOSlQJR0xI7jn",
       "name": "Place",
       "superTypes": ["lW611f30a2ky4276g3l8N:n7Vb2Qx0Lm9P3sT6yK1h"],
@@ -165,7 +165,7 @@
   ],
   "relations": [
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "R1DF98Sthln8PzWc",
       "superTypes": ["lW611f30a2ky4276g3l8N:V7pQ2xL9mR0sT6yK1nB3"],
       "name": "PART_OF",
@@ -195,7 +195,7 @@
       "ext": {}
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "KcGHVw1dwxkOJ1LF",
       "superTypes": ["lW611f30a2ky4276g3l8N:V7pQ2xL9mR0sT6yK1nB3"],
       "name": "PART_OF",
@@ -225,7 +225,7 @@
       "ext": {}
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "rWqcImPECDxoGst9",
       "superTypes": ["lW611f30a2ky4276g3l8N:K0mT3aL7vQ9pX4sN1cDz"],
       "name": "PART_OF",
@@ -255,7 +255,7 @@
       "ext": {}
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "ocItrmE1Zmbe3y3M",
       "superTypes": ["lW611f30a2ky4276g3l8N:pX4sN1cDzK0mT3aL7vQ9"],
       "name": "HAS_ANNOTATION",
@@ -285,7 +285,7 @@
       "ext": {}
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "e0RHDqiZW9mPpMs6",
       "superTypes": ["lW611f30a2ky4276g3l8N:mR0sT6yK1nB3xV7pQ2xL9"],
       "name": "REFERS_TO",
@@ -315,7 +315,7 @@
       "ext": {}
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "XBWFqmedCGhL8qbf",
       "superTypes": ["lW611f30a2ky4276g3l8N:mR0sT6yK1nB3xV7pQ2xL9"],
       "name": "REFERS_TO",

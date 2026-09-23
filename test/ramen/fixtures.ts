@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { RAMEN_ELEMENT, RAMEN_MODEL, RamenProject } from '../../dist/index.js';
 import type {
-  GAttribute,
-  GModel,
-  GNode,
-  GRelation,
+  Attribute,
+  Model,
+  Node,
+  Relation,
   RamenAdvisor,
   RamenAnnotation,
   RamenChange,
@@ -15,22 +15,22 @@ export const CORRESPONDENCE_MODEL_ID: string = 'correspondence01';
 export const SCHOLARLY_MODEL_ID: string = 'scholarlyCorrespondence01';
 
 export interface CorrespondenceNodes {
-  readonly letter: GNode;
-  readonly witness: GNode;
-  readonly person: GNode;
-  readonly place: GNode;
-  readonly text: GNode;
-  readonly annotation: GNode;
+  readonly letter: Node;
+  readonly witness: Node;
+  readonly person: Node;
+  readonly place: Node;
+  readonly text: Node;
+  readonly annotation: Node;
 }
 
 export interface CorrespondenceRelations {
-  readonly witnessInLetter: GRelation;
-  readonly textInWitness: GRelation;
-  readonly textAnnotation: GRelation;
-  readonly personAnnotation: GRelation;
-  readonly refersPerson: GRelation;
-  readonly refersPlace: GRelation;
-  readonly annotatesAnnotation: GRelation;
+  readonly witnessInLetter: Relation;
+  readonly textInWitness: Relation;
+  readonly textAnnotation: Relation;
+  readonly personAnnotation: Relation;
+  readonly refersPerson: Relation;
+  readonly refersPlace: Relation;
+  readonly annotatesAnnotation: Relation;
 }
 
 export interface CorrespondenceAnnotations {
@@ -43,16 +43,16 @@ export interface CorrespondenceAnnotations {
 
 export interface CorrespondenceFixture {
   readonly project: RamenProject;
-  readonly model: GModel;
+  readonly model: Model;
   readonly nodes: CorrespondenceNodes;
   readonly relations: CorrespondenceRelations;
   readonly annotations: CorrespondenceAnnotations;
-  readonly url: GAttribute;
+  readonly url: Attribute;
 }
 
 export interface ScholarlyFixture {
   readonly project: RamenProject;
-  readonly model: GModel;
+  readonly model: Model;
   readonly nodes: CorrespondenceNodes;
   readonly persName: RamenAnnotation;
 }
@@ -65,14 +65,14 @@ export function createCorrespondenceFixture(): CorrespondenceFixture {
     version: '1.0.0',
   });
   const nodes: CorrespondenceNodes = createBaseNodes(project);
-  const url: GAttribute = project.createAttribute(nodes.annotation.id, {
+  const url: Attribute = project.createAttribute(nodes.annotation.id, {
     name: 'url',
     typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.URI}`,
     bounds: { lowerBound: 0, upperBound: 1 },
   }).element;
   const relations: CorrespondenceRelations = createBaseRelations(project, nodes);
   const annotations: CorrespondenceAnnotations = createAnnotations(project, nodes, relations, url);
-  const model: GModel = project.getModel();
+  const model: Model = project.getModel();
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
   return { project: project, model: model, nodes: nodes, relations: relations, annotations: annotations, url: url };
 }
@@ -97,7 +97,7 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
       },
     ],
   }).element;
-  const model: GModel = project.getModel();
+  const model: Model = project.getModel();
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
   return { project: project, model: model, nodes: nodes, persName: persName };
 }
@@ -124,8 +124,8 @@ function createRefinedNodes(project: RamenProject, base: CorrespondenceFixture):
   };
 }
 
-function createNode(project: RamenProject, name: string, elementId: string, modelId: string): GNode {
-  const change: RamenChange<GNode> = project.createNode({ name: name, refines: { modelId: modelId, elementId: elementId } });
+function createNode(project: RamenProject, name: string, elementId: string, modelId: string): Node {
+  const change: RamenChange<Node> = project.createNode({ name: name, refines: { modelId: modelId, elementId: elementId } });
   return change.element;
 }
 
@@ -151,14 +151,14 @@ function createRefinedRelations(project: RamenProject, base: CorrespondenceFixtu
   createRelationFromBase(project, base.relations.annotatesAnnotation, base.model.id, nodes.annotation.id, nodes.annotation.id);
 }
 
-function createRelation(project: RamenProject, fromId: string, toId: string, name: string): GRelation {
+function createRelation(project: RamenProject, fromId: string, toId: string, name: string): Relation {
   const advisor: RamenAdvisor | undefined = project.createAdvisor();
   assert.ok(advisor);
   const suggestion: RelationRefinementSuggestion | undefined = advisor
     .suggestRelations(project.getModel().id, fromId, toId)
     .find((item: RelationRefinementSuggestion): boolean => item.name === name);
   assert.ok(suggestion, `Missing ${name} suggestion for ${fromId} -> ${toId}`);
-  const change: RamenChange<GRelation> = project.createRelation({
+  const change: RamenChange<Relation> = project.createRelation({
     refines: { modelId: suggestion.modelId, elementId: suggestion.relationId },
     fromNodeId: fromId,
     toNodeId: toId,
@@ -168,12 +168,12 @@ function createRelation(project: RamenProject, fromId: string, toId: string, nam
 
 function createRelationFromBase(
   project: RamenProject,
-  base: Pick<GRelation, 'id'>,
+  base: Pick<Relation, 'id'>,
   baseModelId: string,
   fromId: string,
   toId: string,
-): GRelation {
-  const change: RamenChange<GRelation> = project.createRelation({
+): Relation {
+  const change: RamenChange<Relation> = project.createRelation({
     refines: { modelId: baseModelId, elementId: base.id },
     fromNodeId: fromId,
     toNodeId: toId,
@@ -181,11 +181,11 @@ function createRelationFromBase(
   return change.element;
 }
 
-function findRelation(project: RamenProject, fromId: string, toId: string, name: string): GRelation {
-  const relation: GRelation | undefined = project
+function findRelation(project: RamenProject, fromId: string, toId: string, name: string): Relation {
+  const relation: Relation | undefined = project
     .getModel()
     .relations.find(
-      (candidate: GRelation): boolean =>
+      (candidate: Relation): boolean =>
         candidate.from.nodeId === fromId && candidate.to.nodeId === toId && candidate.name === name,
     );
   assert.ok(relation);
@@ -196,7 +196,7 @@ function createAnnotations(
   project: RamenProject,
   nodes: CorrespondenceNodes,
   relations: CorrespondenceRelations,
-  url: GAttribute,
+  url: Attribute,
 ): CorrespondenceAnnotations {
   const persName: RamenAnnotation = project.createAnnotation({
     annotationId: nodes.annotation.id,

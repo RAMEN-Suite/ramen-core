@@ -1,5 +1,5 @@
-/** Classifier kinds that can be declared by a GCore model. */
-export type GClassifier = GNode | GDataType;
+/** Classifier kinds that can be declared by a RAMEN model. */
+export type Classifier = Node | DataType;
 /** Stable identifier of a model or model element. */
 export type Id = string;
 /** Local or qualified reference to a model element. */
@@ -11,21 +11,21 @@ export type BuiltinType = 'String' | 'Boolean' | 'Integer' | 'Float';
 /** Reference to a built-in or declared data type. */
 export type TypeRef = Ref;
 
-/** Versioned GCore model containing classifiers, relations, and imports. */
-export interface GModel {
+/** Versioned RAMEN model containing classifiers, relations, and imports. */
+export interface Model {
   $schema: string;
   $id: string;
   id: Id;
   version: string;
-  kind: 'GModel';
+  kind: 'Model';
   name: string;
   imports: Import[];
-  classifiers: GClassifier[];
-  relations: GRelation[];
+  classifiers: Classifier[];
+  relations: Relation[];
   ext?: Record<string, unknown>;
 }
 
-/** Exact dependency on another versioned GCore model. */
+/** Exact dependency on another versioned RAMEN model. */
 export interface Import {
   /** Canonical URI (`$id`) of the imported model document. */
   modelUri: string;
@@ -35,18 +35,18 @@ export interface Import {
 }
 
 /** Node classifier whose attributes and supertypes describe modeled objects. */
-export interface GNode {
-  kind: 'GNode';
+export interface Node {
+  kind: 'Node';
   id: Id;
   name: string;
   superTypes: Ref[];
-  attributes: GAttribute[];
-  constraints?: GConstraint[];
+  attributes: Attribute[];
+  constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }
 
 /** Typed structural feature owned by a node. */
-export interface GAttribute {
+export interface Attribute {
   id: Id;
   name: string;
   typeId: TypeRef;
@@ -55,7 +55,7 @@ export interface GAttribute {
   isReadOnly?: boolean;
   isUnique?: boolean;
   isOrdered?: boolean;
-  constraints?: GConstraint[];
+  constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }
 
@@ -66,7 +66,7 @@ export interface Bounds {
 }
 
 /** Portable constraint declaration interpreted by its named constraint language. */
-export interface GConstraint {
+export interface Constraint {
   id: Id;
   name: string;
   language: string;
@@ -78,36 +78,36 @@ export interface GConstraint {
 }
 
 /** Declared scalar value domain, optionally restricted to a set of literals. */
-export interface GDataType {
-  kind: 'GDataType';
+export interface DataType {
+  kind: 'DataType';
   id: Id;
   name: string;
   /** JSON-compatible primitive representation used before domain constraints are evaluated. */
   baseType: BuiltinType;
-  literals?: [GLiteral, ...GLiteral[]];
-  constraints?: GConstraint[];
+  literals?: [Literal, ...Literal[]];
+  constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }
 
 /** Named literal of a declared data type. */
-export interface GLiteral {
+export interface Literal {
   id: Id;
   name: string;
   value?: number;
   literal?: string;
-  constraints?: GConstraint[];
+  constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }
 
 /** Typed connection between two node ends. */
-export interface GRelation {
-  kind: 'GRelation';
+export interface Relation {
+  kind: 'Relation';
   id: Id;
   superTypes: Ref[];
   name: string;
   from: RelationEnd;
   to: RelationEnd;
-  constraints?: GConstraint[];
+  constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }
 
@@ -119,15 +119,15 @@ export interface RelationEnd {
   bounds: Bounds;
   isNavigable?: boolean;
   isComposite?: boolean;
-  constraints?: GConstraint[];
+  constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }
 
-/** Portable envelope that keeps multiple GCore models and their boundaries in one file. */
-export interface GModelBundle {
+/** Portable envelope that keeps multiple RAMEN models and their boundaries in one file. */
+export interface ModelBundle {
   $schema: string;
-  kind: 'GModelBundle';
+  kind: 'ModelBundle';
   version: string;
   rootModelId: Id;
-  models: GModel[];
+  models: Model[];
 }

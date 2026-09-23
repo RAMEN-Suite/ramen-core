@@ -1,10 +1,10 @@
-import { GModel, Id } from '../model/Types';
+import { Model, Id } from '../Types';
 import { buildProjectGraph, ProjectGraphResult } from '../project/Build';
 import { ProjectGraph } from '../project/Graph';
 import { VALIDATION_ERROR } from './Codes';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ProjectSemanticValidator } from './Project';
-import { SchemaValidator } from './Schema';
+import { ModelSchemaValidator } from './ModelSchema';
 
 /** Diagnostics and summarized error state produced by instance validation. */
 export interface ValidationResult {
@@ -27,10 +27,10 @@ export interface InvalidProjectResult {
   readonly diagnostics: readonly Diagnostic[];
 }
 
-/** Result of validating a complete project of versioned GCore models. */
+/** Result of validating a complete project of versioned RAMEN models. */
 export type ProjectValidationResult = ValidProjectResult | InvalidProjectResult;
 
-/** Validates schema conformance, reference resolution, and semantics for a complete GCore project. */
+/** Validates schema conformance, reference resolution, and semantics for a complete RAMEN model project. */
 export class ModelValidator {
   private readonly semantics: ProjectSemanticValidator = new ProjectSemanticValidator();
 
@@ -40,11 +40,11 @@ export class ModelValidator {
    */
   public validateProject(rootModelId: Id, inputs: readonly unknown[]): ProjectValidationResult {
     const diagnostics: Diagnostic[] = [];
-    const models: GModel[] = [];
+    const models: Model[] = [];
 
     inputs.forEach((input: unknown, index: number): void => {
       try {
-        SchemaValidator.assertValid(input);
+        ModelSchemaValidator.assertValid(input);
         models.push(input);
       } catch (error: unknown) {
         diagnostics.push(

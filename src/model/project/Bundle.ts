@@ -1,50 +1,50 @@
-import { GModel, GModelBundle, Id } from '../model/Types';
-import { SchemaValidator } from '../validation/Schema';
+import { Model, ModelBundle, Id } from '../Types';
+import { ModelSchemaValidator } from '../validation/ModelSchema';
 import { Diagnostic } from '../validation/Diagnostics';
 import { buildProjectGraph, ProjectGraphResult } from './Build';
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
-import bundleSchema from '../../resources/schemas/gcore-bundle.schema.json';
+import bundleSchema from '../../resources/schemas/model-bundle.schema.json';
 
 /** Canonical schema identifier of the supported model bundle envelope. */
-export const MODEL_BUNDLE_SCHEMA: string = 'https://ramen-schema.org/gcore/1.0.0/bundle.json';
+export const MODEL_BUNDLE_SCHEMA: string = 'https://ramen-schema.org/model/1.0.0/bundle.schema.json';
 /** Version of the supported model bundle envelope. */
 export const MODEL_BUNDLE_VERSION: string = '1.0.0';
 const BUNDLE_SCHEMA_NODE: SchemaNode = compileSchema(bundleSchema);
 
 /** Bundle creation result with graph diagnostics on failure. */
 export type CreateBundleResult =
-  { readonly ok: true; readonly bundle: GModelBundle } | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] };
+  { readonly ok: true; readonly bundle: ModelBundle } | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] };
 
 /**
  * Creates a portable single-file container for every model reachable from the root.
  * Model boundaries, identifiers, versions, and imports remain unchanged.
  */
-export function createModelBundle(rootModelId: Id, models: readonly GModel[]): CreateBundleResult {
+export function createModelBundle(rootModelId: Id, models: readonly Model[]): CreateBundleResult {
   const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
   if (!graphResult.ok) return { ok: false, diagnostics: graphResult.diagnostics };
-  const bundle: GModelBundle = {
+  const bundle: ModelBundle = {
     $schema: MODEL_BUNDLE_SCHEMA,
-    kind: 'GModelBundle',
+    kind: 'ModelBundle',
     version: MODEL_BUNDLE_VERSION,
     rootModelId: rootModelId,
-    models: graphResult.graph.getModels().map((model: GModel): GModel => structuredClone(model)),
+    models: graphResult.graph.getModels().map((model: Model): Model => structuredClone(model)),
   };
   return { ok: true, bundle: bundle };
 }
 
 /**
- * Validates an unknown bundle value and restores its separate GCore models.
+ * Validates an unknown bundle value and restores its separate RAMEN models.
  *
  * @throws Error when the envelope, contained models, or project graph is invalid.
  */
-export function splitModelBundle(input: unknown): readonly GModel[] {
-  const bundle: GModelBundle = readBundle(input);
+export function splitModelBundle(input: unknown): readonly Model[] {
+  const bundle: ModelBundle = readBundle(input);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: bundle.rootModelId, models: bundle.models });
   if (!result.ok) throw new Error(formatBundleErrors(result.diagnostics));
-  return result.graph.getModels().map((model: GModel): GModel => structuredClone(model));
+  return result.graph.getModels().map((model: Model): Model => structuredClone(model));
 }
 
-function readBundle(input: unknown): GModelBundle {
+function readBundle(input: unknown): ModelBundle {
   const envelope: { readonly valid: boolean; readonly errors: JsonError[] } = BUNDLE_SCHEMA_NODE.validate(input);
   if (!envelope.valid) {
     const details: string = envelope.errors.map((error: JsonError): string => error.message).join('\n');
@@ -56,19 +56,19 @@ function readBundle(input: unknown): GModelBundle {
   if (typeof input.version !== 'string' || typeof input.rootModelId !== 'string' || !Array.isArray(input.models)) {
     throw new Error('Invalid model bundle envelope.');
   }
-  const models: GModel[] = input.models.map((model: unknown, index: number): GModel => readModel(model, index));
+  const models: Model[] = input.models.map((model: unknown, index: number): Model => readModel(model, index));
   return {
     $schema: MODEL_BUNDLE_SCHEMA,
-    kind: 'GModelBundle',
+    kind: 'ModelBundle',
     version: MODEL_BUNDLE_VERSION,
     rootModelId: input.rootModelId,
     models: models,
   };
 }
 
-function readModel(input: unknown, index: number): GModel {
+function readModel(input: unknown, index: number): Model {
   try {
-    SchemaValidator.assertValid(input);
+    ModelSchemaValidator.assertValid(input);
     return input;
   } catch (error: unknown) {
     const message: string = error instanceof Error ? error.message : String(error);

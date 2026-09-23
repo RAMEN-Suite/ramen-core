@@ -1,5 +1,5 @@
-import { REGEXP } from '../model/Patterns';
-import { Id, QualifiedRef, Ref } from '../model/Types';
+import { REGEXP } from '../Patterns';
+import { Id, QualifiedRef, Ref } from '../Types';
 
 /** Parsed model and element identifiers of a qualified reference. */
 export interface QualifiedParts {
@@ -7,7 +7,7 @@ export interface QualifiedParts {
   readonly refId: Id;
 }
 
-/** Creates and parses references between GCore model elements. */
+/** Creates and parses references between RAMEN model elements. */
 export class ModelRef {
   /** Reports whether a reference contains both a model and element identifier. */
   public static isQualified(ref: Ref): boolean {

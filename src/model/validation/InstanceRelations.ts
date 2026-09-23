@@ -1,4 +1,4 @@
-import { Bounds, GNode, GRelation, Id, Ref } from '../model/Types';
+import { Bounds, Node, Relation, Id, Ref } from '../Types';
 import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
@@ -46,7 +46,7 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedInstanceRelation | undefined {
     if (!this.registerRelationId(relation.id, path, ids, diagnostics)) return undefined;
-    const type: ResolvedModelElement<GRelation> | undefined = this.resolveRelationType(
+    const type: ResolvedModelElement<Relation> | undefined = this.resolveRelationType(
       graph,
       ownerModelId,
       relation,
@@ -78,7 +78,7 @@ export class InstanceRelationValidator {
   }
 
   private validateConstraints(
-    type: ResolvedModelElement<GRelation>,
+    type: ResolvedModelElement<Relation>,
     relation: ModelInstanceRelation,
     from: ResolvedInstanceNode,
     to: ResolvedInstanceNode,
@@ -129,8 +129,8 @@ export class InstanceRelationValidator {
     relation: ModelInstanceRelation,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
-  ): ResolvedModelElement<GRelation> | undefined {
-    const type: ResolvedModelElement<GRelation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
+  ): ResolvedModelElement<Relation> | undefined {
+    const type: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
     if (type) return type;
     diagnostics.push(
       this.error(
@@ -161,13 +161,13 @@ export class InstanceRelationValidator {
 
   private validateRelationEndpoint(
     graph: ProjectGraph,
-    relationType: ResolvedModelElement<GRelation>,
+    relationType: ResolvedModelElement<Relation>,
     requiredRef: Ref,
     actual: ResolvedInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const required: ResolvedModelElement<GNode> | undefined = graph.resolveNode(relationType.modelId, requiredRef);
+    const required: ResolvedModelElement<Node> | undefined = graph.resolveNode(relationType.modelId, requiredRef);
     if (required && !graph.isNodeSameOrSubtype(actual.type, required)) {
       diagnostics.push(
         this.error(
@@ -198,7 +198,7 @@ export class InstanceRelationValidator {
     graph: ProjectGraph,
     ownerModelId: Id,
     relationModelId: Id,
-    relation: GRelation,
+    relation: Relation,
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
     relations: readonly ResolvedInstanceRelation[],
     diagnostics: Diagnostic[],

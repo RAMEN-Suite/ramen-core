@@ -4,6 +4,7 @@ import {
   RAMEN_ANNOTATION_SCHEMA_URI,
   RAMEN_ELEMENT,
   RAMEN_MODEL,
+  RAMEN_MODEL_URI,
   RamenAnnotationSchemaValidator,
   RamenProject,
   createModelBundle,
@@ -12,9 +13,9 @@ import {
 import type {
   CreateBundleResult,
   DataTypeSuggestion,
-  GAttribute,
-  GModel,
-  GNode,
+  Attribute,
+  Model,
+  Node,
   NodeRefinementSuggestion,
   RamenAdvisor,
   RamenChange,
@@ -31,9 +32,10 @@ function createProject(): RamenProject {
 
 void test('publishes the RAMEN reference model and its reusable scalar types', (): void => {
   const names: readonly string[] = RAMEN_MODEL.classifiers
-    .filter((classifier): boolean => classifier.kind === 'GDataType')
+    .filter((classifier): boolean => classifier.kind === 'DataType')
     .map((classifier): string => classifier.name);
   assert.deepEqual(names, ['UUID', 'Date', 'DateTime', 'URI', 'Email']);
+  assert.equal(RAMEN_MODEL.$id, RAMEN_MODEL_URI);
 });
 
 void test('publishes a schema specifically for ext.ramen annotation definitions', (): void => {
@@ -45,11 +47,11 @@ void test('publishes a schema specifically for ext.ramen annotation definitions'
 
 void test('creates nodes and attributes while validating every change', (): void => {
   const project: RamenProject = createProject();
-  const person: RamenChange<GNode> = project.createNode({
+  const person: RamenChange<Node> = project.createNode({
     name: 'Person',
     refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
   });
-  const birthDate: RamenChange<GAttribute> = project.createAttribute(person.element.id, {
+  const birthDate: RamenChange<Attribute> = project.createAttribute(person.element.id, {
     name: 'birthDate',
     typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.DATE}`,
     bounds: { lowerBound: 0, upperBound: 1 },
@@ -74,16 +76,16 @@ void test('exposes refinements and data types through the consumer API', (): voi
 
 void test('keeps RAMEN extensions when a project is bundled and split', (): void => {
   const project: RamenProject = createProject();
-  const annotation: GNode = project.createNode({
+  const annotation: Node = project.createNode({
     name: 'TextAnnotation',
     refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
   }).element;
   project.createAnnotation({ annotationId: annotation.id, type: 'date' });
-  const model: GModel = project.getModel();
+  const model: Model = project.getModel();
   const result: CreateBundleResult = createModelBundle(model.id, [model, RAMEN_MODEL]);
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  const restored: readonly GModel[] = splitModelBundle(result.bundle);
-  const restoredProject: GModel | undefined = restored.find((item: GModel): boolean => item.id === model.id);
+  const restored: readonly Model[] = splitModelBundle(result.bundle);
+  const restoredProject: Model | undefined = restored.find((item: Model): boolean => item.id === model.id);
   assert.deepEqual(restoredProject?.ext?.ramen, model.ext?.ramen);
 });

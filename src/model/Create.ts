@@ -1,21 +1,21 @@
 import {
   Bounds,
   BuiltinType,
-  GAttribute,
-  GConstraint,
-  GDataType,
-  GLiteral,
-  GModel,
-  GNode,
-  GRelation,
+  Attribute,
+  Constraint,
+  DataType,
+  Literal,
+  Model,
+  Node,
+  Relation,
   Id,
   RelationEnd,
   TypeRef,
 } from './Types';
-import { SchemaValidator } from '../validation/Schema';
+import { ModelSchemaValidator } from './validation/ModelSchema';
 import ShortUniqueId from 'short-unique-id';
-import { ModelRef } from '../project/Refs';
-import { ModelElementIndex } from '../project/Elements';
+import { ModelRef } from './project/Refs';
+import { ModelElementIndex } from './project/Elements';
 
 /** Values needed to create a model that imports a base model. */
 export interface CreateModelInput {
@@ -58,23 +58,23 @@ export interface CreateDataTypeInput {
 
 /** Duplicated node together with the duplicated relations connected to it. */
 export interface ConnectedNode {
-  readonly node: GNode;
-  readonly relations: readonly GRelation[];
+  readonly node: Node;
+  readonly relations: readonly Relation[];
 }
 
-/** Creates valid GCore model elements with stable identifiers and empty extension data. */
+/** Creates valid RAMEN model elements with stable identifiers and empty extension data. */
 export class ModelFactory {
   /** Creates an empty model with an exact import of the supplied base model. */
-  public static createModel(base: GModel, input: CreateModelInput): GModel {
-    const schemaUri: string | undefined = SchemaValidator.getSchemaNode().$id;
-    if (!schemaUri) throw new Error('GCore schema has no $id.');
+  public static createModel(base: Model, input: CreateModelInput): Model {
+    const schemaUri: string | undefined = ModelSchemaValidator.getSchemaNode().$id;
+    if (!schemaUri) throw new Error('RAMEN model format schema has no $id.');
 
     return {
       $schema: schemaUri,
       $id: input.uri,
       id: input.id,
       version: input.version,
-      kind: 'GModel',
+      kind: 'Model',
       name: input.name,
 
       imports: [
@@ -93,9 +93,9 @@ export class ModelFactory {
   }
 
   /** Creates a node with a qualified reference to its base node. */
-  public static createNode(baseId: Id, input: CreateNodeInput): GNode {
+  public static createNode(baseId: Id, input: CreateNodeInput): Node {
     return {
-      kind: 'GNode',
+      kind: 'Node',
       id: this.createIdentifier(),
       name: input.name,
       superTypes: [ModelRef.qualify(baseId, input.baseNodeId)],
@@ -106,7 +106,7 @@ export class ModelFactory {
   }
 
   /** Creates an attribute with the requested type, bounds, and feature flags. */
-  public static createAttribute(input: CreateAttributeInput): GAttribute {
+  public static createAttribute(input: CreateAttributeInput): Attribute {
     return {
       id: this.createIdentifier(),
       name: input.name,
@@ -122,9 +122,9 @@ export class ModelFactory {
   }
 
   /** Creates a data type without literals or constraints. */
-  public static createDataType(input: CreateDataTypeInput): GDataType {
+  public static createDataType(input: CreateDataTypeInput): DataType {
     return {
-      kind: 'GDataType',
+      kind: 'DataType',
       id: this.createIdentifier(),
       name: input.name,
       baseType: input.baseType,
@@ -135,13 +135,13 @@ export class ModelFactory {
   }
 
   /** Creates a relation whose roles and bounds are copied from a base relation. */
-  public static createRelation(base: GModel, baseId: Id, input: CreateRelationInput): GRelation {
+  public static createRelation(base: Model, baseId: Id, input: CreateRelationInput): Relation {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
-    const baseRelation: GRelation | undefined = baseIndex.relationsById.get(input.baseRelationId);
+    const baseRelation: Relation | undefined = baseIndex.relationsById.get(input.baseRelationId);
     if (!baseRelation) throw new Error(`Base relation not found: ${input.baseRelationId}`);
 
     return {
-      kind: 'GRelation',
+      kind: 'Relation',
       id: this.createIdentifier(),
       superTypes: [ModelRef.qualify(baseId, input.baseRelationId)],
       name: baseRelation.name,
@@ -167,16 +167,16 @@ export class ModelFactory {
   }
 
   /** Deeply duplicates a node and assigns new identifiers to its owned elements. */
-  public static duplicateNode(node: GNode): GNode {
-    const cloned: GNode = structuredClone(node);
+  public static duplicateNode(node: Node): Node {
+    const cloned: Node = structuredClone(node);
     cloned.id = this.createIdentifier();
     cloned.name = `${node.name} (copy)`;
 
-    const constraintFn: (constraint: GConstraint) => GConstraint = (constraint: GConstraint): GConstraint => {
+    const constraintFn: (constraint: Constraint) => Constraint = (constraint: Constraint): Constraint => {
       return { ...constraint, id: this.createIdentifier() };
     };
     cloned.constraints = cloned.constraints?.map(constraintFn);
-    cloned.attributes = cloned.attributes.map((attribute: GAttribute): GAttribute => {
+    cloned.attributes = cloned.attributes.map((attribute: Attribute): Attribute => {
       return { ...attribute, id: this.createIdentifier(), constraints: attribute.constraints?.map(constraintFn) };
     });
 
@@ -184,19 +184,19 @@ export class ModelFactory {
   }
 
   /** Duplicates a node and every local relation connected to it. */
-  public static duplicateConnectedNode(model: GModel, sourceNodeId: Id): ConnectedNode {
+  public static duplicateConnectedNode(model: Model, sourceNodeId: Id): ConnectedNode {
     const index: ModelElementIndex = new ModelElementIndex(model);
-    const source: GNode | undefined = index.nodesById.get(sourceNodeId);
+    const source: Node | undefined = index.nodesById.get(sourceNodeId);
     if (!source) throw new Error(`Node not found: ${sourceNodeId}`);
 
-    const clonedNode: GNode = this.duplicateNode(source);
-    const related: GRelation[] = [];
+    const clonedNode: Node = this.duplicateNode(source);
+    const related: Relation[] = [];
 
     for (const relation of model.relations) {
       const isRelevant: boolean = relation.from.nodeId === sourceNodeId || relation.to.nodeId === sourceNodeId;
       if (!isRelevant) continue;
 
-      const clonedRelation: GRelation = structuredClone(relation);
+      const clonedRelation: Relation = structuredClone(relation);
       clonedRelation.id = this.createIdentifier();
       clonedRelation.from.id = this.createIdentifier();
       clonedRelation.to.id = this.createIdentifier();
@@ -204,7 +204,7 @@ export class ModelFactory {
       if (clonedRelation.from.nodeId === sourceNodeId) clonedRelation.from.nodeId = clonedNode.id;
       if (clonedRelation.to.nodeId === sourceNodeId) clonedRelation.to.nodeId = clonedNode.id;
 
-      const constraintFn: (constraint: GConstraint) => GConstraint = (constraint: GConstraint): GConstraint => {
+      const constraintFn: (constraint: Constraint) => Constraint = (constraint: Constraint): Constraint => {
         return { ...constraint, id: this.createIdentifier() };
       };
 
@@ -219,7 +219,7 @@ export class ModelFactory {
   }
 
   /** Creates a named data type literal with optional serialized and numeric values. */
-  public static createLiteral(name: string, literal?: string, value?: number): GLiteral {
+  public static createLiteral(name: string, literal?: string, value?: number): Literal {
     return {
       id: this.createIdentifier(),
       name: name,

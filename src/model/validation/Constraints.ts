@@ -1,4 +1,4 @@
-import { GConstraint, Id } from '../model/Types';
+import { Constraint, Id } from '../Types';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
 import { VALIDATION_ERROR } from './Codes';
@@ -26,7 +26,7 @@ export interface ConstraintContext {
 export interface ConstraintEvaluator {
   readonly language: string;
   /** Evaluates one constraint in the supplied model or instance context. */
-  evaluate(constraint: GConstraint, context: ConstraintContext): readonly Diagnostic[];
+  evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[];
 }
 
 /** Maps constraint language names to their evaluators. */
@@ -52,7 +52,7 @@ export class ConstraintRegistry {
   }
 
   /** Evaluates a constraint or reports that its language is unsupported. */
-  public evaluate(constraint: GConstraint, context: ConstraintContext): readonly Diagnostic[] {
+  public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
     const evaluator: ConstraintEvaluator | undefined = this.evaluators.get(constraint.language);
     if (evaluator) return evaluator.evaluate(constraint, context);
     return [
@@ -71,7 +71,7 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'regex';
 
   /** Tests a string value against the constraint expression. */
-  public evaluate(constraint: GConstraint, context: ConstraintContext): readonly Diagnostic[] {
+  public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
     if (typeof constraint.expression !== 'string') {
       return [this.invalidExpression(constraint, context, 'expected a string')];
     }
@@ -95,7 +95,7 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
     ];
   }
 
-  private invalidExpression(constraint: GConstraint, context: ConstraintContext, reason: string): Diagnostic {
+  private invalidExpression(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {
     return Diagnostics.error({
       code: VALIDATION_ERROR.CONSTRAINT_EXPRESSION_INVALID,
       message: `Constraint '${constraint.name}' has an invalid expression: ${reason}.`,
@@ -104,7 +104,7 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
     });
   }
 
-  private createDiagnostic(constraint: GConstraint, context: ConstraintContext, code: string, message: string): Diagnostic {
+  private createDiagnostic(constraint: Constraint, context: ConstraintContext, code: string, message: string): Diagnostic {
     const report: DiagnosticReport = { code: code, message: message, path: context.path, ref: constraint.id };
     if (constraint.severity === 'warn') return Diagnostics.warn(report);
     if (constraint.severity === 'info') return Diagnostics.info(report);
@@ -116,8 +116,8 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
 export class FormatConstraintEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'format';
 
-  /** Validates standard JSON Schema string formats used by GCore data types. */
-  public evaluate(constraint: GConstraint, context: ConstraintContext): readonly Diagnostic[] {
+  /** Validates standard JSON Schema string formats used by RAMEN model format data types. */
+  public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
     if (typeof constraint.expression !== 'string' || typeof context.value !== 'string') {
       return [this.invalid(constraint, context, 'expected a format name and a string value')];
     }
@@ -137,7 +137,7 @@ export class FormatConstraintEvaluator implements ConstraintEvaluator {
     }
   }
 
-  private invalid(constraint: GConstraint, context: ConstraintContext, reason: string): Diagnostic {
+  private invalid(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {
     return Diagnostics.error({
       code: VALIDATION_ERROR.CONSTRAINT_EXPRESSION_INVALID,
       message: `Constraint '${constraint.name}' is invalid: ${reason}.`,
@@ -146,7 +146,7 @@ export class FormatConstraintEvaluator implements ConstraintEvaluator {
     });
   }
 
-  private diagnostic(constraint: GConstraint, context: ConstraintContext, message: string): Diagnostic {
+  private diagnostic(constraint: Constraint, context: ConstraintContext, message: string): Diagnostic {
     const report: DiagnosticReport = {
       code: constraint.code ?? VALIDATION_ERROR.CONSTRAINT_FORMAT_MISMATCH,
       message: message,

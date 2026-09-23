@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ramen-schema.org/gcore/1.0.0/schema.json",
-  "title": "GCore",
+  "$id": "https://ramen-schema.org/model/1.0.0/schema.json",
+  "title": "RAMEN model format",
   "type": "object",
   "required": ["$schema", "$id", "id", "version", "kind", "name", "imports", "classifiers", "relations"],
   "additionalProperties": false,
   "properties": {
     "$schema": {
-      "const": "https://ramen-schema.org/gcore/1.0.0/schema.json"
+      "const": "https://ramen-schema.org/model/1.0.0/schema.json"
     },
     "$id": {
       "type": "string",
@@ -21,7 +21,7 @@
       "$ref": "#/$defs/Version"
     },
     "kind": {
-      "const": "GModel"
+      "const": "Model"
     },
     "name": {
       "type": "string",
@@ -39,7 +39,7 @@
     "classifiers": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/GClassifier"
+        "$ref": "#/$defs/Classifier"
       },
       "default": [],
       "$comment": "Declared classifiers (node and datatype definitions)."
@@ -47,7 +47,7 @@
     "relations": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/GRelation"
+        "$ref": "#/$defs/Relation"
       },
       "default": [],
       "$comment": "Declared relation types between node types."
@@ -59,7 +59,7 @@
       "$comment": "Tool-specific metadata; no semantic meaning."
     }
   },
-  "$comment": "GCore: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modeling rather than full behavioral or reflective semantics.",
+  "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modeling rather than full behavioral or reflective semantics.",
   "$defs": {
     "Id": {
       "type": "string",
@@ -149,7 +149,7 @@
         }
       }
     },
-    "GConstraint": {
+    "Constraint": {
       "type": "object",
       "required": ["id", "name", "language", "expression"],
       "additionalProperties": false,
@@ -192,24 +192,24 @@
         }
       }
     },
-    "GClassifier": {
+    "Classifier": {
       "oneOf": [
         {
-          "$ref": "#/$defs/GNode"
+          "$ref": "#/$defs/Node"
         },
         {
-          "$ref": "#/$defs/GDataType"
+          "$ref": "#/$defs/DataType"
         }
       ]
     },
-    "GNode": {
+    "Node": {
       "type": "object",
       "required": ["kind", "id", "name", "superTypes", "attributes"],
       "additionalProperties": false,
       "$comment": "Node type (class) declaration.",
       "properties": {
         "kind": {
-          "const": "GNode"
+          "const": "Node"
         },
         "id": {
           "$ref": "#/$defs/Id"
@@ -228,14 +228,14 @@
         "attributes": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GAttribute"
+            "$ref": "#/$defs/Attribute"
           },
           "default": []
         },
         "constraints": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GConstraint"
+            "$ref": "#/$defs/Constraint"
           },
           "default": []
         },
@@ -246,14 +246,14 @@
         }
       }
     },
-    "GDataType": {
+    "DataType": {
       "type": "object",
       "required": ["kind", "id", "name", "baseType"],
       "additionalProperties": false,
       "$comment": "User-defined scalar datatype with a JSON-compatible primitive representation; literals make the value domain an enumeration.",
       "properties": {
         "kind": {
-          "const": "GDataType"
+          "const": "DataType"
         },
         "id": {
           "$ref": "#/$defs/Id"
@@ -268,14 +268,14 @@
         "literals": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GLiteral"
+            "$ref": "#/$defs/Literal"
           },
           "minItems": 1
         },
         "constraints": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GConstraint"
+            "$ref": "#/$defs/Constraint"
           },
           "default": []
         },
@@ -286,7 +286,7 @@
         }
       }
     },
-    "GLiteral": {
+    "Literal": {
       "type": "object",
       "required": ["id", "name"],
       "additionalProperties": false,
@@ -307,7 +307,7 @@
         "constraints": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GConstraint"
+            "$ref": "#/$defs/Constraint"
           },
           "default": []
         },
@@ -318,7 +318,7 @@
         }
       }
     },
-    "GAttribute": {
+    "Attribute": {
       "type": "object",
       "required": ["id", "name", "typeId", "bounds"],
       "additionalProperties": false,
@@ -359,7 +359,7 @@
         "constraints": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GConstraint"
+            "$ref": "#/$defs/Constraint"
           },
           "default": []
         },
@@ -370,14 +370,14 @@
         }
       }
     },
-    "GRelation": {
+    "Relation": {
       "type": "object",
       "required": ["kind", "id", "superTypes", "name", "from", "to"],
       "additionalProperties": false,
       "$comment": "Relation type connecting node types.",
       "properties": {
         "kind": {
-          "const": "GRelation"
+          "const": "Relation"
         },
         "id": {
           "$ref": "#/$defs/Id"
@@ -403,7 +403,7 @@
         "constraints": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GConstraint"
+            "$ref": "#/$defs/Constraint"
           },
           "default": []
         },
@@ -445,7 +445,7 @@
         "constraints": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/GConstraint"
+            "$ref": "#/$defs/Constraint"
           },
           "default": []
         },

@@ -4,7 +4,7 @@ import { RAMEN_MODEL, RamenInstanceValidator, RamenProject } from '../../dist/in
 import type {
   AnnotationAdvice,
   AnnotationPropertyAdvice,
-  GModel,
+  Model,
   ModelInstanceGraph,
   ProjectValidationResult,
   RamenAnnotation,
@@ -14,11 +14,11 @@ import type {
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
 
-void test('stores five closed annotation definitions outside the GCore node list', (): void => {
+void test('stores five closed annotation definitions outside the model node list', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const annotations: readonly RamenAnnotation[] = fixture.project.getAnnotations();
   const types: readonly string[] = annotations.map((annotation: RamenAnnotation): string => annotation.type).sort();
-  assert.equal(fixture.model.classifiers.filter((item): boolean => item.kind === 'GNode').length, 6);
+  assert.equal(fixture.model.classifiers.filter((item): boolean => item.kind === 'Node').length, 6);
   assert.deepEqual(types, ['comment', 'date', 'externalReference', 'persName', 'placeName']);
   assert.deepEqual(fixture.model.ext?.ramen, { annotations: annotations });
 });
@@ -80,7 +80,7 @@ void test('rejects duplicate types and implicit replacement of inherited definit
 
 void test('rejects a malformed serialized annotation extension', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const malformed: GModel = { ...fixture.model, ext: { ramen: { annotations: [{ id: 'incomplete' }] } } };
+  const malformed: Model = { ...fixture.model, ext: { ramen: { annotations: [{ id: 'incomplete' }] } } };
   const result: ProjectValidationResult = RamenProject.load(malformed).validate();
   assert.ok(result.diagnostics.some((diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATIONS_INVALID'));
 });

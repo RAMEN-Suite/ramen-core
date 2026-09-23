@@ -1,4 +1,4 @@
-import { GAttribute, GDataType, GLiteral, GModel, GNode, GRelation, Id, Import, RelationEnd, Ref } from '../model/Types';
+import { Attribute, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../project/Effective';
 import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
@@ -16,20 +16,20 @@ export class ProjectSemanticValidator {
     return diagnostics;
   }
 
-  private validateModel(graph: ProjectGraph, model: GModel, diagnostics: Diagnostic[]): void {
+  private validateModel(graph: ProjectGraph, model: Model, diagnostics: Diagnostic[]): void {
     this.validateImports(model, diagnostics);
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
-      if (classifier.kind === 'GNode') this.validateNode(graph, model.id, classifier, path, diagnostics);
+      if (classifier.kind === 'Node') this.validateNode(graph, model.id, classifier, path, diagnostics);
       else this.validateDataType(classifier, path, diagnostics);
     });
-    model.relations.forEach((relation: GRelation, index: number): void => {
+    model.relations.forEach((relation: Relation, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'relations', index);
       this.validateRelation(graph, model.id, relation, path, diagnostics);
     });
   }
 
-  private validateImports(model: GModel, diagnostics: Diagnostic[]): void {
+  private validateImports(model: Model, diagnostics: Diagnostic[]): void {
     const firstIndexByModelId: Map<Id, number> = new Map<Id, number>();
     model.imports.forEach((modelImport: Import, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id).property('imports').index(index);
@@ -57,11 +57,11 @@ export class ProjectSemanticValidator {
     });
   }
 
-  private validateDataType(dataType: GDataType, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
-    const literals: readonly GLiteral[] | undefined = dataType.literals;
+  private validateDataType(dataType: DataType, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+    const literals: readonly Literal[] | undefined = dataType.literals;
     if (!literals) return;
     this.validateLiteralUniqueness(literals, path, diagnostics);
-    const withValue: number = literals.filter((literal: GLiteral): boolean => literal.value !== undefined).length;
+    const withValue: number = literals.filter((literal: Literal): boolean => literal.value !== undefined).length;
     if (withValue > 0 && withValue < literals.length) {
       diagnostics.push(
         Diagnostics.warn({
@@ -74,11 +74,11 @@ export class ProjectSemanticValidator {
     }
   }
 
-  private validateLiteralUniqueness(literals: readonly GLiteral[], path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+  private validateLiteralUniqueness(literals: readonly Literal[], path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     const names: Set<string> = new Set<string>();
     const serialized: Set<string> = new Set<string>();
     const values: Set<number> = new Set<number>();
-    literals.forEach((literal: GLiteral, index: number): void => {
+    literals.forEach((literal: Literal, index: number): void => {
       const literalPath: DiagnosticPath = path.property('literals').index(index);
       this.registerLiteralValue(
         names,
@@ -121,12 +121,12 @@ export class ProjectSemanticValidator {
     values.add(value);
   }
 
-  private validateNode(graph: ProjectGraph, modelId: Id, node: GNode, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+  private validateNode(graph: ProjectGraph, modelId: Id, node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     if (node.superTypes.length > 1) {
       diagnostics.push(
         this.error(
           'NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED',
-          `Node '${node.id}' has ${node.superTypes.length} supertypes; GCore refinement supports at most one.`,
+          `Node '${node.id}' has ${node.superTypes.length} supertypes; RAMEN model format refinement supports at most one.`,
           path.property('superTypes'),
           node.id,
         ),
@@ -138,9 +138,9 @@ export class ProjectSemanticValidator {
     this.validateInheritedAttributeNames(graph, modelId, node, path, diagnostics);
   }
 
-  private validateLocalAttributes(node: GNode, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+  private validateLocalAttributes(node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     const localNames: Set<string> = new Set<string>();
-    node.attributes.forEach((attribute: GAttribute, index: number): void => {
+    node.attributes.forEach((attribute: Attribute, index: number): void => {
       const attributePath: DiagnosticPath = path.property('attributes').index(index);
       if (localNames.has(attribute.name)) {
         diagnostics.push(
@@ -160,7 +160,7 @@ export class ProjectSemanticValidator {
   private validateInheritedAttributeNames(
     graph: ProjectGraph,
     modelId: Id,
-    node: GNode,
+    node: Node,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
@@ -181,7 +181,7 @@ export class ProjectSemanticValidator {
     }
   }
 
-  private validateAttribute(attribute: GAttribute, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+  private validateAttribute(attribute: Attribute, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     if (!ModelSemantics.areBoundsCoherent(attribute.bounds)) {
       diagnostics.push(
         this.error(
@@ -207,7 +207,7 @@ export class ProjectSemanticValidator {
   private validateRelation(
     graph: ProjectGraph,
     modelId: Id,
-    relation: GRelation,
+    relation: Relation,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
@@ -215,7 +215,7 @@ export class ProjectSemanticValidator {
       diagnostics.push(
         this.error(
           'RELATION_MULTIPLE_SUPERTYPES_UNSUPPORTED',
-          `Relation '${relation.id}' has ${relation.superTypes.length} supertypes; GCore refinement supports at most one.`,
+          `Relation '${relation.id}' has ${relation.superTypes.length} supertypes; RAMEN model format refinement supports at most one.`,
           path.property('superTypes'),
           relation.id,
         ),
@@ -239,7 +239,7 @@ export class ProjectSemanticValidator {
 
     const superType: Ref | undefined = relation.superTypes[0];
     if (!superType) return;
-    const base: ResolvedModelElement<GRelation> | undefined = graph.resolveRelation(modelId, superType);
+    const base: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(modelId, superType);
     if (!base) return;
     this.validateRelationRefinement(graph, modelId, relation, base, path, diagnostics);
   }
@@ -255,25 +255,25 @@ export class ProjectSemanticValidator {
   private validateRoleConflicts(
     graph: ProjectGraph,
     modelId: Id,
-    relation: GRelation,
+    relation: Relation,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const from: ResolvedModelElement<GNode> | undefined = graph.resolveNode(modelId, relation.from.nodeId);
-    const to: ResolvedModelElement<GNode> | undefined = graph.resolveNode(modelId, relation.to.nodeId);
+    const from: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, relation.from.nodeId);
+    const to: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, relation.to.nodeId);
     if (from) this.validateRoleAgainstNode(graph, from, relation.to.role, path.property('to').property('role'), diagnostics);
     if (to) this.validateRoleAgainstNode(graph, to, relation.from.role, path.property('from').property('role'), diagnostics);
   }
 
   private validateRoleAgainstNode(
     graph: ProjectGraph,
-    target: ResolvedModelElement<GNode>,
+    target: ResolvedModelElement<Node>,
     role: string,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, target.modelId, target.element.id);
-    if (effective?.attributes.some((attribute: GAttribute): boolean => attribute.name === role)) {
+    if (effective?.attributes.some((attribute: Attribute): boolean => attribute.name === role)) {
       diagnostics.push(
         this.error(
           'RELATION_ROLE_PROPERTY_CONFLICT',
@@ -288,8 +288,8 @@ export class ProjectSemanticValidator {
   private validateRelationRefinement(
     graph: ProjectGraph,
     modelId: Id,
-    relation: GRelation,
-    base: ResolvedModelElement<GRelation>,
+    relation: Relation,
+    base: ResolvedModelElement<Relation>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
@@ -322,8 +322,8 @@ export class ProjectSemanticValidator {
       );
     }
 
-    const actualNode: ResolvedModelElement<GNode> | undefined = graph.resolveNode(modelId, end.nodeId);
-    const requiredNode: ResolvedModelElement<GNode> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
+    const actualNode: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);
+    const requiredNode: ResolvedModelElement<Node> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
     if (actualNode && requiredNode && !graph.isNodeSameOrSubtype(actualNode, requiredNode)) {
       diagnostics.push(
         this.error(

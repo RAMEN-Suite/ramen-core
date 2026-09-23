@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "description": "Shared GCore and RAMEN model validation kernel",
+  "description": "JSON model format and modeling kernel for the RAMEN suite",
   "sideEffects": false,
   "files": [
     "dist"
@@ -14,9 +14,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./gcore": {
-      "types": "./dist/gcore/index.d.ts",
-      "default": "./dist/gcore/index.js"
+    "./model": {
+      "types": "./dist/model/index.d.ts",
+      "default": "./dist/model/index.js"
     },
     "./ramen": {
       "types": "./dist/ramen/index.d.ts",
@@ -24,7 +24,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && esbuild src/index.ts src/gcore/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist --outbase=src --external:json-schema-library --external:short-unique-id",
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.json && esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist --outbase=src --external:json-schema-library --external:short-unique-id",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
     "lint": "eslint src test",

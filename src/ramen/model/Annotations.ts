@@ -1,4 +1,4 @@
-import type { Bounds, GModel, Id, Ref } from '../../gcore/index';
+import type { Bounds, Model, Id, Ref } from '../../model/index';
 import { RamenAnnotationSchemaValidator } from '../validation/AnnotationSchema';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
@@ -28,29 +28,29 @@ interface RamenModelExtension {
   readonly annotations?: readonly RamenAnnotation[];
 }
 
-/** Reads and updates the formal `ext.ramen.annotations` section of a GCore model. */
+/** Reads and updates the formal `ext.ramen.annotations` section of a RAMEN model. */
 export class RamenAnnotations {
   /** Returns a detached list of annotations declared by the model. */
-  public static get(model: GModel): readonly RamenAnnotation[] {
+  public static get(model: Model): readonly RamenAnnotation[] {
     const ramen: unknown = model.ext?.ramen;
     if (!RamenAnnotationSchemaValidator.isValid(ramen) || !this.isRecord(ramen) || !Array.isArray(ramen.annotations)) return [];
     return structuredClone(ramen.annotations) as readonly RamenAnnotation[];
   }
 
   /** Reports whether a present `ramen.annotations` value has the complete serialized shape. */
-  public static hasValidSection(model: GModel): boolean {
+  public static hasValidSection(model: Model): boolean {
     const ramen: unknown = model.ext?.ramen;
     if (ramen === undefined) return true;
     return RamenAnnotationSchemaValidator.isValid(ramen);
   }
 
   /** Returns a model with the annotation appended to its RAMEN section. */
-  public static add(model: GModel, annotation: RamenAnnotation): GModel {
+  public static add(model: Model, annotation: RamenAnnotation): Model {
     return this.write(model, [...this.get(model), structuredClone(annotation)]);
   }
 
   /** Returns a model with one declared annotation replaced. */
-  public static update(model: GModel, annotationId: Id, annotation: RamenAnnotation): GModel {
+  public static update(model: Model, annotationId: Id, annotation: RamenAnnotation): Model {
     const current: readonly RamenAnnotation[] = this.get(model);
     if (!current.some((candidate: RamenAnnotation): boolean => candidate.id === annotationId))
       throw new Error(`Annotation not found: '${annotationId}'.`);
@@ -63,7 +63,7 @@ export class RamenAnnotations {
   }
 
   /** Returns a model without one declared annotation. */
-  public static remove(model: GModel, annotationId: Id): GModel {
+  public static remove(model: Model, annotationId: Id): Model {
     const current: readonly RamenAnnotation[] = this.get(model);
     const remaining: readonly RamenAnnotation[] = current.filter(
       (candidate: RamenAnnotation): boolean => candidate.id !== annotationId,
@@ -72,12 +72,12 @@ export class RamenAnnotations {
     return this.write(model, remaining);
   }
 
-  private static getExtension(model: GModel): RamenModelExtension {
+  private static getExtension(model: Model): RamenModelExtension {
     const ramen: unknown = model.ext?.ramen;
     return this.isRecord(ramen) ? ramen : {};
   }
 
-  private static write(model: GModel, annotations: readonly RamenAnnotation[]): GModel {
+  private static write(model: Model, annotations: readonly RamenAnnotation[]): Model {
     const ramen: RamenModelExtension = this.getExtension(model);
     return {
       ...model,

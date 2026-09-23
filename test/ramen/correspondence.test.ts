@@ -3,7 +3,7 @@ import test from 'node:test';
 import type {
   AnnotationRelationAdvice,
   AnnotationSuggestion,
-  GNode,
+  Node,
   NodeAdvice,
   NodeRelationSuggestion,
   RamenAdvisor,
@@ -104,7 +104,7 @@ void test('retains annotation semantics through an arbitrary third project level
     name: 'Digital Edition',
     version: '1.0.0',
   });
-  const annotation: GNode = edition.createNode({
+  const annotation: Node = edition.createNode({
     name: 'EditionAnnotation',
     refines: { modelId: scholarly.model.id, elementId: scholarly.nodes.annotation.id },
   }).element;

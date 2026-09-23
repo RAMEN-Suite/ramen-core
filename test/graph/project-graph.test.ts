@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildProjectGraph } from '../../dist/index.js';
-import type { GModel, GNode, Import, ProjectGraphResult } from '../../dist/index.js';
+import type { Model, Node, Import, ProjectGraphResult } from '../../dist/index.js';
 
-const SCHEMA: string = 'https://ramen-schema.org/gcore/1.0.0/schema.json';
+const SCHEMA: string = 'https://ramen-schema.org/model/1.0.0/schema.json';
 const ROOT_ID: string = 'rootModel0000001';
 const MIDDLE_ID: string = 'middleModel00001';
 const BASE_ID: string = 'baseModel0000001';
 const NODE_ID: string = 'nodeIdentifier001';
 const CHILD_ID: string = 'childIdentifier01';
 
-function model(id: string, imports: readonly string[] = [], classifiers: GModel['classifiers'] = []): GModel {
+function model(id: string, imports: readonly string[] = [], classifiers: Model['classifiers'] = []): Model {
   return {
     $schema: SCHEMA,
     $id: `https://example.org/${id}`,
     id,
     version: '1.0.0',
-    kind: 'GModel',
+    kind: 'Model',
     name: id,
     imports: imports.map((modelId) => ({ modelUri: `https://example.org/${modelId}`, modelId, version: '1.0.0' })),
     classifiers: [...classifiers],
@@ -24,14 +24,14 @@ function model(id: string, imports: readonly string[] = [], classifiers: GModel[
   };
 }
 
-function node(id: string, superTypes: readonly string[] = []): GNode {
-  return { kind: 'GNode', id, name: id, superTypes: [...superTypes], attributes: [] };
+function node(id: string, superTypes: readonly string[] = []): Node {
+  return { kind: 'Node', id, name: id, superTypes: [...superTypes], attributes: [] };
 }
 
 void test('builds a graph for a model chain and resolves an imported node', () => {
-  const base: GModel = model(BASE_ID, [], [node(NODE_ID)]);
-  const middle: GModel = model(MIDDLE_ID, [BASE_ID]);
-  const root: GModel = model(ROOT_ID, [MIDDLE_ID], [node(CHILD_ID, [`${BASE_ID}:${NODE_ID}`])]);
+  const base: Model = model(BASE_ID, [], [node(NODE_ID)]);
+  const middle: Model = model(MIDDLE_ID, [BASE_ID]);
+  const root: Model = model(ROOT_ID, [MIDDLE_ID], [node(CHILD_ID, [`${BASE_ID}:${NODE_ID}`])]);
 
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, middle, base] });
 
@@ -51,10 +51,10 @@ void test('builds a graph for a model chain and resolves an imported node', () =
 void test('accepts a diamond import graph without reporting a cycle', () => {
   const leftId: string = 'leftModel0000001';
   const rightId: string = 'rightModel000001';
-  const base: GModel = model(BASE_ID);
-  const left: GModel = model(leftId, [BASE_ID]);
-  const right: GModel = model(rightId, [BASE_ID]);
-  const root: GModel = model(ROOT_ID, [leftId, rightId]);
+  const base: Model = model(BASE_ID);
+  const left: Model = model(leftId, [BASE_ID]);
+  const right: Model = model(rightId, [BASE_ID]);
+  const root: Model = model(ROOT_ID, [leftId, rightId]);
 
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, left, right, base] });
   assert.equal(result.ok, true);
@@ -75,7 +75,7 @@ void test('reports duplicate model identifiers', () => {
 });
 
 void test('reports a missing imported model with its source path', () => {
-  const root: GModel = model(ROOT_ID, [BASE_ID]);
+  const root: Model = model(ROOT_ID, [BASE_ID]);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
@@ -84,8 +84,8 @@ void test('reports a missing imported model with its source path', () => {
 });
 
 void test('reports an import cycle and includes the cycle in its message', () => {
-  const root: GModel = model(ROOT_ID, [BASE_ID]);
-  const base: GModel = model(BASE_ID, [ROOT_ID]);
+  const root: Model = model(ROOT_ID, [BASE_ID]);
+  const base: Model = model(BASE_ID, [ROOT_ID]);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, base] });
   assert.equal(result.ok, false);
   if (result.ok) return;
@@ -95,10 +95,10 @@ void test('reports an import cycle and includes the cycle in its message', () =>
 
 void test('reports duplicate element identifiers across element kinds', () => {
   const duplicateId: string = 'duplicateElement1';
-  const root: GModel = model(
+  const root: Model = model(
     ROOT_ID,
     [],
-    [node(duplicateId), { kind: 'GDataType', id: duplicateId, name: 'Duplicate', baseType: 'String' }],
+    [node(duplicateId), { kind: 'DataType', id: duplicateId, name: 'Duplicate', baseType: 'String' }],
   );
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
@@ -107,7 +107,7 @@ void test('reports duplicate element identifiers across element kinds', () => {
 });
 
 void test('reports unresolved references', () => {
-  const root: GModel = model(ROOT_ID, [], [node(CHILD_ID, [NODE_ID])]);
+  const root: Model = model(ROOT_ID, [], [node(CHILD_ID, [NODE_ID])]);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
@@ -116,8 +116,8 @@ void test('reports unresolved references', () => {
 
 void test('reports references to models outside the root import closure', () => {
   const unrelatedId: string = 'otherModel000001';
-  const root: GModel = model(ROOT_ID, [], [node(CHILD_ID, [`${unrelatedId}:${NODE_ID}`])]);
-  const unrelated: GModel = model(unrelatedId, [], [node(NODE_ID)]);
+  const root: Model = model(ROOT_ID, [], [node(CHILD_ID, [`${unrelatedId}:${NODE_ID}`])]);
+  const unrelated: Model = model(unrelatedId, [], [node(NODE_ID)]);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, unrelated] });
   assert.equal(result.ok, false);
   if (result.ok) return;
@@ -126,10 +126,10 @@ void test('reports references to models outside the root import closure', () => 
 
 void test('reports a reference that resolves to the wrong element kind', () => {
   const typeId: string = 'dataType00000001';
-  const root: GModel = model(
+  const root: Model = model(
     ROOT_ID,
     [],
-    [{ kind: 'GDataType', id: typeId, name: 'Type', baseType: 'String' }, node(CHILD_ID, [typeId])],
+    [{ kind: 'DataType', id: typeId, name: 'Type', baseType: 'String' }, node(CHILD_ID, [typeId])],
   );
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
@@ -140,10 +140,10 @@ void test('reports a reference that resolves to the wrong element kind', () => {
 void test('resolves a chain across four model levels', () => {
   const levelTwoId: string = 'levelTwoModel001';
   const levelThreeId: string = 'levelThreeMod01';
-  const base: GModel = model(BASE_ID, [], [node(NODE_ID)]);
-  const levelTwo: GModel = model(levelTwoId, [BASE_ID]);
-  const levelThree: GModel = model(levelThreeId, [levelTwoId]);
-  const root: GModel = model(ROOT_ID, [levelThreeId], [node(CHILD_ID, [`${BASE_ID}:${NODE_ID}`])]);
+  const base: Model = model(BASE_ID, [], [node(NODE_ID)]);
+  const levelTwo: Model = model(levelTwoId, [BASE_ID]);
+  const levelThree: Model = model(levelThreeId, [levelTwoId]);
+  const root: Model = model(ROOT_ID, [levelThreeId], [node(CHILD_ID, [`${BASE_ID}:${NODE_ID}`])]);
 
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root, levelThree, levelTwo, base] });
   assert.equal(result.ok, true);
@@ -156,11 +156,11 @@ void test('resolves custom data types and relation endpoints', () => {
   const sourceId: string = 'sourceNode000001';
   const targetId: string = 'targetNode000001';
   const relationId: string = 'relationType00001';
-  const root: GModel = model(
+  const root: Model = model(
     ROOT_ID,
     [],
     [
-      { kind: 'GDataType', id: dataTypeId, name: 'Status', baseType: 'String' },
+      { kind: 'DataType', id: dataTypeId, name: 'Status', baseType: 'String' },
       {
         ...node(sourceId),
         attributes: [{ id: 'statusAttr000001', name: 'status', typeId: dataTypeId, bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -169,7 +169,7 @@ void test('resolves custom data types and relation endpoints', () => {
     ],
   );
   root.relations.push({
-    kind: 'GRelation',
+    kind: 'Relation',
     id: relationId,
     name: 'links',
     superTypes: [],
@@ -185,7 +185,7 @@ void test('resolves custom data types and relation endpoints', () => {
 });
 
 void test('protects graph models from mutations of the source model', () => {
-  const root: GModel = model(ROOT_ID, [], [node(NODE_ID)]);
+  const root: Model = model(ROOT_ID, [], [node(NODE_ID)]);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, true);
   if (!result.ok) return;
@@ -198,7 +198,7 @@ void test('protects graph models from mutations of the source model', () => {
 void test('reports a node inheritance cycle', () => {
   const firstId: string = 'firstNode0000001';
   const secondId: string = 'secondNode000001';
-  const root: GModel = model(ROOT_ID, [], [node(firstId, [secondId]), node(secondId, [firstId])]);
+  const root: Model = model(ROOT_ID, [], [node(firstId, [secondId]), node(secondId, [firstId])]);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });
   assert.equal(result.ok, false);
   if (result.ok) return;
@@ -206,8 +206,8 @@ void test('reports a node inheritance cycle', () => {
 });
 
 void test('reports an import model URI that does not match its target model', () => {
-  const base: GModel = model(BASE_ID);
-  const root: GModel = model(ROOT_ID, [BASE_ID]);
+  const base: Model = model(BASE_ID);
+  const root: Model = model(ROOT_ID, [BASE_ID]);
   const firstImport: Import | undefined = root.imports[0];
   assert.ok(firstImport);
   firstImport.modelUri = 'https://example.org/wrong-schema';
@@ -219,8 +219,8 @@ void test('reports an import model URI that does not match its target model', ()
 });
 
 void test('reports an imported model version mismatch', () => {
-  const base: GModel = model(BASE_ID);
-  const root: GModel = model(ROOT_ID, [BASE_ID]);
+  const base: Model = model(BASE_ID);
+  const root: Model = model(ROOT_ID, [BASE_ID]);
   const firstImport: Import | undefined = root.imports[0];
   assert.ok(firstImport);
   firstImport.version = '2.0.0';
@@ -232,7 +232,7 @@ void test('reports an imported model version mismatch', () => {
 
 void test('reports duplicate ids on nested model elements', () => {
   const duplicateId: string = 'nestedDuplicate01';
-  const owner: GNode = node(NODE_ID);
+  const owner: Node = node(NODE_ID);
   owner.attributes.push({
     id: duplicateId,
     name: 'first',

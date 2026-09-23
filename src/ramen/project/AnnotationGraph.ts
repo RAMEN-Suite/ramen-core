@@ -1,5 +1,5 @@
-import { ModelRef, ProjectGraph } from '../../gcore/index';
-import type { GModel, GNode, Id, QualifiedParts, Ref, ResolvedModelElement } from '../../gcore/index';
+import { ModelRef, ProjectGraph } from '../../model/index';
+import type { Model, Node, Id, QualifiedParts, Ref, ResolvedModelElement } from '../../model/index';
 import { RamenAnnotation, RamenAnnotations } from '../model/Annotations';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 
@@ -16,7 +16,7 @@ export class RamenAnnotationGraph {
   /** Indexes annotations from every reachable model. */
   public constructor(private readonly graph: ProjectGraph) {
     this.annotationsByModel = new Map<Id, readonly RamenAnnotation[]>(
-      graph.getModels().map((model: GModel): [Id, readonly RamenAnnotation[]] => [model.id, RamenAnnotations.get(model)]),
+      graph.getModels().map((model: Model): [Id, readonly RamenAnnotation[]] => [model.id, RamenAnnotations.get(model)]),
     );
   }
 
@@ -27,7 +27,7 @@ export class RamenAnnotationGraph {
 
   /** Returns all reachable annotation definitions with their owning models. */
   public getAll(): readonly ResolvedRamenAnnotation[] {
-    return this.graph.getModels().flatMap((model: GModel): ResolvedRamenAnnotation[] =>
+    return this.graph.getModels().flatMap((model: Model): ResolvedRamenAnnotation[] =>
       this.getDeclared(model.id).map((annotation: RamenAnnotation): ResolvedRamenAnnotation => ({
         modelId: model.id,
         annotation: annotation,
@@ -48,16 +48,16 @@ export class RamenAnnotationGraph {
 
   /** Returns the effective closed annotation variants available to one Annotation node. */
   public getEffective(modelId: Id, nodeId: Id): readonly ResolvedRamenAnnotation[] {
-    const node: GNode | undefined = this.graph.getNode(modelId, nodeId);
+    const node: Node | undefined = this.graph.getNode(modelId, nodeId);
     if (!node) return [];
-    const lineage: readonly ResolvedModelElement<GNode>[] = [
+    const lineage: readonly ResolvedModelElement<Node>[] = [
       { modelId: modelId, element: node },
       ...this.graph.getNodeAncestors(modelId, nodeId),
     ];
     const result: Map<string, ResolvedRamenAnnotation> = new Map<string, ResolvedRamenAnnotation>();
     for (const owner of lineage) {
       for (const annotation of this.getDeclared(owner.modelId)) {
-        const declaredNode: ResolvedModelElement<GNode> | undefined = this.graph.resolveNode(
+        const declaredNode: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(
           owner.modelId,
           annotation.annotationId,
         );
@@ -92,8 +92,8 @@ export class RamenAnnotationGraph {
 
   /** Reports whether a reachable node is RAMEN Annotation or one of its transitive refinements. */
   public isAnnotationNode(modelId: Id, nodeId: Id): boolean {
-    const actual: GNode | undefined = this.graph.getNode(modelId, nodeId);
-    const expected: GNode | undefined = this.graph.getNode(RAMEN_MODEL.id, RAMEN_ELEMENT.ANNOTATION);
+    const actual: Node | undefined = this.graph.getNode(modelId, nodeId);
+    const expected: Node | undefined = this.graph.getNode(RAMEN_MODEL.id, RAMEN_ELEMENT.ANNOTATION);
     return actual && expected
       ? this.graph.isNodeSameOrSubtype({ modelId: modelId, element: actual }, { modelId: RAMEN_MODEL.id, element: expected })
       : false;

@@ -1,7 +1,7 @@
-import { Bounds, GRelation } from '../model/Types';
+import { Bounds, Relation } from '../Types';
 import { ModelRef } from '../project/Refs';
 
-/** Pure predicates shared by GCore semantic validation rules. */
+/** Pure predicates shared by RAMEN model format semantic validation rules. */
 export class ModelSemantics {
   public static readonly UNBOUNDED: -1 = -1;
 
@@ -22,7 +22,7 @@ export class ModelSemantics {
   }
 
   /** Reports whether both relation ends use local node references. */
-  public static areRelationEndsLocal(relation: GRelation): boolean {
+  public static areRelationEndsLocal(relation: Relation): boolean {
     return !ModelRef.isQualified(relation.from.nodeId) && !ModelRef.isQualified(relation.to.nodeId);
   }
 }

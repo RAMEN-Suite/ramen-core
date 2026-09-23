@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ModelValidator } from '../../dist/index.js';
-import type { GModel, GNode, GRelation, Import, ProjectValidationResult } from '../../dist/index.js';
+import type { Model, Node, Relation, Import, ProjectValidationResult } from '../../dist/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
 void test('validates all reachable levels instead of one base-derived pair', () => {
-  const base: GModel = model('baseProjectLevel');
+  const base: Model = model('baseProjectLevel');
   base.classifiers.push(node('baseProjectNode1', 'Entity'));
-  const middle: GModel = model('middleProjectLvl', [base]);
+  const middle: Model = model('middleProjectLvl', [base]);
   middle.classifiers.push(node('middleProjectNode', 'Person', [`${base.id}:baseProjectNode1`]));
-  const root: GModel = model('rootProjectLevel', [middle]);
-  const refined: GNode = node('rootProjectNode01', 'Author', [`${middle.id}:middleProjectNode`]);
+  const root: Model = model('rootProjectLevel', [middle]);
+  const refined: Node = node('rootProjectNode01', 'Author', [`${middle.id}:middleProjectNode`]);
   refined.attributes.push(attribute('invalidBounds001', 'name', 'String', { lowerBound: 2, upperBound: 1 }));
   root.classifiers.push(refined);
 
@@ -20,9 +20,9 @@ void test('validates all reachable levels instead of one base-derived pair', () 
 });
 
 void test('allows direct reuse and structurally rejects multiple refinement supertypes', () => {
-  const base: GModel = model('baseReuseModel01');
+  const base: Model = model('baseReuseModel01');
   base.classifiers.push(node('firstBaseNode001', 'Entity'), node('secondBaseNode01', 'Content'));
-  const project: GModel = model('projectReuseModel', [base]);
+  const project: Model = model('projectReuseModel', [base]);
   project.classifiers.push(node('invalidChildNode', 'Mixed', [`${base.id}:firstBaseNode001`, `${base.id}:secondBaseNode01`]));
   project.relations.push(relation('directReuseRel01', 'USES', `${base.id}:firstBaseNode001`, `${base.id}:secondBaseNode01`));
 
@@ -32,19 +32,19 @@ void test('allows direct reuse and structurally rejects multiple refinement supe
 });
 
 void test('rejects relation refinements that widen cardinalities', () => {
-  const base: GModel = model('baseRelationModel');
+  const base: Model = model('baseRelationModel');
   base.classifiers.push(node('baseSourceNode01', 'Source'), node('baseTargetNode01', 'Target'));
-  const baseRelation: GRelation = relation('baseRelation0001', 'LINKS', 'baseSourceNode01', 'baseTargetNode01', {
+  const baseRelation: Relation = relation('baseRelation0001', 'LINKS', 'baseSourceNode01', 'baseTargetNode01', {
     lowerBound: 1,
     upperBound: 1,
   });
   base.relations.push(baseRelation);
-  const project: GModel = model('projectRelation01', [base]);
+  const project: Model = model('projectRelation01', [base]);
   project.classifiers.push(
     node('projectSource001', 'SourceKind', [`${base.id}:baseSourceNode01`]),
     node('projectTarget001', 'TargetKind', [`${base.id}:baseTargetNode01`]),
   );
-  const refined: GRelation = relation('refinedRelation1', 'LINKS', 'projectSource001', 'projectTarget001');
+  const refined: Relation = relation('refinedRelation1', 'LINKS', 'projectSource001', 'projectTarget001');
   refined.superTypes = [`${base.id}:${baseRelation.id}`];
   project.relations.push(refined);
 
@@ -53,9 +53,9 @@ void test('rejects relation refinements that widen cardinalities', () => {
 });
 
 void test('validates duplicate imports and data type literals across the project', () => {
-  const base: GModel = model('baseLiteralModel1');
+  const base: Model = model('baseLiteralModel1');
   base.classifiers.push({
-    kind: 'GDataType',
+    kind: 'DataType',
     id: 'statusDataType01',
     name: 'Status',
     baseType: 'String',
@@ -64,7 +64,7 @@ void test('validates duplicate imports and data type literals across the project
       { id: 'statusLiteral002', name: 'Other', literal: 'open' },
     ],
   });
-  const project: GModel = model('projectLiteral01', [base]);
+  const project: Model = model('projectLiteral01', [base]);
   const firstImport: Import | undefined = project.imports[0];
   assert.ok(firstImport);
   project.imports.push({ ...firstImport });

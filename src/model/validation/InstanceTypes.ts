@@ -1,7 +1,7 @@
-import type { GNode, GRelation, Id, Ref } from '../model/Types';
+import type { Node, Relation, Id, Ref } from '../Types';
 import type { ResolvedModelElement } from '../project/Graph';
 
-/** One modeled object containing only properties declared by its GCore node type. */
+/** One modeled object containing only properties declared by its RAMEN model format node type. */
 export interface ModelInstanceNode {
   readonly id: Id;
   readonly typeId: Ref;
@@ -26,11 +26,11 @@ export interface ModelInstanceGraph {
 /** @internal Resolved instance node and its model type. */
 export interface ResolvedInstanceNode {
   readonly instance: ModelInstanceNode;
-  readonly type: ResolvedModelElement<GNode>;
+  readonly type: ResolvedModelElement<Node>;
 }
 
 /** @internal Resolved instance relation and its model type. */
 export interface ResolvedInstanceRelation {
   readonly instance: ModelInstanceRelation;
-  readonly type: ResolvedModelElement<GRelation>;
+  readonly type: ResolvedModelElement<Relation>;
 }

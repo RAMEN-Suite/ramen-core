@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ConstraintRegistry, DiagnosticPath } from '../../dist/index.js';
-import type { ConstraintContext, Diagnostic, GConstraint } from '../../dist/index.js';
+import type { ConstraintContext, Diagnostic, Constraint } from '../../dist/index.js';
 
-function constraint(expression: GConstraint['expression'], language: string = 'regex'): GConstraint {
+function constraint(expression: Constraint['expression'], language: string = 'regex'): Constraint {
   return {
     id: 'constraintTest01',
     name: 'starts with a letter',

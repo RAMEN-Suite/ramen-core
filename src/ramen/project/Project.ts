@@ -1,17 +1,17 @@
-import { ModelEditor, ModelFactory } from '../../gcore/index';
+import { ModelEditor, ModelFactory } from '../../model/index';
 import type {
   Bounds,
   CreateAttributeInput,
   CreateDataTypeInput,
   CreateModelInput,
-  GAttribute,
-  GDataType,
-  GModel,
-  GNode,
-  GRelation,
+  Attribute,
+  DataType,
+  Model,
+  Node,
+  Relation,
   Id,
   ProjectValidationResult,
-} from '../../gcore/index';
+} from '../../model/index';
 import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
 import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenValidator } from '../validation/ModelValidator';
@@ -69,13 +69,13 @@ export interface RamenChange<T> {
 
 /** Stateful convenience API for creating and validating one RAMEN project model. */
 export class RamenProject {
-  private model: GModel;
-  private readonly dependencies: ReadonlyMap<Id, GModel>;
+  private model: Model;
+  private readonly dependencies: ReadonlyMap<Id, Model>;
   private readonly validator: RamenValidator = new RamenValidator();
 
-  private constructor(model: GModel, dependencies: readonly GModel[]) {
+  private constructor(model: Model, dependencies: readonly Model[]) {
     this.model = structuredClone(model);
-    this.dependencies = new Map<Id, GModel>(dependencies.map((item: GModel): [Id, GModel] => [item.id, structuredClone(item)]));
+    this.dependencies = new Map<Id, Model>(dependencies.map((item: Model): [Id, Model] => [item.id, structuredClone(item)]));
   }
 
   /** Creates an empty project that imports the current RAMEN reference model. */
@@ -84,10 +84,10 @@ export class RamenProject {
   }
 
   /** Creates another model level that imports an existing RAMEN project model. */
-  public static createLevel(base: GModel, input: CreateModelInput, dependencies: readonly GModel[] = []): RamenProject {
-    const models: Map<Id, GModel> = new Map<Id, GModel>([
+  public static createLevel(base: Model, input: CreateModelInput, dependencies: readonly Model[] = []): RamenProject {
+    const models: Map<Id, Model> = new Map<Id, Model>([
       [RAMEN_MODEL.id, RAMEN_MODEL],
-      ...dependencies.map((model: GModel): [Id, GModel] => [model.id, model]),
+      ...dependencies.map((model: Model): [Id, Model] => [model.id, model]),
       [base.id, base],
     ]);
     return new RamenProject(ModelFactory.createModel(base, input), [...models.values()]);
@@ -99,18 +99,18 @@ export class RamenProject {
   }
 
   /** Loads a project with all models needed to resolve its imports. */
-  public static load(model: GModel, dependencies: readonly GModel[] = [RAMEN_MODEL]): RamenProject {
+  public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL]): RamenProject {
     return new RamenProject(model, dependencies);
   }
 
   /** Returns a detached snapshot of the current project model. */
-  public getModel(): GModel {
+  public getModel(): Model {
     return structuredClone(this.model);
   }
 
   /** Returns detached snapshots of the current model and every transitive dependency. */
-  public getModels(): readonly GModel[] {
-    return this.validationInputs().map((model: GModel): GModel => structuredClone(model));
+  public getModels(): readonly Model[] {
+    return this.validationInputs().map((model: Model): Model => structuredClone(model));
   }
 
   /** Validates the complete current project and returns its graph on success. */
@@ -125,8 +125,8 @@ export class RamenProject {
   }
 
   /** Adds a node refinement and immediately validates the resulting project. */
-  public createNode(input: CreateRamenNodeInput): RamenChange<GNode> {
-    const node: GNode = ModelFactory.createNode(input.refines.modelId, {
+  public createNode(input: CreateRamenNodeInput): RamenChange<Node> {
+    const node: Node = ModelFactory.createNode(input.refines.modelId, {
       name: input.name,
       baseNodeId: input.refines.elementId,
     });
@@ -139,7 +139,7 @@ export class RamenProject {
     return RamenAnnotations.get(this.model);
   }
 
-  /** Declares a new annotation variant without creating another GCore node. */
+  /** Declares a new annotation variant without creating another model node. */
   public createAnnotation(input: CreateRamenAnnotationInput): RamenChange<RamenAnnotation> {
     const annotation: RamenAnnotation = {
       id: ModelFactory.createIdentifier(),
@@ -195,29 +195,29 @@ export class RamenProject {
   }
 
   /** Adds an attribute to a local node and immediately validates the resulting project. */
-  public createAttribute(nodeId: Id, input: CreateAttributeInput): RamenChange<GAttribute> {
-    const attribute: GAttribute = ModelFactory.createAttribute(input);
+  public createAttribute(nodeId: Id, input: CreateAttributeInput): RamenChange<Attribute> {
+    const attribute: Attribute = ModelFactory.createAttribute(input);
     this.model = ModelEditor.addAttribute(this.model, nodeId, attribute);
     return this.change(attribute);
   }
 
   /** Adds a scalar data type and immediately validates the resulting project. */
-  public createDataType(input: CreateDataTypeInput): RamenChange<GDataType> {
-    const dataType: GDataType = ModelFactory.createDataType(input);
+  public createDataType(input: CreateDataTypeInput): RamenChange<DataType> {
+    const dataType: DataType = ModelFactory.createDataType(input);
     this.model = ModelEditor.addClassifier(this.model, dataType);
     return this.change(dataType);
   }
 
   /** Adds a relation refinement and immediately validates the resulting project. */
-  public createRelation(input: CreateRamenRelationInput): RamenChange<GRelation> {
-    const base: GModel | undefined = this.findModel(input.refines.modelId);
+  public createRelation(input: CreateRamenRelationInput): RamenChange<Relation> {
+    const base: Model | undefined = this.findModel(input.refines.modelId);
     if (!base) throw new Error(`Relation base model not found: '${input.refines.modelId}'.`);
-    const relation: GRelation = ModelFactory.createRelation(base, input.refines.modelId, {
+    const relation: Relation = ModelFactory.createRelation(base, input.refines.modelId, {
       baseRelationId: input.refines.elementId,
       fromNodeId: input.fromNodeId,
       toNodeId: input.toNodeId,
     });
-    const narrowed: GRelation = {
+    const narrowed: Relation = {
       ...relation,
       from: { ...relation.from, bounds: input.fromBounds ?? relation.from.bounds },
       to: { ...relation.to, bounds: input.toBounds ?? relation.to.bounds },
@@ -230,19 +230,19 @@ export class RamenProject {
     return { element: structuredClone(element), validation: this.validate() };
   }
 
-  private validationInputs(): readonly GModel[] {
-    const models: Map<Id, GModel> = new Map<Id, GModel>(this.dependencies);
+  private validationInputs(): readonly Model[] {
+    const models: Map<Id, Model> = new Map<Id, Model>(this.dependencies);
     models.set(this.model.id, this.model);
     return [...models.values()];
   }
 
-  private findModel(modelId: Id): GModel | undefined {
+  private findModel(modelId: Id): Model | undefined {
     if (modelId === this.model.id) return this.model;
     return this.dependencies.get(modelId);
   }
 
   private findAnnotation(reference: RamenElementRef): RamenAnnotation | undefined {
-    const model: GModel | undefined = this.findModel(reference.modelId);
+    const model: Model | undefined = this.findModel(reference.modelId);
     if (!model) return undefined;
     return RamenAnnotations.get(model).find((annotation: RamenAnnotation): boolean => annotation.id === reference.elementId);
   }

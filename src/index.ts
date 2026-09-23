@@ -1,2 +1,2 @@
-export * from './gcore/index';
+export * from './model/index';
 export * from './ramen/index';

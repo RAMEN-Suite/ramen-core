@@ -1,5 +1,5 @@
-import { BuiltinDataTypes } from '../model/Builtins';
-import { Bounds, GAttribute, GConstraint, GDataType, GLiteral, GNode, Id } from '../model/Types';
+import { BuiltinDataTypes } from '../Builtins';
+import { Bounds, Attribute, Constraint, DataType, Literal, Node, Id } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../project/Effective';
 import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { ConstraintRegistry } from './Constraints';
@@ -21,7 +21,7 @@ export class InstanceValueValidator {
         diagnostics.push(this.error('INSTANCE_NODE_ID_DUPLICATE', `Instance node id '${node.id}' is duplicated.`, path, node.id));
         return;
       }
-      const type: ResolvedModelElement<GNode> | undefined = graph.resolveNode(instance.modelId, node.typeId);
+      const type: ResolvedModelElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
       if (!type) {
         diagnostics.push(
           this.error(
@@ -41,15 +41,15 @@ export class InstanceValueValidator {
 
   private validateProperties(
     graph: ProjectGraph,
-    type: ResolvedModelElement<GNode>,
+    type: ResolvedModelElement<Node>,
     instance: ModelInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, type.modelId, type.element.id);
     if (!effective) return;
-    const attributesByName: Map<string, GAttribute> = new Map<string, GAttribute>(
-      effective.attributes.map((attribute: GAttribute): [string, GAttribute] => [attribute.name, attribute]),
+    const attributesByName: Map<string, Attribute> = new Map<string, Attribute>(
+      effective.attributes.map((attribute: Attribute): [string, Attribute] => [attribute.name, attribute]),
     );
 
     this.validateUnknownProperties(instance, type.element, attributesByName, path, diagnostics);
@@ -64,8 +64,8 @@ export class InstanceValueValidator {
 
   private validateUnknownProperties(
     instance: ModelInstanceNode,
-    type: GNode,
-    attributesByName: ReadonlyMap<string, GAttribute>,
+    type: Node,
+    attributesByName: ReadonlyMap<string, Attribute>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
@@ -83,9 +83,9 @@ export class InstanceValueValidator {
   }
 
   private validateNodeConstraints(
-    type: ResolvedModelElement<GNode>,
+    type: ResolvedModelElement<Node>,
     instance: ModelInstanceNode,
-    constraints: readonly GConstraint[],
+    constraints: readonly Constraint[],
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
@@ -105,7 +105,7 @@ export class InstanceValueValidator {
   private validateAttributeValue(
     graph: ProjectGraph,
     modelId: Id,
-    attribute: GAttribute,
+    attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -136,7 +136,7 @@ export class InstanceValueValidator {
     });
   }
 
-  private readValues(attribute: GAttribute, value: unknown, path: DiagnosticPath, diagnostics: Diagnostic[]): readonly unknown[] {
+  private readValues(attribute: Attribute, value: unknown, path: DiagnosticPath, diagnostics: Diagnostic[]): readonly unknown[] {
     const isMany: boolean = attribute.bounds.upperBound !== 1;
     if (isMany && !Array.isArray(value)) {
       diagnostics.push(
@@ -161,7 +161,7 @@ export class InstanceValueValidator {
   private validateTypedValue(
     graph: ProjectGraph,
     modelId: Id,
-    attribute: GAttribute,
+    attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -178,7 +178,7 @@ export class InstanceValueValidator {
         );
       }
     } else {
-      const dataType: ResolvedModelElement<GDataType> | undefined = graph.resolveDataType(modelId, attribute.typeId);
+      const dataType: ResolvedModelElement<DataType> | undefined = graph.resolveDataType(modelId, attribute.typeId);
       if (dataType) this.validateDataTypeValue(dataType, attribute, value, path, diagnostics);
     }
     for (const constraint of attribute.constraints ?? []) {
@@ -195,8 +195,8 @@ export class InstanceValueValidator {
   }
 
   private validateDataTypeValue(
-    dataType: ResolvedModelElement<GDataType>,
-    attribute: GAttribute,
+    dataType: ResolvedModelElement<DataType>,
+    attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -227,15 +227,15 @@ export class InstanceValueValidator {
   }
 
   private validateLiteralValue(
-    dataType: ResolvedModelElement<GDataType>,
-    attribute: GAttribute,
+    dataType: ResolvedModelElement<DataType>,
+    attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const literals: readonly GLiteral[] | undefined = dataType.element.literals;
+    const literals: readonly Literal[] | undefined = dataType.element.literals;
     if (!literals) return;
-    const literal: GLiteral | undefined = literals.find((item: GLiteral): boolean => this.matchesLiteral(item, value));
+    const literal: Literal | undefined = literals.find((item: Literal): boolean => this.matchesLiteral(item, value));
     if (!literal) {
       diagnostics.push(
         this.error(
@@ -287,7 +287,7 @@ export class InstanceValueValidator {
     return typeof value === 'number' && Number.isFinite(value);
   }
 
-  private matchesLiteral(literal: GLiteral, value: unknown): boolean {
+  private matchesLiteral(literal: Literal, value: unknown): boolean {
     if (literal.literal !== undefined && value === literal.literal) return true;
     if (literal.value !== undefined && value === literal.value) return true;
     return value === literal.name;

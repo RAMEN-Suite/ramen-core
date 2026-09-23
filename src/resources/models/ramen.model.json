@@ -1,14 +1,14 @@
 {
-  "$schema": "https://ramen-schema.org/gcore/1.0.0/schema.json",
-  "$id": "https://ramen-schema.org/ramen/1.0.0/schema.json",
+  "$schema": "https://ramen-schema.org/model/1.0.0/schema.json",
+  "$id": "https://ramen-schema.org/ramen/1.0.0/model.json",
   "id": "lW611f30a2ky4276g3l8N",
   "version": "1.0.0",
-  "kind": "GModel",
+  "kind": "Model",
   "name": "RAMEN",
   "imports": [],
   "classifiers": [
     {
-      "kind": "GDataType",
+      "kind": "DataType",
       "id": "Q9mT2aL7vK0pX4sN1cDz",
       "name": "UUID",
       "baseType": "String",
@@ -23,7 +23,7 @@
       ]
     },
     {
-      "kind": "GDataType",
+      "kind": "DataType",
       "id": "WdlVlvh7jqs6DEUC",
       "name": "Date",
       "baseType": "String",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "kind": "GDataType",
+      "kind": "DataType",
       "id": "mXhHHuR4mQoDq31D",
       "name": "DateTime",
       "baseType": "String",
@@ -53,7 +53,7 @@
       ]
     },
     {
-      "kind": "GDataType",
+      "kind": "DataType",
       "id": "T3YiJGOy7M7g1lTQ",
       "name": "URI",
       "baseType": "String",
@@ -68,7 +68,7 @@
       ]
     },
     {
-      "kind": "GDataType",
+      "kind": "DataType",
       "id": "DJRorIpghXJGAi41",
       "name": "Email",
       "baseType": "String",
@@ -83,7 +83,7 @@
       ]
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "aP3xK8nV1qR6tY2uZ9wB",
       "name": "Collection",
       "superTypes": [],
@@ -111,7 +111,7 @@
       ]
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "n7Vb2Qx0Lm9P3sT6yK1h",
       "name": "Entity",
       "superTypes": [],
@@ -139,7 +139,7 @@
       ]
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "Z4kq1M8sV0bN2xR7pT6u",
       "name": "Content",
       "superTypes": [],
@@ -158,7 +158,7 @@
       ]
     },
     {
-      "kind": "GNode",
+      "kind": "Node",
       "id": "m2Xv8qL0sP6tN1yK7rB3",
       "name": "Annotation",
       "superTypes": [],
@@ -189,7 +189,7 @@
   ],
   "relations": [
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "V7pQ2xL9mR0sT6yK1nB3",
       "superTypes": [],
       "name": "PART_OF",
@@ -215,7 +215,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "K0mT3aL7vQ9pX4sN1cDz",
       "superTypes": [],
       "name": "PART_OF",
@@ -241,7 +241,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "sT6yK1nB3xV7pQ2L9mR0",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
@@ -267,7 +267,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "pX4sN1cDzK0mT3aL7vQ9",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
@@ -293,7 +293,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "Q2yT6vL9mR0sT6yK1nB3",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
@@ -319,7 +319,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "xL9mR0sT6yK1nB3xV7pQ",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
@@ -345,7 +345,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "tN1yK7rB3m2Xv8qL0sP6",
       "superTypes": [],
       "name": "REFERS_TO",
@@ -371,7 +371,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "vQ9pX4sN1cDzK0mT3aL7",
       "superTypes": [],
       "name": "REFERS_TO",
@@ -397,7 +397,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "mR0sT6yK1nB3xV7pQ2xL9",
       "superTypes": [],
       "name": "REFERS_TO",
@@ -423,7 +423,7 @@
       }
     },
     {
-      "kind": "GRelation",
+      "kind": "Relation",
       "id": "K7rB3m2Xv8qL0sP6tN1y",
       "superTypes": [],
       "name": "REFERS_TO",

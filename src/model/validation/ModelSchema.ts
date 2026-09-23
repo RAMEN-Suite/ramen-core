@@ -1,26 +1,29 @@
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
-import schema from '../../resources/schemas/gcore.schema.json';
-import { GModel } from '../model/Types';
+import schema from '../../resources/schemas/model.schema.json';
+import { Model } from '../Types';
 
-/** Validates unknown JSON values against the versioned GCore JSON Schema. */
-export class SchemaValidator {
+/** Canonical identifier of the supported RAMEN model format schema. */
+export const MODEL_SCHEMA_URI: string = 'https://ramen-schema.org/model/1.0.0/schema.json';
+
+/** Validates unknown JSON values against the versioned RAMEN model format JSON Schema. */
+export class ModelSchemaValidator {
   private static schemaNode: SchemaNode = compileSchema(schema);
 
-  /** Returns the compiled GCore JSON Schema node. */
+  /** Returns the compiled RAMEN model format JSON Schema node. */
   public static getSchemaNode(): SchemaNode {
     return this.schemaNode;
   }
 
-  /** Reports whether an unknown value conforms to the GCore JSON Schema. */
-  public static isValid(input: unknown): input is GModel {
+  /** Reports whether an unknown value conforms to the RAMEN model format JSON Schema. */
+  public static isValid(input: unknown): input is Model {
     return this.schemaNode.validate(input).valid;
   }
 
   /** Asserts schema conformance and throws a formatted validation error on failure. */
-  public static assertValid(input: unknown): asserts input is GModel {
+  public static assertValid(input: unknown): asserts input is Model {
     const { valid, errors } = this.schemaNode.validate(input);
     if (!valid) {
-      throw new Error(`Validation Error: ${SchemaValidator.formatErrors(errors)}`);
+      throw new Error(`Validation Error: ${ModelSchemaValidator.formatErrors(errors)}`);
     }
   }
 

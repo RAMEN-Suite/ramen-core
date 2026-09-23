@@ -2,7 +2,9 @@
 
 `@ramen-suite/core` provides a JSON model format, project graph, validator, and RAMEN modeling API. A project model refines the versioned RAMEN reference model. Later project models can refine earlier ones, while references can reuse imported elements directly.
 
-## Start a project
+## Create a project model
+
+A project model describes allowed object types and relations. It does not contain the concrete letters, people, or annotations. The project imports the RAMEN reference model and refines its four node types.
 
 ```ts
 import { RAMEN_ELEMENT, RAMEN_MODEL, RamenProject } from '@ramen-suite/core/ramen';
@@ -18,6 +20,10 @@ const person = project.createNode({
   name: 'Person',
   refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
 });
+const annotation = project.createNode({
+  name: 'TextAnnotation',
+  refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+});
 
 project.createAttribute(person.element.id, {
   name: 'authorityId',
@@ -30,7 +36,31 @@ const advisor = project.createAdvisor();
 const availableAttributes = advisor?.suggestAttributes(project.getModel().id, person.element.id);
 ```
 
-Every edit returns its element and a validation result. The edit stays in the project when validation reports an error, so an editor can show diagnostics while the user completes a model. Call `validate()` before saving or consuming the project.
+The advisor can identify a RAMEN relation compatible with the two project nodes. The project can then require it for one closed annotation type:
+
+```ts
+const refersTo = advisor
+  ?.suggestRelations(project.getModel().id, annotation.element.id, person.element.id)
+  .find((relation) => relation.name === 'REFERS_TO');
+if (!refersTo) throw new Error('No compatible relation found.');
+
+const personReference = project.createRelation({
+  refines: { modelId: refersTo.modelId, elementId: refersTo.relationId },
+  fromNodeId: annotation.element.id,
+  toNodeId: person.element.id,
+});
+project.createAnnotation({
+  annotationId: annotation.element.id,
+  type: 'persName',
+  relations: [{ relationId: personReference.element.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
+});
+
+const exported = project.exportBundle();
+if (!exported.ok) throw new Error(JSON.stringify(exported.diagnostics));
+const projectJson = JSON.stringify(exported.bundle, null, 2);
+```
+
+`projectJson` contains the project model and its RAMEN dependency in one file. The models retain their separate identities and imports. Every edit returns its element and a validation result. Edits stay in the project when validation reports an error, so an editor can guide the next edit. `exportBundle()` only succeeds when the complete RAMEN project is valid.
 
 Project-defined scalar types can restrict values with named literals:
 
@@ -41,6 +71,12 @@ project.createLiteral(status.element.id, { name: 'Reviewed', literal: 'reviewed'
 ```
 
 `updateLiteral(typeId, literalId, patch)` and `removeLiteral(typeId, literalId)` edit these values by stable ID. Removing the last literal makes the data type unrestricted again.
+
+## Constraint languages
+
+Constraints in a model name their `language` and carry a string or JSON `expression`. The package evaluates `regex` and selected `format` constraints by default. A consumer can register a versioned language name and an evaluator with `ConstraintRegistry`, then pass the registry to `RamenInstanceValidator.withConstraints(registry)`. An unknown language produces `CONSTRAINT_LANGUAGE_UNSUPPORTED` during instance validation. Model JSON is never executed as code.
+
+The evaluator receives the constraint, the actual value, its target kind, and a diagnostic path. Keep the evaluator deterministic and test it with valid and invalid instance graphs. Model validation currently checks the constraint's JSON shape; it does not parse every custom expression before an instance is validated.
 
 ## Refinement and exchange
 

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RAMEN_MODEL, RamenInstanceValidator, RamenProject } from '../../dist/index.js';
+import { ConstraintRegistry, Diagnostics, RAMEN_MODEL, RamenInstanceValidator, RamenProject } from '../../dist/index.js';
 import type {
   AnnotationAdvice,
   AnnotationPropertyAdvice,
   Classifier,
+  Constraint,
+  ConstraintContext,
   Diagnostic,
   Model,
   ModelInstanceGraph,
@@ -58,6 +60,38 @@ void test('validates an annotation instance against its selected property set', 
     ),
   );
   assert.deepEqual(valid.diagnostics, []);
+});
+
+void test('evaluates a registered project constraint language on annotation data', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const constraint: Constraint = {
+    id: 'archiveUrlRule01',
+    name: 'Archive URL',
+    language: 'https://example.org/constraints/prefix/1',
+    expression: 'https://archives.example/',
+  };
+  fixture.project.updateAttribute(fixture.nodes.annotation.id, fixture.url.id, { constraints: [constraint] });
+
+  const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
+  registry.register({
+    language: constraint.language,
+    evaluate(rule: Constraint, context: ConstraintContext): readonly Diagnostic[] {
+      if (typeof context.value === 'string' && typeof rule.expression === 'string' && context.value.startsWith(rule.expression))
+        return [];
+      return [Diagnostics.error({ code: 'ARCHIVE_URL_REQUIRED', message: 'Expected an archive URL.', path: context.path })];
+    },
+  });
+
+  const validator: RamenInstanceValidator = RamenInstanceValidator.withConstraints(registry);
+  const graph: ModelInstanceGraph = annotationGraph(fixture, 'externalReference', { url: 'https://example.org/record' });
+  const result: ValidationResult = validator.validate(fixture.model.id, fixture.project.getModels(), graph);
+  const acceptedGraph: ModelInstanceGraph = annotationGraph(fixture, 'externalReference', {
+    url: 'https://archives.example/record',
+  });
+  const accepted: ValidationResult = validator.validate(fixture.model.id, fixture.project.getModels(), acceptedGraph);
+
+  assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'ARCHIVE_URL_REQUIRED'));
+  assert.deepEqual(accepted.diagnostics, []);
 });
 
 void test('requires the modeled person relation for a persName annotation', (): void => {

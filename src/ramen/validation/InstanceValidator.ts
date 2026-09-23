@@ -6,6 +6,7 @@ import {
   InstanceValidator,
   ModelRef,
   ProjectGraph,
+  ConstraintRegistry,
 } from '../../model/index';
 import type {
   Bounds,
@@ -55,6 +56,11 @@ export class RamenInstanceValidator {
     private readonly projects: RamenValidator = new RamenValidator(),
     private readonly instances: InstanceValidator = new InstanceValidator(),
   ) {}
+
+  /** Creates a RAMEN validator with the standard and caller-registered constraint languages. */
+  public static withConstraints(constraints: ConstraintRegistry): RamenInstanceValidator {
+    return new RamenInstanceValidator(new RamenValidator(), new InstanceValidator(constraints));
+  }
 
   /** Validates the project first and then validates a complete instance graph against it. */
   public validate(rootModelId: Id, models: readonly Model[], input: unknown): ValidationResult {

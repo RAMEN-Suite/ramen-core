@@ -1,9 +1,9 @@
 {
-  "entryPoints": ["src"],
-  "entryPointStrategy": "expand",
+  "entryPoints": ["src/index.ts", "src/model/index.ts", "src/ramen/index.ts"],
+  "entryPointStrategy": "resolve",
   "out": "api-docs",
   "excludeInternal": true,
-  "readme": "none",
+  "readme": "README.md",
   "githubPages": false,
   "categorizeByGroup": true,
   "disableGit": true,

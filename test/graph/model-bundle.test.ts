@@ -21,7 +21,7 @@ function model(id: string, imported?: Model): Model {
   };
 }
 
-void test('bundles reachable models and restores their boundaries', () => {
+void test('bundles reachable models and restores their boundaries', (): void => {
   const base: Model = model(BASE_ID);
   const root: Model = model(ROOT_ID, base);
   const result: CreateBundleResult = createModelBundle(ROOT_ID, [root, base]);
@@ -38,7 +38,7 @@ void test('bundles reachable models and restores their boundaries', () => {
   assert.equal(models[0]?.imports[0]?.modelId, BASE_ID);
 });
 
-void test('excludes models outside the root import closure', () => {
+void test('excludes models outside the root import closure', (): void => {
   const base: Model = model(BASE_ID);
   const root: Model = model(ROOT_ID, base);
   const unrelated: Model = model('unrelated0000001');
@@ -52,11 +52,11 @@ void test('excludes models outside the root import closure', () => {
   );
 });
 
-void test('rejects malformed bundle JSON', () => {
+void test('rejects malformed bundle JSON', (): void => {
   assert.throws((): readonly Model[] => splitModelBundle({ kind: 'ModelBundle' }), /Invalid model bundle/);
 });
 
-void test('rejects a bundle whose root cannot be resolved', () => {
+void test('rejects a bundle whose root cannot be resolved', (): void => {
   const base: Model = model(BASE_ID);
   const result: CreateBundleResult = createModelBundle(BASE_ID, [base]);
 
@@ -67,6 +67,5 @@ void test('rejects a bundle whose root cannot be resolved', () => {
     ...result.bundle,
     rootModelId: ROOT_ID,
   };
-
   assert.throws((): readonly Model[] => splitModelBundle(invalid), /Root model not found/);
 });

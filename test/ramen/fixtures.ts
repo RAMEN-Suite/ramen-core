@@ -75,7 +75,6 @@ export function createCorrespondenceFixture(): CorrespondenceFixture {
   const model: Model = project.getModel();
 
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
-
   return { project: project, model: model, nodes: nodes, relations: relations, annotations: annotations, url: url };
 }
 
@@ -89,7 +88,6 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
   const nodes: CorrespondenceNodes = createRefinedNodes(project, base);
 
   createRefinedRelations(project, base, nodes);
-
   const persName: RamenAnnotation = project.refineAnnotation({
     annotationId: nodes.annotation.id,
     refines: { modelId: base.model.id, elementId: base.annotations.persName.id },
@@ -104,7 +102,6 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
   const model: Model = project.getModel();
 
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
-
   return { project: project, model: model, nodes: nodes, persName: persName };
 }
 
@@ -132,7 +129,6 @@ function createRefinedNodes(project: RamenProject, base: CorrespondenceFixture):
 
 function createNode(project: RamenProject, name: string, elementId: string, modelId: string): Node {
   const change: RamenChange<Node> = project.createNode({ name: name, refines: { modelId: modelId, elementId: elementId } });
-
   return change.element;
 }
 
@@ -160,21 +156,17 @@ function createRefinedRelations(project: RamenProject, base: CorrespondenceFixtu
 
 function createRelation(project: RamenProject, fromId: string, toId: string, name: string): Relation {
   const advisor: RamenAdvisor | undefined = project.createAdvisor();
-
   assert.ok(advisor);
-
   const suggestion: RelationRefinementSuggestion | undefined = advisor
     .suggestRelations(project.getModel().id, fromId, toId)
     .find((item: RelationRefinementSuggestion): boolean => item.name === name);
 
   assert.ok(suggestion, `Missing ${name} suggestion for ${fromId} -> ${toId}`);
-
   const change: RamenChange<Relation> = project.createRelation({
     refines: { modelId: suggestion.modelId, elementId: suggestion.relationId },
     fromNodeId: fromId,
     toNodeId: toId,
   });
-
   return change.element;
 }
 
@@ -190,7 +182,6 @@ function createRelationFromBase(
     fromNodeId: fromId,
     toNodeId: toId,
   });
-
   return change.element;
 }
 
@@ -203,7 +194,6 @@ function findRelation(project: RamenProject, fromId: string, toId: string, name:
     );
 
   assert.ok(relation);
-
   return relation;
 }
 

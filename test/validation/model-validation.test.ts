@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MODEL_SCHEMA_URI, RAMEN_MODEL, ModelSchemaValidator, ModelValidator, RamenValidator } from '../../dist/index.js';
-import type { Model, ProjectValidationResult } from '../../dist/index.js';
+import type { Diagnostic, Model, ProjectValidationResult } from '../../dist/index.js';
 
 function derivedModel(): Model {
   return {
@@ -17,14 +17,12 @@ function derivedModel(): Model {
   };
 }
 
-void test('RAMEN model and minimal project pass schema and semantic validation', () => {
+void test('RAMEN model and minimal project pass schema and semantic validation', (): void => {
   const project: Model = derivedModel();
-
   assert.equal(ModelSchemaValidator.isValid(RAMEN_MODEL), true);
   assert.equal(ModelSchemaValidator.isValid(project), true);
 
   const result: ProjectValidationResult = new ModelValidator().validateProject(project.id, [project, RAMEN_MODEL]);
-
   assert.equal(result.hasErrors, false);
   assert.deepEqual(result.diagnostics, []);
 });
@@ -33,32 +31,26 @@ void test('publishes the canonical model schema identifier', (): void => {
   assert.equal(ModelSchemaValidator.getSchemaNode().$id, MODEL_SCHEMA_URI);
 });
 
-void test('a missing base import produces a stable diagnostic', () => {
+void test('a missing base import produces a stable diagnostic', (): void => {
   const project: Model = derivedModel();
-
   project.imports = [];
-
   const result: ProjectValidationResult = new RamenValidator().validateProject(project.id, [project, RAMEN_MODEL]);
-
   assert.equal(result.hasErrors, true);
-  assert.ok(result.diagnostics.some((d: { code: string }) => d.code === 'RAMEN_BASE_MODEL_REQUIRED'));
+  assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_BASE_MODEL_REQUIRED'));
 });
 
-void test('project example resolves against the current RAMEN model', async () => {
+void test('project example resolves against the current RAMEN model', async (): Promise<void> => {
   const { readFileSync } = await import('node:fs');
   const example: unknown = JSON.parse(readFileSync(new URL('../fixtures/example.model.json', import.meta.url), 'utf8'));
 
   ModelSchemaValidator.assertValid(example);
-
   const result: ProjectValidationResult = new ModelValidator().validateProject(example.id, [example, RAMEN_MODEL]);
-
   assert.equal(result.hasErrors, false, JSON.stringify(result.diagnostics));
   assert.deepEqual(result.diagnostics, []);
 });
 
-void test('project graph errors stop semantic validation', () => {
+void test('project graph errors stop semantic validation', (): void => {
   const project: Model = derivedModel();
-
   project.imports.push({
     modelUri: 'https://example.org/missing',
     modelId: 'missingModel0001',
@@ -67,22 +59,20 @@ void test('project graph errors stop semantic validation', () => {
   });
 
   const result: ProjectValidationResult = new ModelValidator().validateProject(project.id, [project, RAMEN_MODEL]);
-
   assert.equal(result.hasErrors, true);
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'IMPORTED_MODEL_NOT_FOUND'));
+  assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'IMPORTED_MODEL_NOT_FOUND'));
 });
 
-void test('schema rejects imports without an exact model version', () => {
+void test('schema rejects imports without an exact model version', (): void => {
   const project: Model = derivedModel();
   const invalid: unknown = {
     ...project,
     imports: [{ modelUri: RAMEN_MODEL.$id, modelId: RAMEN_MODEL.id }],
   };
-
   assert.equal(ModelSchemaValidator.isValid(invalid), false);
 });
 
-void test('schema rejects nested model elements without stable ids', () => {
+void test('schema rejects nested model elements without stable ids', (): void => {
   const project: Model = derivedModel();
   const invalid: unknown = {
     ...project,
@@ -96,6 +86,5 @@ void test('schema rejects nested model elements without stable ids', () => {
       },
     ],
   };
-
   assert.equal(ModelSchemaValidator.isValid(invalid), false);
 });

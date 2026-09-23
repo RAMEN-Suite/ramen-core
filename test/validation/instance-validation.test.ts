@@ -3,6 +3,7 @@ import test from 'node:test';
 import { MODEL_INSTANCES_SCHEMA_URI, InstanceSchemaValidator, InstanceValidator, buildProjectGraph } from '../../dist/index.js';
 import type {
   Attribute,
+  Diagnostic,
   Model,
   Node,
   ModelInstanceGraph,
@@ -40,14 +41,12 @@ function graph(): ProjectGraph {
   schema.relations.push(relation(RELATION_ID, 'LOCATED_AT', PERSON_ID, PLACE_ID, boundsOf(1, 1)));
 
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: MODEL_ID, models: [schema] });
-
   assert.equal(result.ok, true);
   if (!result.ok) throw new Error('Test graph could not be built.');
-
   return result.graph;
 }
 
-void test('validates closed properties, values, arrays, and constraints', () => {
+void test('validates closed properties, values, arrays, and constraints', (): void => {
   const instance: ModelInstanceGraph = {
     modelId: MODEL_ID,
     nodes: [
@@ -60,14 +59,14 @@ void test('validates closed properties, values, arrays, and constraints', () => 
     relations: [],
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
-  const codes: string[] = result.diagnostics.map((diagnostic) => diagnostic.code);
+  const codes: string[] = result.diagnostics.map((diagnostic: Diagnostic): string => diagnostic.code);
 
   assert.ok(codes.includes('INSTANCE_PROPERTY_UNKNOWN'));
   assert.ok(codes.includes('INSTANCE_PROPERTY_ARRAY_REQUIRED'));
   assert.ok(codes.includes('CONSTRAINT_REGEX_MISMATCH'));
 });
 
-void test('rejects undeclared fields outside the modeled properties object', () => {
+void test('rejects undeclared fields outside the modeled properties object', (): void => {
   const input: unknown = {
     modelId: MODEL_ID,
     nodes: [
@@ -81,11 +80,10 @@ void test('rejects undeclared fields outside the modeled properties object', () 
     relations: [],
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), input);
-
   assert.equal(result.diagnostics[0]?.code, 'INSTANCE_SCHEMA_INVALID');
 });
 
-void test('accepts valid nodes and relation cardinalities', () => {
+void test('accepts valid nodes and relation cardinalities', (): void => {
   const instance: ModelInstanceGraph = {
     modelId: MODEL_ID,
     nodes: [
@@ -95,11 +93,10 @@ void test('accepts valid nodes and relation cardinalities', () => {
     relations: [{ id: 'locatedInstance1', typeId: RELATION_ID, fromId: 'personInstance01', toId: 'placeInstance001' }],
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
-
   assert.deepEqual(result.diagnostics, []);
 });
 
-void test('validates relation endpoint types and required cardinalities', () => {
+void test('validates relation endpoint types and required cardinalities', (): void => {
   const instance: ModelInstanceGraph = {
     modelId: MODEL_ID,
     nodes: [
@@ -109,15 +106,14 @@ void test('validates relation endpoint types and required cardinalities', () => 
     relations: [{ id: 'locatedInstance1', typeId: RELATION_ID, fromId: 'personInstance01', toId: 'personInstance02' }],
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
-  const codes: string[] = result.diagnostics.map((diagnostic) => diagnostic.code);
+  const codes: string[] = result.diagnostics.map((diagnostic: Diagnostic): string => diagnostic.code);
 
   assert.ok(codes.includes('INSTANCE_RELATION_END_TYPE_INVALID'));
   assert.ok(codes.includes('INSTANCE_CARDINALITY_INVALID'));
 });
 
-void test('validates a modeled Date datatype as a constrained String', () => {
+void test('validates a modeled Date datatype as a constrained String', (): void => {
   const schema: Model = model('dateModel0000001');
-
   schema.classifiers.push(
     {
       kind: 'DataType',
@@ -133,7 +129,6 @@ void test('validates a modeled Date datatype as a constrained String', () => {
   );
 
   const built: ProjectGraphResult = buildProjectGraph({ rootModelId: schema.id, models: [schema] });
-
   assert.equal(built.ok, true);
   if (!built.ok) return;
 
@@ -142,6 +137,5 @@ void test('validates a modeled Date datatype as a constrained String', () => {
     nodes: [{ id: 'eventInstance001', typeId: 'eventNode0000001', properties: { date: '2026-02-30' } }],
     relations: [],
   });
-
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'CONSTRAINT_FORMAT_MISMATCH'));
+  assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'CONSTRAINT_FORMAT_MISMATCH'));
 });

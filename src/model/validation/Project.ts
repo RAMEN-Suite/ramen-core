@@ -10,11 +10,9 @@ export class ProjectSemanticValidator {
   /** Validates every reachable model and returns all semantic findings. */
   public validate(graph: ProjectGraph): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
-
     for (const model of graph.getModels()) {
       this.validateModel(graph, model, diagnostics);
     }
-
     return diagnostics;
   }
 
@@ -22,20 +20,17 @@ export class ProjectSemanticValidator {
     this.validateImports(model, diagnostics);
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
-
       if (classifier.kind === 'Node') this.validateNode(graph, model.id, classifier, path, diagnostics);
       else this.validateDataType(classifier, path, diagnostics);
     });
     model.relations.forEach((relation: Relation, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'relations', index);
-
       this.validateRelation(graph, model.id, relation, path, diagnostics);
     });
   }
 
   private validateImports(model: Model, diagnostics: Diagnostic[]): void {
     const firstIndexByModelId: Map<Id, number> = new Map<Id, number>();
-
     model.imports.forEach((modelImport: Import, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id).property('imports').index(index);
       const previousIndex: number | undefined = firstIndexByModelId.get(modelImport.modelId);
@@ -65,12 +60,10 @@ export class ProjectSemanticValidator {
 
   private validateDataType(dataType: DataType, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     const literals: readonly Literal[] | undefined = dataType.literals;
-
     if (!literals) return;
     this.validateLiteralUniqueness(literals, path, diagnostics);
 
     const withValue: number = literals.filter((literal: Literal): boolean => literal.value !== undefined).length;
-
     if (withValue > 0 && withValue < literals.length) {
       diagnostics.push(
         Diagnostics.warn({
@@ -90,7 +83,6 @@ export class ProjectSemanticValidator {
 
     literals.forEach((literal: Literal, index: number): void => {
       const literalPath: DiagnosticPath = path.property('literals').index(index);
-
       this.registerLiteralValue(
         names,
         literal.name,
@@ -147,17 +139,14 @@ export class ProjectSemanticValidator {
 
       return;
     }
-
     this.validateLocalAttributes(node, path, diagnostics);
     this.validateInheritedAttributeNames(graph, modelId, node, path, diagnostics);
   }
 
   private validateLocalAttributes(node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     const localNames: Set<string> = new Set<string>();
-
     node.attributes.forEach((attribute: Attribute, index: number): void => {
       const attributePath: DiagnosticPath = path.property('attributes').index(index);
-
       if (localNames.has(attribute.name)) {
         diagnostics.push(
           this.error(
@@ -181,7 +170,6 @@ export class ProjectSemanticValidator {
     diagnostics: Diagnostic[],
   ): void {
     const inheritedNames: Set<string> = new Set<string>();
-
     for (const ancestor of graph.getNodeAncestors(modelId, node.id)) {
       for (const attribute of ancestor.element.attributes) inheritedNames.add(attribute.name);
     }
@@ -240,7 +228,6 @@ export class ProjectSemanticValidator {
 
       return;
     }
-
     this.validateRelationEnd(relation.from, path.property('from'), diagnostics);
     this.validateRelationEnd(relation.to, path.property('to'), diagnostics);
     if (relation.from.isComposite === true && relation.to.isComposite === true) {
@@ -256,11 +243,8 @@ export class ProjectSemanticValidator {
     this.validateRoleConflicts(graph, modelId, relation, path, diagnostics);
 
     const superType: Ref | undefined = relation.superTypes[0];
-
     if (!superType) return;
-
     const base: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(modelId, superType);
-
     if (!base) return;
     this.validateRelationRefinement(graph, modelId, relation, base, path, diagnostics);
   }
@@ -295,7 +279,6 @@ export class ProjectSemanticValidator {
     diagnostics: Diagnostic[],
   ): void {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, target.modelId, target.element.id);
-
     if (effective?.attributes.some((attribute: Attribute): boolean => attribute.name === role)) {
       diagnostics.push(
         this.error(

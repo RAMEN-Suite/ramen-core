@@ -72,7 +72,6 @@ export function buildProjectGraph(input: ProjectGraphInput): ProjectGraphResult 
       reachableIndexes.set(modelId, index);
     }
   }
-
   return { ok: true, graph: new ProjectGraph(input.rootModelId, reachableModels, reachableIndexes), diagnostics: [] };
 }
 
@@ -89,7 +88,6 @@ function registerModels(models: readonly Model[], state: GraphBuildState): void 
 function deepFreeze<T>(value: T): T {
   if (typeof value !== 'object' || value === null || Object.isFrozen(value)) return value;
   for (const nestedValue of Object.values(value)) deepFreeze(nestedValue);
-
   return Object.freeze(value);
 }
 
@@ -100,9 +98,7 @@ function resolveImports(rootModelId: Id, state: GraphBuildState): void {
 
   const visit: (modelId: Id) => void = (modelId: Id): void => {
     if (completed.has(modelId)) return;
-
     const cycleStart: number = active.indexOf(modelId);
-
     if (cycleStart >= 0) {
       const cycle: Id[] = [...active.slice(cycleStart), modelId];
       const key: string = cycle.join('>');
@@ -114,9 +110,7 @@ function resolveImports(rootModelId: Id, state: GraphBuildState): void {
 
       return;
     }
-
     const model: Model | undefined = state.modelsById.get(modelId);
-
     if (!model) return;
     state.reachableModelIds.add(modelId);
     active.push(modelId);
@@ -128,7 +122,6 @@ function resolveImports(rootModelId: Id, state: GraphBuildState): void {
     active.pop();
     completed.add(modelId);
   };
-
   visit(rootModelId);
 }
 
@@ -177,7 +170,6 @@ function buildElementIndexes(state: GraphBuildState): void {
     const model: Model | undefined = state.modelsById.get(modelId);
 
     if (!model) continue;
-
     const seen: Set<Id> = new Set<Id>();
     const modelPath: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id);
 
@@ -203,14 +195,12 @@ function registerClassifierIds(
   if (classifier.kind === 'Node') {
     classifier.attributes.forEach((attribute, index: number): void => {
       const attributePath: DiagnosticPath = path.property('attributes').index(index);
-
       registerId(modelId, attribute.id, attributePath.property('id'), seen, state);
       registerConstraintIds(modelId, attribute.constraints, attributePath.property('constraints'), seen, state);
     });
   } else {
     classifier.literals?.forEach((literal, index: number): void => {
       const literalPath: DiagnosticPath = path.property('literals').index(index);
-
       registerId(modelId, literal.id, literalPath.property('id'), seen, state);
       registerConstraintIds(modelId, literal.constraints, literalPath.property('constraints'), seen, state);
     });
@@ -250,17 +240,14 @@ function validateModelRefs(state: GraphBuildState): void {
     const model: Model | undefined = state.modelsById.get(modelId);
 
     if (!model) continue;
-
     model.classifiers.forEach((classifier: Classifier, classifierIndex: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root()
         .property('models')
         .property(modelId)
         .property('classifiers')
         .index(classifierIndex);
-
       if (classifier.kind === 'Node') validateNodeModelRefs(modelId, classifier, path, state);
     });
-
     model.relations.forEach((relation: Relation, relationIndex: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root()
         .property('models')
@@ -307,13 +294,9 @@ function validateModelRef(
 
     return;
   }
-
   const index: ModelElementIndex | undefined = state.indexesByModelId.get(target.modelId);
-
   if (!index) return;
-
   const foundKind: ExpectedElementKind | undefined = findElementKind(index, target.refId);
-
   if (!foundKind) {
     state.diagnostics.push(
       error('ELEMENT_REFERENCE_NOT_FOUND', `Referenced element not found: '${reference}'.`, path, reference),
@@ -340,21 +323,15 @@ function validateInheritanceCycles(state: GraphBuildState): void {
     elementId: Id,
   ): void => {
     const key: string = `${kind}:${modelId}:${elementId}`;
-
     if (completed.has(key)) return;
-
     const cycleStart: number = active.indexOf(key);
-
     if (cycleStart >= 0) {
       const cycle: string[] = [...active.slice(cycleStart), key];
 
       state.diagnostics.push(error('INHERITANCE_CYCLE', `Inheritance cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
-
       return;
     }
-
     const element: Node | Relation | undefined = getInheritableElement(state, kind, modelId, elementId);
-
     if (!element) return;
     active.push(key);
     for (const superType of element.superTypes) {
@@ -384,7 +361,6 @@ function getInheritableElement(
   elementId: Id,
 ): Node | Relation | undefined {
   const index: ModelElementIndex | undefined = state.indexesByModelId.get(modelId);
-
   return kind === 'node' ? index?.nodesById.get(elementId) : index?.relationsById.get(elementId);
 }
 
@@ -392,7 +368,6 @@ function findElementKind(index: ModelElementIndex, elementId: Id): ExpectedEleme
   if (index.nodesById.has(elementId)) return 'node';
   if (index.dataTypesById.has(elementId)) return 'dataType';
   if (index.relationsById.has(elementId)) return 'relation';
-
   return undefined;
 }
 

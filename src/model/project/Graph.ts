@@ -40,10 +40,8 @@ export class ProjectGraph {
   /** Returns the models directly imported by the selected model. */
   public getImportedModels(modelId: Id): readonly Model[] {
     const model: Model = this.requireModel(modelId);
-
     return model.imports.flatMap((modelImport) => {
       const imported: Model | undefined = this.modelsById.get(modelImport.modelId);
-
       return imported ? [imported] : [];
     });
   }
@@ -67,7 +65,6 @@ export class ProjectGraph {
   public resolveNode(ownerModelId: Id, reference: Ref): ResolvedModelElement<Node> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
     const node: Node | undefined = this.getNode(target.modelId, target.elementId);
-
     return node ? { modelId: target.modelId, element: node } : undefined;
   }
 
@@ -75,7 +72,6 @@ export class ProjectGraph {
   public resolveDataType(ownerModelId: Id, reference: Ref): ResolvedModelElement<DataType> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
     const dataType: DataType | undefined = this.getDataType(target.modelId, target.elementId);
-
     return dataType ? { modelId: target.modelId, element: dataType } : undefined;
   }
 
@@ -83,7 +79,6 @@ export class ProjectGraph {
   public resolveRelation(ownerModelId: Id, reference: Ref): ResolvedModelElement<Relation> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
     const relation: Relation | undefined = this.getRelation(target.modelId, target.elementId);
-
     return relation ? { modelId: target.modelId, element: relation } : undefined;
   }
 
@@ -95,20 +90,16 @@ export class ProjectGraph {
     const start: Node | undefined = this.getNode(modelId, nodeId);
 
     if (!start) return result;
-
     for (const superType of start.superTypes) {
       const resolved: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, superType);
 
       if (resolved) queue.push(resolved);
     }
-
     while (queue.length > 0) {
       const current: ResolvedModelElement<Node> | undefined = queue.shift();
 
       if (!current) break;
-
       const key: string = `${current.modelId}:${current.element.id}`;
-
       if (visited.has(key)) continue;
       visited.add(key);
       result.push(current);
@@ -119,7 +110,6 @@ export class ProjectGraph {
         if (resolved) queue.push(resolved);
       }
     }
-
     return result;
   }
 
@@ -132,7 +122,6 @@ export class ProjectGraph {
     const superType: Ref | undefined = relation?.superTypes[0];
 
     if (superType) current = this.resolveRelation(modelId, superType);
-
     while (current) {
       const key: string = `${current.modelId}:${current.element.id}`;
 
@@ -141,17 +130,14 @@ export class ProjectGraph {
       result.push(current);
 
       const nextRef: Ref | undefined = current.element.superTypes[0];
-
       current = nextRef ? this.resolveRelation(current.modelId, nextRef) : undefined;
     }
-
     return result;
   }
 
   /** Reports whether an actual node is the expected node or one of its transitive refinements. */
   public isNodeSameOrSubtype(actual: ResolvedModelElement<Node>, expected: ResolvedModelElement<Node>): boolean {
     if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
-
     return this.getNodeAncestors(actual.modelId, actual.element.id).some(
       (ancestor: ResolvedModelElement<Node>): boolean =>
         ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
@@ -161,7 +147,6 @@ export class ProjectGraph {
   /** Reports whether an actual relation is the expected relation or one of its transitive refinements. */
   public isRelationSameOrSubtype(actual: ResolvedModelElement<Relation>, expected: ResolvedModelElement<Relation>): boolean {
     if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
-
     return this.getRelationAncestors(actual.modelId, actual.element.id).some(
       (ancestor: ResolvedModelElement<Relation>): boolean =>
         ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
@@ -171,7 +156,6 @@ export class ProjectGraph {
   /** Reports whether an actual node satisfies a local or qualified expected node reference. */
   public acceptsNode(ownerModelId: Id, expectedRef: Ref, actual: ResolvedModelElement<Node>): boolean {
     const expected: ResolvedModelElement<Node> | undefined = this.resolveNode(ownerModelId, expectedRef);
-
     return expected ? this.isNodeSameOrSubtype(actual, expected) : false;
   }
 
@@ -179,7 +163,6 @@ export class ProjectGraph {
   public isRelationRefSameOrSubtype(actualOwnerModelId: Id, actualRef: Ref, expectedOwnerModelId: Id, expectedRef: Ref): boolean {
     const actual: ResolvedModelElement<Relation> | undefined = this.resolveRelation(actualOwnerModelId, actualRef);
     const expected: ResolvedModelElement<Relation> | undefined = this.resolveRelation(expectedOwnerModelId, expectedRef);
-
     return actual && expected ? this.isRelationSameOrSubtype(actual, expected) : false;
   }
 
@@ -190,17 +173,13 @@ export class ProjectGraph {
 
   private resolveModelRef(ownerModelId: Id, reference: Ref): ResolvedRef {
     if (!ModelRef.isQualified(reference)) return { modelId: ownerModelId, elementId: reference };
-
     const parts: QualifiedParts = ModelRef.splitQualified(reference);
-
     return { modelId: parts.modelId, elementId: parts.refId };
   }
 
   private requireModel(modelId: Id): Model {
     const model: Model | undefined = this.modelsById.get(modelId);
-
     if (!model) throw new Error(`Model not found in project graph: '${modelId}'`);
-
     return model;
   }
 }

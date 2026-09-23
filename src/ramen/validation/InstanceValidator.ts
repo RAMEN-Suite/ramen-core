@@ -59,13 +59,9 @@ export class RamenInstanceValidator {
   /** Validates the project first and then validates a complete instance graph against it. */
   public validate(rootModelId: Id, models: readonly Model[], input: unknown): ValidationResult {
     const project: ProjectValidationResult = this.projects.validateProject(rootModelId, models);
-
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
-
     const base: ValidationResult = this.instances.validate(project.graph, input);
-
     if (!InstanceSchemaValidator.isValid(input)) return base;
-
     const diagnostics: Diagnostic[] = [...base.diagnostics];
     const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(project.graph);
 
@@ -88,9 +84,7 @@ export class RamenInstanceValidator {
     diagnostics: Diagnostic[],
   ): void {
     const resolved: ResolvedModelElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
-
     if (!resolved || !annotations.isAnnotationNode(resolved.modelId, resolved.element.id)) return;
-
     const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
     const type: unknown = node.properties.type;
 
@@ -105,9 +99,7 @@ export class RamenInstanceValidator {
 
       return;
     }
-
     const selected: ResolvedRamenAnnotation | undefined = annotations.findEffective(resolved.modelId, resolved.element.id, type);
-
     if (!selected) {
       this.error(
         diagnostics,
@@ -191,7 +183,6 @@ export class RamenInstanceValidator {
       );
 
       if (!attribute) continue;
-
       const value: unknown = node.properties[attribute.name];
       const count: number = value === undefined || value === null ? 0 : Array.isArray(value) ? value.length : 1;
 
@@ -282,7 +273,6 @@ export class RamenInstanceValidator {
     selected: ResolvedRamenAnnotation,
   ): readonly RamenAnnotationProperty[] {
     const result: Map<Id, RamenAnnotationProperty> = new Map<Id, RamenAnnotationProperty>();
-
     for (const definition of [...annotations.getRefinementLineage(selected)].reverse()) {
       for (const property of definition.annotation.properties) {
         const attributeId: Id = this.refId(property.attributeId);
@@ -291,7 +281,6 @@ export class RamenInstanceValidator {
         result.set(attributeId, { ...property, bounds: property.bounds ?? inherited?.bounds });
       }
     }
-
     return [...result.values()];
   }
 
@@ -301,7 +290,6 @@ export class RamenInstanceValidator {
     selected: ResolvedRamenAnnotation,
   ): readonly ResolvedAnnotationRelation[] {
     const result: ResolvedAnnotationRelation[] = [];
-
     for (const definition of [...annotations.getRefinementLineage(selected)].reverse()) {
       for (const requirement of definition.annotation.relations) {
         const index: number = result.findIndex(
@@ -320,7 +308,6 @@ export class RamenInstanceValidator {
         else result.push(resolved);
       }
     }
-
     return result;
   }
 

@@ -21,11 +21,8 @@ export class RamenAnnotationSchemaValidator {
   /** Asserts RAMEN schema conformance and throws a formatted error on failure. */
   public static assertValid(input: unknown): void {
     const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input);
-
     if (result.valid) return;
-
     const messages: string = result.errors.map((error: JsonError): string => error.message).join('\n');
-
     throw new Error(`RAMEN schema validation failed: ${messages}`);
   }
 }

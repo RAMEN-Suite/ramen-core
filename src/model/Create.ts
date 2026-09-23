@@ -67,9 +67,7 @@ export class ModelFactory {
   /** Creates an empty model with an exact import of the supplied base model. */
   public static createModel(base: Model, input: CreateModelInput): Model {
     const schemaUri: string | undefined = ModelSchemaValidator.getSchemaNode().$id;
-
     if (!schemaUri) throw new Error('RAMEN model format schema has no $id.');
-
     return {
       $schema: schemaUri,
       $id: input.uri,
@@ -141,7 +139,6 @@ export class ModelFactory {
     const baseRelation: Relation | undefined = baseIndex.relationsById.get(input.baseRelationId);
 
     if (!baseRelation) throw new Error(`Base relation not found: ${input.baseRelationId}`);
-
     return {
       kind: 'Relation',
       id: this.createIdentifier(),
@@ -171,7 +168,6 @@ export class ModelFactory {
   /** Deeply duplicates a node and assigns new identifiers to its owned elements. */
   public static duplicateNode(node: Node): Node {
     const cloned: Node = structuredClone(node);
-
     cloned.id = this.createIdentifier();
     cloned.name = `${node.name} (copy)`;
 
@@ -183,7 +179,6 @@ export class ModelFactory {
     cloned.attributes = cloned.attributes.map((attribute: Attribute): Attribute => {
       return { ...attribute, id: this.createIdentifier(), constraints: attribute.constraints?.map(constraintFn) };
     });
-
     return cloned;
   }
 
@@ -193,7 +188,6 @@ export class ModelFactory {
     const source: Node | undefined = index.nodesById.get(sourceNodeId);
 
     if (!source) throw new Error(`Node not found: ${sourceNodeId}`);
-
     const clonedNode: Node = this.duplicateNode(source);
     const related: Relation[] = [];
 
@@ -201,9 +195,7 @@ export class ModelFactory {
       const isRelevant: boolean = relation.from.nodeId === sourceNodeId || relation.to.nodeId === sourceNodeId;
 
       if (!isRelevant) continue;
-
       const clonedRelation: Relation = structuredClone(relation);
-
       clonedRelation.id = this.createIdentifier();
       clonedRelation.from.id = this.createIdentifier();
       clonedRelation.to.id = this.createIdentifier();
@@ -221,7 +213,6 @@ export class ModelFactory {
 
       related.push(clonedRelation);
     }
-
     return { node: clonedNode, relations: related };
   }
 

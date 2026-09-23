@@ -46,9 +46,7 @@ export class InstanceValidator {
     const nodesById: Map<string, ResolvedInstanceNode> = this.values.validate(graph, instance, diagnostics);
 
     this.relations.validate(graph, instance, nodesById, diagnostics);
-
     const hasErrors: boolean = diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error');
-
     return { diagnostics: diagnostics, hasErrors: hasErrors };
   }
 }

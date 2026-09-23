@@ -1,4 +1,4 @@
-import type { Bounds, Attribute, Model, Node, Relation, Id, Ref, TypeRef } from '../dist/index.js';
+import type { Bounds, Attribute, Import, Model, Node, Relation, Id, Ref, TypeRef } from '../dist/index.js';
 
 export const TEST_SCHEMA: string = 'https://ramen-schema.org/model/1.0.0/schema.json';
 
@@ -10,7 +10,7 @@ export function model(id: Id, imports: readonly Model[] = []): Model {
     version: '1.0.0',
     kind: 'Model',
     name: id,
-    imports: imports.map((imported: Model) => ({
+    imports: imports.map((imported: Model): Import => ({
       modelUri: imported.$id,
       modelId: imported.id,
       version: imported.version,

@@ -19,7 +19,6 @@ export class ModelElementIndex {
   /** Indexes the supplied model without modifying it. */
   public constructor(public readonly model: Model) {
     const imports: Map<Id, string> = new Map<Id, string>();
-
     for (const imp of this.model.imports) {
       imports.set(imp.modelId, imp.modelUri);
     }
@@ -33,7 +32,6 @@ export class ModelElementIndex {
     }
 
     const relations: Map<Id, Relation> = new Map<Id, Relation>();
-
     for (const relation of this.model.relations) {
       relations.set(relation.id, relation);
     }

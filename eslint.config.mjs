@@ -37,21 +37,25 @@ export default defineConfig(
       ],
       complexity: ['error', 12],
       'max-lines-per-function': ['error', { max: 40, skipBlankLines: true, skipComments: true, IIFEs: true }],
-      'padding-line-between-statements': [
-        'error',
-        { blankLine: 'always', prev: '*', next: ['const', 'let', 'var'] },
-        { blankLine: 'always', prev: ['const', 'let', 'var'], next: '*' },
-        { blankLine: 'any', prev: ['const', 'let', 'var'], next: ['const', 'let', 'var'] },
-        { blankLine: 'always', prev: '*', next: 'return' },
-      ],
     },
   },
   {
     files: ['test/**/*.ts'],
     rules: {
+      '@typescript-eslint/explicit-function-return-type': [
+        'error',
+        { allowExpressions: false, allowTypedFunctionExpressions: false },
+      ],
       '@typescript-eslint/typedef': [
         'error',
         { memberVariableDeclaration: true, parameter: true, propertyDeclaration: true, variableDeclaration: true },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ArrowFunctionExpression > Identifier.params:not([typeAnnotation])',
+          message: 'Test callback parameters require an explicit type.',
+        },
       ],
     },
   },

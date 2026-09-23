@@ -33,18 +33,14 @@ export class RamenAnnotations {
   /** Returns a detached list of annotations declared by the model. */
   public static get(model: Model): readonly RamenAnnotation[] {
     const ramen: unknown = model.ext?.ramen;
-
     if (!RamenAnnotationSchemaValidator.isValid(ramen) || !this.isRecord(ramen) || !Array.isArray(ramen.annotations)) return [];
-
     return structuredClone(ramen.annotations) as readonly RamenAnnotation[];
   }
 
   /** Reports whether a present `ramen.annotations` value has the complete serialized shape. */
   public static hasValidSection(model: Model): boolean {
     const ramen: unknown = model.ext?.ramen;
-
     if (ramen === undefined) return true;
-
     return RamenAnnotationSchemaValidator.isValid(ramen);
   }
 
@@ -56,7 +52,6 @@ export class RamenAnnotations {
   /** Returns a model with one declared annotation replaced. */
   public static update(model: Model, annotationId: Id, annotation: RamenAnnotation): Model {
     const current: readonly RamenAnnotation[] = this.get(model);
-
     if (!current.some((candidate: RamenAnnotation): boolean => candidate.id === annotationId))
       throw new Error(`Annotation not found: '${annotationId}'.`);
 
@@ -76,19 +71,16 @@ export class RamenAnnotations {
     );
 
     if (remaining.length === current.length) throw new Error(`Annotation not found: '${annotationId}'.`);
-
     return this.write(model, remaining);
   }
 
   private static getExtension(model: Model): RamenModelExtension {
     const ramen: unknown = model.ext?.ramen;
-
     return this.isRecord(ramen) ? ramen : {};
   }
 
   private static write(model: Model, annotations: readonly RamenAnnotation[]): Model {
     const ramen: RamenModelExtension = this.getExtension(model);
-
     return {
       ...model,
       ext: { ...(model.ext ?? {}), ramen: { ...ramen, annotations: structuredClone(annotations) } },

@@ -54,9 +54,7 @@ export class ConstraintRegistry {
   /** Evaluates a constraint or reports that its language is unsupported. */
   public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
     const evaluator: ConstraintEvaluator | undefined = this.evaluators.get(constraint.language);
-
     if (evaluator) return evaluator.evaluate(constraint, context);
-
     return [
       Diagnostics.error({
         code: VALIDATION_ERROR.CONSTRAINT_LANGUAGE_UNSUPPORTED,
@@ -79,7 +77,6 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
     }
 
     let expression: RegExp;
-
     try {
       expression = new RegExp(constraint.expression);
     } catch {
@@ -109,10 +106,8 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
 
   private createDiagnostic(constraint: Constraint, context: ConstraintContext, code: string, message: string): Diagnostic {
     const report: DiagnosticReport = { code: code, message: message, path: context.path, ref: constraint.id };
-
     if (constraint.severity === 'warn') return Diagnostics.warn(report);
     if (constraint.severity === 'info') return Diagnostics.info(report);
-
     return Diagnostics.error(report);
   }
 }
@@ -131,11 +126,8 @@ export class FormatConstraintEvaluator implements ConstraintEvaluator {
     const supported: boolean = schema !== undefined || constraint.expression === 'uri';
 
     if (!supported) return [this.invalid(constraint, context, `unsupported format '${constraint.expression}'`)];
-
     const valid: boolean = schema ? schema.validate(context.value).valid : this.isAbsoluteUri(context.value);
-
     if (valid) return [];
-
     return [this.diagnostic(constraint, context, constraint.message ?? `Value is not a valid ${constraint.expression}.`)];
   }
 
@@ -166,7 +158,6 @@ export class FormatConstraintEvaluator implements ConstraintEvaluator {
 
     if (constraint.severity === 'warn') return Diagnostics.warn(report);
     if (constraint.severity === 'info') return Diagnostics.info(report);
-
     return Diagnostics.error(report);
   }
 }

@@ -22,9 +22,7 @@ export type CreateBundleResult =
  */
 export function createModelBundle(rootModelId: Id, models: readonly Model[]): CreateBundleResult {
   const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
-
   if (!graphResult.ok) return { ok: false, diagnostics: graphResult.diagnostics };
-
   const bundle: ModelBundle = {
     $schema: MODEL_BUNDLE_SCHEMA,
     kind: 'ModelBundle',
@@ -32,7 +30,6 @@ export function createModelBundle(rootModelId: Id, models: readonly Model[]): Cr
     rootModelId: rootModelId,
     models: graphResult.graph.getModels().map((model: Model): Model => structuredClone(model)),
   };
-
   return { ok: true, bundle: bundle };
 }
 
@@ -46,13 +43,11 @@ export function splitModelBundle(input: unknown): readonly Model[] {
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: bundle.rootModelId, models: bundle.models });
 
   if (!result.ok) throw new Error(formatBundleErrors(result.diagnostics));
-
   return result.graph.getModels().map((model: Model): Model => structuredClone(model));
 }
 
 function readBundle(input: unknown): ModelBundle {
   const envelope: { readonly valid: boolean; readonly errors: JsonError[] } = BUNDLE_SCHEMA_NODE.validate(input);
-
   if (!envelope.valid) {
     const details: string = envelope.errors.map((error: JsonError): string => error.message).join('\n');
 
@@ -66,7 +61,6 @@ function readBundle(input: unknown): ModelBundle {
   }
 
   const models: Model[] = input.models.map((model: unknown, index: number): Model => readModel(model, index));
-
   return {
     $schema: MODEL_BUNDLE_SCHEMA,
     kind: 'ModelBundle',
@@ -83,7 +77,6 @@ function readModel(input: unknown, index: number): Model {
     return input;
   } catch (error: unknown) {
     const message: string = error instanceof Error ? error.message : String(error);
-
     throw new Error(`Invalid model bundle at models/${index}: ${message}`, { cause: error });
   }
 }
@@ -94,6 +87,5 @@ function isRecord(input: unknown): input is Record<string, unknown> {
 
 function formatBundleErrors(diagnostics: readonly Diagnostic[]): string {
   const messages: string = diagnostics.map((diagnostic: Diagnostic): string => diagnostic.message).join('\n');
-
   return `Invalid model bundle:\n${messages}`;
 }

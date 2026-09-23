@@ -43,16 +43,13 @@ export class RamenAnnotationGraph {
     const annotation: RamenAnnotation | undefined = this.getDeclared(target.modelId).find(
       (candidate: RamenAnnotation): boolean => candidate.id === target.refId,
     );
-
     return annotation ? { modelId: target.modelId, annotation: annotation } : undefined;
   }
 
   /** Returns the effective closed annotation variants available to one Annotation node. */
   public getEffective(modelId: Id, nodeId: Id): readonly ResolvedRamenAnnotation[] {
     const node: Node | undefined = this.graph.getNode(modelId, nodeId);
-
     if (!node) return [];
-
     const lineage: readonly ResolvedModelElement<Node>[] = [
       { modelId: modelId, element: node },
       ...this.graph.getNodeAncestors(modelId, nodeId),
@@ -70,7 +67,6 @@ export class RamenAnnotationGraph {
         if (!result.has(annotation.type)) result.set(annotation.type, { modelId: owner.modelId, annotation: annotation });
       }
     }
-
     return [...result.values()];
   }
 
@@ -95,7 +91,6 @@ export class RamenAnnotationGraph {
       result.push(current);
       current = current.annotation.refines ? this.resolve(current.modelId, current.annotation.refines) : undefined;
     }
-
     return result;
   }
 

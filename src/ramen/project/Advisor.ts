@@ -111,7 +111,6 @@ export class RamenAdvisor {
       .flatMap((model: Model): NodeRefinementSuggestion[] =>
         model.classifiers.flatMap((classifier): NodeRefinementSuggestion[] => {
           if (classifier.kind !== 'Node') return [];
-
           return [
             {
               modelId: model.id,
@@ -136,18 +135,14 @@ export class RamenAdvisor {
     const declared: DataTypeSuggestion[] = [this.graph.getModel(modelId), ...this.importedModels(modelId)].flatMap(
       (model: Model | undefined): DataTypeSuggestion[] => {
         if (!model) return [];
-
         return model.classifiers.flatMap((classifier): DataTypeSuggestion[] => {
           if (classifier.kind !== 'DataType') return [];
-
           const dataType: DataType = classifier;
           const ref: Ref = model.id === modelId ? dataType.id : ModelRef.qualify(model.id, dataType.id);
-
           return [{ modelId: model.id, dataTypeId: dataType.id, ref: ref, name: dataType.name, baseType: dataType.baseType }];
         });
       },
     );
-
     return [...builtins, ...declared].sort((left: DataTypeSuggestion, right: DataTypeSuggestion): number =>
       left.name.localeCompare(right.name),
     );
@@ -175,9 +170,7 @@ export class RamenAdvisor {
   /** Lists effective annotation variants attachable to one local node through modeled relations. */
   public suggestAnnotationsForNode(modelId: Id, nodeId: Id): readonly AnnotationSuggestion[] {
     const actual: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, nodeId);
-
     if (!actual) return [];
-
     const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph);
     const result: Map<string, AnnotationSuggestion> = new Map<string, AnnotationSuggestion>();
 
@@ -209,9 +202,7 @@ export class RamenAdvisor {
   /** Returns the refinement lineage, effective attributes, and possible relations for one local node. */
   public adviseNode(modelId: Id, nodeId: Id): NodeAdvice | undefined {
     const actual: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, nodeId);
-
     if (!actual) return undefined;
-
     const ancestors: ResolvedModelElement<Node>[] = [...this.graph.getNodeAncestors(modelId, nodeId)].reverse();
     const lineage: readonly ResolvedModelElement<Node>[] = [...ancestors, actual];
 
@@ -235,15 +226,11 @@ export class RamenAdvisor {
   /** Checks inherited attributes and applicable relation roles before an attribute is created. */
   public adviseAttributeCreation(modelId: Id, nodeId: Id, name: string): AttributeCreationAdvice {
     const advice: NodeAdvice | undefined = this.adviseNode(modelId, nodeId);
-
     if (!advice) return { allowed: false, conflicts: [] };
-
     const conflicts: ('attribute' | 'relationRole')[] = [];
-
     if (advice.attributes.some((attribute: AttributeSuggestion): boolean => attribute.name === name)) conflicts.push('attribute');
     if (advice.relations.some((relation: NodeRelationSuggestion): boolean => relation.role === name))
       conflicts.push('relationRole');
-
     return { allowed: conflicts.length === 0, conflicts: conflicts };
   }
 
@@ -253,7 +240,6 @@ export class RamenAdvisor {
     const to: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, toNodeId);
 
     if (!from || !to) return [];
-
     return this.importedModels(modelId)
       .flatMap((model: Model): RelationRefinementSuggestion[] =>
         model.relations.flatMap((relation: Relation): RelationRefinementSuggestion[] => {
@@ -299,7 +285,6 @@ export class RamenAdvisor {
 
   private nodeRelationSuggestions(modelId: Id, actual: ResolvedModelElement<Node>): readonly NodeRelationSuggestion[] {
     const suggestions: NodeRelationSuggestion[] = [];
-
     for (const owner of this.graph.getModels()) {
       for (const relation of owner.relations) {
         if (this.graph.acceptsNode(owner.id, relation.from.nodeId, actual)) {
@@ -324,7 +309,6 @@ export class RamenAdvisor {
         }
       }
     }
-
     return suggestions;
   }
 
@@ -338,7 +322,6 @@ export class RamenAdvisor {
     const target: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
 
     if (!target) return undefined;
-
     const compatibleTargetNodeIds: Id[] = this.localNodes(modelId)
       .filter((candidate: ResolvedModelElement<Node>): boolean => this.graph.acceptsNode(owner.id, targetRef, candidate))
       .map((candidate: ResolvedModelElement<Node>): Id => candidate.element.id);
@@ -358,9 +341,7 @@ export class RamenAdvisor {
 
   private localNodes(modelId: Id): readonly ResolvedModelElement<Node>[] {
     const model: Model | undefined = this.graph.getModel(modelId);
-
     if (!model) return [];
-
     return model.classifiers.flatMap((classifier): ResolvedModelElement<Node>[] =>
       classifier.kind === 'Node' ? [{ modelId: modelId, element: classifier }] : [],
     );
@@ -377,7 +358,6 @@ export class RamenAdvisor {
 
   private resolveLocalNode(modelId: Id, nodeId: Id): ResolvedModelElement<Node> | undefined {
     const node: Node | undefined = this.graph.getNode(modelId, nodeId);
-
     return node ? { modelId: modelId, element: node } : undefined;
   }
 }

@@ -59,15 +59,11 @@ export class ModelValidator {
     if (diagnostics.length > 0) return { valid: false, diagnostics: diagnostics, hasErrors: true };
 
     const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
-
     if (!graphResult.ok) return { valid: false, diagnostics: graphResult.diagnostics, hasErrors: true };
-
     const semanticDiagnostics: readonly Diagnostic[] = this.semantics.validate(graphResult.graph);
-
     if (semanticDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error')) {
       return { valid: false, diagnostics: semanticDiagnostics, hasErrors: true };
     }
-
     return { valid: true, diagnostics: semanticDiagnostics, hasErrors: false, graph: graphResult.graph };
   }
 }

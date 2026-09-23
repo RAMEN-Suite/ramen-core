@@ -21,9 +21,7 @@ export class EffectiveModel {
   /** Resolves a node and merges its inherited attributes and constraints in base-first order. */
   public static resolveNode(graph: ProjectGraph, modelId: Id, nodeId: Id): EffectiveNode | undefined {
     const node: Node | undefined = graph.getNode(modelId, nodeId);
-
     if (!node) return undefined;
-
     const ancestors: readonly ResolvedModelElement<Node>[] = graph.getNodeAncestors(modelId, nodeId);
     const baseFirstAncestors: ResolvedModelElement<Node>[] = [...ancestors].reverse();
     const lineage: readonly ResolvedModelElement<Node>[] = [...baseFirstAncestors, { modelId: modelId, element: node }];
@@ -47,9 +45,7 @@ export class EffectiveModel {
   /** Returns relations whose source or target accepts the node or one of its supertypes. */
   public static getApplicableRelations(graph: ProjectGraph, modelId: Id, nodeId: Id): readonly ApplicableRelation[] {
     const effective: EffectiveNode | undefined = this.resolveNode(graph, modelId, nodeId);
-
     if (!effective) return [];
-
     const acceptedNodes: Set<string> = new Set<string>(
       effective.lineage.map((item: ResolvedModelElement<Node>): string => `${item.modelId}:${item.element.id}`),
     );
@@ -65,7 +61,6 @@ export class EffectiveModel {
         if (matchesFrom || matchesTo) result.push({ modelId: model.id, relation: relation });
       }
     }
-
     return result;
   }
 }

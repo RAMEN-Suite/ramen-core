@@ -14,6 +14,7 @@ import type {
   CreateBundleResult,
   DataTypeSuggestion,
   Attribute,
+  Classifier,
   Model,
   Node,
   NodeRefinementSuggestion,
@@ -32,8 +33,8 @@ function createProject(): RamenProject {
 
 void test('publishes the RAMEN reference model and its reusable scalar types', (): void => {
   const names: readonly string[] = RAMEN_MODEL.classifiers
-    .filter((classifier): boolean => classifier.kind === 'DataType')
-    .map((classifier): string => classifier.name);
+    .filter((classifier: Classifier): boolean => classifier.kind === 'DataType')
+    .map((classifier: Classifier): string => classifier.name);
 
   assert.deepEqual(names, ['UUID', 'Date', 'DateTime', 'URI', 'Email']);
   assert.equal(RAMEN_MODEL.$id, RAMEN_MODEL_URI);
@@ -64,9 +65,7 @@ void test('creates nodes and attributes while validating every change', (): void
 
 void test('exposes refinements and data types through the consumer API', (): void => {
   const advisor: RamenAdvisor | undefined = createProject().createAdvisor();
-
   assert.ok(advisor);
-
   const nodeNames: readonly string[] = advisor
     .suggestNodeRefinements('editorialModel01')
     .map((item: NodeRefinementSuggestion): string => item.name);
@@ -87,7 +86,6 @@ void test('keeps RAMEN extensions when a project is bundled and split', (): void
   }).element;
 
   project.createAnnotation({ annotationId: annotation.id, type: 'date' });
-
   const model: Model = project.getModel();
   const result: CreateBundleResult = createModelBundle(model.id, [model, RAMEN_MODEL]);
 
@@ -96,6 +94,5 @@ void test('keeps RAMEN extensions when a project is bundled and split', (): void
 
   const restored: readonly Model[] = splitModelBundle(result.bundle);
   const restoredProject: Model | undefined = restored.find((item: Model): boolean => item.id === model.id);
-
   assert.deepEqual(restoredProject?.ext?.ramen, model.ext?.ramen);
 });

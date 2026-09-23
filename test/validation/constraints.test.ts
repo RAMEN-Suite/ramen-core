@@ -13,7 +13,7 @@ function constraint(expression: Constraint['expression'], language: string = 're
   };
 }
 
-void test('evaluates regex constraints with structured diagnostics', () => {
+void test('evaluates regex constraints with structured diagnostics', (): void => {
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   const diagnostics: readonly Diagnostic[] = registry.evaluate(constraint('^[A-Z]'), {
     modelId: 'constraintModel1',
@@ -27,7 +27,7 @@ void test('evaluates regex constraints with structured diagnostics', () => {
   assert.equal(diagnostics[0]?.path, '/name');
 });
 
-void test('reports invalid expressions and unregistered languages', () => {
+void test('reports invalid expressions and unregistered languages', (): void => {
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   const context: ConstraintContext = {
     modelId: 'constraintModel1',
@@ -41,7 +41,7 @@ void test('reports invalid expressions and unregistered languages', () => {
   assert.equal(registry.evaluate(constraint('x', 'unknown'), context)[0]?.code, 'CONSTRAINT_LANGUAGE_UNSUPPORTED');
 });
 
-void test('validates standard date and date-time formats', () => {
+void test('validates standard date and date-time formats', (): void => {
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   const context: ConstraintContext = {
     modelId: 'constraintModel1',

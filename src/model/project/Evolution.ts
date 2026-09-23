@@ -54,7 +54,7 @@ export class ModelEvolution {
       const oldRecord: ElementRecord | undefined = before.get(key);
       const newRecord: ElementRecord | undefined = after.get(key);
 
-      if (oldRecord && newRecord && this.equal(oldRecord.value, newRecord.value)) continue;
+      if (oldRecord && newRecord && this.sameJson(oldRecord.value, newRecord.value)) continue;
       const record: ElementRecord | undefined = newRecord ?? oldRecord;
 
       if (!record) continue;
@@ -125,7 +125,8 @@ export class ModelEvolution {
     return details;
   }
 
-  private static equal(left: unknown, right: unknown): boolean {
+  /** Compares JSON values without treating object key order as a model change. */
+  public static sameJson(left: unknown, right: unknown): boolean {
     return JSON.stringify(this.canonical(left)) === JSON.stringify(this.canonical(right));
   }
 

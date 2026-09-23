@@ -6,12 +6,20 @@ import type {
   AttributeCreationAdvice,
   AttributeSuggestion,
   CreateBundleResult,
+  Classifier,
   DataType,
+  Diagnostic,
+  EvolutionChange,
+  Literal,
+  Model,
+  ModelBundle,
   Node,
   NodeRelationSuggestion,
   RamenAdvisor,
   RamenAnnotation,
+  RamenAnnotationChange,
   RamenChange,
+  RamenEvolutionReport,
   Relation,
 } from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
@@ -91,6 +99,135 @@ void test('exports and imports a complete editable RAMEN project bundle', (): vo
   assert.equal(imported.getModel().id, fixture.model.id);
   assert.equal(imported.getModels().length, 2);
   assert.deepEqual(imported.getAnnotations(), fixture.project.getAnnotations());
+});
+
+void test('does not export a project with invalid RAMEN annotation semantics', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const duplicate: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
+    annotationId: fixture.nodes.annotation.id,
+    type: 'persName',
+  });
+  const exported: CreateBundleResult = fixture.project.exportBundle();
+
+  assert.equal(duplicate.validation.valid, false);
+  assert.equal(exported.ok, false);
+  if (exported.ok) return;
+  assert.ok(
+    exported.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE'),
+  );
+});
+
+void test('rejects a structurally valid bundle with invalid RAMEN semantics on import', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const exported: CreateBundleResult = fixture.project.exportBundle();
+
+  assert.equal(exported.ok, true);
+  if (!exported.ok) return;
+  const malformed: Model = {
+    ...fixture.model,
+    ext: { ramen: { annotations: [{ id: 'incomplete' }] } },
+  };
+  const bundle: ModelBundle = {
+    ...exported.bundle,
+    models: exported.bundle.models.map((model: Model): Model => (model.id === malformed.id ? malformed : model)),
+  };
+
+  assert.throws((): RamenProject => RamenProject.importBundle(bundle), /Invalid RAMEN project bundle/);
+});
+
+void test('compares two project states and reports RAMEN errors in the later state', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const before: RamenProject = RamenProject.load(fixture.model);
+  const changed: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
+    annotationId: fixture.nodes.annotation.id,
+    type: 'persName',
+  });
+  const report: RamenEvolutionReport = before.compareTo(fixture.project);
+  const modelChange: EvolutionChange | undefined = report.changes.find(
+    (change: EvolutionChange): boolean => change.element === 'model' && change.modelId === fixture.model.id,
+  );
+
+  assert.equal(changed.validation.valid, false);
+  assert.ok(modelChange);
+  assert.equal(modelChange.action, 'changed');
+  assert.equal(report.annotationChanges.length, 1);
+  assert.equal(report.annotationChanges[0]?.action, 'added');
+  assert.equal(report.annotationChanges[0]?.annotationId, changed.element.id);
+  assert.deepEqual(report.beforeDiagnostics, []);
+  assert.ok(
+    report.afterDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE'),
+  );
+});
+
+void test('identifies changed and removed annotation definitions by stable ID', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const before: RamenProject = RamenProject.load(fixture.model);
+  const changed: RamenChange<RamenAnnotation> = fixture.project.updateAnnotation(fixture.annotations.persName.id, {
+    type: 'personName',
+  });
+  const removed: RamenChange<RamenAnnotation> = fixture.project.removeAnnotation(fixture.annotations.placeName.id);
+  const report: RamenEvolutionReport = before.compareTo(fixture.project);
+
+  assert.equal(changed.validation.valid, true);
+  assert.equal(removed.validation.valid, true);
+  assert.deepEqual(
+    report.annotationChanges
+      .map((change: RamenAnnotationChange): readonly string[] => [change.action, change.annotationId])
+      .sort(),
+    [
+      ['changed', fixture.annotations.persName.id],
+      ['removed', fixture.annotations.placeName.id],
+    ].sort(),
+  );
+  assert.deepEqual(report.afterDiagnostics, []);
+});
+
+void test('creates, updates, and removes a data type literal through the project API', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const dataType: RamenChange<DataType> = fixture.project.createDataType({ name: 'EditorialStatus', baseType: 'String' });
+  const created: RamenChange<Literal> = fixture.project.createLiteral(dataType.element.id, {
+    name: 'Draft',
+    literal: 'draft',
+  });
+  const updated: RamenChange<Literal> = fixture.project.updateLiteral(dataType.element.id, created.element.id, {
+    name: 'Reviewed',
+    literal: 'reviewed',
+  });
+
+  assert.equal(created.validation.valid, true);
+  assert.equal(updated.validation.valid, true);
+  assert.equal(updated.element.id, created.element.id);
+  assert.equal(updated.element.literal, 'reviewed');
+
+  const removed: RamenChange<Literal> = fixture.project.removeLiteral(dataType.element.id, created.element.id);
+  const classifier: DataType | undefined = fixture.project
+    .getModel()
+    .classifiers.find((item: Classifier): item is DataType => item.id === dataType.element.id && item.kind === 'DataType');
+
+  assert.equal(removed.validation.valid, true);
+  assert.equal(classifier?.literals, undefined);
+  assert.throws(
+    (): RamenChange<Literal> => fixture.project.removeLiteral(dataType.element.id, created.element.id),
+    /Literal not found/,
+  );
+});
+
+void test('reports duplicate data type literals when editing a project', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const dataType: RamenChange<DataType> = fixture.project.createDataType({ name: 'EditorialStatus', baseType: 'String' });
+  const first: RamenChange<Literal> = fixture.project.createLiteral(dataType.element.id, { name: 'Draft', literal: 'draft' });
+  const duplicate: RamenChange<Literal> = fixture.project.createLiteral(dataType.element.id, {
+    name: 'Draft',
+    literal: 'draft',
+  });
+
+  assert.equal(first.validation.valid, true);
+  assert.equal(duplicate.validation.valid, false);
+  assert.ok(
+    duplicate.validation.diagnostics.some(
+      (diagnostic: Diagnostic): boolean => diagnostic.code === 'DATATYPE_LITERAL_NAME_DUPLICATE',
+    ),
+  );
 });
 
 void test('suggests inherited attributes and rejects conflicting attribute names', (): void => {

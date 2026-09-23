@@ -4,7 +4,7 @@
 
 1. **Model format:** The generic JSON structure for models, nodes, attributes, data types, relations, imports, and constraints. Its schema defines document shape; the project graph resolves references and inheritance.
 2. **RAMEN project:** A versioned RAMEN reference model plus one or more project models. A project model refines `Collection`, `Entity`, `Content`, or `Annotation`. Closed annotation variants such as `persName` are project definitions under `ext.ramen.annotations`, attached to an Annotation node.
-3. **Evolution:** A comparison of two complete project states. Stable IDs connect an element before and after a change. An added, removed, or changed element appears in a report with its before and after values and validation findings. Migration of existing data needs an explicit transformation and a separate test.
+3. **Evolution:** A comparison of two complete project states. Stable IDs connect an element before and after a change. An added, removed, or changed element appears in a report with its before and after values and validation findings. RAMEN annotation definitions appear separately in `annotationChanges`; their enclosing model may also appear as changed. Migration of existing data needs an explicit transformation and a separate test.
 
 The dependency chain has no fixed maximum depth. Refinement is checked at each link. A reference to an imported element may reuse it without creating another node. `RamenAdvisor` reads the validated graph to suggest legal refinements, attributes, relations, targets, and annotation definitions. There is no second discovery service.
 

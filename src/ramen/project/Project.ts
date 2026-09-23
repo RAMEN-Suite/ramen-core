@@ -8,8 +8,10 @@ import type {
   CreateModelInput,
   Attribute,
   DataType,
+  Diagnostic,
   Model,
   ModelBundle,
+  Literal,
   Node,
   Relation,
   Id,
@@ -23,6 +25,8 @@ import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, Rame
 import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenValidator } from '../validation/ModelValidator';
 import { RamenAdvisor } from './Advisor';
+import { RamenEvolution } from './Evolution';
+import type { RamenEvolutionReport } from './Evolution';
 
 /** Reference to one node or relation in a specific model. */
 export interface RamenElementRef {
@@ -67,6 +71,16 @@ export interface UpdateRamenAnnotationInput {
   readonly properties?: readonly RamenAnnotationProperty[];
   readonly relations?: readonly RamenAnnotationRelation[];
 }
+
+/** Values of a named literal in a project-defined data type. */
+export interface CreateRamenLiteralInput {
+  readonly name: string;
+  readonly literal?: string;
+  readonly value?: number;
+}
+
+/** Editable fields of a locally declared data type literal. */
+export type UpdateRamenLiteralInput = Partial<Pick<Literal, 'name' | 'literal' | 'value' | 'constraints' | 'ext'>>;
 
 /** Result of a model change together with immediate whole-project validation. */
 export interface RamenChange<T> {
@@ -118,7 +132,15 @@ export class RamenProject {
     if (!root) throw new Error(`Root model not found: '${bundle.rootModelId}'.`);
     const dependencies: readonly Model[] = bundle.models.filter((model: Model): boolean => model.id !== root.id);
 
-    return new RamenProject(root, dependencies);
+    const project: RamenProject = new RamenProject(root, dependencies);
+    const validation: ProjectValidationResult = project.validate();
+
+    if (!validation.valid) {
+      const details: string = validation.diagnostics.map((diagnostic: Diagnostic): string => diagnostic.message).join('\n');
+      throw new Error(`Invalid RAMEN project bundle:\n${details}`);
+    }
+
+    return project;
   }
 
   /** Returns a detached snapshot of the current project model. */
@@ -133,12 +155,20 @@ export class RamenProject {
 
   /** Exports the current project and every reachable dependency as one portable bundle. */
   public exportBundle(): CreateBundleResult {
+    const validation: ProjectValidationResult = this.validate();
+    if (!validation.valid) return { ok: false, diagnostics: validation.diagnostics };
+
     return createModelBundle(this.model.id, this.validationInputs());
   }
 
   /** Validates the complete current project and returns its graph on success. */
   public validate(): ProjectValidationResult {
     return this.validator.validateProject(this.model.id, this.validationInputs());
+  }
+
+  /** Compares this project with a later state and includes RAMEN validation findings from both states. */
+  public compareTo(next: RamenProject): RamenEvolutionReport {
+    return RamenEvolution.compare(this.model.id, this.validationInputs(), next.model.id, next.validationInputs());
   }
 
   /** Creates an advisor when the current project is valid. */
@@ -295,6 +325,41 @@ export class RamenProject {
     return this.change(dataType);
   }
 
+  /** Adds one named literal to a local data type. */
+  public createLiteral(dataTypeId: Id, input: CreateRamenLiteralInput): RamenChange<Literal> {
+    const dataType: DataType = this.requireDataType(dataTypeId);
+    const literal: Literal = ModelFactory.createLiteral(input.name, input.literal, input.value);
+    const literals: [Literal, ...Literal[]] = [literal, ...(dataType.literals ?? [])];
+
+    this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals: literals });
+    return this.change(literal);
+  }
+
+  /** Updates one literal by stable identifier. */
+  public updateLiteral(dataTypeId: Id, literalId: Id, input: UpdateRamenLiteralInput): RamenChange<Literal> {
+    const dataType: DataType = this.requireDataType(dataTypeId);
+    const current: Literal = this.requireLiteral(dataType, literalId);
+    const literal: Literal = { ...current, ...structuredClone(input) };
+    const literals: [Literal, ...Literal[]] = (dataType.literals ?? []).map((item: Literal): Literal =>
+      item.id === literalId ? literal : item,
+    ) as [Literal, ...Literal[]];
+
+    this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals: literals });
+    return this.change(literal);
+  }
+
+  /** Removes one literal; an empty data type becomes unrestricted again. */
+  public removeLiteral(dataTypeId: Id, literalId: Id): RamenChange<Literal> {
+    const dataType: DataType = this.requireDataType(dataTypeId);
+    const literal: Literal = this.requireLiteral(dataType, literalId);
+    const remaining: Literal[] = (dataType.literals ?? []).filter((item: Literal): boolean => item.id !== literalId);
+
+    this.model = ModelEditor.updateDataType(this.model, dataTypeId, {
+      literals: remaining.length > 0 ? (remaining as [Literal, ...Literal[]]) : undefined,
+    });
+    return this.change(literal);
+  }
+
   /** Adds a relation refinement and immediately validates the resulting project. */
   public createRelation(input: CreateRamenRelationInput): RamenChange<Relation> {
     const base: Model | undefined = this.findModel(input.refines.modelId);
@@ -367,6 +432,13 @@ export class RamenProject {
     if (classifier?.kind !== 'DataType') throw new Error(`Data type not found: '${dataTypeId}'.`);
 
     return classifier;
+  }
+
+  private requireLiteral(dataType: DataType, literalId: Id): Literal {
+    const literal: Literal | undefined = dataType.literals?.find((item: Literal): boolean => item.id === literalId);
+    if (!literal) throw new Error(`Literal not found: '${literalId}'.`);
+
+    return literal;
   }
 
   private requireAttribute(nodeId: Id, attributeId: Id): Attribute {

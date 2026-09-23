@@ -60,6 +60,72 @@ void test('validates an annotation instance against its selected property set', 
   assert.deepEqual(valid.diagnostics, []);
 });
 
+void test('requires the modeled person relation for a persName annotation', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const validator: RamenInstanceValidator = new RamenInstanceValidator();
+  const missing: ModelInstanceGraph = annotationGraph(fixture, 'persName', {});
+  const result: ValidationResult = validator.validate(fixture.model.id, [fixture.model, RAMEN_MODEL], missing);
+
+  assert.equal(result.hasErrors, true);
+  assert.ok(
+    result.diagnostics.some(
+      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY',
+    ),
+  );
+});
+
+void test('accepts one modeled person relation and rejects another annotation relation', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const validator: RamenInstanceValidator = new RamenInstanceValidator();
+  const valid: ModelInstanceGraph = personAnnotationGraph(fixture);
+  const accepted: ValidationResult = validator.validate(fixture.model.id, [fixture.model, RAMEN_MODEL], valid);
+
+  assert.deepEqual(accepted.diagnostics, []);
+
+  const annotationId: string = valid.nodes[0]?.id ?? '';
+  const personId: string = valid.nodes[1]?.id ?? '';
+  const invalid: ModelInstanceGraph = {
+    ...valid,
+    relations: [
+      ...valid.relations,
+      {
+        id: 'hasAnnotation0001',
+        typeId: fixture.relations.personAnnotation.id,
+        fromId: personId,
+        toId: annotationId,
+      },
+    ],
+  };
+  const rejected: ValidationResult = validator.validate(fixture.model.id, [fixture.model, RAMEN_MODEL], invalid);
+
+  assert.ok(
+    rejected.diagnostics.some(
+      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED',
+    ),
+  );
+});
+
+function personAnnotationGraph(fixture: CorrespondenceFixture): ModelInstanceGraph {
+  const base: ModelInstanceGraph = annotationGraph(fixture, 'persName', {});
+  const person: ModelInstanceGraph['nodes'][number] = {
+    id: 'personInstance001',
+    typeId: fixture.nodes.person.id,
+    properties: { uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', label: 'Ada' },
+  };
+  return {
+    ...base,
+    nodes: [...base.nodes, person],
+    relations: [
+      {
+        id: 'refersPerson0001',
+        typeId: fixture.relations.refersPerson.id,
+        fromId: base.nodes[0]?.id ?? '',
+        toId: person.id,
+      },
+    ],
+  };
+}
+
 void test('rejects duplicate types and implicit replacement of inherited definitions', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const duplicate: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({

@@ -3,6 +3,7 @@ export * from './model/Annotations';
 export * from './project/AnnotationGraph';
 export * from './project/AnnotationAdvice';
 export * from './project/Project';
+export * from './project/Evolution';
 export * from './project/Advisor';
 export * from './validation/AnnotationSchema';
 export * from './validation/ModelValidator';

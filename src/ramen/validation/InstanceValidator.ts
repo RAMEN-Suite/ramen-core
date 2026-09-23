@@ -69,7 +69,7 @@ export class RamenInstanceValidator {
     const base: ValidationResult = this.instances.validate(project.graph, input);
     if (!InstanceSchemaValidator.isValid(input)) return base;
     const diagnostics: Diagnostic[] = [...base.diagnostics];
-    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(project.graph);
+    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(project.graph, models);
 
     input.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       this.validateAnnotationNode(project.graph, annotations, input, node, index, diagnostics);

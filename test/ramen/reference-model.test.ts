@@ -2,16 +2,20 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   RAMEN_ANNOTATION_SCHEMA_URI,
+  RAMEN_BUNDLE_SCHEMA_URI,
   RAMEN_ELEMENT,
   RAMEN_MODEL,
   RAMEN_MODEL_URI,
+  RAMEN_PROJECT_SCHEMA_URI,
+  ModelSchemaValidator,
   RamenAnnotationSchemaValidator,
   RamenProject,
-  createModelBundle,
-  splitModelBundle,
+  RamenProjectSchemaValidator,
+  createRamenBundle,
+  splitRamenBundle,
 } from '../../dist/index.js';
 import type {
-  CreateBundleResult,
+  CreateRamenBundleResult,
   DataTypeSuggestion,
   Attribute,
   Classifier,
@@ -20,6 +24,7 @@ import type {
   NodeRefinementSuggestion,
   RamenAdvisor,
   RamenChange,
+  RamenModelDocument,
 } from '../../dist/index.js';
 
 function createProject(): RamenProject {
@@ -40,11 +45,25 @@ void test('publishes the RAMEN reference model and its reusable scalar types', (
   assert.equal(RAMEN_MODEL.$id, RAMEN_MODEL_URI);
 });
 
-void test('publishes a schema specifically for ext.ramen annotation definitions', (): void => {
+void test('publishes a schema for RAMEN annotation definitions', (): void => {
   assert.equal(RamenAnnotationSchemaValidator.getSchemaNode().$id, RAMEN_ANNOTATION_SCHEMA_URI);
   assert.equal(RamenAnnotationSchemaValidator.isValid({ annotations: [] }), true);
   assert.equal(RamenAnnotationSchemaValidator.isValid({ annotations: [{ id: 'incomplete' }] }), false);
   assert.equal(RamenAnnotationSchemaValidator.isValid({ annotations: [], unknown: true }), false);
+});
+
+void test('validates first-class annotations with the RAMEN project schema', (): void => {
+  const project: RamenProject = createProject();
+  const model: RamenModelDocument = project.getModel();
+  const legacy: unknown = { ...model, ext: { ramen: { annotations: [] } } };
+  const missing: unknown = { ...model, annotations: undefined };
+
+  assert.equal(RamenProjectSchemaValidator.getSchemaNode().$id, RAMEN_PROJECT_SCHEMA_URI);
+  assert.equal(RamenProjectSchemaValidator.isValid(model), true);
+  assert.equal(ModelSchemaValidator.isValid(model), false);
+  assert.equal(RamenProjectSchemaValidator.isValid(legacy), false);
+  assert.equal(RamenProjectSchemaValidator.isValid(missing), false);
+  assert.deepEqual(model.annotations, []);
 });
 
 void test('creates nodes and attributes while validating every change', (): void => {
@@ -78,7 +97,7 @@ void test('exposes refinements and data types through the consumer API', (): voi
   assert.ok(dataTypeNames.includes('DateTime'));
 });
 
-void test('keeps RAMEN extensions when a project is bundled and split', (): void => {
+void test('keeps first-class annotations when a project is bundled and split', (): void => {
   const project: RamenProject = createProject();
   const annotation: Node = project.createNode({
     name: 'TextAnnotation',
@@ -86,13 +105,17 @@ void test('keeps RAMEN extensions when a project is bundled and split', (): void
   }).element;
 
   project.createAnnotation({ annotationId: annotation.id, type: 'date' });
-  const model: Model = project.getModel();
-  const result: CreateBundleResult = createModelBundle(model.id, [model, RAMEN_MODEL]);
+  const model: RamenModelDocument = project.getModel();
+  const result: CreateRamenBundleResult = createRamenBundle(model.id, [model, RAMEN_MODEL]);
 
   assert.equal(result.ok, true);
   if (!result.ok) return;
+  assert.equal(result.bundle.$schema, RAMEN_BUNDLE_SCHEMA_URI);
+  assert.equal(result.bundle.kind, 'RamenModelBundle');
+  assert.equal(result.bundle.models.length, 2);
 
-  const restored: readonly Model[] = splitModelBundle(result.bundle);
+  const restored: readonly Model[] = splitRamenBundle(result.bundle);
   const restoredProject: Model | undefined = restored.find((item: Model): boolean => item.id === model.id);
-  assert.deepEqual(restoredProject?.ext?.ramen, model.ext?.ramen);
+  assert.deepEqual((restoredProject as RamenModelDocument | undefined)?.annotations, model.annotations);
+  assert.equal(restoredProject?.ext?.ramen, undefined);
 });

@@ -1,16 +1,13 @@
-import { ModelEditor, ModelFactory, createModelBundle, parseModelBundle } from '../../model/index';
+import { ModelEditor, ModelFactory } from '../../model/index';
 import type {
   Bounds,
   Classifier,
-  CreateBundleResult,
   CreateAttributeInput,
   CreateDataTypeInput,
   CreateModelInput,
   Attribute,
   DataType,
-  Diagnostic,
   Model,
-  ModelBundle,
   Literal,
   Node,
   Relation,
@@ -22,9 +19,13 @@ import type {
   UpdateRelationInput,
 } from '../../model/index';
 import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
+import { RamenModelFormat } from '../model/Document';
+import type { RamenModelDocument } from '../model/Document';
 import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenValidator } from '../validation/ModelValidator';
 import { RamenAdvisor } from './Advisor';
+import { createRamenBundle, parseRamenBundle } from './Bundle';
+import type { CreateRamenBundleResult, RamenModelBundle } from './Bundle';
 import { RamenEvolution } from './Evolution';
 import type { RamenEvolutionReport } from './Evolution';
 
@@ -94,7 +95,7 @@ export class RamenProject {
   private readonly dependencies: ReadonlyMap<Id, Model>;
   private readonly validator: RamenValidator = new RamenValidator();
 
-  private constructor(model: Model, dependencies: readonly Model[]) {
+  private constructor(model: RamenModelDocument, dependencies: readonly Model[]) {
     this.model = structuredClone(model);
     this.dependencies = new Map<Id, Model>(dependencies.map((item: Model): [Id, Model] => [item.id, structuredClone(item)]));
   }
@@ -111,7 +112,7 @@ export class RamenProject {
       ...dependencies.map((model: Model): [Id, Model] => [model.id, model]),
       [base.id, base],
     ]);
-    return new RamenProject(ModelFactory.createModel(base, input), [...models.values()]);
+    return new RamenProject(RamenModelFormat.create(ModelFactory.createModel(base, input)), [...models.values()]);
   }
 
   /** Creates the next model level while retaining the complete dependency chain. */
@@ -121,31 +122,24 @@ export class RamenProject {
 
   /** Loads a project with all models needed to resolve its imports. */
   public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL]): RamenProject {
+    if (!RamenModelFormat.isDocument(model)) throw new Error('Expected a RAMEN project model.');
     return new RamenProject(model, dependencies);
   }
 
   /** Imports a validated single-file bundle and restores its editable root project. */
   public static importBundle(input: unknown): RamenProject {
-    const bundle: ModelBundle = parseModelBundle(input);
+    const bundle: RamenModelBundle = parseRamenBundle(input);
     const root: Model | undefined = bundle.models.find((model: Model): boolean => model.id === bundle.rootModelId);
 
-    if (!root) throw new Error(`Root model not found: '${bundle.rootModelId}'.`);
+    if (!RamenModelFormat.isDocument(root)) throw new Error(`RAMEN project model not found: '${bundle.rootModelId}'.`);
     const dependencies: readonly Model[] = bundle.models.filter((model: Model): boolean => model.id !== root.id);
 
-    const project: RamenProject = new RamenProject(root, dependencies);
-    const validation: ProjectValidationResult = project.validate();
-
-    if (!validation.valid) {
-      const details: string = validation.diagnostics.map((diagnostic: Diagnostic): string => diagnostic.message).join('\n');
-      throw new Error(`Invalid RAMEN project bundle:\n${details}`);
-    }
-
-    return project;
+    return new RamenProject(root, dependencies);
   }
 
   /** Returns a detached snapshot of the current project model. */
-  public getModel(): Model {
-    return structuredClone(this.model);
+  public getModel(): RamenModelDocument {
+    return structuredClone(this.model) as RamenModelDocument;
   }
 
   /** Returns detached snapshots of the current model and every transitive dependency. */
@@ -154,11 +148,8 @@ export class RamenProject {
   }
 
   /** Exports the current project and every reachable dependency as one portable bundle. */
-  public exportBundle(): CreateBundleResult {
-    const validation: ProjectValidationResult = this.validate();
-    if (!validation.valid) return { ok: false, diagnostics: validation.diagnostics };
-
-    return createModelBundle(this.model.id, this.validationInputs());
+  public exportBundle(): CreateRamenBundleResult {
+    return createRamenBundle(this.model.id, this.validationInputs());
   }
 
   /** Validates the complete current project and returns its graph on success. */
@@ -174,7 +165,7 @@ export class RamenProject {
   /** Creates an advisor when the current project is valid. */
   public createAdvisor(): RamenAdvisor | undefined {
     const result: ProjectValidationResult = this.validate();
-    return result.valid ? new RamenAdvisor(result) : undefined;
+    return result.valid ? new RamenAdvisor(result, this.validationInputs()) : undefined;
   }
 
   /** Adds a node refinement and immediately validates the resulting project. */

@@ -6,6 +6,12 @@ import { defineConfig } from 'eslint/config';
 export default defineConfig(
   { ignores: ['dist/**', 'node_modules/**', 'coverage/**'] },
   {
+    files: ['scripts/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: { process: 'readonly', URL: 'readonly' } },
+    rules: { complexity: ['error', 12] },
+  },
+  {
     files: ['src/**/*.ts', 'test/**/*.ts'],
     extends: [js.configs.recommended, tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     languageOptions: {

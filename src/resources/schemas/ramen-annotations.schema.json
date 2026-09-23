@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ramen-schema.org/ramen/1.0.0/annotations.schema.json",
   "title": "RAMEN Annotation Definitions",
-  "description": "Closed RAMEN annotation definitions stored below Model.ext.ramen.",
+  "description": "Closed RAMEN annotation definitions declared by a project model.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

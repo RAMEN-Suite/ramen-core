@@ -5,14 +5,14 @@ import type {
   Attribute,
   AttributeCreationAdvice,
   AttributeSuggestion,
-  CreateBundleResult,
+  CreateRamenBundleResult,
   Classifier,
   DataType,
   Diagnostic,
-  EvolutionChange,
   Literal,
   Model,
-  ModelBundle,
+  RamenModelBundle,
+  RamenModelDocument,
   Node,
   NodeRelationSuggestion,
   RamenAdvisor,
@@ -89,11 +89,13 @@ void test('updates and removes local annotation definitions', (): void => {
 
 void test('exports and imports a complete editable RAMEN project bundle', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const exported: CreateBundleResult = fixture.project.exportBundle();
+  const exported: CreateRamenBundleResult = fixture.project.exportBundle();
 
   assert.equal(exported.ok, true);
   if (!exported.ok) return;
-  const imported: RamenProject = RamenProject.importBundle(exported.bundle);
+  const serialized: string = JSON.stringify(exported.bundle);
+  const parsed: unknown = JSON.parse(serialized);
+  const imported: RamenProject = RamenProject.importBundle(parsed);
 
   assert.equal(imported.validate().valid, true);
   assert.equal(imported.getModel().id, fixture.model.id);
@@ -107,7 +109,7 @@ void test('does not export a project with invalid RAMEN annotation semantics', (
     annotationId: fixture.nodes.annotation.id,
     type: 'persName',
   });
-  const exported: CreateBundleResult = fixture.project.exportBundle();
+  const exported: CreateRamenBundleResult = fixture.project.exportBundle();
 
   assert.equal(duplicate.validation.valid, false);
   assert.equal(exported.ok, false);
@@ -119,15 +121,15 @@ void test('does not export a project with invalid RAMEN annotation semantics', (
 
 void test('rejects a structurally valid bundle with invalid RAMEN semantics on import', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const exported: CreateBundleResult = fixture.project.exportBundle();
+  const exported: CreateRamenBundleResult = fixture.project.exportBundle();
 
   assert.equal(exported.ok, true);
   if (!exported.ok) return;
-  const malformed: Model = {
+  const malformed: RamenModelDocument = {
     ...fixture.model,
-    ext: { ramen: { annotations: [{ id: 'incomplete' }] } },
-  };
-  const bundle: ModelBundle = {
+    annotations: [{ id: 'incomplete' }],
+  } as unknown as RamenModelDocument;
+  const bundle: RamenModelBundle = {
     ...exported.bundle,
     models: exported.bundle.models.map((model: Model): Model => (model.id === malformed.id ? malformed : model)),
   };
@@ -143,13 +145,8 @@ void test('compares two project states and reports RAMEN errors in the later sta
     type: 'persName',
   });
   const report: RamenEvolutionReport = before.compareTo(fixture.project);
-  const modelChange: EvolutionChange | undefined = report.changes.find(
-    (change: EvolutionChange): boolean => change.element === 'model' && change.modelId === fixture.model.id,
-  );
-
   assert.equal(changed.validation.valid, false);
-  assert.ok(modelChange);
-  assert.equal(modelChange.action, 'changed');
+  assert.deepEqual(report.changes, []);
   assert.equal(report.annotationChanges.length, 1);
   assert.equal(report.annotationChanges[0]?.action, 'added');
   assert.equal(report.annotationChanges[0]?.annotationId, changed.element.id);

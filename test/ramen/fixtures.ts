@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { RAMEN_ELEMENT, RAMEN_MODEL, RamenProject } from '../../dist/index.js';
 import type {
   Attribute,
-  Model,
   Node,
   Relation,
   RamenAdvisor,
   RamenAnnotation,
   RamenChange,
+  RamenModelDocument,
   RelationRefinementSuggestion,
 } from '../../dist/index.js';
 
@@ -43,7 +43,7 @@ export interface CorrespondenceAnnotations {
 
 export interface CorrespondenceFixture {
   readonly project: RamenProject;
-  readonly model: Model;
+  readonly model: RamenModelDocument;
   readonly nodes: CorrespondenceNodes;
   readonly relations: CorrespondenceRelations;
   readonly annotations: CorrespondenceAnnotations;
@@ -52,7 +52,7 @@ export interface CorrespondenceFixture {
 
 export interface ScholarlyFixture {
   readonly project: RamenProject;
-  readonly model: Model;
+  readonly model: RamenModelDocument;
   readonly nodes: CorrespondenceNodes;
   readonly persName: RamenAnnotation;
 }
@@ -72,7 +72,7 @@ export function createCorrespondenceFixture(): CorrespondenceFixture {
   }).element;
   const relations: CorrespondenceRelations = createBaseRelations(project, nodes);
   const annotations: CorrespondenceAnnotations = createAnnotations(project, nodes, relations, url);
-  const model: Model = project.getModel();
+  const model: RamenModelDocument = project.getModel();
 
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
   return { project: project, model: model, nodes: nodes, relations: relations, annotations: annotations, url: url };
@@ -99,7 +99,7 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
       },
     ],
   }).element;
-  const model: Model = project.getModel();
+  const model: RamenModelDocument = project.getModel();
 
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
   return { project: project, model: model, nodes: nodes, persName: persName };

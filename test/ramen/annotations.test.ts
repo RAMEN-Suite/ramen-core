@@ -8,11 +8,11 @@ import type {
   Constraint,
   ConstraintContext,
   Diagnostic,
-  Model,
   ModelInstanceGraph,
   ProjectValidationResult,
   RamenAnnotation,
   RamenChange,
+  RamenModelDocument,
   ValidationResult,
 } from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
@@ -25,7 +25,7 @@ void test('stores five closed annotation definitions outside the model node list
 
   assert.equal(fixture.model.classifiers.filter((item: Classifier): boolean => item.kind === 'Node').length, 6);
   assert.deepEqual(types, ['comment', 'date', 'externalReference', 'persName', 'placeName']);
-  assert.deepEqual(fixture.model.ext?.ramen, { annotations: annotations });
+  assert.deepEqual(fixture.model.annotations, annotations);
 });
 
 void test('advises selectable annotation properties and their cardinalities', (): void => {
@@ -192,9 +192,12 @@ void test('rejects duplicate types and implicit replacement of inherited definit
   );
 });
 
-void test('rejects a malformed serialized annotation extension', (): void => {
+void test('rejects malformed project annotation definitions', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const malformed: Model = { ...fixture.model, ext: { ramen: { annotations: [{ id: 'incomplete' }] } } };
+  const malformed: RamenModelDocument = {
+    ...fixture.model,
+    annotations: [{ id: 'incomplete' }],
+  } as unknown as RamenModelDocument;
   const result: ProjectValidationResult = RamenProject.load(malformed).validate();
   assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATIONS_INVALID'));
 });

@@ -28,16 +28,18 @@
     "build": "npm run clean && tsc -p tsconfig.json && esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist --outbase=src --external:json-schema-library --external:short-unique-id",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
-    "lint": "eslint src test",
-    "lint:fix": "eslint src test --fix",
+    "lint": "eslint src test scripts",
+    "lint:fix": "eslint src test scripts --fix",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
-    "verify": "npm run build && npm run lint && npm run format && npm run typecheck && npm run docs:check && npm test",
+    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run typecheck && npm run docs:check && npm test",
     "test:watch": "node --experimental-strip-types --test --watch test/**/*.test.ts",
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
     "prepare": "husky",
     "docs": "typedoc",
-    "docs:check": "typedoc --emit none"
+    "docs:check": "typedoc --emit none",
+    "schema:generate": "node scripts/generate-ramen-project-schema.mjs",
+    "schema:check": "node scripts/generate-ramen-project-schema.mjs --check"
   },
   "dependencies": {
     "json-schema-library": "^11.0.4",

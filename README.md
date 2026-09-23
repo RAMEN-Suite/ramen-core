@@ -60,7 +60,9 @@ if (!exported.ok) throw new Error(JSON.stringify(exported.diagnostics));
 const projectJson = JSON.stringify(exported.bundle, null, 2);
 ```
 
-`projectJson` contains the project model and its RAMEN dependency in one file. The models retain their separate identities and imports. Every edit returns its element and a validation result. Edits stay in the project when validation reports an error, so an editor can guide the next edit. `exportBundle()` only succeeds when the complete RAMEN project is valid.
+`projectJson` contains the project model and its RAMEN dependency in one file. The project model has its own RAMEN schema and stores `annotations` beside `classifiers` and `relations`. The generic model format and the RAMEN reference model do not declare annotation variants. Each definition belongs to an Annotation node; definitions on an ancestor remain available to refined nodes. The models retain their separate identities and imports.
+
+Every edit returns its element and a validation result. Edits stay in the project when validation reports an error, so an editor can guide the next edit. `exportBundle()` only succeeds when the complete RAMEN project is valid.
 
 Project-defined scalar types can restrict values with named literals:
 
@@ -82,7 +84,7 @@ Evaluators currently receive one value at a time. A language for conditions acro
 
 ## Refinement and exchange
 
-Use `createNextLevel(...)` to build another model that imports the complete dependency chain. A new node names the earlier node in `refines`; an imported node can also be referenced directly where no refinement is needed. `exportBundle()` packs all reachable models into one JSON object. `RamenProject.importBundle(value)` restores the root as an editable project and preserves the other models as dependencies.
+Use `createNextLevel(...)` to build another model that imports the complete dependency chain. A new node names the earlier node in `refines`; an imported node can also be referenced directly where no refinement is needed. `exportBundle()` packs all reachable models into one RAMEN bundle. `RamenProject.importBundle(value)` restores the root as an editable project and preserves the other models as dependencies. `splitRamenBundle(value)` returns the separate model documents.
 
 `ModelEvolution.compare(beforeRootId, beforeModels, afterRootId, afterModels)` returns an explicit before/after change artifact and validation diagnostics for both states. It identifies elements by stable IDs. It does not migrate instance data.
 

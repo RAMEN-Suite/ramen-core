@@ -1,6 +1,7 @@
 import { ModelEvolution } from '../../model/index';
 import type { EvolutionReport, Id, Model } from '../../model/index';
 import { RamenAnnotation, RamenAnnotations } from '../model/Annotations';
+import { RamenModelFormat } from '../model/Document';
 import { RamenValidator } from '../validation/ModelValidator';
 
 /** One added, removed, or changed RAMEN annotation definition. */
@@ -31,7 +32,12 @@ export class RamenEvolution {
     afterRootModelId: Id,
     afterModels: readonly Model[],
   ): RamenEvolutionReport {
-    const generic: EvolutionReport = ModelEvolution.compare(beforeRootModelId, beforeModels, afterRootModelId, afterModels);
+    const generic: EvolutionReport = ModelEvolution.compare(
+      beforeRootModelId,
+      beforeModels.map((model: Model): Model => RamenModelFormat.toGeneric(model)),
+      afterRootModelId,
+      afterModels.map((model: Model): Model => RamenModelFormat.toGeneric(model)),
+    );
     const validator: RamenValidator = new RamenValidator();
 
     return {

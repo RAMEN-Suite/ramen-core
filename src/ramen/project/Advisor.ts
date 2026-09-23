@@ -101,7 +101,10 @@ export class RamenAdvisor {
   private readonly graph: ProjectGraph;
 
   /** Creates an advisor from a successful project validation result. */
-  public constructor(result: ValidProjectResult) {
+  public constructor(
+    result: ValidProjectResult,
+    private readonly models: readonly Model[],
+  ) {
     this.graph = result.graph;
   }
 
@@ -150,7 +153,7 @@ export class RamenAdvisor {
 
   /** Lists all reachable annotations, or only the effective variants of one Annotation node. */
   public suggestAnnotations(modelId: Id, annotationNodeId?: Id): readonly AnnotationSuggestion[] {
-    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph);
+    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph, this.models);
     const candidates: readonly ResolvedRamenAnnotation[] = annotationNodeId
       ? annotations.getEffective(modelId, annotationNodeId)
       : annotations.getAll();
@@ -171,7 +174,7 @@ export class RamenAdvisor {
   public suggestAnnotationsForNode(modelId: Id, nodeId: Id): readonly AnnotationSuggestion[] {
     const actual: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, nodeId);
     if (!actual) return [];
-    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph);
+    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph, this.models);
     const result: Map<string, AnnotationSuggestion> = new Map<string, AnnotationSuggestion>();
 
     for (const relation of this.nodeRelationSuggestions(modelId, actual)) {
@@ -191,12 +194,12 @@ export class RamenAdvisor {
 
   /** Suggests valid properties, relations, targets, and cardinalities for an annotation definition. */
   public adviseAnnotation(modelId: Id, annotationNodeId: Id, refines?: Ref): AnnotationAdvice | undefined {
-    return new RamenAnnotationAdvisor(this.graph).advise(modelId, annotationNodeId, refines);
+    return new RamenAnnotationAdvisor(this.graph, this.models).advise(modelId, annotationNodeId, refines);
   }
 
   /** Lists the modeled relations permitted by one effective annotation type. */
   public suggestRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly AnnotationRelationAdvice[] {
-    return new RamenAnnotationAdvisor(this.graph).adviseEffective(modelId, annotationNodeId, type)?.relations ?? [];
+    return new RamenAnnotationAdvisor(this.graph, this.models).adviseEffective(modelId, annotationNodeId, type)?.relations ?? [];
   }
 
   /** Returns the refinement lineage, effective attributes, and possible relations for one local node. */

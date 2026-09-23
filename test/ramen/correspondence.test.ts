@@ -87,6 +87,7 @@ void test('refines the complete Correspondence model at another level', (): void
   const advisor: RamenAdvisor | undefined = scholarly.project.createAdvisor();
 
   assert.ok(advisor);
+  assert.equal(scholarly.model.annotations.length, 1);
   const annotations: readonly string[] = annotationTypes(
     advisor.suggestAnnotations(SCHOLARLY_MODEL_ID, scholarly.nodes.annotation.id),
   );

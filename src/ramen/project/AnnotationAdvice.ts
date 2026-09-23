@@ -56,8 +56,11 @@ export class RamenAnnotationAdvisor {
   private readonly annotations: RamenAnnotationGraph;
 
   /** Creates annotation advice over an already validated project graph. */
-  public constructor(private readonly graph: ProjectGraph) {
-    this.annotations = new RamenAnnotationGraph(graph);
+  public constructor(
+    private readonly graph: ProjectGraph,
+    models: readonly Model[],
+  ) {
+    this.annotations = new RamenAnnotationGraph(graph, models);
   }
 
   /** Advises a new annotation, or a refinement when `refines` identifies its parent definition. */

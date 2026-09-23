@@ -1,4 +1,12 @@
-import { DiagnosticPath, Diagnostics, EffectiveModel, ModelRef, ModelValidator, ProjectGraph } from '../../model/index';
+import {
+  DiagnosticPath,
+  Diagnostics,
+  EffectiveModel,
+  ModelRef,
+  ModelValidator,
+  ProjectGraph,
+  VALIDATION_ERROR,
+} from '../../model/index';
 import { ModelSemantics } from '../../model/validation/Semantics';
 import type {
   Bounds,
@@ -13,8 +21,10 @@ import type {
   ResolvedModelElement,
 } from '../../model/index';
 import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
+import { RamenModelFormat } from '../model/Document';
 import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from '../project/AnnotationGraph';
+import { RamenProjectSchemaValidator } from './ProjectSchema';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
 export const RAMEN_VALIDATION_ERROR: Readonly<{
@@ -30,6 +40,7 @@ export const RAMEN_VALIDATION_ERROR: Readonly<{
   ANNOTATION_RELATION_INVALID: 'RAMEN_ANNOTATION_RELATION_INVALID';
   ANNOTATION_BOUNDS_INVALID: 'RAMEN_ANNOTATION_BOUNDS_INVALID';
   ANNOTATION_RELATION_EXTENSION: 'RAMEN_ANNOTATION_RELATION_EXTENSION';
+  PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED';
 }> = {
   BASE_MODEL_REQUIRED: 'RAMEN_BASE_MODEL_REQUIRED',
   ANNOTATIONS_INVALID: 'RAMEN_ANNOTATIONS_INVALID',
@@ -43,6 +54,7 @@ export const RAMEN_VALIDATION_ERROR: Readonly<{
   ANNOTATION_RELATION_INVALID: 'RAMEN_ANNOTATION_RELATION_INVALID',
   ANNOTATION_BOUNDS_INVALID: 'RAMEN_ANNOTATION_BOUNDS_INVALID',
   ANNOTATION_RELATION_EXTENSION: 'RAMEN_ANNOTATION_RELATION_EXTENSION',
+  PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED',
 } as const;
 
 /** Validates the RAMEN model format first and then the closed annotation definitions. */
@@ -51,35 +63,89 @@ export class RamenValidator {
 
   /** Validates a complete RAMEN project and exposes its graph only on success. */
   public validateProject(rootModelId: Id, inputs: readonly unknown[]): ProjectValidationResult {
-    const result: ProjectValidationResult = this.models.validateProject(rootModelId, inputs);
-    if (!result.valid) return result;
-    if (!result.graph.getModels().some((model: Model): boolean => model.id === RAMEN_MODEL.id)) {
-      return {
-        valid: false,
-        hasErrors: true,
-        diagnostics: [
-          Diagnostics.error({
-            code: RAMEN_VALIDATION_ERROR.BASE_MODEL_REQUIRED,
-            message: `RAMEN project '${rootModelId}' must import RAMEN '${RAMEN_MODEL.id}' directly or transitively.`,
-            path: DiagnosticPath.root().property('imports'),
-            ref: RAMEN_MODEL.id,
-          }),
-        ],
-      };
-    }
+    const documentErrors: readonly Diagnostic[] = this.validateDocuments(inputs);
+    if (documentErrors.length > 0) return { valid: false, hasErrors: true, diagnostics: documentErrors };
 
-    const diagnostics: readonly Diagnostic[] = this.validateAnnotations(result.graph);
+    const normalized: readonly unknown[] = inputs.map((input: unknown): unknown =>
+      RamenModelFormat.isDocument(input) ? RamenModelFormat.toGeneric(input) : input,
+    );
+    const result: ProjectValidationResult = this.models.validateProject(rootModelId, normalized);
+    if (!result.valid) return result;
+    const requirements: readonly Diagnostic[] = this.validateRequirements(rootModelId, inputs, result.graph);
+    if (requirements.length > 0) return { valid: false, hasErrors: true, diagnostics: requirements };
+
+    const diagnostics: readonly Diagnostic[] = this.validateAnnotations(result.graph, inputs as readonly Model[]);
     if (diagnostics.length === 0) return result;
     return { valid: false, hasErrors: true, diagnostics: [...result.diagnostics, ...diagnostics] };
   }
 
-  private validateAnnotations(graph: ProjectGraph): readonly Diagnostic[] {
-    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(graph);
+  private validateRequirements(rootModelId: Id, inputs: readonly unknown[], graph: ProjectGraph): readonly Diagnostic[] {
+    const root: unknown = inputs.find(
+      (input: unknown): boolean => typeof input === 'object' && input !== null && 'id' in input && input.id === rootModelId,
+    );
+    if (!RamenModelFormat.isDocument(root)) {
+      return [
+        Diagnostics.error({
+          code: RAMEN_VALIDATION_ERROR.PROJECT_FORMAT_REQUIRED,
+          message: `Root model '${rootModelId}' must use the RAMEN project format.`,
+          path: DiagnosticPath.root().property('$schema'),
+          ref: rootModelId,
+        }),
+      ];
+    }
+    if (!graph.getModels().some((model: Model): boolean => model.id === RAMEN_MODEL.id)) {
+      return [
+        Diagnostics.error({
+          code: RAMEN_VALIDATION_ERROR.BASE_MODEL_REQUIRED,
+          message: `RAMEN project '${rootModelId}' must import RAMEN '${RAMEN_MODEL.id}' directly or transitively.`,
+          path: DiagnosticPath.root().property('imports'),
+          ref: RAMEN_MODEL.id,
+        }),
+      ];
+    }
+
+    return [];
+  }
+
+  private validateDocuments(inputs: readonly unknown[]): readonly Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    inputs.forEach((input: unknown, index: number): void => {
+      if (!RamenModelFormat.isDocument(input)) return;
+      const path: DiagnosticPath = DiagnosticPath.root().property('models').index(index);
+
+      if (!RamenAnnotations.hasValidSection(input)) {
+        diagnostics.push(
+          Diagnostics.error({
+            code: RAMEN_VALIDATION_ERROR.ANNOTATIONS_INVALID,
+            message: `Model '${input.id}' has invalid annotation definitions.`,
+            path: path.property('annotations'),
+            ref: input.id,
+          }),
+        );
+      } else if (!RamenProjectSchemaValidator.isValid(input)) {
+        diagnostics.push(
+          Diagnostics.error({
+            code: VALIDATION_ERROR.SCHEMA_INVALID,
+            message: `Model '${input.id}' does not match the RAMEN project schema.`,
+            path: path,
+            ref: input.id,
+          }),
+        );
+      }
+    });
+
+    return diagnostics;
+  }
+
+  private validateAnnotations(graph: ProjectGraph, models: readonly Model[]): readonly Diagnostic[] {
+    const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(graph, models);
     const diagnostics: Diagnostic[] = [];
     const identifiers: Set<string> = new Set<string>();
     const ownerTypes: Set<string> = new Set<string>();
 
-    for (const model of graph.getModels()) {
+    for (const model of models) {
+      if (!graph.hasModel(model.id)) continue;
       if (RamenAnnotations.hasValidSection(model)) continue;
       this.error(
         diagnostics,

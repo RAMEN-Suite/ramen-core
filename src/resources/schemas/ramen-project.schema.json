@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ramen-schema.org/ramen/1.0.0/project.schema.json",
+  "title": "RAMEN project model",
+  "type": "object",
+  "required": ["$schema", "$id", "id", "version", "kind", "name", "imports", "classifiers", "relations", "annotations"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "const": "https://ramen-schema.org/ramen/1.0.0/project.schema.json" },
+    "$id": { "type": "string", "format": "uri" },
+    "id": {
+      "$ref": "#/$defs/Id",
+      "$comment": "Stable model identifier used for imports and versioning (independent of JSON Schema $id)."
+    },
+    "version": { "$ref": "#/$defs/Version" },
+    "kind": { "const": "Model" },
+    "name": { "type": "string", "minLength": 1, "$comment": "Human-readable name of the model." },
+    "imports": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Import" },
+      "default": [],
+      "$comment": "Imported models whose elements may be referenced via qualified ids."
+    },
+    "classifiers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Classifier" },
+      "default": [],
+      "$comment": "Declared classifiers (node and datatype definitions)."
+    },
+    "relations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Relation" },
+      "default": [],
+      "$comment": "Declared relation types between node types."
+    },
+    "ext": {
+      "type": "object",
+      "additionalProperties": true,
+      "default": {},
+      "$comment": "Tool-specific metadata; no semantic meaning.",
+      "properties": { "ramen": false }
+    },
+    "annotations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotation" }, "default": [] }
+  },
+  "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modeling rather than full behavioral or reflective semantics.",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 16,
+      "$comment": "Stable local identifier (minimum length 16)."
+    },
+    "Version": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "$comment": "Semantic version string (MAJOR.MINOR.PATCH)."
+    },
+    "BuiltinType": {
+      "type": "string",
+      "enum": ["String", "Boolean", "Integer", "Float"],
+      "$comment": "Built-in scalar datatypes."
+    },
+    "LocalRef": { "$ref": "#/$defs/Id" },
+    "QualifiedRef": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,}$",
+      "$comment": "Qualified reference into an imported model: 'modelId:id'."
+    },
+    "Ref": {
+      "oneOf": [{ "$ref": "#/$defs/LocalRef" }, { "$ref": "#/$defs/QualifiedRef" }],
+      "$comment": "Reference to a local or imported element."
+    },
+    "TypeRef": {
+      "oneOf": [{ "$ref": "#/$defs/BuiltinType" }, { "$ref": "#/$defs/Ref" }],
+      "$comment": "Reference to a builtin or user-defined datatype."
+    },
+    "Import": {
+      "type": "object",
+      "required": ["modelUri", "modelId", "version"],
+      "additionalProperties": false,
+      "$comment": "Import declaration for another model.",
+      "properties": {
+        "modelUri": { "type": "string", "format": "uri" },
+        "modelId": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string", "minLength": 1, "$comment": "Human-readable name of the model." },
+        "version": { "$ref": "#/$defs/Version", "$comment": "Exact imported model version required for reproducible resolution." }
+      }
+    },
+    "Bounds": {
+      "type": "object",
+      "required": ["lowerBound", "upperBound"],
+      "additionalProperties": false,
+      "$comment": "Multiplicity bounds.",
+      "properties": {
+        "lowerBound": { "type": "integer", "minimum": 0, "$comment": "Minimum cardinality." },
+        "upperBound": { "type": "integer", "minimum": -1, "$comment": "Maximum cardinality (-1 means unbounded)." }
+      }
+    },
+    "Constraint": {
+      "type": "object",
+      "required": ["id", "name", "language", "expression"],
+      "additionalProperties": false,
+      "$comment": "Declarative semantic constraint evaluated by tools.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "language": { "type": "string" },
+        "expression": { "oneOf": [{ "type": "string" }, { "type": "object" }] },
+        "severity": { "type": "string", "enum": ["error", "warn", "info"], "default": "error" },
+        "message": { "type": "string" },
+        "code": { "type": "string" },
+        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "Classifier": { "oneOf": [{ "$ref": "#/$defs/Node" }, { "$ref": "#/$defs/DataType" }] },
+    "Node": {
+      "type": "object",
+      "required": ["kind", "id", "name", "superTypes", "attributes"],
+      "additionalProperties": false,
+      "$comment": "Node type (class) declaration.",
+      "properties": {
+        "kind": { "const": "Node" },
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "attributes": { "type": "array", "items": { "$ref": "#/$defs/Attribute" }, "default": [] },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "DataType": {
+      "type": "object",
+      "required": ["kind", "id", "name", "baseType"],
+      "additionalProperties": false,
+      "$comment": "User-defined scalar datatype with a JSON-compatible primitive representation; literals make the value domain an enumeration.",
+      "properties": {
+        "kind": { "const": "DataType" },
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "baseType": {
+          "$ref": "#/$defs/BuiltinType",
+          "$comment": "Primitive representation validated before datatype literals and constraints."
+        },
+        "literals": { "type": "array", "items": { "$ref": "#/$defs/Literal" }, "minItems": 1 },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "Literal": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "$comment": "Enumeration literal.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "value": { "type": "integer" },
+        "literal": { "type": "string" },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "Attribute": {
+      "type": "object",
+      "required": ["id", "name", "typeId", "bounds"],
+      "additionalProperties": false,
+      "$comment": "Structural attribute (property) of a node type.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "typeId": { "$ref": "#/$defs/TypeRef" },
+        "bounds": { "$ref": "#/$defs/Bounds" },
+        "isKey": { "type": "boolean", "default": false, "$comment": "Marks this attribute as identifying." },
+        "isReadOnly": { "type": "boolean", "default": false, "$comment": "Value cannot be modified generally." },
+        "isOrdered": { "type": "boolean", "default": true, "$comment": "Order matters for multi-valued attributes." },
+        "isUnique": {
+          "type": "boolean",
+          "default": true,
+          "$comment": "Duplicate values are not allowed for multi-valued attributes."
+        },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "Relation": {
+      "type": "object",
+      "required": ["kind", "id", "superTypes", "name", "from", "to"],
+      "additionalProperties": false,
+      "$comment": "Relation type connecting node types.",
+      "properties": {
+        "kind": { "const": "Relation" },
+        "id": { "$ref": "#/$defs/Id" },
+        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "name": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "from": { "$ref": "#/$defs/RelationEnd" },
+        "to": { "$ref": "#/$defs/RelationEnd" },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "RelationEnd": {
+      "type": "object",
+      "required": ["id", "nodeId", "role", "bounds"],
+      "additionalProperties": false,
+      "$comment": "Association end with role name and multiplicity.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "nodeId": { "$ref": "#/$defs/Ref" },
+        "role": { "type": "string" },
+        "bounds": { "$ref": "#/$defs/Bounds" },
+        "isComposite": {
+          "type": "boolean",
+          "default": false,
+          "$comment": "Composition/containment: this end is the owning (whole) end. Typically only one end is composite."
+        },
+        "isNavigable": { "type": "boolean", "default": false, "$comment": "Controls navigability of this relation end only." },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "RamenId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,}$" },
+    "RamenRef": { "type": "string", "pattern": "^(?:[A-Za-z0-9_-]{16,}|[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,})$" },
+    "RamenBounds": {
+      "type": "object",
+      "required": ["lowerBound", "upperBound"],
+      "additionalProperties": false,
+      "properties": { "lowerBound": { "type": "integer", "minimum": 0 }, "upperBound": { "type": "integer", "minimum": -1 } }
+    },
+    "RamenAnnotationProperty": {
+      "type": "object",
+      "required": ["attributeId"],
+      "additionalProperties": false,
+      "properties": { "attributeId": { "$ref": "#/$defs/RamenRef" }, "bounds": { "$ref": "#/$defs/RamenBounds" } }
+    },
+    "RamenAnnotationRelation": {
+      "type": "object",
+      "required": ["relationId", "direction", "bounds"],
+      "additionalProperties": false,
+      "properties": {
+        "relationId": { "$ref": "#/$defs/RamenRef" },
+        "direction": { "enum": ["outgoing", "incoming"] },
+        "bounds": { "$ref": "#/$defs/RamenBounds" }
+      }
+    },
+    "RamenAnnotation": {
+      "type": "object",
+      "required": ["id", "annotationId", "type", "properties", "relations"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/RamenId" },
+        "annotationId": { "$ref": "#/$defs/RamenRef" },
+        "type": { "type": "string", "minLength": 1 },
+        "refines": { "$ref": "#/$defs/RamenRef" },
+        "properties": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationProperty" }, "default": [] },
+        "relations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationRelation" }, "default": [] }
+      }
+    }
+  }
+}

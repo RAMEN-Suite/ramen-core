@@ -14,9 +14,12 @@ export class RamenAnnotationGraph {
   private readonly annotationsByModel: ReadonlyMap<Id, readonly RamenAnnotation[]>;
 
   /** Indexes annotations from every reachable model. */
-  public constructor(private readonly graph: ProjectGraph) {
+  public constructor(
+    private readonly graph: ProjectGraph,
+    models: readonly Model[],
+  ) {
     this.annotationsByModel = new Map<Id, readonly RamenAnnotation[]>(
-      graph.getModels().map((model: Model): [Id, readonly RamenAnnotation[]] => [model.id, RamenAnnotations.get(model)]),
+      models.map((model: Model): [Id, readonly RamenAnnotation[]] => [model.id, RamenAnnotations.get(model)]),
     );
   }
 

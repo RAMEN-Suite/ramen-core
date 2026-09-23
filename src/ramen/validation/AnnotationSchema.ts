@@ -1,10 +1,10 @@
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import schema from '../../resources/schemas/ramen-annotations.schema.json';
 
-/** Canonical identifier of the schema for `Model.ext.ramen` annotation definitions. */
+/** Canonical identifier of the reusable RAMEN annotation definition schema. */
 export const RAMEN_ANNOTATION_SCHEMA_URI: string = 'https://ramen-schema.org/ramen/1.0.0/annotations.schema.json';
 
-/** Validates the object stored below `Model.ext.ramen`. */
+/** Validates an object containing RAMEN annotation definitions. */
 export class RamenAnnotationSchemaValidator {
   private static readonly schemaNode: SchemaNode = compileSchema(schema);
 
@@ -13,7 +13,7 @@ export class RamenAnnotationSchemaValidator {
     return this.schemaNode;
   }
 
-  /** Reports whether an unknown value conforms to the RAMEN extension schema. */
+  /** Reports whether an unknown value conforms to the annotation definition schema. */
   public static isValid(input: unknown): boolean {
     return this.schemaNode.validate(input).valid;
   }

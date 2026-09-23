@@ -1,5 +1,7 @@
 import type { Bounds, Model, Id, Ref } from '../../model/index';
 import { RamenAnnotationSchemaValidator } from '../validation/AnnotationSchema';
+import { RAMEN_PROJECT_SCHEMA_URI } from './Document';
+import type { RamenModelDocument } from './Document';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
 export interface RamenAnnotationProperty {
@@ -24,33 +26,32 @@ export interface RamenAnnotation {
   readonly relations: readonly RamenAnnotationRelation[];
 }
 
-interface RamenModelExtension {
-  readonly annotations?: readonly RamenAnnotation[];
-}
-
-/** Reads and updates the formal `ext.ramen.annotations` section of a RAMEN model. */
+/** Reads and updates annotation definitions in RAMEN project documents. */
 export class RamenAnnotations {
   /** Returns a detached list of annotations declared by the model. */
   public static get(model: Model): readonly RamenAnnotation[] {
-    const ramen: unknown = model.ext?.ramen;
-    if (!RamenAnnotationSchemaValidator.isValid(ramen) || !this.isRecord(ramen) || !Array.isArray(ramen.annotations)) return [];
-    return structuredClone(ramen.annotations) as readonly RamenAnnotation[];
+    if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) return [];
+    const document: RamenModelDocument = model as RamenModelDocument;
+    return RamenAnnotationSchemaValidator.isValid({ annotations: document.annotations })
+      ? structuredClone(document.annotations)
+      : [];
   }
 
-  /** Reports whether a present `ramen.annotations` value has the complete serialized shape. */
+  /** Reports whether the model's annotation definitions have the complete serialized shape. */
   public static hasValidSection(model: Model): boolean {
-    const ramen: unknown = model.ext?.ramen;
-    if (ramen === undefined) return true;
-    return RamenAnnotationSchemaValidator.isValid(ramen);
+    if (model.ext?.ramen !== undefined) return false;
+    if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) return true;
+    const document: RamenModelDocument = model as RamenModelDocument;
+    return RamenAnnotationSchemaValidator.isValid({ annotations: document.annotations });
   }
 
-  /** Returns a model with the annotation appended to its RAMEN section. */
-  public static add(model: Model, annotation: RamenAnnotation): Model {
+  /** Returns a project model with the annotation appended. */
+  public static add<T extends Model>(model: T, annotation: RamenAnnotation): T {
     return this.write(model, [...this.get(model), structuredClone(annotation)]);
   }
 
   /** Returns a model with one declared annotation replaced. */
-  public static update(model: Model, annotationId: Id, annotation: RamenAnnotation): Model {
+  public static update<T extends Model>(model: T, annotationId: Id, annotation: RamenAnnotation): T {
     const current: readonly RamenAnnotation[] = this.get(model);
     if (!current.some((candidate: RamenAnnotation): boolean => candidate.id === annotationId))
       throw new Error(`Annotation not found: '${annotationId}'.`);
@@ -64,7 +65,7 @@ export class RamenAnnotations {
   }
 
   /** Returns a model without one declared annotation. */
-  public static remove(model: Model, annotationId: Id): Model {
+  public static remove<T extends Model>(model: T, annotationId: Id): T {
     const current: readonly RamenAnnotation[] = this.get(model);
     const remaining: readonly RamenAnnotation[] = current.filter(
       (candidate: RamenAnnotation): boolean => candidate.id !== annotationId,
@@ -74,20 +75,8 @@ export class RamenAnnotations {
     return this.write(model, remaining);
   }
 
-  private static getExtension(model: Model): RamenModelExtension {
-    const ramen: unknown = model.ext?.ramen;
-    return this.isRecord(ramen) ? ramen : {};
-  }
-
-  private static write(model: Model, annotations: readonly RamenAnnotation[]): Model {
-    const ramen: RamenModelExtension = this.getExtension(model);
-    return {
-      ...model,
-      ext: { ...(model.ext ?? {}), ramen: { ...ramen, annotations: structuredClone(annotations) } },
-    };
-  }
-
-  private static isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  private static write<T extends Model>(model: T, annotations: readonly RamenAnnotation[]): T {
+    if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) throw new Error('Annotation definitions require a RAMEN project model.');
+    return { ...model, annotations: structuredClone(annotations) };
   }
 }

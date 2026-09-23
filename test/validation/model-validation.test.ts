@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { MODEL_SCHEMA_URI, RAMEN_MODEL, ModelSchemaValidator, ModelValidator, RamenValidator } from '../../dist/index.js';
+import {
+  MODEL_SCHEMA_URI,
+  RAMEN_MODEL,
+  ModelSchemaValidator,
+  ModelValidator,
+  RamenModelFormat,
+  RamenValidator,
+} from '../../dist/index.js';
 import type { Diagnostic, Model, ProjectValidationResult } from '../../dist/index.js';
 
 function derivedModel(): Model {
@@ -32,11 +39,19 @@ void test('publishes the canonical model schema identifier', (): void => {
 });
 
 void test('a missing base import produces a stable diagnostic', (): void => {
-  const project: Model = derivedModel();
+  const project: Model = RamenModelFormat.create(derivedModel());
   project.imports = [];
   const result: ProjectValidationResult = new RamenValidator().validateProject(project.id, [project, RAMEN_MODEL]);
   assert.equal(result.hasErrors, true);
   assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_BASE_MODEL_REQUIRED'));
+});
+
+void test('does not treat a generic model with legacy RAMEN extension data as a project model', (): void => {
+  const legacy: Model = { ...derivedModel(), ext: { ramen: { annotations: [] } } };
+  const result: ProjectValidationResult = new RamenValidator().validateProject(legacy.id, [legacy, RAMEN_MODEL]);
+
+  assert.equal(result.valid, false);
+  assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_PROJECT_FORMAT_REQUIRED'));
 });
 
 void test('project example resolves against the current RAMEN model', async (): Promise<void> => {

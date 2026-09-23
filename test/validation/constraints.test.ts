@@ -22,6 +22,7 @@ void test('evaluates regex constraints with structured diagnostics', () => {
     value: 'lowercase',
     path: DiagnosticPath.root().property('name'),
   });
+
   assert.equal(diagnostics[0]?.code, 'CONSTRAINT_REGEX_MISMATCH');
   assert.equal(diagnostics[0]?.path, '/name');
 });
@@ -35,6 +36,7 @@ void test('reports invalid expressions and unregistered languages', () => {
     value: 'value',
     path: DiagnosticPath.root(),
   };
+
   assert.equal(registry.evaluate(constraint('['), context)[0]?.code, 'CONSTRAINT_EXPRESSION_INVALID');
   assert.equal(registry.evaluate(constraint('x', 'unknown'), context)[0]?.code, 'CONSTRAINT_LANGUAGE_UNSUPPORTED');
 });
@@ -48,6 +50,7 @@ void test('validates standard date and date-time formats', () => {
     value: '2026-09-22',
     path: DiagnosticPath.root(),
   };
+
   assert.deepEqual(registry.evaluate(constraint('date', 'format'), context), []);
   assert.equal(
     registry.evaluate(constraint('date', 'format'), { ...context, value: '2026-02-30' })[0]?.code,

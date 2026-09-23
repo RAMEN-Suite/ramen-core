@@ -19,18 +19,21 @@ export class ModelElementIndex {
   /** Indexes the supplied model without modifying it. */
   public constructor(public readonly model: Model) {
     const imports: Map<Id, string> = new Map<Id, string>();
+
     for (const imp of this.model.imports) {
       imports.set(imp.modelId, imp.modelUri);
     }
 
     const nodes: Map<Id, Node> = new Map<Id, Node>();
     const dataTypes: Map<Id, DataType> = new Map<Id, DataType>();
+
     for (const classifier of this.model.classifiers) {
       if (classifier.kind === 'Node') nodes.set(classifier.id, classifier);
       else if (classifier.kind === 'DataType') dataTypes.set(classifier.id, classifier);
     }
 
     const relations: Map<Id, Relation> = new Map<Id, Relation>();
+
     for (const relation of this.model.relations) {
       relations.set(relation.id, relation);
     }

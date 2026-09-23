@@ -10,9 +10,11 @@ export class ProjectSemanticValidator {
   /** Validates every reachable model and returns all semantic findings. */
   public validate(graph: ProjectGraph): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
+
     for (const model of graph.getModels()) {
       this.validateModel(graph, model, diagnostics);
     }
+
     return diagnostics;
   }
 
@@ -20,20 +22,24 @@ export class ProjectSemanticValidator {
     this.validateImports(model, diagnostics);
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
+
       if (classifier.kind === 'Node') this.validateNode(graph, model.id, classifier, path, diagnostics);
       else this.validateDataType(classifier, path, diagnostics);
     });
     model.relations.forEach((relation: Relation, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'relations', index);
+
       this.validateRelation(graph, model.id, relation, path, diagnostics);
     });
   }
 
   private validateImports(model: Model, diagnostics: Diagnostic[]): void {
     const firstIndexByModelId: Map<Id, number> = new Map<Id, number>();
+
     model.imports.forEach((modelImport: Import, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id).property('imports').index(index);
       const previousIndex: number | undefined = firstIndexByModelId.get(modelImport.modelId);
+
       if (previousIndex !== undefined) {
         diagnostics.push(
           this.error(
@@ -59,9 +65,12 @@ export class ProjectSemanticValidator {
 
   private validateDataType(dataType: DataType, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     const literals: readonly Literal[] | undefined = dataType.literals;
+
     if (!literals) return;
     this.validateLiteralUniqueness(literals, path, diagnostics);
+
     const withValue: number = literals.filter((literal: Literal): boolean => literal.value !== undefined).length;
+
     if (withValue > 0 && withValue < literals.length) {
       diagnostics.push(
         Diagnostics.warn({
@@ -78,8 +87,10 @@ export class ProjectSemanticValidator {
     const names: Set<string> = new Set<string>();
     const serialized: Set<string> = new Set<string>();
     const values: Set<number> = new Set<number>();
+
     literals.forEach((literal: Literal, index: number): void => {
       const literalPath: DiagnosticPath = path.property('literals').index(index);
+
       this.registerLiteralValue(
         names,
         literal.name,
@@ -87,10 +98,12 @@ export class ProjectSemanticValidator {
         literalPath.property('name'),
         diagnostics,
       );
+
       const explicitLiteral: string | undefined = literal.literal?.trim();
       const hasExplicitLiteral: boolean = explicitLiteral !== undefined && explicitLiteral.length > 0;
       const serializedValue: string =
         explicitLiteral === undefined || explicitLiteral.length === 0 ? literal.name : explicitLiteral;
+
       this.registerLiteralValue(
         serialized,
         serializedValue,
@@ -131,6 +144,7 @@ export class ProjectSemanticValidator {
           node.id,
         ),
       );
+
       return;
     }
 
@@ -140,8 +154,10 @@ export class ProjectSemanticValidator {
 
   private validateLocalAttributes(node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     const localNames: Set<string> = new Set<string>();
+
     node.attributes.forEach((attribute: Attribute, index: number): void => {
       const attributePath: DiagnosticPath = path.property('attributes').index(index);
+
       if (localNames.has(attribute.name)) {
         diagnostics.push(
           this.error(
@@ -165,6 +181,7 @@ export class ProjectSemanticValidator {
     diagnostics: Diagnostic[],
   ): void {
     const inheritedNames: Set<string> = new Set<string>();
+
     for (const ancestor of graph.getNodeAncestors(modelId, node.id)) {
       for (const attribute of ancestor.element.attributes) inheritedNames.add(attribute.name);
     }
@@ -220,6 +237,7 @@ export class ProjectSemanticValidator {
           relation.id,
         ),
       );
+
       return;
     }
 
@@ -238,8 +256,11 @@ export class ProjectSemanticValidator {
     this.validateRoleConflicts(graph, modelId, relation, path, diagnostics);
 
     const superType: Ref | undefined = relation.superTypes[0];
+
     if (!superType) return;
+
     const base: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(modelId, superType);
+
     if (!base) return;
     this.validateRelationRefinement(graph, modelId, relation, base, path, diagnostics);
   }
@@ -261,6 +282,7 @@ export class ProjectSemanticValidator {
   ): void {
     const from: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, relation.from.nodeId);
     const to: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, relation.to.nodeId);
+
     if (from) this.validateRoleAgainstNode(graph, from, relation.to.role, path.property('to').property('role'), diagnostics);
     if (to) this.validateRoleAgainstNode(graph, to, relation.from.role, path.property('from').property('role'), diagnostics);
   }
@@ -273,6 +295,7 @@ export class ProjectSemanticValidator {
     diagnostics: Diagnostic[],
   ): void {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, target.modelId, target.element.id);
+
     if (effective?.attributes.some((attribute: Attribute): boolean => attribute.name === role)) {
       diagnostics.push(
         this.error(
@@ -324,6 +347,7 @@ export class ProjectSemanticValidator {
 
     const actualNode: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);
     const requiredNode: ResolvedModelElement<Node> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
+
     if (actualNode && requiredNode && !graph.isNodeSameOrSubtype(actualNode, requiredNode)) {
       diagnostics.push(
         this.error(

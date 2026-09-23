@@ -25,12 +25,15 @@ void test('bundles reachable models and restores their boundaries', () => {
   const base: Model = model(BASE_ID);
   const root: Model = model(ROOT_ID, base);
   const result: CreateBundleResult = createModelBundle(ROOT_ID, [root, base]);
+
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.bundle.$schema, MODEL_BUNDLE_SCHEMA);
+
   const serialized: string = JSON.stringify(result.bundle);
   const parsed: unknown = JSON.parse(serialized) as unknown;
   const models: readonly Model[] = splitModelBundle(parsed);
+
   assert.deepEqual(models, [root, base]);
   assert.equal(models[0]?.imports[0]?.modelId, BASE_ID);
 });
@@ -40,6 +43,7 @@ void test('excludes models outside the root import closure', () => {
   const root: Model = model(ROOT_ID, base);
   const unrelated: Model = model('unrelated0000001');
   const result: CreateBundleResult = createModelBundle(ROOT_ID, [root, base, unrelated]);
+
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.deepEqual(
@@ -55,11 +59,14 @@ void test('rejects malformed bundle JSON', () => {
 void test('rejects a bundle whose root cannot be resolved', () => {
   const base: Model = model(BASE_ID);
   const result: CreateBundleResult = createModelBundle(BASE_ID, [base]);
+
   assert.equal(result.ok, true);
   if (!result.ok) return;
+
   const invalid: { rootModelId: string; $schema: string; kind: 'ModelBundle'; version: string; models: Model[] } = {
     ...result.bundle,
     rootModelId: ROOT_ID,
   };
+
   assert.throws((): readonly Model[] => splitModelBundle(invalid), /Root model not found/);
 });

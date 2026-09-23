@@ -22,6 +22,7 @@ export class ModelSchemaValidator {
   /** Asserts schema conformance and throws a formatted validation error on failure. */
   public static assertValid(input: unknown): asserts input is Model {
     const { valid, errors } = this.schemaNode.validate(input);
+
     if (!valid) {
       throw new Error(`Validation Error: ${ModelSchemaValidator.formatErrors(errors)}`);
     }
@@ -31,6 +32,7 @@ export class ModelSchemaValidator {
     return errors
       .map((error: JsonError): string => {
         const code: string = typeof error.code === 'string' ? error.code : (JSON.stringify(error.code) ?? 'unknown');
+
         return `[${code}] ${error.message}`;
       })
       .join('\n');

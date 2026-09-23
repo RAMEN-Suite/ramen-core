@@ -22,8 +22,11 @@ export class InstanceSchemaValidator {
   /** Asserts instance graph structure and throws a formatted validation error on failure. */
   public static assertValid(input: unknown): asserts input is ModelInstanceGraph {
     const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input);
+
     if (result.valid) return;
+
     const details: string = result.errors.map((error: JsonError): string => error.message).join('\n');
+
     throw new Error(`Instance schema validation failed: ${details}`);
   }
 }

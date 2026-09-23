@@ -29,7 +29,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
     "lint": "eslint src test",
-    "lint:fix": "eslint src --fix",
+    "lint:fix": "eslint src test --fix",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
     "verify": "npm run build && npm run lint && npm run format && npm run typecheck && npm run docs:check && npm test",

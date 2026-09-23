@@ -25,6 +25,7 @@ function graph(): ProjectGraph {
   const schema: Model = model(MODEL_ID);
   const person: Node = node(PERSON_ID, 'Person');
   const name: Attribute = attribute('personNameAttr01', 'name', 'String', boundsOf(1, 1));
+
   name.constraints = [
     {
       id: 'personNameRule01',
@@ -37,9 +38,12 @@ function graph(): ProjectGraph {
   person.attributes.push(name, attribute('personTagsAttr01', 'tags', 'String', boundsOf(0, -1)));
   schema.classifiers.push(person, node(PLACE_ID, 'Place'));
   schema.relations.push(relation(RELATION_ID, 'LOCATED_AT', PERSON_ID, PLACE_ID, boundsOf(1, 1)));
+
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: MODEL_ID, models: [schema] });
+
   assert.equal(result.ok, true);
   if (!result.ok) throw new Error('Test graph could not be built.');
+
   return result.graph;
 }
 
@@ -57,6 +61,7 @@ void test('validates closed properties, values, arrays, and constraints', () => 
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
   const codes: string[] = result.diagnostics.map((diagnostic) => diagnostic.code);
+
   assert.ok(codes.includes('INSTANCE_PROPERTY_UNKNOWN'));
   assert.ok(codes.includes('INSTANCE_PROPERTY_ARRAY_REQUIRED'));
   assert.ok(codes.includes('CONSTRAINT_REGEX_MISMATCH'));
@@ -76,6 +81,7 @@ void test('rejects undeclared fields outside the modeled properties object', () 
     relations: [],
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), input);
+
   assert.equal(result.diagnostics[0]?.code, 'INSTANCE_SCHEMA_INVALID');
 });
 
@@ -89,6 +95,7 @@ void test('accepts valid nodes and relation cardinalities', () => {
     relations: [{ id: 'locatedInstance1', typeId: RELATION_ID, fromId: 'personInstance01', toId: 'placeInstance001' }],
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
+
   assert.deepEqual(result.diagnostics, []);
 });
 
@@ -103,12 +110,14 @@ void test('validates relation endpoint types and required cardinalities', () => 
   };
   const result: ValidationResult = new InstanceValidator().validate(graph(), instance);
   const codes: string[] = result.diagnostics.map((diagnostic) => diagnostic.code);
+
   assert.ok(codes.includes('INSTANCE_RELATION_END_TYPE_INVALID'));
   assert.ok(codes.includes('INSTANCE_CARDINALITY_INVALID'));
 });
 
 void test('validates a modeled Date datatype as a constrained String', () => {
   const schema: Model = model('dateModel0000001');
+
   schema.classifiers.push(
     {
       kind: 'DataType',
@@ -122,13 +131,17 @@ void test('validates a modeled Date datatype as a constrained String', () => {
       attributes: [attribute('eventDateAttr001', 'date', 'dateDataType0001', boundsOf(1, 1))],
     },
   );
+
   const built: ProjectGraphResult = buildProjectGraph({ rootModelId: schema.id, models: [schema] });
+
   assert.equal(built.ok, true);
   if (!built.ok) return;
+
   const result: ValidationResult = new InstanceValidator().validate(built.graph, {
     modelId: schema.id,
     nodes: [{ id: 'eventInstance001', typeId: 'eventNode0000001', properties: { date: '2026-02-30' } }],
     relations: [],
   });
+
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === 'CONSTRAINT_FORMAT_MISMATCH'));
 });

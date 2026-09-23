@@ -67,6 +67,7 @@ export class ModelFactory {
   /** Creates an empty model with an exact import of the supplied base model. */
   public static createModel(base: Model, input: CreateModelInput): Model {
     const schemaUri: string | undefined = ModelSchemaValidator.getSchemaNode().$id;
+
     if (!schemaUri) throw new Error('RAMEN model format schema has no $id.');
 
     return {
@@ -138,6 +139,7 @@ export class ModelFactory {
   public static createRelation(base: Model, baseId: Id, input: CreateRelationInput): Relation {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
     const baseRelation: Relation | undefined = baseIndex.relationsById.get(input.baseRelationId);
+
     if (!baseRelation) throw new Error(`Base relation not found: ${input.baseRelationId}`);
 
     return {
@@ -169,12 +171,14 @@ export class ModelFactory {
   /** Deeply duplicates a node and assigns new identifiers to its owned elements. */
   public static duplicateNode(node: Node): Node {
     const cloned: Node = structuredClone(node);
+
     cloned.id = this.createIdentifier();
     cloned.name = `${node.name} (copy)`;
 
     const constraintFn: (constraint: Constraint) => Constraint = (constraint: Constraint): Constraint => {
       return { ...constraint, id: this.createIdentifier() };
     };
+
     cloned.constraints = cloned.constraints?.map(constraintFn);
     cloned.attributes = cloned.attributes.map((attribute: Attribute): Attribute => {
       return { ...attribute, id: this.createIdentifier(), constraints: attribute.constraints?.map(constraintFn) };
@@ -187,6 +191,7 @@ export class ModelFactory {
   public static duplicateConnectedNode(model: Model, sourceNodeId: Id): ConnectedNode {
     const index: ModelElementIndex = new ModelElementIndex(model);
     const source: Node | undefined = index.nodesById.get(sourceNodeId);
+
     if (!source) throw new Error(`Node not found: ${sourceNodeId}`);
 
     const clonedNode: Node = this.duplicateNode(source);
@@ -194,9 +199,11 @@ export class ModelFactory {
 
     for (const relation of model.relations) {
       const isRelevant: boolean = relation.from.nodeId === sourceNodeId || relation.to.nodeId === sourceNodeId;
+
       if (!isRelevant) continue;
 
       const clonedRelation: Relation = structuredClone(relation);
+
       clonedRelation.id = this.createIdentifier();
       clonedRelation.from.id = this.createIdentifier();
       clonedRelation.to.id = this.createIdentifier();

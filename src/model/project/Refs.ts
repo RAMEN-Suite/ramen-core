@@ -21,6 +21,7 @@ export class ModelRef {
     }
 
     const index: number = ref.indexOf(':');
+
     return { modelId: ref.slice(0, index), refId: ref.slice(index + 1) };
   }
 

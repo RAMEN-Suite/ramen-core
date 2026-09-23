@@ -14,6 +14,7 @@ import type { CorrespondenceFixture, ScholarlyFixture } from './fixtures.ts';
 
 void test('creates and validates a Correspondence model with Letter, Witness, and five annotations', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+
   assert.equal(fixture.project.validate().valid, true);
   assert.deepEqual(
     fixture.project.getAnnotations().map((annotation): string => annotation.type),
@@ -24,7 +25,9 @@ void test('creates and validates a Correspondence model with Letter, Witness, an
 void test('suggests all attachable annotations for Text and Person', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+
   assert.ok(advisor);
+
   const text: readonly string[] = annotationTypes(
     advisor.suggestAnnotationsForNode(CORRESPONDENCE_MODEL_ID, fixture.nodes.text.id),
   );
@@ -32,6 +35,7 @@ void test('suggests all attachable annotations for Text and Person', (): void =>
     advisor.suggestAnnotationsForNode(CORRESPONDENCE_MODEL_ID, fixture.nodes.person.id),
   );
   const expected: readonly string[] = ['comment', 'date', 'externalReference', 'persName', 'placeName'];
+
   assert.deepEqual(text, expected);
   assert.deepEqual(person, expected);
 });
@@ -39,12 +43,15 @@ void test('suggests all attachable annotations for Text and Person', (): void =>
 void test('suggests only the modeled relation of persName', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+
   assert.ok(advisor);
+
   const relations: readonly AnnotationRelationAdvice[] = advisor.suggestRelationsForAnnotation(
     CORRESPONDENCE_MODEL_ID,
     fixture.nodes.annotation.id,
     'persName',
   );
+
   assert.equal(relations.length, 1);
   assert.equal(relations[0]?.name, 'REFERS_TO');
   assert.equal(relations[0]?.targetName, 'Person');
@@ -54,11 +61,14 @@ void test('suggests only the modeled relation of persName', (): void => {
 void test('suggests Letter above Witness and Text below Witness', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+
   assert.ok(advisor);
+
   const connections: readonly NodeRelationSuggestion[] = advisor.suggestConnections(
     CORRESPONDENCE_MODEL_ID,
     fixture.nodes.witness.id,
   );
+
   assert.ok(
     connections.some(
       (relation: NodeRelationSuggestion): boolean =>
@@ -77,11 +87,14 @@ void test('refines the complete Correspondence model at another level', (): void
   const base: CorrespondenceFixture = createCorrespondenceFixture();
   const scholarly: ScholarlyFixture = createScholarlyFixture(base);
   const advisor: RamenAdvisor | undefined = scholarly.project.createAdvisor();
+
   assert.ok(advisor);
+
   const annotations: readonly string[] = annotationTypes(
     advisor.suggestAnnotations(SCHOLARLY_MODEL_ID, scholarly.nodes.annotation.id),
   );
   const witness: NodeAdvice | undefined = advisor.adviseNode(SCHOLARLY_MODEL_ID, scholarly.nodes.witness.id);
+
   assert.deepEqual(annotations, ['comment', 'date', 'externalReference', 'persName', 'placeName']);
   assert.deepEqual(
     witness?.lineage.map((item): string => item.name),
@@ -109,8 +122,11 @@ void test('retains annotation semantics through an arbitrary third project level
     refines: { modelId: scholarly.model.id, elementId: scholarly.nodes.annotation.id },
   }).element;
   const advisor: RamenAdvisor | undefined = edition.createAdvisor();
+
   assert.ok(advisor);
+
   const types: readonly string[] = annotationTypes(advisor.suggestAnnotations(edition.getModel().id, annotation.id));
+
   assert.deepEqual(types, ['comment', 'date', 'externalReference', 'persName', 'placeName']);
   assert.equal(edition.getModels().length, 4);
 });

@@ -21,7 +21,9 @@ export class ModelEditor {
     const classifiers: Classifier[] = model.classifiers ?? [];
 
     const filtered: Classifier[] = classifiers.filter((c: Classifier): boolean => c.id !== classifierId);
+
     if (filtered.length === classifiers.length) throw new Error(`Classifier not found: ${classifierId}`);
+
     return { ...model, classifiers: filtered };
   }
 
@@ -35,10 +37,12 @@ export class ModelEditor {
       if (classifier.id !== nodeId) return classifier;
 
       found = true;
+
       return { ...classifier, ...patch };
     });
 
     if (!found) throw new Error(`Node not found: ${nodeId}`);
+
     return { ...model, classifiers: patched };
   }
 
@@ -50,10 +54,12 @@ export class ModelEditor {
     const remainingRelations: Relation[] = relations.filter((relation: Relation): boolean => {
       const fromId: Id = relation.from.nodeId;
       const toId: Id = relation.to.nodeId;
+
       return fromId !== nodeId && toId !== nodeId;
     });
 
     if (remainingRelations.length !== relations.length) newModel = { ...newModel, relations: remainingRelations };
+
     return newModel;
   }
 
@@ -67,10 +73,12 @@ export class ModelEditor {
       if (collection.id !== dataTypeId) return collection;
 
       found = true;
+
       return { ...collection, ...patch };
     });
 
     if (!found) throw new Error(`DataType not found: ${dataTypeId}`);
+
     return { ...model, classifiers: patched };
   }
 
@@ -88,10 +96,12 @@ export class ModelEditor {
       if (relation.id !== relationId) return relation;
 
       found = true;
+
       return { ...relation, ...patch };
     });
 
     if (!found) throw new Error(`Relation not found: ${relationId}`);
+
     return { ...model, relations: patched };
   }
 
@@ -99,7 +109,9 @@ export class ModelEditor {
   public static removeRelationById(model: Model, relationId: string): Model {
     const relations: Relation[] = model.relations ?? [];
     const filtered: Relation[] = relations.filter((relation: Relation): boolean => relation.id !== relationId);
+
     if (filtered.length === relations.length) throw new Error(`Relation not found: ${relationId}`);
+
     return { ...model, relations: filtered };
   }
 
@@ -113,12 +125,15 @@ export class ModelEditor {
       if (classifier.id !== nodeId) return classifier;
 
       foundNode = true;
+
       const node: Node = classifier;
       const attributes: readonly Attribute[] = node.attributes ?? [];
+
       return { ...node, attributes: [...attributes, attribute] };
     });
 
     if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
+
     return { ...model, classifiers: patched };
   }
 
@@ -135,12 +150,14 @@ export class ModelEditor {
       if (classifier.id !== nodeId) return classifier;
 
       foundNode = true;
+
       const node: Node = classifier;
       const attributes: readonly Attribute[] = node.attributes ?? [];
 
       const nextAttributes: Attribute[] = attributes.map((attribute: Attribute): Attribute => {
         if (attribute.name !== name) return attribute;
         foundAttribute = true;
+
         return { ...attribute, ...patch, name: newName };
       });
 
@@ -149,6 +166,7 @@ export class ModelEditor {
 
     if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
     if (!foundAttribute) throw new Error(`Attribute not found: '${name}'`);
+
     return { ...model, classifiers: patched };
   }
 
@@ -169,11 +187,13 @@ export class ModelEditor {
       const filtered: Attribute[] = attributes.filter((attribute: Attribute): boolean => attribute.name !== name);
 
       if (filtered.length !== attributes.length) removed = true;
+
       return removed ? { ...node, attributes: filtered } : node;
     });
 
     if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
     if (!removed) throw new Error(`Attribute not found: '${name}'`);
+
     return { ...model, classifiers: patched };
   }
 }

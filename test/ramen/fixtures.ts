@@ -73,7 +73,9 @@ export function createCorrespondenceFixture(): CorrespondenceFixture {
   const relations: CorrespondenceRelations = createBaseRelations(project, nodes);
   const annotations: CorrespondenceAnnotations = createAnnotations(project, nodes, relations, url);
   const model: Model = project.getModel();
+
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
+
   return { project: project, model: model, nodes: nodes, relations: relations, annotations: annotations, url: url };
 }
 
@@ -85,7 +87,9 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
     version: '1.0.0',
   });
   const nodes: CorrespondenceNodes = createRefinedNodes(project, base);
+
   createRefinedRelations(project, base, nodes);
+
   const persName: RamenAnnotation = project.refineAnnotation({
     annotationId: nodes.annotation.id,
     refines: { modelId: base.model.id, elementId: base.annotations.persName.id },
@@ -98,7 +102,9 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
     ],
   }).element;
   const model: Model = project.getModel();
+
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
+
   return { project: project, model: model, nodes: nodes, persName: persName };
 }
 
@@ -126,6 +132,7 @@ function createRefinedNodes(project: RamenProject, base: CorrespondenceFixture):
 
 function createNode(project: RamenProject, name: string, elementId: string, modelId: string): Node {
   const change: RamenChange<Node> = project.createNode({ name: name, refines: { modelId: modelId, elementId: elementId } });
+
   return change.element;
 }
 
@@ -153,16 +160,21 @@ function createRefinedRelations(project: RamenProject, base: CorrespondenceFixtu
 
 function createRelation(project: RamenProject, fromId: string, toId: string, name: string): Relation {
   const advisor: RamenAdvisor | undefined = project.createAdvisor();
+
   assert.ok(advisor);
+
   const suggestion: RelationRefinementSuggestion | undefined = advisor
     .suggestRelations(project.getModel().id, fromId, toId)
     .find((item: RelationRefinementSuggestion): boolean => item.name === name);
+
   assert.ok(suggestion, `Missing ${name} suggestion for ${fromId} -> ${toId}`);
+
   const change: RamenChange<Relation> = project.createRelation({
     refines: { modelId: suggestion.modelId, elementId: suggestion.relationId },
     fromNodeId: fromId,
     toNodeId: toId,
   });
+
   return change.element;
 }
 
@@ -178,6 +190,7 @@ function createRelationFromBase(
     fromNodeId: fromId,
     toNodeId: toId,
   });
+
   return change.element;
 }
 
@@ -188,7 +201,9 @@ function findRelation(project: RamenProject, fromId: string, toId: string, name:
       (candidate: Relation): boolean =>
         candidate.from.nodeId === fromId && candidate.to.nodeId === toId && candidate.name === name,
     );
+
   assert.ok(relation);
+
   return relation;
 }
 
@@ -221,6 +236,7 @@ function createAnnotations(
     type: 'externalReference',
     properties: [{ attributeId: url.id, bounds: { lowerBound: 1, upperBound: 1 } }],
   }).element;
+
   return {
     persName: persName,
     placeName: placeName,

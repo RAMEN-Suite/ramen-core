@@ -90,6 +90,7 @@ export class RamenProject {
       ...dependencies.map((model: Model): [Id, Model] => [model.id, model]),
       [base.id, base],
     ]);
+
     return new RamenProject(ModelFactory.createModel(base, input), [...models.values()]);
   }
 
@@ -121,6 +122,7 @@ export class RamenProject {
   /** Creates an advisor when the current project is valid. */
   public createAdvisor(): RamenAdvisor | undefined {
     const result: ProjectValidationResult = this.validate();
+
     return result.valid ? new RamenAdvisor(result) : undefined;
   }
 
@@ -130,7 +132,9 @@ export class RamenProject {
       name: input.name,
       baseNodeId: input.refines.elementId,
     });
+
     this.model = ModelEditor.addClassifier(this.model, node);
+
     return this.change(node);
   }
 
@@ -148,14 +152,18 @@ export class RamenProject {
       properties: structuredClone(input.properties ?? []),
       relations: structuredClone(input.relations ?? []),
     };
+
     this.model = RamenAnnotations.add(this.model, annotation);
+
     return this.change(annotation);
   }
 
   /** Narrows an inherited annotation definition for a refined local Annotation node. */
   public refineAnnotation(input: RefineRamenAnnotationInput): RamenChange<RamenAnnotation> {
     const parent: RamenAnnotation | undefined = this.findAnnotation(input.refines);
+
     if (!parent) throw new Error(`Annotation definition not found: '${input.refines.modelId}:${input.refines.elementId}'.`);
+
     const annotation: RamenAnnotation = {
       id: ModelFactory.createIdentifier(),
       annotationId: input.annotationId,
@@ -164,7 +172,9 @@ export class RamenProject {
       properties: structuredClone(input.properties ?? []),
       relations: structuredClone(input.relations ?? []),
     };
+
     this.model = RamenAnnotations.add(this.model, annotation);
+
     return this.change(annotation);
   }
 
@@ -173,14 +183,18 @@ export class RamenProject {
     const current: RamenAnnotation | undefined = this.getAnnotations().find(
       (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
     );
+
     if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
+
     const annotation: RamenAnnotation = {
       ...current,
       type: input.type ?? current.type,
       properties: structuredClone(input.properties ?? current.properties),
       relations: structuredClone(input.relations ?? current.relations),
     };
+
     this.model = RamenAnnotations.update(this.model, annotationId, annotation);
+
     return this.change(annotation);
   }
 
@@ -189,29 +203,37 @@ export class RamenProject {
     const current: RamenAnnotation | undefined = this.getAnnotations().find(
       (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
     );
+
     if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
     this.model = RamenAnnotations.remove(this.model, annotationId);
+
     return this.change(current);
   }
 
   /** Adds an attribute to a local node and immediately validates the resulting project. */
   public createAttribute(nodeId: Id, input: CreateAttributeInput): RamenChange<Attribute> {
     const attribute: Attribute = ModelFactory.createAttribute(input);
+
     this.model = ModelEditor.addAttribute(this.model, nodeId, attribute);
+
     return this.change(attribute);
   }
 
   /** Adds a scalar data type and immediately validates the resulting project. */
   public createDataType(input: CreateDataTypeInput): RamenChange<DataType> {
     const dataType: DataType = ModelFactory.createDataType(input);
+
     this.model = ModelEditor.addClassifier(this.model, dataType);
+
     return this.change(dataType);
   }
 
   /** Adds a relation refinement and immediately validates the resulting project. */
   public createRelation(input: CreateRamenRelationInput): RamenChange<Relation> {
     const base: Model | undefined = this.findModel(input.refines.modelId);
+
     if (!base) throw new Error(`Relation base model not found: '${input.refines.modelId}'.`);
+
     const relation: Relation = ModelFactory.createRelation(base, input.refines.modelId, {
       baseRelationId: input.refines.elementId,
       fromNodeId: input.fromNodeId,
@@ -222,7 +244,9 @@ export class RamenProject {
       from: { ...relation.from, bounds: input.fromBounds ?? relation.from.bounds },
       to: { ...relation.to, bounds: input.toBounds ?? relation.to.bounds },
     };
+
     this.model = ModelEditor.addRelation(this.model, narrowed);
+
     return this.change(narrowed);
   }
 
@@ -232,18 +256,23 @@ export class RamenProject {
 
   private validationInputs(): readonly Model[] {
     const models: Map<Id, Model> = new Map<Id, Model>(this.dependencies);
+
     models.set(this.model.id, this.model);
+
     return [...models.values()];
   }
 
   private findModel(modelId: Id): Model | undefined {
     if (modelId === this.model.id) return this.model;
+
     return this.dependencies.get(modelId);
   }
 
   private findAnnotation(reference: RamenElementRef): RamenAnnotation | undefined {
     const model: Model | undefined = this.findModel(reference.modelId);
+
     if (!model) return undefined;
+
     return RamenAnnotations.get(model).find((annotation: RamenAnnotation): boolean => annotation.id === reference.elementId);
   }
 }

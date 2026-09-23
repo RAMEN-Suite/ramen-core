@@ -19,9 +19,12 @@ function derivedModel(): Model {
 
 void test('RAMEN model and minimal project pass schema and semantic validation', () => {
   const project: Model = derivedModel();
+
   assert.equal(ModelSchemaValidator.isValid(RAMEN_MODEL), true);
   assert.equal(ModelSchemaValidator.isValid(project), true);
+
   const result: ProjectValidationResult = new ModelValidator().validateProject(project.id, [project, RAMEN_MODEL]);
+
   assert.equal(result.hasErrors, false);
   assert.deepEqual(result.diagnostics, []);
 });
@@ -32,8 +35,11 @@ void test('publishes the canonical model schema identifier', (): void => {
 
 void test('a missing base import produces a stable diagnostic', () => {
   const project: Model = derivedModel();
+
   project.imports = [];
+
   const result: ProjectValidationResult = new RamenValidator().validateProject(project.id, [project, RAMEN_MODEL]);
+
   assert.equal(result.hasErrors, true);
   assert.ok(result.diagnostics.some((d: { code: string }) => d.code === 'RAMEN_BASE_MODEL_REQUIRED'));
 });
@@ -41,14 +47,18 @@ void test('a missing base import produces a stable diagnostic', () => {
 void test('project example resolves against the current RAMEN model', async () => {
   const { readFileSync } = await import('node:fs');
   const example: unknown = JSON.parse(readFileSync(new URL('../fixtures/example.model.json', import.meta.url), 'utf8'));
+
   ModelSchemaValidator.assertValid(example);
+
   const result: ProjectValidationResult = new ModelValidator().validateProject(example.id, [example, RAMEN_MODEL]);
+
   assert.equal(result.hasErrors, false, JSON.stringify(result.diagnostics));
   assert.deepEqual(result.diagnostics, []);
 });
 
 void test('project graph errors stop semantic validation', () => {
   const project: Model = derivedModel();
+
   project.imports.push({
     modelUri: 'https://example.org/missing',
     modelId: 'missingModel0001',
@@ -68,6 +78,7 @@ void test('schema rejects imports without an exact model version', () => {
     ...project,
     imports: [{ modelUri: RAMEN_MODEL.$id, modelId: RAMEN_MODEL.id }],
   };
+
   assert.equal(ModelSchemaValidator.isValid(invalid), false);
 });
 
@@ -85,5 +96,6 @@ void test('schema rejects nested model elements without stable ids', () => {
       },
     ],
   };
+
   assert.equal(ModelSchemaValidator.isValid(invalid), false);
 });

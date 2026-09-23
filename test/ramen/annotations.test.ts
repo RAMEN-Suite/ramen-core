@@ -18,6 +18,7 @@ void test('stores five closed annotation definitions outside the model node list
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const annotations: readonly RamenAnnotation[] = fixture.project.getAnnotations();
   const types: readonly string[] = annotations.map((annotation: RamenAnnotation): string => annotation.type).sort();
+
   assert.equal(fixture.model.classifiers.filter((item): boolean => item.kind === 'Node').length, 6);
   assert.deepEqual(types, ['comment', 'date', 'externalReference', 'persName', 'placeName']);
   assert.deepEqual(fixture.model.ext?.ramen, { annotations: annotations });
@@ -28,10 +29,13 @@ void test('advises selectable annotation properties and their cardinalities', ()
   const advice: AnnotationAdvice | undefined = fixture.project
     .createAdvisor()
     ?.adviseAnnotation(fixture.model.id, fixture.nodes.annotation.id);
+
   assert.ok(advice);
+
   const url: AnnotationPropertyAdvice | undefined = advice.properties.find(
     (property: AnnotationPropertyAdvice): boolean => property.attributeId === fixture.url.id,
   );
+
   assert.ok(url);
   assert.deepEqual(url.cardinalityOptions, [
     { lowerBound: 0, upperBound: 1 },
@@ -46,6 +50,7 @@ void test('validates an annotation instance against its selected property set', 
   const validGraph: ModelInstanceGraph = annotationGraph(fixture, 'externalReference', { url: 'https://example.org' });
   const invalid: ValidationResult = validator.validate(fixture.model.id, [fixture.model, RAMEN_MODEL], invalidGraph);
   const valid: ValidationResult = validator.validate(fixture.model.id, [fixture.model, RAMEN_MODEL], validGraph);
+
   assert.ok(
     invalid.diagnostics.some((diagnostic): boolean => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED'),
   );
@@ -58,6 +63,7 @@ void test('rejects duplicate types and implicit replacement of inherited definit
     annotationId: fixture.nodes.annotation.id,
     type: 'persName',
   });
+
   assert.ok(
     duplicate.validation.diagnostics.some((diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE'),
   );
@@ -73,6 +79,7 @@ void test('rejects duplicate types and implicit replacement of inherited definit
     refines: { modelId: fixture.model.id, elementId: fixture.nodes.annotation.id },
   }).element.id;
   const replacement: RamenChange<RamenAnnotation> = child.createAnnotation({ annotationId: annotationId, type: 'persName' });
+
   assert.ok(
     replacement.validation.diagnostics.some((diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED'),
   );
@@ -82,6 +89,7 @@ void test('rejects a malformed serialized annotation extension', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const malformed: Model = { ...fixture.model, ext: { ramen: { annotations: [{ id: 'incomplete' }] } } };
   const result: ProjectValidationResult = RamenProject.load(malformed).validate();
+
   assert.ok(result.diagnostics.some((diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATIONS_INVALID'));
 });
 

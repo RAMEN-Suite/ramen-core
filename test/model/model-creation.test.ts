@@ -58,6 +58,7 @@ void test('createDataType creates an empty custom data type', () => {
 
 void test('createRelation copies roles and bounds from its base relation', () => {
   const baseRelation: Relation | undefined = RAMEN_MODEL.relations[0];
+
   assert.ok(baseRelation, 'RAMEN must contain a relation for this contract test');
 
   const relation: Relation = ModelFactory.createRelation(RAMEN_MODEL, RAMEN_MODEL.id, {
@@ -75,6 +76,7 @@ void test('createRelation copies roles and bounds from its base relation', () =>
 
 void test('createLiteral creates an identifiable enum literal', () => {
   const literal: Literal = ModelFactory.createLiteral('Published', 'published', 1);
+
   assert.equal(literal.id.length, 16);
   assert.equal(literal.literal, 'published');
   assert.equal(literal.value, 1);
@@ -82,6 +84,7 @@ void test('createLiteral creates an identifiable enum literal', () => {
 
 void test('createRelationEnd creates an identifiable relation end', () => {
   const end: RelationEnd = ModelFactory.createRelationEnd('localNode000001', 'documents', { lowerBound: 0, upperBound: -1 });
+
   assert.equal(end.id.length, 16);
   assert.equal(end.nodeId, 'localNode000001');
   assert.deepEqual(end.bounds, { lowerBound: 0, upperBound: -1 });

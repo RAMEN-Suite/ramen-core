@@ -9,6 +9,7 @@ export class ModelSemantics {
   public static areBoundsCoherent(bounds: Bounds): boolean {
     if (bounds.lowerBound < 0) return false;
     if (bounds.upperBound === this.UNBOUNDED) return true;
+
     return bounds.upperBound >= bounds.lowerBound;
   }
 
@@ -18,6 +19,7 @@ export class ModelSemantics {
     if (model.lowerBound < base.lowerBound) return false;
     if (base.upperBound === this.UNBOUNDED) return true;
     if (model.upperBound === this.UNBOUNDED) return false;
+
     return model.upperBound <= base.upperBound;
   }
 

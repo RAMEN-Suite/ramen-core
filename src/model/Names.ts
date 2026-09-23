@@ -29,12 +29,14 @@ export class ModelNames {
       .slice(0, 32);
 
     const camelized: string = pascalized.charAt(0).toLowerCase() + pascalized.slice(1);
+
     return PROPERTY_VALID_START.test(camelized) ? camelized : `p${camelized}`;
   }
 
   /** Converts text to an uppercase underscore-separated relation name. */
   public static toScreamedName(str: string): string {
     const screamingSnake: string = (str.match(RELATIONSHIP_NAME) ?? []).join('_').toUpperCase().slice(0, 32);
+
     return RELATIONSHIP_VALID_START.test(screamingSnake) ? screamingSnake : `R_${screamingSnake}`;
   }
 }

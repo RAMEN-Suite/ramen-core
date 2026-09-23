@@ -19,6 +19,7 @@ export class InstanceRelationValidator {
   ): readonly ResolvedInstanceRelation[] {
     const ids: Set<Id> = new Set<Id>();
     const result: ResolvedInstanceRelation[] = [];
+
     instance.relations.forEach((relation: ModelInstanceRelation, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('relations').index(index);
       const resolved: ResolvedInstanceRelation | undefined = this.resolveRelation(
@@ -30,9 +31,11 @@ export class InstanceRelationValidator {
         nodesById,
         diagnostics,
       );
+
       if (resolved) result.push(resolved);
     });
     this.validateRelationCardinalities(graph, instance.modelId, nodesById, result, diagnostics);
+
     return result;
   }
 
@@ -46,6 +49,7 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedInstanceRelation | undefined {
     if (!this.registerRelationId(relation.id, path, ids, diagnostics)) return undefined;
+
     const type: ResolvedModelElement<Relation> | undefined = this.resolveRelationType(
       graph,
       ownerModelId,
@@ -53,7 +57,9 @@ export class InstanceRelationValidator {
       path,
       diagnostics,
     );
+
     if (!type) return undefined;
+
     const from: ResolvedInstanceNode | undefined = this.requireInstanceNode(
       nodesById,
       relation.fromId,
@@ -70,10 +76,12 @@ export class InstanceRelationValidator {
       relation.id,
       diagnostics,
     );
+
     if (!from || !to) return undefined;
     this.validateRelationEndpoint(graph, type, type.element.from.nodeId, from, path.property('fromId'), diagnostics);
     this.validateRelationEndpoint(graph, type, type.element.to.nodeId, to, path.property('toId'), diagnostics);
     this.validateConstraints(type, relation, from, to, path, diagnostics);
+
     return { instance: relation, type: type };
   }
 
@@ -117,9 +125,11 @@ export class InstanceRelationValidator {
   private registerRelationId(id: Id, path: DiagnosticPath, ids: Set<Id>, diagnostics: Diagnostic[]): boolean {
     if (!ids.has(id)) {
       ids.add(id);
+
       return true;
     }
     diagnostics.push(this.error('INSTANCE_RELATION_ID_DUPLICATE', `Instance relation id '${id}' is duplicated.`, path, id));
+
     return false;
   }
 
@@ -131,6 +141,7 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedModelElement<Relation> | undefined {
     const type: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
+
     if (type) return type;
     diagnostics.push(
       this.error(
@@ -140,6 +151,7 @@ export class InstanceRelationValidator {
         relation.id,
       ),
     );
+
     return undefined;
   }
 
@@ -152,10 +164,14 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedInstanceNode | undefined {
     const node: ResolvedInstanceNode | undefined = nodesById.get(nodeId);
+
     if (node) return node;
+
     const property: string = end === 'FROM' ? 'fromId' : 'toId';
     const code: ValidationCode = end === 'FROM' ? 'INSTANCE_RELATION_FROM_NOT_FOUND' : 'INSTANCE_RELATION_TO_NOT_FOUND';
+
     diagnostics.push(this.error(code, `Relation node '${nodeId}' was not found.`, path.property(property), relationId));
+
     return undefined;
   }
 
@@ -168,6 +184,7 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): void {
     const required: ResolvedModelElement<Node> | undefined = graph.resolveNode(relationType.modelId, requiredRef);
+
     if (required && !graph.isNodeSameOrSubtype(actual.type, required)) {
       diagnostics.push(
         this.error(
@@ -204,11 +221,14 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): void {
     const relationRef: Ref = relationModelId === ownerModelId ? relation.id : `${relationModelId}:${relation.id}`;
+
     for (const node of nodesById.values()) {
       const acceptsFrom: boolean = graph.acceptsNode(relationModelId, relation.from.nodeId, node.type);
       const acceptsTo: boolean = graph.acceptsNode(relationModelId, relation.to.nodeId, node.type);
+
       if (acceptsFrom) {
         const count: number = this.countRelations(graph, relations, node.instance.id, 'from', relationModelId, relation.id);
+
         this.validateCount(
           relation.to.role,
           relation.to.bounds,
@@ -220,6 +240,7 @@ export class InstanceRelationValidator {
       }
       if (acceptsTo) {
         const count: number = this.countRelations(graph, relations, node.instance.id, 'to', relationModelId, relation.id);
+
         this.validateCount(
           relation.from.role,
           relation.from.bounds,
@@ -242,6 +263,7 @@ export class InstanceRelationValidator {
   ): number {
     return relations.filter((item: ResolvedInstanceRelation): boolean => {
       const matchesNode: boolean = end === 'from' ? item.instance.fromId === nodeId : item.instance.toId === nodeId;
+
       return matchesNode && graph.isRelationRefSameOrSubtype(item.type.modelId, item.type.element.id, modelId, relationId);
     }).length;
   }

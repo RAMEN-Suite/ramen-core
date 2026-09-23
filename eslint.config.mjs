@@ -37,6 +37,13 @@ export default defineConfig(
       ],
       complexity: ['error', 12],
       'max-lines-per-function': ['error', { max: 40, skipBlankLines: true, skipComments: true, IIFEs: true }],
+      'padding-line-between-statements': [
+        'error',
+        { blankLine: 'always', prev: '*', next: ['const', 'let', 'var'] },
+        { blankLine: 'always', prev: ['const', 'let', 'var'], next: '*' },
+        { blankLine: 'any', prev: ['const', 'let', 'var'], next: ['const', 'let', 'var'] },
+        { blankLine: 'always', prev: '*', next: 'return' },
+      ],
     },
   },
   {

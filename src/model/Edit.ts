@@ -1,13 +1,13 @@
 import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from './Types';
 
 /** Editable node fields. */
-export type UpdateNodeInput = Partial<Pick<Node, 'name' | 'superTypes' | 'attributes'>>;
+export type UpdateNodeInput = Partial<Pick<Node, 'name' | 'superTypes' | 'constraints' | 'ext'>>;
 /** Editable data type fields. */
-export type UpdateDataTypeInput = Partial<Pick<DataType, 'name' | 'baseType' | 'literals'>>;
+export type UpdateDataTypeInput = Partial<Pick<DataType, 'name' | 'baseType' | 'literals' | 'constraints' | 'ext'>>;
 /** Editable relation fields. */
-export type UpdateRelationInput = Partial<Pick<Relation, 'name' | 'from' | 'to'>>;
+export type UpdateRelationInput = Partial<Pick<Relation, 'name' | 'from' | 'to' | 'constraints' | 'ext'>>;
 /** Editable attribute fields. */
-export type UpdateAttributeInput = Partial<Attribute>;
+export type UpdateAttributeInput = Partial<Omit<Attribute, 'id'>>;
 
 /** Applies immutable editing operations to an existing RAMEN model. */
 export class ModelEditor {
@@ -34,7 +34,7 @@ export class ModelEditor {
       if (classifier.id !== nodeId) return classifier;
 
       found = true;
-      return { ...classifier, ...patch };
+      return { ...classifier, ...structuredClone(patch) };
     });
     if (!found) throw new Error(`Node not found: ${nodeId}`);
     return { ...model, classifiers: patched };
@@ -63,7 +63,7 @@ export class ModelEditor {
       if (collection.id !== dataTypeId) return collection;
 
       found = true;
-      return { ...collection, ...patch };
+      return { ...collection, ...structuredClone(patch) };
     });
     if (!found) throw new Error(`DataType not found: ${dataTypeId}`);
     return { ...model, classifiers: patched };
@@ -82,7 +82,7 @@ export class ModelEditor {
     const patched: Relation[] = relations.map((relation: Relation): Relation => {
       if (relation.id !== relationId) return relation;
       found = true;
-      return { ...relation, ...patch };
+      return { ...relation, ...structuredClone(patch) };
     });
     if (!found) throw new Error(`Relation not found: ${relationId}`);
     return { ...model, relations: patched };
@@ -116,8 +116,7 @@ export class ModelEditor {
   }
 
   /** Updates an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
-  public static updateAttribute(model: Model, nodeId: Id, name: string, patch: UpdateAttributeInput): Model {
-    const newName: string = patch.name ?? name;
+  public static updateAttribute(model: Model, nodeId: Id, attributeId: Id, patch: UpdateAttributeInput): Model {
     const classifiers: readonly Classifier[] = model.classifiers ?? [];
     let foundNode: boolean = false;
     let foundAttribute: boolean = false;
@@ -131,19 +130,19 @@ export class ModelEditor {
       const attributes: readonly Attribute[] = node.attributes ?? [];
 
       const nextAttributes: Attribute[] = attributes.map((attribute: Attribute): Attribute => {
-        if (attribute.name !== name) return attribute;
+        if (attribute.id !== attributeId) return attribute;
         foundAttribute = true;
-        return { ...attribute, ...patch, name: newName };
+        return { ...attribute, ...structuredClone(patch) };
       });
       return foundAttribute ? { ...node, attributes: nextAttributes } : node;
     });
     if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
-    if (!foundAttribute) throw new Error(`Attribute not found: '${name}'`);
+    if (!foundAttribute) throw new Error(`Attribute not found: '${attributeId}'`);
     return { ...model, classifiers: patched };
   }
 
   /** Removes a named attribute from a node without mutating the source model. */
-  public static removeAttribute(model: Model, nodeId: Id, name: string): Model {
+  public static removeAttribute(model: Model, nodeId: Id, attributeId: Id): Model {
     const classifiers: readonly Classifier[] = model.classifiers ?? [];
     let foundNode: boolean = false;
     let removed: boolean = false;
@@ -155,13 +154,13 @@ export class ModelEditor {
       foundNode = true;
       const node: Node = classifier;
       const attributes: readonly Attribute[] = node.attributes ?? [];
-      const filtered: Attribute[] = attributes.filter((attribute: Attribute): boolean => attribute.name !== name);
+      const filtered: Attribute[] = attributes.filter((attribute: Attribute): boolean => attribute.id !== attributeId);
 
       if (filtered.length !== attributes.length) removed = true;
       return removed ? { ...node, attributes: filtered } : node;
     });
     if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
-    if (!removed) throw new Error(`Attribute not found: '${name}'`);
+    if (!removed) throw new Error(`Attribute not found: '${attributeId}'`);
     return { ...model, classifiers: patched };
   }
 }

@@ -39,14 +39,22 @@ export function createModelBundle(rootModelId: Id, models: readonly Model[]): Cr
  * @throws Error when the envelope, contained models, or project graph is invalid.
  */
 export function splitModelBundle(input: unknown): readonly Model[] {
-  const bundle: ModelBundle = readBundle(input);
+  return parseModelBundle(input).models;
+}
+
+/** Validates an unknown bundle and returns a detached, graph-ordered representation. */
+export function parseModelBundle(input: unknown): ModelBundle {
+  const bundle: ModelBundle = readBundleEnvelope(input);
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: bundle.rootModelId, models: bundle.models });
 
   if (!result.ok) throw new Error(formatBundleErrors(result.diagnostics));
-  return result.graph.getModels().map((model: Model): Model => structuredClone(model));
+  return {
+    ...bundle,
+    models: result.graph.getModels().map((model: Model): Model => structuredClone(model)),
+  };
 }
 
-function readBundle(input: unknown): ModelBundle {
+function readBundleEnvelope(input: unknown): ModelBundle {
   const envelope: { readonly valid: boolean; readonly errors: JsonError[] } = BUNDLE_SCHEMA_NODE.validate(input);
   if (!envelope.valid) {
     const details: string = envelope.errors.map((error: JsonError): string => error.message).join('\n');
@@ -74,7 +82,7 @@ function readModel(input: unknown, index: number): Model {
   try {
     ModelSchemaValidator.assertValid(input);
 
-    return input;
+    return structuredClone(input);
   } catch (error: unknown) {
     const message: string = error instanceof Error ? error.message : String(error);
     throw new Error(`Invalid model bundle at models/${index}: ${message}`, { cause: error });

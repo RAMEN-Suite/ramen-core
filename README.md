@@ -78,6 +78,8 @@ Constraints in a model name their `language` and carry a string or JSON `express
 
 The evaluator receives the constraint, the actual value, its target kind, and a diagnostic path. Keep the evaluator deterministic and test it with valid and invalid instance graphs. Model validation currently checks the constraint's JSON shape; it does not parse every custom expression before an instance is validated.
 
+Evaluators currently receive one value at a time. A language for conditions across several nodes or relations will need an explicit, read-only graph context; the present evaluator contract does not provide one.
+
 ## Refinement and exchange
 
 Use `createNextLevel(...)` to build another model that imports the complete dependency chain. A new node names the earlier node in `refines`; an imported node can also be referenced directly where no refinement is needed. `exportBundle()` packs all reachable models into one JSON object. `RamenProject.importBundle(value)` restores the root as an editable project and preserves the other models as dependencies.

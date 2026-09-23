@@ -22,6 +22,8 @@ Diagnostics carry stable codes and, when available, model or JSON paths. A model
 
 The core instance format currently accepts only `id`, `typeId`, and modeled `properties` on a node. `createdAt` and `editedAt` are tool lifecycle data. They are not silently inserted into RAMEN properties, because a closed annotation type must remain closed. Until a shared exchange requirement exists, tools can store and validate lifecycle metadata in their own records. A future portable metadata envelope needs a separately versioned schema and explicit ownership rules.
 
+For example, an annotation instance has a stable `id` and only the properties permitted by its selected annotation definition. A tool may keep `{ annotationId, createdAt, editedAt }` in its own record. It checks that record with its own schema and the referenced annotation instance with `RamenInstanceValidator`. If `isZeroPoint` carries shared domain meaning, a project may declare it as an optional modeled property for the relevant annotation definition. If it only controls one tool's UI, it belongs in that tool's record.
+
 ## Research positioning
 
 RAMEN Core uses a small JSON metamodel, graph resolution, and conformance checks in the MDE tradition. The generic format is a modeling kernel; RAMEN is a versioned domain reference model expressed in it. The architecture supports arbitrarily long refinement chains but does not currently implement potency or deferred instantiation. We should therefore describe its precise operations rather than claim equivalence to every multi-level modeling language.

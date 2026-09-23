@@ -1,7 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { RamenProject } from '../../dist/index.js';
-import type { Attribute, CreateBundleResult, DataType, Node, RamenAnnotation, RamenChange, Relation } from '../../dist/index.js';
+import type {
+  Attribute,
+  AttributeCreationAdvice,
+  AttributeSuggestion,
+  CreateBundleResult,
+  DataType,
+  Node,
+  NodeRelationSuggestion,
+  RamenAdvisor,
+  RamenAnnotation,
+  RamenChange,
+  Relation,
+} from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
 
@@ -79,6 +91,49 @@ void test('exports and imports a complete editable RAMEN project bundle', (): vo
   assert.equal(imported.getModel().id, fixture.model.id);
   assert.equal(imported.getModels().length, 2);
   assert.deepEqual(imported.getAnnotations(), fixture.project.getAnnotations());
+});
+
+void test('suggests inherited attributes and rejects conflicting attribute names', (): void => {
+  const fixture: CorrespondenceFixture = createCorrespondenceFixture();
+  const local: RamenChange<Attribute> = fixture.project.createAttribute(fixture.nodes.person.id, {
+    name: 'authorityId',
+    typeId: 'String',
+    bounds: { lowerBound: 0, upperBound: 1 },
+  });
+  const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+
+  assert.ok(advisor);
+  const attributes: readonly AttributeSuggestion[] = advisor.suggestAttributes(fixture.model.id, fixture.nodes.person.id);
+  const relation: NodeRelationSuggestion | undefined = advisor.suggestConnections(fixture.model.id, fixture.nodes.person.id)[0];
+  const inherited: AttributeSuggestion | undefined = attributes.find(
+    (attribute: AttributeSuggestion): boolean => attribute.name === 'label',
+  );
+  const declared: AttributeSuggestion | undefined = attributes.find(
+    (attribute: AttributeSuggestion): boolean => attribute.attributeId === local.element.id,
+  );
+
+  assert.ok(relation);
+  assert.equal(inherited?.inherited, true);
+  assert.equal(declared?.inherited, false);
+  const attributeConflict: AttributeCreationAdvice = advisor.adviseAttributeCreation(
+    fixture.model.id,
+    fixture.nodes.person.id,
+    'label',
+  );
+  const roleConflict: AttributeCreationAdvice = advisor.adviseAttributeCreation(
+    fixture.model.id,
+    fixture.nodes.person.id,
+    relation.role,
+  );
+  const available: AttributeCreationAdvice = advisor.adviseAttributeCreation(
+    fixture.model.id,
+    fixture.nodes.person.id,
+    'occupation',
+  );
+
+  assert.deepEqual(attributeConflict, { allowed: false, conflicts: ['attribute'] });
+  assert.deepEqual(roleConflict, { allowed: false, conflicts: ['relationRole'] });
+  assert.deepEqual(available, { allowed: true, conflicts: [] });
 });
 
 void test('rejects edits of unknown local elements with stable messages', (): void => {

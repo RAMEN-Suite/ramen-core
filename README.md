@@ -49,5 +49,3 @@ Use `createNextLevel(...)` to build another model that imports the complete depe
 `ModelEvolution.compare(beforeRootId, beforeModels, afterRootId, afterModels)` returns an explicit before/after change artifact and validation diagnostics for both states. It identifies elements by stable IDs. It does not migrate instance data.
 
 For two RAMEN projects, `earlier.compareTo(later)` also reports annotation definitions by stable ID in `annotationChanges`, with RAMEN-specific validation findings. `exportBundle()` returns diagnostics instead of a bundle while the RAMEN project is invalid; `importBundle()` rejects invalid RAMEN content.
-
-See [Architecture and evolution](docs/architecture.md) for the model boundaries, validation sequence, metadata policy, and research context.

@@ -2,6 +2,8 @@ import { Constraint, Id } from '../Types';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
 import { VALIDATION_ERROR } from './Codes';
+import type { ProjectGraph } from '../project/Graph';
+import type { ModelInstanceGraph } from './InstanceTypes';
 
 const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string, SchemaNode>(
   ['uuid', 'date', 'date-time', 'email'].map((format: string): [string, SchemaNode] => [
@@ -13,13 +15,21 @@ const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string,
 /** Model element kind that supplies the context for a constraint evaluation. */
 export type ConstraintTarget = 'node' | 'attribute' | 'dataType' | 'literal' | 'relation' | 'relationEnd';
 
+/** Complete model and data graph available during instance validation. */
+export interface ConstraintGraphContext {
+  readonly project: ProjectGraph;
+  readonly instances: ModelInstanceGraph;
+}
+
 /** Values supplied to a constraint evaluator for one model element instance. */
 export interface ConstraintContext {
   readonly modelId: Id;
   readonly ownerId: Id;
+  readonly instanceId?: Id;
   readonly target: ConstraintTarget;
   readonly value: unknown;
   readonly path: DiagnosticPath;
+  readonly graph?: ConstraintGraphContext;
 }
 
 /** Extension point for one safe, explicitly named constraint language. */

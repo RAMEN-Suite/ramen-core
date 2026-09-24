@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { RamenProject } from '../../dist/index.js';
 import type {
   AnnotationRelationAdvice,
   AnnotationSuggestion,
+  CreateRamenBundleResult,
+  Diagnostic,
+  ModelInstanceGraph,
   Node,
   NodeAdvice,
   NodeLineageItem,
   NodeRelationSuggestion,
   RamenAnnotation,
   RamenAdvisor,
-  RamenProject,
+  ValidationResult,
 } from '../../dist/index.js';
 import { CORRESPONDENCE_MODEL_ID, SCHOLARLY_MODEL_ID, createCorrespondenceFixture, createScholarlyFixture } from './fixtures.ts';
 import type { CorrespondenceFixture, ScholarlyFixture } from './fixtures.ts';
@@ -126,6 +130,56 @@ void test('retains annotation semantics through an arbitrary third project level
   assert.deepEqual(types, ['comment', 'date', 'externalReference', 'persName', 'placeName']);
   assert.equal(edition.getModels().length, 4);
 });
+
+void test('serializes three model levels and validates data after importing the bundle', (): void => {
+  const base: CorrespondenceFixture = createCorrespondenceFixture();
+  const scholarly: ScholarlyFixture = createScholarlyFixture(base);
+  const edition: RamenProject = scholarly.project.createNextLevel({
+    uri: 'https://example.org/models/edition-roundtrip',
+    id: 'editionRoundtrip01',
+    name: 'Edition Roundtrip',
+    version: '1.0.0',
+  });
+  const annotation: Node = edition.createNode({
+    name: 'EditionAnnotation',
+    refines: { modelId: scholarly.model.id, elementId: scholarly.nodes.annotation.id },
+  }).element;
+  const exported: CreateRamenBundleResult = edition.exportBundle();
+
+  assert.equal(exported.ok, true);
+  if (!exported.ok) return;
+
+  const serialized: string = JSON.stringify(exported.bundle);
+  const parsed: unknown = JSON.parse(serialized);
+  const restored: RamenProject = RamenProject.importBundle(parsed);
+  const data: ModelInstanceGraph = editionAnnotationData(restored.getModel().id, annotation.id);
+  const valid: ValidationResult = restored.validateInstances(data);
+  const invalid: ValidationResult = restored.validateInstances({
+    ...data,
+    nodes: [{ ...data.nodes[0], properties: { uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', type: 'missing' } }],
+  });
+
+  assert.equal(restored.getModels().length, 4);
+  assert.equal(restored.createAdvisor()?.suggestAnnotations(restored.getModel().id, annotation.id).length, 5);
+  assert.deepEqual(valid.diagnostics, []);
+  assert.ok(
+    invalid.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN'),
+  );
+});
+
+function editionAnnotationData(modelId: string, annotationId: string): ModelInstanceGraph {
+  return {
+    modelId: modelId,
+    nodes: [
+      {
+        id: 'editionAnnotation1',
+        typeId: annotationId,
+        properties: { uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', type: 'date' },
+      },
+    ],
+    relations: [],
+  };
+}
 
 function annotationTypes(suggestions: readonly AnnotationSuggestion[]): readonly string[] {
   return suggestions.map((annotation: AnnotationSuggestion): string => annotation.type).sort();

@@ -3,6 +3,7 @@ import { Bounds, Attribute, Constraint, DataType, Literal, Node, Id } from '../T
 import { EffectiveModel, EffectiveNode } from '../project/Effective';
 import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { ConstraintRegistry } from './Constraints';
+import type { ConstraintGraphContext } from './Constraints';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
 import { ValidationCode } from './Codes';
@@ -10,7 +11,10 @@ import { ValidationCode } from './Codes';
 /** Validates instance properties against effective node attributes and constraints. */
 export class InstanceValueValidator {
   /** Creates a value validator with the supplied constraint languages. */
-  public constructor(private readonly constraints: ConstraintRegistry) {}
+  public constructor(
+    private readonly constraints: ConstraintRegistry,
+    private readonly graphContext: ConstraintGraphContext,
+  ) {}
 
   /** Resolves instance node types and validates their modeled properties. */
   public validate(graph: ProjectGraph, instance: ModelInstanceGraph, diagnostics: Diagnostic[]): Map<Id, ResolvedInstanceNode> {
@@ -59,7 +63,7 @@ export class InstanceValueValidator {
       const value: unknown = instance.properties[attribute.name];
       const attributePath: DiagnosticPath = path.property('properties').property(attribute.name);
 
-      this.validateAttributeValue(graph, type.modelId, attribute, value, attributePath, diagnostics);
+      this.validateAttributeValue(graph, type.modelId, instance.id, attribute, value, attributePath, diagnostics);
     }
     this.validateNodeConstraints(type, instance, effective.constraints, path, diagnostics);
   }
@@ -96,9 +100,11 @@ export class InstanceValueValidator {
         ...this.constraints.evaluate(constraint, {
           modelId: type.modelId,
           ownerId: type.element.id,
+          instanceId: instance.id,
           target: 'node',
           value: instance.properties,
           path: path.property('properties'),
+          graph: this.graphContext,
         }),
       );
     }
@@ -107,6 +113,7 @@ export class InstanceValueValidator {
   private validateAttributeValue(
     graph: ProjectGraph,
     modelId: Id,
+    instanceId: Id,
     attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
@@ -135,7 +142,7 @@ export class InstanceValueValidator {
     }
     values.forEach((item: unknown, index: number): void => {
       const valuePath: DiagnosticPath = Array.isArray(value) ? path.index(index) : path;
-      this.validateTypedValue(graph, modelId, attribute, item, valuePath, diagnostics);
+      this.validateTypedValue(graph, modelId, instanceId, attribute, item, valuePath, diagnostics);
     });
   }
 
@@ -166,6 +173,7 @@ export class InstanceValueValidator {
   private validateTypedValue(
     graph: ProjectGraph,
     modelId: Id,
+    instanceId: Id,
     attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
@@ -185,16 +193,18 @@ export class InstanceValueValidator {
     } else {
       const dataType: ResolvedModelElement<DataType> | undefined = graph.resolveDataType(modelId, attribute.typeId);
 
-      if (dataType) this.validateDataTypeValue(dataType, attribute, value, path, diagnostics);
+      if (dataType) this.validateDataTypeValue(dataType, instanceId, attribute, value, path, diagnostics);
     }
     for (const constraint of attribute.constraints ?? []) {
       diagnostics.push(
         ...this.constraints.evaluate(constraint, {
           modelId: modelId,
           ownerId: attribute.id,
+          instanceId: instanceId,
           target: 'attribute',
           value: value,
           path: path,
+          graph: this.graphContext,
         }),
       );
     }
@@ -202,6 +212,7 @@ export class InstanceValueValidator {
 
   private validateDataTypeValue(
     dataType: ResolvedModelElement<DataType>,
+    instanceId: Id,
     attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
@@ -219,15 +230,17 @@ export class InstanceValueValidator {
 
       return;
     }
-    this.validateLiteralValue(dataType, attribute, value, path, diagnostics);
+    this.validateLiteralValue(dataType, instanceId, attribute, value, path, diagnostics);
     for (const constraint of dataType.element.constraints ?? []) {
       diagnostics.push(
         ...this.constraints.evaluate(constraint, {
           modelId: dataType.modelId,
           ownerId: dataType.element.id,
+          instanceId: instanceId,
           target: 'dataType',
           value: value,
           path: path,
+          graph: this.graphContext,
         }),
       );
     }
@@ -235,6 +248,7 @@ export class InstanceValueValidator {
 
   private validateLiteralValue(
     dataType: ResolvedModelElement<DataType>,
+    instanceId: Id,
     attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
@@ -260,9 +274,11 @@ export class InstanceValueValidator {
         ...this.constraints.evaluate(constraint, {
           modelId: dataType.modelId,
           ownerId: literal.id,
+          instanceId: instanceId,
           target: 'literal',
           value: value,
           path: path,
+          graph: this.graphContext,
         }),
       );
     }

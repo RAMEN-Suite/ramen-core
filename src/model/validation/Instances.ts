@@ -12,14 +12,8 @@ export * from './InstanceTypes';
 
 /** Validates modeled objects and connections against effective RAMEN model format features. */
 export class InstanceValidator {
-  private readonly values: InstanceValueValidator;
-  private readonly relations: InstanceRelationValidator;
-
   /** Creates an instance validator with the standard safe constraint evaluators. */
-  public constructor(constraints: ConstraintRegistry = ConstraintRegistry.createDefault()) {
-    this.values = new InstanceValueValidator(constraints);
-    this.relations = new InstanceRelationValidator(constraints);
-  }
+  public constructor(private readonly constraints: ConstraintRegistry = ConstraintRegistry.createDefault()) {}
 
   /**
    * Validates a complete instance graph, including values, endpoints, and lower and upper cardinalities.
@@ -43,9 +37,14 @@ export class InstanceValidator {
 
     const instance: ModelInstanceGraph = input;
     const diagnostics: Diagnostic[] = [];
-    const nodesById: Map<string, ResolvedInstanceNode> = this.values.validate(graph, instance, diagnostics);
+    const values: InstanceValueValidator = new InstanceValueValidator(this.constraints, { project: graph, instances: instance });
+    const relations: InstanceRelationValidator = new InstanceRelationValidator(this.constraints, {
+      project: graph,
+      instances: instance,
+    });
+    const nodesById: Map<string, ResolvedInstanceNode> = values.validate(graph, instance, diagnostics);
 
-    this.relations.validate(graph, instance, nodesById, diagnostics);
+    relations.validate(graph, instance, nodesById, diagnostics);
     const hasErrors: boolean = diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error');
     return { diagnostics: diagnostics, hasErrors: hasErrors };
   }

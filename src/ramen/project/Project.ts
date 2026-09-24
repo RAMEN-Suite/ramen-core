@@ -2,6 +2,7 @@ import { ModelEditor, ModelFactory } from '../../model/index';
 import type {
   Bounds,
   Classifier,
+  ConstraintRegistry,
   CreateAttributeInput,
   CreateDataTypeInput,
   CreateModelInput,
@@ -17,12 +18,14 @@ import type {
   UpdateDataTypeInput,
   UpdateNodeInput,
   UpdateRelationInput,
+  ValidationResult,
 } from '../../model/index';
 import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
 import { RamenModelFormat } from '../model/Document';
 import type { RamenModelDocument } from '../model/Document';
 import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenValidator } from '../validation/ModelValidator';
+import { RamenInstanceValidator } from '../validation/InstanceValidator';
 import { RamenAdvisor } from './Advisor';
 import { createRamenBundle, parseRamenBundle } from './Bundle';
 import type { CreateRamenBundleResult, RamenModelBundle } from './Bundle';
@@ -155,6 +158,15 @@ export class RamenProject {
   /** Validates the complete current project and returns its graph on success. */
   public validate(): ProjectValidationResult {
     return this.validator.validateProject(this.model.id, this.validationInputs());
+  }
+
+  /** Validates a complete data graph using this project's models and optional custom constraint languages. */
+  public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
+    const validator: RamenInstanceValidator = constraints
+      ? RamenInstanceValidator.withConstraints(constraints)
+      : new RamenInstanceValidator();
+
+    return validator.validate(this.model.id, this.validationInputs(), input);
   }
 
   /** Compares this project with a later state and includes RAMEN validation findings from both states. */

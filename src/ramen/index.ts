@@ -1,8 +1,7 @@
 export * from './model/ReferenceModel';
-export * from './model/Annotations';
+export type { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation } from './model/Annotations';
 export * from './model/Document';
-export * from './project/AnnotationGraph';
-export * from './project/AnnotationAdvice';
+export type { AnnotationAdvice, AnnotationPropertyAdvice, AnnotationRelationAdvice } from './project/AnnotationAdvice';
 export * from './project/Project';
 export * from './project/Bundle';
 export * from './project/Evolution';

@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { MODEL_INSTANCES_SCHEMA_URI, InstanceSchemaValidator, InstanceValidator, buildProjectGraph } from '../../dist/index.js';
+import {
+  ConstraintRegistry,
+  Diagnostics,
+  MODEL_INSTANCES_SCHEMA_URI,
+  InstanceSchemaValidator,
+  InstanceValidator,
+  buildProjectGraph,
+} from '../../dist/index.js';
 import type {
   Attribute,
+  Constraint,
+  ConstraintContext,
   Diagnostic,
   Model,
   Node,
@@ -139,3 +148,58 @@ void test('validates a modeled Date datatype as a constrained String', (): void 
   });
   assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'CONSTRAINT_FORMAT_MISMATCH'));
 });
+
+void test('passes the complete graph and current instance to a custom constraint language', (): void => {
+  const schema: Model = model('graphRuleModel01');
+  const person: Node = node(PERSON_ID, 'Person');
+  const place: Node = node(PLACE_ID, 'Place');
+  const rule: Constraint = {
+    id: 'placeLinkRule001',
+    name: 'Place link required',
+    language: 'example:place-link',
+    expression: {},
+  };
+
+  person.constraints = [rule];
+  schema.classifiers.push(person, place);
+  schema.relations.push(relation(RELATION_ID, 'LOCATED_AT', PERSON_ID, PLACE_ID, boundsOf(0, -1)));
+
+  const built: ProjectGraphResult = buildProjectGraph({ rootModelId: schema.id, models: [schema] });
+  assert.equal(built.ok, true);
+  if (!built.ok) return;
+
+  const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
+  registerPlaceLinkRule(registry, rule);
+
+  const data: ModelInstanceGraph = {
+    modelId: schema.id,
+    nodes: [
+      { id: 'personInstance01', typeId: PERSON_ID, properties: {} },
+      { id: 'placeInstance001', typeId: PLACE_ID, properties: {} },
+    ],
+    relations: [],
+  };
+  const validator: InstanceValidator = new InstanceValidator(registry);
+  const missing: ValidationResult = validator.validate(built.graph, data);
+  const complete: ValidationResult = validator.validate(built.graph, {
+    ...data,
+    relations: [{ id: 'placeLink0000001', typeId: RELATION_ID, fromId: 'personInstance01', toId: 'placeInstance001' }],
+  });
+
+  assert.ok(missing.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'PLACE_LINK_REQUIRED'));
+  assert.deepEqual(complete.diagnostics, []);
+});
+
+function registerPlaceLinkRule(registry: ConstraintRegistry, rule: Constraint): void {
+  registry.register({
+    language: rule.language,
+    evaluate(_constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
+      const linked: boolean =
+        context.graph?.instances.relations.some(
+          (item: ModelInstanceGraph['relations'][number]): boolean => item.fromId === context.instanceId,
+        ) ?? false;
+
+      return linked ? [] : [Diagnostics.error({ code: 'PLACE_LINK_REQUIRED', message: 'Add a place link.', path: context.path })];
+    },
+  });
+}

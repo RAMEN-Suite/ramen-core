@@ -4,11 +4,15 @@ import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
 import { ValidationCode } from './Codes';
 import { ConstraintRegistry } from './Constraints';
+import type { ConstraintGraphContext } from './Constraints';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {
   /** Creates a relation validator with the supplied constraint languages. */
-  public constructor(private readonly constraints: ConstraintRegistry) {}
+  public constructor(
+    private readonly constraints: ConstraintRegistry,
+    private readonly graphContext: ConstraintGraphContext,
+  ) {}
 
   /** Resolves and validates every relation in an instance graph. */
   public validate(
@@ -93,9 +97,11 @@ export class InstanceRelationValidator {
         ...this.constraints.evaluate(constraint, {
           modelId: type.modelId,
           ownerId: type.element.id,
+          instanceId: relation.id,
           target: 'relation',
           value: relation,
           path: path,
+          graph: this.graphContext,
         }),
       );
     }
@@ -108,9 +114,11 @@ export class InstanceRelationValidator {
           ...this.constraints.evaluate(constraint, {
             modelId: type.modelId,
             ownerId: end.id,
+            instanceId: node.instance.id,
             target: 'relationEnd',
             value: node.instance,
             path: endPath,
+            graph: this.graphContext,
           }),
         );
       }

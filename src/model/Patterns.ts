@@ -1,6 +1,5 @@
 /** Regular expressions shared by model names and qualified references. */
-// eslint-disable-next-line @typescript-eslint/typedef
-export const REGEXP = {
+export const REGEXP: Readonly<Record<'SEMANTIC_VER' | 'VALID_URI' | 'VALID_ID' | 'QUALIFIED_REF' | 'VALID_RELATION', RegExp>> = {
   SEMANTIC_VER:
     /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/,
   VALID_URI: /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s/$.?#].[^\s]*$/,

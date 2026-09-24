@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RamenProject } from '../../dist/index.js';
+import { RamenModel } from '../../dist/index.js';
 import type {
   AnnotationRelationAdvice,
   AnnotationSuggestion,
   CreateRamenBundleResult,
   Diagnostic,
+  Import,
   ModelInstanceGraph,
   Node,
   NodeAdvice,
@@ -29,7 +30,7 @@ void test('creates and validates a Correspondence model with Letter, Witness, an
 
 void test('suggests all attachable annotations for Text and Person', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.createAdvisor();
 
   assert.ok(advisor);
   const text: readonly string[] = annotationTypes(
@@ -46,7 +47,7 @@ void test('suggests all attachable annotations for Text and Person', (): void =>
 
 void test('suggests only the modeled relation of persName', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.createAdvisor();
 
   assert.ok(advisor);
   const relations: readonly AnnotationRelationAdvice[] = advisor.suggestRelationsForAnnotation(
@@ -63,7 +64,7 @@ void test('suggests only the modeled relation of persName', (): void => {
 
 void test('suggests Letter above Witness and Text below Witness', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.createAdvisor();
 
   assert.ok(advisor);
   const connections: readonly NodeRelationSuggestion[] = advisor.suggestConnections(
@@ -88,10 +89,15 @@ void test('suggests Letter above Witness and Text below Witness', (): void => {
 void test('refines the complete Correspondence model at another level', (): void => {
   const base: CorrespondenceFixture = createCorrespondenceFixture();
   const scholarly: ScholarlyFixture = createScholarlyFixture(base);
-  const advisor: RamenAdvisor | undefined = scholarly.project.createAdvisor();
+  const advisor: RamenAdvisor = scholarly.project.createAdvisor();
 
   assert.ok(advisor);
+  assert.deepEqual(
+    scholarly.model.imports.map((item: Import): string => item.modelId),
+    [base.model.id],
+  );
   assert.equal(scholarly.model.annotations.length, 1);
+  assert.equal(scholarly.project.suggestAnnotations(base.nodes.annotation.id).length, 5);
   const annotations: readonly string[] = annotationTypes(
     advisor.suggestAnnotations(SCHOLARLY_MODEL_ID, scholarly.nodes.annotation.id),
   );
@@ -113,7 +119,7 @@ void test('refines the complete Correspondence model at another level', (): void
 void test('retains annotation semantics through an arbitrary third project level', (): void => {
   const base: CorrespondenceFixture = createCorrespondenceFixture();
   const scholarly: ScholarlyFixture = createScholarlyFixture(base);
-  const edition: RamenProject = scholarly.project.createNextLevel({
+  const edition: RamenModel = scholarly.project.createNextLevel({
     uri: 'https://example.org/models/digital-edition',
     id: 'digitalEditionLevel01',
     name: 'Digital Edition',
@@ -123,7 +129,7 @@ void test('retains annotation semantics through an arbitrary third project level
     name: 'EditionAnnotation',
     refines: { modelId: scholarly.model.id, elementId: scholarly.nodes.annotation.id },
   }).element;
-  const advisor: RamenAdvisor | undefined = edition.createAdvisor();
+  const advisor: RamenAdvisor = edition.createAdvisor();
 
   assert.ok(advisor);
   const types: readonly string[] = annotationTypes(advisor.suggestAnnotations(edition.getModel().id, annotation.id));
@@ -134,7 +140,7 @@ void test('retains annotation semantics through an arbitrary third project level
 void test('serializes three model levels and validates data after importing the bundle', (): void => {
   const base: CorrespondenceFixture = createCorrespondenceFixture();
   const scholarly: ScholarlyFixture = createScholarlyFixture(base);
-  const edition: RamenProject = scholarly.project.createNextLevel({
+  const edition: RamenModel = scholarly.project.createNextLevel({
     uri: 'https://example.org/models/edition-roundtrip',
     id: 'editionRoundtrip01',
     name: 'Edition Roundtrip',
@@ -151,7 +157,7 @@ void test('serializes three model levels and validates data after importing the 
 
   const serialized: string = JSON.stringify(exported.bundle);
   const parsed: unknown = JSON.parse(serialized);
-  const restored: RamenProject = RamenProject.importBundle(parsed);
+  const restored: RamenModel = RamenModel.importBundle(parsed);
   const data: ModelInstanceGraph = editionAnnotationData(restored.getModel().id, annotation.id);
   const valid: ValidationResult = restored.validateInstances(data);
   const invalid: ValidationResult = restored.validateInstances({
@@ -160,7 +166,7 @@ void test('serializes three model levels and validates data after importing the 
   });
 
   assert.equal(restored.getModels().length, 4);
-  assert.equal(restored.createAdvisor()?.suggestAnnotations(restored.getModel().id, annotation.id).length, 5);
+  assert.equal(restored.createAdvisor().suggestAnnotations(restored.getModel().id, annotation.id).length, 5);
   assert.deepEqual(valid.diagnostics, []);
   assert.ok(
     invalid.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN'),

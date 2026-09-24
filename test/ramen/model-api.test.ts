@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RamenProject } from '../../dist/index.js';
+import { RamenModel } from '../../dist/index.js';
 import type {
   Attribute,
   AttributeCreationAdvice,
@@ -27,7 +27,7 @@ import type { CorrespondenceFixture } from './fixtures.ts';
 
 void test('updates and removes local model elements through the RAMEN project API', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const project: RamenProject = fixture.project;
+  const project: RamenModel = fixture.project;
   const node: RamenChange<Node> = project.updateNode(fixture.nodes.person.id, { name: 'HistoricalPerson' });
   const attribute: RamenChange<Attribute> = project.updateAttribute(fixture.nodes.annotation.id, fixture.url.id, {
     name: 'referenceUrl',
@@ -95,7 +95,7 @@ void test('exports and imports a complete editable RAMEN project bundle', (): vo
   if (!exported.ok) return;
   const serialized: string = JSON.stringify(exported.bundle);
   const parsed: unknown = JSON.parse(serialized);
-  const imported: RamenProject = RamenProject.importBundle(parsed);
+  const imported: RamenModel = RamenModel.importBundle(parsed);
 
   assert.equal(imported.validate().valid, true);
   assert.equal(imported.getModel().id, fixture.model.id);
@@ -113,6 +113,7 @@ void test('does not export a project with invalid RAMEN annotation semantics', (
 
   assert.equal(duplicate.validation.valid, false);
   assert.equal(exported.ok, false);
+  assert.throws((): RamenAdvisor => fixture.project.createAdvisor(), /Cannot advise an invalid RAMEN model/);
   if (exported.ok) return;
   assert.ok(
     exported.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE'),
@@ -134,12 +135,12 @@ void test('rejects a structurally valid bundle with invalid RAMEN semantics on i
     models: exported.bundle.models.map((model: Model): Model => (model.id === malformed.id ? malformed : model)),
   };
 
-  assert.throws((): RamenProject => RamenProject.importBundle(bundle), /Invalid RAMEN project bundle/);
+  assert.throws((): RamenModel => RamenModel.importBundle(bundle), /Invalid RAMEN project bundle/);
 });
 
 void test('compares two project states and reports RAMEN errors in the later state', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const before: RamenProject = RamenProject.load(fixture.model);
+  const before: RamenModel = RamenModel.load(fixture.model);
   const changed: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
     annotationId: fixture.nodes.annotation.id,
     type: 'persName',
@@ -158,7 +159,7 @@ void test('compares two project states and reports RAMEN errors in the later sta
 
 void test('identifies changed and removed annotation definitions by stable ID', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const before: RamenProject = RamenProject.load(fixture.model);
+  const before: RamenModel = RamenModel.load(fixture.model);
   const changed: RamenChange<RamenAnnotation> = fixture.project.updateAnnotation(fixture.annotations.persName.id, {
     type: 'personName',
   });
@@ -234,7 +235,7 @@ void test('suggests inherited attributes and rejects conflicting attribute names
     typeId: 'String',
     bounds: { lowerBound: 0, upperBound: 1 },
   });
-  const advisor: RamenAdvisor | undefined = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.createAdvisor();
 
   assert.ok(advisor);
   const attributes: readonly AttributeSuggestion[] = advisor.suggestAttributes(fixture.model.id, fixture.nodes.person.id);

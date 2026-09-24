@@ -9,7 +9,7 @@ import {
   RAMEN_PROJECT_SCHEMA_URI,
   ModelSchemaValidator,
   RamenAnnotationSchemaValidator,
-  RamenProject,
+  RamenModel,
   RamenProjectSchemaValidator,
   createRamenBundle,
   splitRamenBundle,
@@ -27,8 +27,8 @@ import type {
   RamenModelDocument,
 } from '../../dist/index.js';
 
-function createProject(): RamenProject {
-  return RamenProject.create({
+function createProject(): RamenModel {
+  return RamenModel.create({
     uri: 'https://example.org/models/editorial',
     id: 'editorialModel01',
     name: 'Editorial',
@@ -53,7 +53,7 @@ void test('publishes a schema for RAMEN annotation definitions', (): void => {
 });
 
 void test('validates first-class annotations with the RAMEN project schema', (): void => {
-  const project: RamenProject = createProject();
+  const project: RamenModel = createProject();
   const model: RamenModelDocument = project.getModel();
   const legacy: unknown = { ...model, ext: { ramen: { annotations: [] } } };
   const missing: unknown = { ...model, annotations: undefined };
@@ -67,10 +67,10 @@ void test('validates first-class annotations with the RAMEN project schema', ():
 });
 
 void test('creates nodes and attributes while validating every change', (): void => {
-  const project: RamenProject = createProject();
+  const project: RamenModel = createProject();
   const person: RamenChange<Node> = project.createNode({
     name: 'Person',
-    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ENTITY },
+    refines: RAMEN_ELEMENT.ENTITY,
   });
   const birthDate: RamenChange<Attribute> = project.createAttribute(person.element.id, {
     name: 'birthDate',
@@ -83,7 +83,7 @@ void test('creates nodes and attributes while validating every change', (): void
 });
 
 void test('exposes refinements and data types through the consumer API', (): void => {
-  const advisor: RamenAdvisor | undefined = createProject().createAdvisor();
+  const advisor: RamenAdvisor = createProject().createAdvisor();
   assert.ok(advisor);
   const nodeNames: readonly string[] = advisor
     .suggestNodeRefinements('editorialModel01')
@@ -98,10 +98,10 @@ void test('exposes refinements and data types through the consumer API', (): voi
 });
 
 void test('keeps first-class annotations when a project is bundled and split', (): void => {
-  const project: RamenProject = createProject();
+  const project: RamenModel = createProject();
   const annotation: Node = project.createNode({
     name: 'TextAnnotation',
-    refines: { modelId: RAMEN_MODEL.id, elementId: RAMEN_ELEMENT.ANNOTATION },
+    refines: RAMEN_ELEMENT.ANNOTATION,
   }).element;
 
   project.createAnnotation({ annotationId: annotation.id, type: 'date' });

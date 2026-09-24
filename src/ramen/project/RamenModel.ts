@@ -1,4 +1,4 @@
-import { ModelEditor, ModelFactory } from '../../model/index';
+import { ModelEditor, ModelFactory, ModelRef } from '../../model/index';
 import type {
   Bounds,
   Classifier,
@@ -27,6 +27,7 @@ import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenValidator } from '../validation/ModelValidator';
 import { RamenInstanceValidator } from '../validation/InstanceValidator';
 import { RamenAdvisor } from './Advisor';
+import type { AnnotationSuggestion, AttributeSuggestion, RelationRefinementSuggestion } from './Advisor';
 import { createRamenBundle, parseRamenBundle } from './Bundle';
 import type { CreateRamenBundleResult, RamenModelBundle } from './Bundle';
 import { RamenEvolution } from './Evolution';
@@ -38,15 +39,18 @@ export interface RamenElementRef {
   readonly elementId: Id;
 }
 
+/** An element ID is enough when it is unique in the current model chain. */
+export type RamenRef = Id | RamenElementRef;
+
 /** Values needed to create a project node refining an existing node. */
 export interface CreateRamenNodeInput {
   readonly name: string;
-  readonly refines: RamenElementRef;
+  readonly refines: RamenRef;
 }
 
 /** Values needed to create a project relation refining an existing relation. */
 export interface CreateRamenRelationInput {
-  readonly refines: RamenElementRef;
+  readonly refines: RamenRef;
   readonly fromNodeId: Id;
   readonly toNodeId: Id;
   readonly fromBounds?: Bounds;
@@ -64,7 +68,7 @@ export interface CreateRamenAnnotationInput {
 /** Values needed to narrow an inherited annotation definition for a refined Annotation node. */
 export interface RefineRamenAnnotationInput {
   readonly annotationId: Id;
-  readonly refines: RamenElementRef;
+  readonly refines: RamenRef;
   readonly properties?: readonly RamenAnnotationProperty[];
   readonly relations?: readonly RamenAnnotationRelation[];
 }
@@ -93,7 +97,7 @@ export interface RamenChange<T> {
 }
 
 /** Stateful convenience API for creating and validating one RAMEN project model. */
-export class RamenProject {
+export class RamenModel {
   private model: Model;
   private readonly dependencies: ReadonlyMap<Id, Model>;
   private readonly validator: RamenValidator = new RamenValidator();
@@ -104,40 +108,40 @@ export class RamenProject {
   }
 
   /** Creates an empty project that imports the current RAMEN reference model. */
-  public static create(input: CreateModelInput): RamenProject {
+  public static create(input: CreateModelInput): RamenModel {
     return this.createLevel(RAMEN_MODEL, input);
   }
 
   /** Creates another model level that imports an existing RAMEN project model. */
-  public static createLevel(base: Model, input: CreateModelInput, dependencies: readonly Model[] = []): RamenProject {
+  public static createLevel(base: Model, input: CreateModelInput, dependencies: readonly Model[] = []): RamenModel {
     const models: Map<Id, Model> = new Map<Id, Model>([
       [RAMEN_MODEL.id, RAMEN_MODEL],
       ...dependencies.map((model: Model): [Id, Model] => [model.id, model]),
       [base.id, base],
     ]);
-    return new RamenProject(RamenModelFormat.create(ModelFactory.createModel(base, input)), [...models.values()]);
+    return new RamenModel(RamenModelFormat.create(ModelFactory.createModel(base, input)), [...models.values()]);
   }
 
   /** Creates the next model level while retaining the complete dependency chain. */
-  public createNextLevel(input: CreateModelInput): RamenProject {
-    return RamenProject.createLevel(this.model, input, [...this.dependencies.values()]);
+  public createNextLevel(input: CreateModelInput): RamenModel {
+    return RamenModel.createLevel(this.model, input, [...this.dependencies.values()]);
   }
 
   /** Loads a project with all models needed to resolve its imports. */
-  public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL]): RamenProject {
+  public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL]): RamenModel {
     if (!RamenModelFormat.isDocument(model)) throw new Error('Expected a RAMEN project model.');
-    return new RamenProject(model, dependencies);
+    return new RamenModel(model, dependencies);
   }
 
   /** Imports a validated single-file bundle and restores its editable root project. */
-  public static importBundle(input: unknown): RamenProject {
+  public static importBundle(input: unknown): RamenModel {
     const bundle: RamenModelBundle = parseRamenBundle(input);
     const root: Model | undefined = bundle.models.find((model: Model): boolean => model.id === bundle.rootModelId);
 
     if (!RamenModelFormat.isDocument(root)) throw new Error(`RAMEN project model not found: '${bundle.rootModelId}'.`);
     const dependencies: readonly Model[] = bundle.models.filter((model: Model): boolean => model.id !== root.id);
 
-    return new RamenProject(root, dependencies);
+    return new RamenModel(root, dependencies);
   }
 
   /** Returns a detached snapshot of the current project model. */
@@ -170,21 +174,42 @@ export class RamenProject {
   }
 
   /** Compares this project with a later state and includes RAMEN validation findings from both states. */
-  public compareTo(next: RamenProject): RamenEvolutionReport {
+  public compareTo(next: RamenModel): RamenEvolutionReport {
     return RamenEvolution.compare(this.model.id, this.validationInputs(), next.model.id, next.validationInputs());
   }
 
-  /** Creates an advisor when the current project is valid. */
-  public createAdvisor(): RamenAdvisor | undefined {
+  /** Returns an advisor or explains why the current model cannot provide suggestions. */
+  public createAdvisor(): RamenAdvisor {
     const result: ProjectValidationResult = this.validate();
-    return result.valid ? new RamenAdvisor(result, this.validationInputs()) : undefined;
+    if (!result.valid)
+      throw new Error(`Cannot advise an invalid RAMEN model: ${result.diagnostics[0]?.message ?? 'Unknown error.'}`);
+
+    return new RamenAdvisor(result, this.validationInputs());
+  }
+
+  /** Lists attributes visible on a local or imported node. */
+  public suggestAttributes(nodeId: Id): readonly AttributeSuggestion[] {
+    const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
+    return this.createAdvisor().suggestAttributes(owner.modelId, owner.elementId);
+  }
+
+  /** Lists relations that can connect two nodes in this model. */
+  public suggestRelations(fromNodeId: Id, toNodeId: Id): readonly RelationRefinementSuggestion[] {
+    return this.createAdvisor().suggestRelations(this.model.id, fromNodeId, toNodeId);
+  }
+
+  /** Lists annotation definitions available on a local or imported node. */
+  public suggestAnnotations(nodeId: Id): readonly AnnotationSuggestion[] {
+    const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
+    return this.createAdvisor().suggestAnnotations(owner.modelId, owner.elementId);
   }
 
   /** Adds a node refinement and immediately validates the resulting project. */
   public createNode(input: CreateRamenNodeInput): RamenChange<Node> {
-    const node: Node = ModelFactory.createNode(input.refines.modelId, {
+    const base: RamenElementRef = this.resolveRef(input.refines, 'node');
+    const node: Node = ModelFactory.createNode(base.modelId, {
       name: input.name,
-      baseNodeId: input.refines.elementId,
+      baseNodeId: base.elementId,
     });
 
     this.model = ModelEditor.addClassifier(this.model, node);
@@ -235,13 +260,14 @@ export class RamenProject {
 
   /** Narrows an inherited annotation definition for a refined local Annotation node. */
   public refineAnnotation(input: RefineRamenAnnotationInput): RamenChange<RamenAnnotation> {
-    const parent: RamenAnnotation | undefined = this.findAnnotation(input.refines);
-    if (!parent) throw new Error(`Annotation definition not found: '${input.refines.modelId}:${input.refines.elementId}'.`);
+    const base: RamenElementRef = this.resolveRef(input.refines, 'annotation');
+    const parent: RamenAnnotation | undefined = this.findAnnotation(base);
+    if (!parent) throw new Error(`Annotation definition not found: '${base.modelId}:${base.elementId}'.`);
     const annotation: RamenAnnotation = {
       id: ModelFactory.createIdentifier(),
       annotationId: input.annotationId,
       type: parent.type,
-      refines: `${input.refines.modelId}:${input.refines.elementId}`,
+      refines: ModelRef.qualify(base.modelId, base.elementId),
       properties: structuredClone(input.properties ?? []),
       relations: structuredClone(input.relations ?? []),
     };
@@ -365,10 +391,11 @@ export class RamenProject {
 
   /** Adds a relation refinement and immediately validates the resulting project. */
   public createRelation(input: CreateRamenRelationInput): RamenChange<Relation> {
-    const base: Model | undefined = this.findModel(input.refines.modelId);
-    if (!base) throw new Error(`Relation base model not found: '${input.refines.modelId}'.`);
-    const relation: Relation = ModelFactory.createRelation(base, input.refines.modelId, {
-      baseRelationId: input.refines.elementId,
+    const reference: RamenElementRef = this.resolveRef(input.refines, 'relation');
+    const base: Model | undefined = this.findModel(reference.modelId);
+    if (!base) throw new Error(`Relation base model not found: '${reference.modelId}'.`);
+    const relation: Relation = ModelFactory.createRelation(base, reference.modelId, {
+      baseRelationId: reference.elementId,
       fromNodeId: input.fromNodeId,
       toNodeId: input.toNodeId,
     });
@@ -413,6 +440,26 @@ export class RamenProject {
   private findModel(modelId: Id): Model | undefined {
     if (modelId === this.model.id) return this.model;
     return this.dependencies.get(modelId);
+  }
+
+  private resolveRef(input: RamenRef, kind: 'node' | 'relation' | 'annotation'): RamenElementRef {
+    if (typeof input !== 'string') return input;
+    if (ModelRef.isQualified(input)) {
+      const parts: { readonly modelId: Id; readonly refId: Id } = ModelRef.splitQualified(input);
+      return { modelId: parts.modelId, elementId: parts.refId };
+    }
+
+    const matches: RamenElementRef[] = this.validationInputs()
+      .filter((model: Model): boolean => {
+        if (kind === 'relation') return model.relations.some((relation: Relation): boolean => relation.id === input);
+        if (kind === 'annotation')
+          return RamenAnnotations.get(model).some((annotation: RamenAnnotation): boolean => annotation.id === input);
+        return model.classifiers.some((item: Classifier): boolean => item.kind === 'Node' && item.id === input);
+      })
+      .map((model: Model): RamenElementRef => ({ modelId: model.id, elementId: input }));
+
+    if (matches.length !== 1 || !matches[0]) throw new Error(`Expected one ${kind} with id '${input}', found ${matches.length}.`);
+    return matches[0];
   }
 
   private findAnnotation(reference: RamenElementRef): RamenAnnotation | undefined {

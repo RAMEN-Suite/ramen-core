@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConstraintRegistry, Diagnostics, RAMEN_MODEL, RamenInstanceValidator, RamenProject } from '../../dist/index.js';
+import { ConstraintRegistry, Diagnostics, RAMEN_MODEL, RamenInstanceValidator, RamenModel } from '../../dist/index.js';
 import type {
   AnnotationAdvice,
   AnnotationPropertyAdvice,
@@ -32,7 +32,7 @@ void test('advises selectable annotation properties and their cardinalities', ()
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const advice: AnnotationAdvice | undefined = fixture.project
     .createAdvisor()
-    ?.adviseAnnotation(fixture.model.id, fixture.nodes.annotation.id);
+    .adviseAnnotation(fixture.model.id, fixture.nodes.annotation.id);
 
   assert.ok(advice);
   const url: AnnotationPropertyAdvice | undefined = advice.properties.find(
@@ -173,7 +173,7 @@ void test('rejects duplicate types and implicit replacement of inherited definit
     ),
   );
 
-  const child: RamenProject = fixture.project.createNextLevel({
+  const child: RamenModel = fixture.project.createNextLevel({
     uri: 'https://example.org/models/implicit-replacement',
     id: 'implicitReplacement01',
     name: 'Implicit Replacement',
@@ -198,7 +198,7 @@ void test('rejects malformed project annotation definitions', (): void => {
     ...fixture.model,
     annotations: [{ id: 'incomplete' }],
   } as unknown as RamenModelDocument;
-  const result: ProjectValidationResult = RamenProject.load(malformed).validate();
+  const result: ProjectValidationResult = RamenModel.load(malformed).validate();
   assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATIONS_INVALID'));
 });
 

@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenProject } from '../../dist/index.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/index.js';
 import type {
   Attribute,
   Node,
   Relation,
-  RamenAdvisor,
   RamenAnnotation,
   RamenChange,
   RamenModelDocument,
@@ -42,7 +41,7 @@ export interface CorrespondenceAnnotations {
 }
 
 export interface CorrespondenceFixture {
-  readonly project: RamenProject;
+  readonly project: RamenModel;
   readonly model: RamenModelDocument;
   readonly nodes: CorrespondenceNodes;
   readonly relations: CorrespondenceRelations;
@@ -51,14 +50,14 @@ export interface CorrespondenceFixture {
 }
 
 export interface ScholarlyFixture {
-  readonly project: RamenProject;
+  readonly project: RamenModel;
   readonly model: RamenModelDocument;
   readonly nodes: CorrespondenceNodes;
   readonly persName: RamenAnnotation;
 }
 
 export function createCorrespondenceFixture(): CorrespondenceFixture {
-  const project: RamenProject = RamenProject.create({
+  const project: RamenModel = RamenModel.create({
     uri: 'https://example.org/models/correspondence',
     id: CORRESPONDENCE_MODEL_ID,
     name: 'Correspondence',
@@ -79,7 +78,7 @@ export function createCorrespondenceFixture(): CorrespondenceFixture {
 }
 
 export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFixture {
-  const project: RamenProject = base.project.createNextLevel({
+  const project: RamenModel = base.project.createNextLevel({
     uri: 'https://example.org/models/scholarly-correspondence',
     id: SCHOLARLY_MODEL_ID,
     name: 'Scholarly Correspondence',
@@ -90,7 +89,7 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
   createRefinedRelations(project, base, nodes);
   const persName: RamenAnnotation = project.refineAnnotation({
     annotationId: nodes.annotation.id,
-    refines: { modelId: base.model.id, elementId: base.annotations.persName.id },
+    refines: base.annotations.persName.id,
     relations: [
       {
         relationId: findRelation(project, nodes.annotation.id, nodes.person.id, 'REFERS_TO').id,
@@ -105,34 +104,34 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
   return { project: project, model: model, nodes: nodes, persName: persName };
 }
 
-function createBaseNodes(project: RamenProject): CorrespondenceNodes {
+function createBaseNodes(project: RamenModel): CorrespondenceNodes {
   return {
-    letter: createNode(project, 'Letter', RAMEN_ELEMENT.COLLECTION, RAMEN_MODEL.id),
-    witness: createNode(project, 'Witness', RAMEN_ELEMENT.COLLECTION, RAMEN_MODEL.id),
-    person: createNode(project, 'Person', RAMEN_ELEMENT.ENTITY, RAMEN_MODEL.id),
-    place: createNode(project, 'Place', RAMEN_ELEMENT.ENTITY, RAMEN_MODEL.id),
-    text: createNode(project, 'Text', RAMEN_ELEMENT.CONTENT, RAMEN_MODEL.id),
-    annotation: createNode(project, 'TextAnnotation', RAMEN_ELEMENT.ANNOTATION, RAMEN_MODEL.id),
+    letter: createNode(project, 'Letter', RAMEN_ELEMENT.COLLECTION),
+    witness: createNode(project, 'Witness', RAMEN_ELEMENT.COLLECTION),
+    person: createNode(project, 'Person', RAMEN_ELEMENT.ENTITY),
+    place: createNode(project, 'Place', RAMEN_ELEMENT.ENTITY),
+    text: createNode(project, 'Text', RAMEN_ELEMENT.CONTENT),
+    annotation: createNode(project, 'TextAnnotation', RAMEN_ELEMENT.ANNOTATION),
   };
 }
 
-function createRefinedNodes(project: RamenProject, base: CorrespondenceFixture): CorrespondenceNodes {
+function createRefinedNodes(project: RamenModel, base: CorrespondenceFixture): CorrespondenceNodes {
   return {
-    letter: createNode(project, 'CorrespondenceLetter', base.nodes.letter.id, base.model.id),
-    witness: createNode(project, 'PhysicalWitness', base.nodes.witness.id, base.model.id),
-    person: createNode(project, 'HistoricalPerson', base.nodes.person.id, base.model.id),
-    place: createNode(project, 'HistoricalPlace', base.nodes.place.id, base.model.id),
-    text: createNode(project, 'NormalizedText', base.nodes.text.id, base.model.id),
-    annotation: createNode(project, 'ScholarlyAnnotation', base.nodes.annotation.id, base.model.id),
+    letter: createNode(project, 'CorrespondenceLetter', base.nodes.letter.id),
+    witness: createNode(project, 'PhysicalWitness', base.nodes.witness.id),
+    person: createNode(project, 'HistoricalPerson', base.nodes.person.id),
+    place: createNode(project, 'HistoricalPlace', base.nodes.place.id),
+    text: createNode(project, 'NormalizedText', base.nodes.text.id),
+    annotation: createNode(project, 'ScholarlyAnnotation', base.nodes.annotation.id),
   };
 }
 
-function createNode(project: RamenProject, name: string, elementId: string, modelId: string): Node {
-  const change: RamenChange<Node> = project.createNode({ name: name, refines: { modelId: modelId, elementId: elementId } });
+function createNode(project: RamenModel, name: string, elementId: string): Node {
+  const change: RamenChange<Node> = project.createNode({ name: name, refines: elementId });
   return change.element;
 }
 
-function createBaseRelations(project: RamenProject, nodes: CorrespondenceNodes): CorrespondenceRelations {
+function createBaseRelations(project: RamenModel, nodes: CorrespondenceNodes): CorrespondenceRelations {
   return {
     witnessInLetter: createRelation(project, nodes.witness.id, nodes.letter.id, 'PART_OF'),
     textInWitness: createRelation(project, nodes.text.id, nodes.witness.id, 'PART_OF'),
@@ -144,48 +143,40 @@ function createBaseRelations(project: RamenProject, nodes: CorrespondenceNodes):
   };
 }
 
-function createRefinedRelations(project: RamenProject, base: CorrespondenceFixture, nodes: CorrespondenceNodes): void {
-  createRelationFromBase(project, base.relations.witnessInLetter, base.model.id, nodes.witness.id, nodes.letter.id);
-  createRelationFromBase(project, base.relations.textInWitness, base.model.id, nodes.text.id, nodes.witness.id);
-  createRelationFromBase(project, base.relations.textAnnotation, base.model.id, nodes.text.id, nodes.annotation.id);
-  createRelationFromBase(project, base.relations.personAnnotation, base.model.id, nodes.person.id, nodes.annotation.id);
-  createRelationFromBase(project, base.relations.refersPerson, base.model.id, nodes.annotation.id, nodes.person.id);
-  createRelationFromBase(project, base.relations.refersPlace, base.model.id, nodes.annotation.id, nodes.place.id);
-  createRelationFromBase(project, base.relations.annotatesAnnotation, base.model.id, nodes.annotation.id, nodes.annotation.id);
+function createRefinedRelations(project: RamenModel, base: CorrespondenceFixture, nodes: CorrespondenceNodes): void {
+  createRelationFromBase(project, base.relations.witnessInLetter, nodes.witness.id, nodes.letter.id);
+  createRelationFromBase(project, base.relations.textInWitness, nodes.text.id, nodes.witness.id);
+  createRelationFromBase(project, base.relations.textAnnotation, nodes.text.id, nodes.annotation.id);
+  createRelationFromBase(project, base.relations.personAnnotation, nodes.person.id, nodes.annotation.id);
+  createRelationFromBase(project, base.relations.refersPerson, nodes.annotation.id, nodes.person.id);
+  createRelationFromBase(project, base.relations.refersPlace, nodes.annotation.id, nodes.place.id);
+  createRelationFromBase(project, base.relations.annotatesAnnotation, nodes.annotation.id, nodes.annotation.id);
 }
 
-function createRelation(project: RamenProject, fromId: string, toId: string, name: string): Relation {
-  const advisor: RamenAdvisor | undefined = project.createAdvisor();
-  assert.ok(advisor);
-  const suggestion: RelationRefinementSuggestion | undefined = advisor
-    .suggestRelations(project.getModel().id, fromId, toId)
+function createRelation(project: RamenModel, fromId: string, toId: string, name: string): Relation {
+  const suggestion: RelationRefinementSuggestion | undefined = project
+    .suggestRelations(fromId, toId)
     .find((item: RelationRefinementSuggestion): boolean => item.name === name);
 
   assert.ok(suggestion, `Missing ${name} suggestion for ${fromId} -> ${toId}`);
   const change: RamenChange<Relation> = project.createRelation({
-    refines: { modelId: suggestion.modelId, elementId: suggestion.relationId },
+    refines: suggestion.relationId,
     fromNodeId: fromId,
     toNodeId: toId,
   });
   return change.element;
 }
 
-function createRelationFromBase(
-  project: RamenProject,
-  base: Pick<Relation, 'id'>,
-  baseModelId: string,
-  fromId: string,
-  toId: string,
-): Relation {
+function createRelationFromBase(project: RamenModel, base: Pick<Relation, 'id'>, fromId: string, toId: string): Relation {
   const change: RamenChange<Relation> = project.createRelation({
-    refines: { modelId: baseModelId, elementId: base.id },
+    refines: base.id,
     fromNodeId: fromId,
     toNodeId: toId,
   });
   return change.element;
 }
 
-function findRelation(project: RamenProject, fromId: string, toId: string, name: string): Relation {
+function findRelation(project: RamenModel, fromId: string, toId: string, name: string): Relation {
   const relation: Relation | undefined = project
     .getModel()
     .relations.find(
@@ -198,7 +189,7 @@ function findRelation(project: RamenProject, fromId: string, toId: string, name:
 }
 
 function createAnnotations(
-  project: RamenProject,
+  project: RamenModel,
   nodes: CorrespondenceNodes,
   relations: CorrespondenceRelations,
   url: Attribute,

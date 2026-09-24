@@ -409,8 +409,8 @@ export class RamenModel {
     return this.change(narrowed);
   }
 
-  /** Connects two local nodes using their single most specific compatible RAMEN relation. */
-  public connect(from: Node | Id, to: Node | Id): RamenChange<Relation> {
+  /** Connects local nodes using a chosen suggestion, or infers the unique most specific relation. */
+  public connect(from: Node | Id, to: Node | Id, choice?: RelationRefinementSuggestion): RamenChange<Relation> {
     const fromNodeId: Id = typeof from === 'string' ? from : from.id;
     const toNodeId: Id = typeof to === 'string' ? to : to.id;
     const validation: ProjectValidationResult = this.validate();
@@ -429,13 +429,21 @@ export class RamenModel {
         ),
     );
 
-    if (mostSpecific.length !== 1 || !mostSpecific[0]) {
+    const selected: RelationRefinementSuggestion | undefined = choice
+      ? suggestions.find(
+          (item: RelationRefinementSuggestion): boolean =>
+            item.modelId === choice.modelId && item.relationId === choice.relationId,
+        )
+      : mostSpecific[0];
+
+    if (choice && !selected) throw new Error(`Selected relation '${choice.relationId}' does not connect these nodes.`);
+    if ((!choice && mostSpecific.length !== 1) || !selected) {
       const names: string = mostSpecific.map((item: RelationRefinementSuggestion): string => item.name).join(', ');
       throw new Error(
         `Expected one relation for '${fromNodeId}' -> '${toNodeId}', found ${mostSpecific.length}${names ? `: ${names}` : ''}.`,
       );
     }
-    return this.createRelation({ refines: mostSpecific[0].relationId, fromNodeId: fromNodeId, toNodeId: toNodeId });
+    return this.createRelation({ refines: selected.relationId, fromNodeId: fromNodeId, toNodeId: toNodeId });
   }
 
   /** Updates a local relation and validates the resulting project. */

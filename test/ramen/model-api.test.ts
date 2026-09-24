@@ -21,6 +21,7 @@ import type {
   RamenChange,
   RamenEvolutionReport,
   Relation,
+  RelationRefinementSuggestion,
 } from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
@@ -39,6 +40,16 @@ void test('connects compatible RAMEN nodes without naming the relation', (): voi
   assert.equal(linked.element.name, 'REFERS_TO');
   assert.equal(linked.validation.valid, true);
   assert.throws((): RamenChange<Relation> => model.connect(annotation, annotation), /found 2: HAS_ANNOTATION, REFERS_TO/);
+
+  const choices: readonly RelationRefinementSuggestion[] = model.suggestRelations(annotation.id, annotation.id);
+  const selected: RelationRefinementSuggestion | undefined = choices.find(
+    (item: RelationRefinementSuggestion): boolean => item.name === 'HAS_ANNOTATION',
+  );
+  assert.ok(selected);
+  const explicit: RamenChange<Relation> = model.connect(annotation, annotation, selected);
+  assert.equal(explicit.validation.valid, true);
+  assert.equal(explicit.element.name, 'HAS_ANNOTATION');
+  assert.throws((): RamenChange<Relation> => model.connect(annotation, person, selected), /does not connect these nodes/);
 
   const next: RamenModel = model.createNextLevel({
     id: 'specificLinkModel01',

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RamenModel } from '../../dist/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../../dist/index.js';
 import type {
   Attribute,
   AttributeCreationAdvice,
@@ -24,6 +24,35 @@ import type {
 } from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
+
+void test('connects compatible RAMEN nodes without naming the relation', (): void => {
+  const model: RamenModel = RamenModel.create({
+    id: 'automaticLinkModel01',
+    uri: 'https://example.org/models/automatic-link',
+    name: 'Automatic Link',
+    version: '1.0.0',
+  });
+  const annotation: Node = model.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const person: Node = model.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+  const linked: RamenChange<Relation> = model.connect(annotation, person);
+
+  assert.equal(linked.element.name, 'REFERS_TO');
+  assert.equal(linked.validation.valid, true);
+  assert.throws((): RamenChange<Relation> => model.connect(annotation, annotation), /found 2: HAS_ANNOTATION, REFERS_TO/);
+
+  const next: RamenModel = model.createNextLevel({
+    id: 'specificLinkModel01',
+    uri: 'https://example.org/models/specific-link',
+    name: 'Specific Link',
+    version: '1.0.0',
+  });
+  const refinedAnnotation: Node = next.createNode({ name: 'EditionAnnotation', refines: annotation.id }).element;
+  const refinedPerson: Node = next.createNode({ name: 'HistoricalPerson', refines: person.id }).element;
+  const refinedLink: RamenChange<Relation> = next.connect(refinedAnnotation, refinedPerson);
+
+  assert.equal(refinedLink.validation.valid, true);
+  assert.deepEqual(refinedLink.element.superTypes, [`${model.getModel().id}:${linked.element.id}`]);
+});
 
 void test('updates and removes local model elements through the RAMEN project API', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();

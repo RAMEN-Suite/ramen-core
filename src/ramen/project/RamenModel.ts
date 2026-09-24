@@ -409,6 +409,35 @@ export class RamenModel {
     return this.change(narrowed);
   }
 
+  /** Connects two local nodes using their single most specific compatible RAMEN relation. */
+  public connect(from: Node | Id, to: Node | Id): RamenChange<Relation> {
+    const fromNodeId: Id = typeof from === 'string' ? from : from.id;
+    const toNodeId: Id = typeof to === 'string' ? to : to.id;
+    const validation: ProjectValidationResult = this.validate();
+    if (!validation.valid) throw new Error('Cannot infer a relation from an invalid RAMEN model.');
+
+    const suggestions: readonly RelationRefinementSuggestion[] = new RamenAdvisor(
+      validation,
+      this.validationInputs(),
+    ).suggestRelations(this.model.id, fromNodeId, toNodeId);
+    const mostSpecific: readonly RelationRefinementSuggestion[] = suggestions.filter(
+      (candidate: RelationRefinementSuggestion): boolean =>
+        !suggestions.some(
+          (other: RelationRefinementSuggestion): boolean =>
+            other !== candidate &&
+            validation.graph.isRelationRefSameOrSubtype(other.modelId, other.relationId, candidate.modelId, candidate.relationId),
+        ),
+    );
+
+    if (mostSpecific.length !== 1 || !mostSpecific[0]) {
+      const names: string = mostSpecific.map((item: RelationRefinementSuggestion): string => item.name).join(', ');
+      throw new Error(
+        `Expected one relation for '${fromNodeId}' -> '${toNodeId}', found ${mostSpecific.length}${names ? `: ${names}` : ''}.`,
+      );
+    }
+    return this.createRelation({ refines: mostSpecific[0].relationId, fromNodeId: fromNodeId, toNodeId: toNodeId });
+  }
+
   /** Updates a local relation and validates the resulting project. */
   public updateRelation(relationId: Id, input: UpdateRelationInput): RamenChange<Relation> {
     this.requireRelation(relationId);

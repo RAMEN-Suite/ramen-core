@@ -4,6 +4,7 @@
   "out": "api-docs",
   "excludeInternal": true,
   "readme": "README.md",
+  "projectDocuments": ["docs/*.md"],
   "githubPages": false,
   "categorizeByGroup": true,
   "disableGit": true,

@@ -35,7 +35,7 @@ void test('connects compatible RAMEN nodes without naming the relation', (): voi
   });
   const annotation: Node = model.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const person: Node = model.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
-  const linked: RamenChange<Relation> = model.connect(annotation, person);
+  const linked: RamenChange<Relation> = model.refersTo(annotation, person);
 
   assert.equal(linked.element.name, 'REFERS_TO');
   assert.equal(linked.validation.valid, true);
@@ -49,6 +49,7 @@ void test('connects compatible RAMEN nodes without naming the relation', (): voi
   const explicit: RamenChange<Relation> = model.connect(annotation, annotation, selected);
   assert.equal(explicit.validation.valid, true);
   assert.equal(explicit.element.name, 'HAS_ANNOTATION');
+  assert.throws((): RamenChange<Relation> => model.partOf(annotation, person), /found 0/);
   assert.throws((): RamenChange<Relation> => model.connect(annotation, person, selected), /does not connect these nodes/);
 
   const next: RamenModel = model.createNextLevel({

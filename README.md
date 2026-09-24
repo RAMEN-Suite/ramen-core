@@ -23,9 +23,7 @@ const model = RamenModel.create({
 
 const person = model.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
 const annotation = model.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
-const [suggestion] = model.suggestRelations(annotation.id, person.id);
-if (!suggestion) throw new Error('No compatible relation.');
-const reference = model.connect(annotation, person, suggestion).element;
+const reference = model.refersTo(annotation, person).element;
 
 model.createAnnotation({
   annotationId: annotation.id,
@@ -35,7 +33,7 @@ model.createAnnotation({
 ```
 
 `refines` accepts an element ID. The model finds its owner in the imported model chain. Annotation names such as `person` or `place` belong to the project, not the RAMEN reference model.
-When one relation is unambiguous, `model.connect(annotation, person)` selects it directly. When several fit, choose a suggestion and pass it to `connect()`.
+RAMEN also offers `partOf(part, whole)` and `hasAnnotation(subject, annotation)`. For custom or ambiguous connections, use `suggestRelations()` and pass a selected suggestion to `connect()`.
 
 ## Refine and exchange
 

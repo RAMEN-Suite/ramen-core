@@ -33,7 +33,7 @@ The edition imports the correspondence model. It can directly reuse any imported
 
 ## Let RAMEN find a relation
 
-`model.suggestRelations(annotation.id, person.id)` lists compatible RAMEN relation types. Pass the selected suggestion to `model.connect(annotation, person, selected)`. If one most specific relation fits, `model.connect(annotation, person)` also works without a selection. If several distinct types fit, the call lists them and asks for a choice.
+The RAMEN reference model defines three relation families. Use `model.partOf(part, whole)`, `model.hasAnnotation(subject, annotation)`, or `model.refersTo(annotation, target)` directly. These methods check endpoint compatibility and refine the most specific matching relation. For custom or ambiguous cases, `model.suggestRelations(from.id, to.id)` lists the options; pass a selected option to `model.connect(from, to, selected)`.
 
 An annotation definition is separate from an Annotation node. It names a project-specific `type` and restricts the modeled properties and relations allowed for that type. A refined Annotation node inherits existing definitions; call `refineAnnotation()` only when a definition needs to become more specific.
 

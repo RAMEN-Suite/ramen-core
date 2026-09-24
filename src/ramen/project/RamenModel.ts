@@ -9,6 +9,7 @@ import type {
   Attribute,
   DataType,
   Model,
+  ProjectGraph,
   Literal,
   Node,
   Relation,
@@ -41,6 +42,8 @@ export interface RamenElementRef {
 
 /** An element ID is enough when it is unique in the current model chain. */
 export type RamenRef = Id | RamenElementRef;
+
+type RamenRelationKind = 'PART_OF' | 'HAS_ANNOTATION' | 'REFERS_TO';
 
 /** Values needed to create a project node refining an existing node. */
 export interface CreateRamenNodeInput {
@@ -411,23 +414,45 @@ export class RamenModel {
 
   /** Connects local nodes using a chosen suggestion, or infers the unique most specific relation. */
   public connect(from: Node | Id, to: Node | Id, choice?: RelationRefinementSuggestion): RamenChange<Relation> {
+    return this.connectBy(from, to, choice);
+  }
+
+  /** Creates a RAMEN PART_OF relation when the node types permit it. */
+  public partOf(part: Node | Id, whole: Node | Id): RamenChange<Relation> {
+    return this.connectBy(part, whole, undefined, 'PART_OF');
+  }
+
+  /** Creates a RAMEN HAS_ANNOTATION relation when the node types permit it. */
+  public hasAnnotation(subject: Node | Id, annotation: Node | Id): RamenChange<Relation> {
+    return this.connectBy(subject, annotation, undefined, 'HAS_ANNOTATION');
+  }
+
+  /** Creates a RAMEN REFERS_TO relation when the node types permit it. */
+  public refersTo(annotation: Node | Id, target: Node | Id): RamenChange<Relation> {
+    return this.connectBy(annotation, target, undefined, 'REFERS_TO');
+  }
+
+  private connectBy(
+    from: Node | Id,
+    to: Node | Id,
+    choice?: RelationRefinementSuggestion,
+    family?: RamenRelationKind,
+  ): RamenChange<Relation> {
     const fromNodeId: Id = typeof from === 'string' ? from : from.id;
     const toNodeId: Id = typeof to === 'string' ? to : to.id;
     const validation: ProjectValidationResult = this.validate();
     if (!validation.valid) throw new Error('Cannot infer a relation from an invalid RAMEN model.');
 
-    const suggestions: readonly RelationRefinementSuggestion[] = new RamenAdvisor(
+    const compatible: readonly RelationRefinementSuggestion[] = new RamenAdvisor(
       validation,
       this.validationInputs(),
     ).suggestRelations(this.model.id, fromNodeId, toNodeId);
-    const mostSpecific: readonly RelationRefinementSuggestion[] = suggestions.filter(
-      (candidate: RelationRefinementSuggestion): boolean =>
-        !suggestions.some(
-          (other: RelationRefinementSuggestion): boolean =>
-            other !== candidate &&
-            validation.graph.isRelationRefSameOrSubtype(other.modelId, other.relationId, candidate.modelId, candidate.relationId),
-        ),
-    );
+    const suggestions: readonly RelationRefinementSuggestion[] = family
+      ? compatible.filter((candidate: RelationRefinementSuggestion): boolean =>
+          this.belongsToRamenFamily(candidate, family, validation.graph),
+        )
+      : compatible;
+    const mostSpecific: readonly RelationRefinementSuggestion[] = this.mostSpecificRelations(suggestions, validation.graph);
 
     const selected: RelationRefinementSuggestion | undefined = choice
       ? suggestions.find(
@@ -444,6 +469,28 @@ export class RamenModel {
       );
     }
     return this.createRelation({ refines: selected.relationId, fromNodeId: fromNodeId, toNodeId: toNodeId });
+  }
+
+  private belongsToRamenFamily(candidate: RelationRefinementSuggestion, family: RamenRelationKind, graph: ProjectGraph): boolean {
+    return RAMEN_MODEL.relations.some(
+      (base: Relation): boolean =>
+        base.name === family &&
+        graph.isRelationRefSameOrSubtype(candidate.modelId, candidate.relationId, RAMEN_MODEL.id, base.id),
+    );
+  }
+
+  private mostSpecificRelations(
+    suggestions: readonly RelationRefinementSuggestion[],
+    graph: ProjectGraph,
+  ): readonly RelationRefinementSuggestion[] {
+    return suggestions.filter(
+      (candidate: RelationRefinementSuggestion): boolean =>
+        !suggestions.some(
+          (other: RelationRefinementSuggestion): boolean =>
+            other !== candidate &&
+            graph.isRelationRefSameOrSubtype(other.modelId, other.relationId, candidate.modelId, candidate.relationId),
+        ),
+    );
   }
 
   /** Updates a local relation and validates the resulting project. */

@@ -58,3 +58,11 @@ const restored = RamenModel.importBundle(JSON.parse(JSON.stringify(exported.bund
 The generic APIs also provide `ModelFactory`, `ModelEditor`, `ModelValidator`, `InstanceValidator`, `createModelBundle`, and `splitModelBundle`. Use those when building without RAMEN-specific rules. Registered constraint languages can inspect the full data and project graph through `ConstraintContext.graph`; model JSON is never executed as code.
 
 See [Modeling with RAMEN](docs/modeling.md) for the model-level workflow and relation selection.
+
+## Runnable examples
+
+- [Complete RAMEN project in code](examples/ramen-programmatic.ts): collections, entities, content, five annotation types, validation, and bundle round trip.
+- [Interface-driven connection](examples/ramen-interface.ts): list possible relations, choose one, and connect the nodes.
+- [Generic model](examples/generic-model.ts): create a domain model without RAMEN, refine it, validate data, and exchange a bundle.
+
+Run `npm run build && npm run examples:check` to typecheck and execute all three examples.

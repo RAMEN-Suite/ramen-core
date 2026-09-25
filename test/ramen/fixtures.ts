@@ -45,7 +45,6 @@ export interface ScholarlyFixture {
   readonly project: RamenModel;
   readonly model: RamenModelDocument;
   readonly nodes: CorrespondenceNodes;
-  readonly persName: RamenAnnotation;
 }
 
 export function createCorrespondenceFixture(): CorrespondenceFixture {
@@ -79,21 +78,10 @@ export function createScholarlyFixture(base: CorrespondenceFixture): ScholarlyFi
   const nodes: CorrespondenceNodes = createRefinedNodes(project, base);
 
   createRefinedRelations(project, base, nodes);
-  const persName: RamenAnnotation = project.refineAnnotation({
-    annotationId: nodes.annotation.id,
-    refines: base.annotations.persName.id,
-    relations: [
-      {
-        relationId: findRelation(project, nodes.annotation.id, nodes.person.id, 'REFERS_TO').id,
-        direction: 'outgoing',
-        bounds: { lowerBound: 1, upperBound: 1 },
-      },
-    ],
-  }).element;
   const model: RamenModelDocument = project.getModel();
 
   assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
-  return { project: project, model: model, nodes: nodes, persName: persName };
+  return { project: project, model: model, nodes: nodes };
 }
 
 function createBaseNodes(project: RamenModel): CorrespondenceNodes {
@@ -152,18 +140,6 @@ function createRelationFromBase(project: RamenModel, base: Pick<Relation, 'id'>,
     toNodeId: toId,
   });
   return change.element;
-}
-
-function findRelation(project: RamenModel, fromId: string, toId: string, name: string): Relation {
-  const relation: Relation | undefined = project
-    .getModel()
-    .relations.find(
-      (candidate: Relation): boolean =>
-        candidate.from.nodeId === fromId && candidate.to.nodeId === toId && candidate.name === name,
-    );
-
-  assert.ok(relation);
-  return relation;
 }
 
 function createAnnotations(

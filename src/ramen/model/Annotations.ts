@@ -21,7 +21,6 @@ export interface RamenAnnotation {
   readonly id: Id;
   readonly annotationId: Ref;
   readonly type: string;
-  readonly refines?: Ref;
   readonly properties: readonly RamenAnnotationProperty[];
   readonly relations: readonly RamenAnnotationRelation[];
 }

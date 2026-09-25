@@ -82,9 +82,6 @@
           "type": "string",
           "minLength": 1
         },
-        "refines": {
-          "$ref": "#/$defs/Ref"
-        },
         "properties": {
           "type": "array",
           "items": {

@@ -68,14 +68,6 @@ export interface CreateRamenAnnotationInput {
   readonly relations?: readonly RamenAnnotationRelation[];
 }
 
-/** Values needed to narrow an inherited annotation definition, with or without node refinement. */
-export interface RefineRamenAnnotationInput {
-  readonly annotationId: RamenRef;
-  readonly refines: RamenRef;
-  readonly properties?: readonly RamenAnnotationProperty[];
-  readonly relations?: readonly RamenAnnotationRelation[];
-}
-
 /** Editable fields of a locally declared annotation definition. */
 export interface UpdateRamenAnnotationInput {
   readonly type?: string;
@@ -255,25 +247,6 @@ export class RamenModel {
       id: ModelFactory.createIdentifier(),
       annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
       type: input.type,
-      properties: structuredClone(input.properties ?? []),
-      relations: structuredClone(input.relations ?? []),
-    };
-
-    this.model = RamenAnnotations.add(this.model, annotation);
-    return this.change(annotation);
-  }
-
-  /** Narrows an inherited annotation definition on a compatible local or imported Annotation node. */
-  public refineAnnotation(input: RefineRamenAnnotationInput): RamenChange<RamenAnnotation> {
-    const base: RamenElementRef = this.resolveRef(input.refines, 'annotation');
-    const owner: RamenElementRef = this.resolveRef(input.annotationId, 'node');
-    const parent: RamenAnnotation | undefined = this.findAnnotation(base);
-    if (!parent) throw new Error(`Annotation definition not found: '${base.modelId}:${base.elementId}'.`);
-    const annotation: RamenAnnotation = {
-      id: ModelFactory.createIdentifier(),
-      annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
-      type: parent.type,
-      refines: ModelRef.qualify(base.modelId, base.elementId),
       properties: structuredClone(input.properties ?? []),
       relations: structuredClone(input.relations ?? []),
     };
@@ -529,7 +502,7 @@ export class RamenModel {
     return this.dependencies.get(modelId);
   }
 
-  private resolveRef(input: RamenRef, kind: 'node' | 'relation' | 'annotation'): RamenElementRef {
+  private resolveRef(input: RamenRef, kind: 'node' | 'relation'): RamenElementRef {
     if (typeof input !== 'string') return input;
     if (ModelRef.isQualified(input)) {
       const parts: { readonly modelId: Id; readonly refId: Id } = ModelRef.splitQualified(input);
@@ -539,20 +512,12 @@ export class RamenModel {
     const matches: RamenElementRef[] = this.validationInputs()
       .filter((model: Model): boolean => {
         if (kind === 'relation') return model.relations.some((relation: Relation): boolean => relation.id === input);
-        if (kind === 'annotation')
-          return RamenAnnotations.get(model).some((annotation: RamenAnnotation): boolean => annotation.id === input);
         return model.classifiers.some((item: Classifier): boolean => item.kind === 'Node' && item.id === input);
       })
       .map((model: Model): RamenElementRef => ({ modelId: model.id, elementId: input }));
 
     if (matches.length !== 1 || !matches[0]) throw new Error(`Expected one ${kind} with id '${input}', found ${matches.length}.`);
     return matches[0];
-  }
-
-  private findAnnotation(reference: RamenElementRef): RamenAnnotation | undefined {
-    const model: Model | undefined = this.findModel(reference.modelId);
-    if (!model) return undefined;
-    return RamenAnnotations.get(model).find((annotation: RamenAnnotation): boolean => annotation.id === reference.elementId);
   }
 
   private requireNode(nodeId: Id): Node {

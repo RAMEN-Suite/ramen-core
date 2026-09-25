@@ -20,7 +20,7 @@ import type {
   Ref,
   ResolvedModelElement,
 } from '../../model/index';
-import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
+import { RamenAnnotation, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
 import { RamenModelFormat } from '../model/Document';
 import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from '../project/AnnotationGraph';
@@ -34,12 +34,9 @@ export const RAMEN_VALIDATION_ERROR: Readonly<{
   ANNOTATION_TYPE_EMPTY: 'RAMEN_ANNOTATION_TYPE_EMPTY';
   ANNOTATION_TYPE_DUPLICATE: 'RAMEN_ANNOTATION_TYPE_DUPLICATE';
   ANNOTATION_NODE_INVALID: 'RAMEN_ANNOTATION_NODE_INVALID';
-  ANNOTATION_REFINES_INVALID: 'RAMEN_ANNOTATION_REFINES_INVALID';
-  ANNOTATION_REFINEMENT_REQUIRED: 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED';
   ANNOTATION_PROPERTY_INVALID: 'RAMEN_ANNOTATION_PROPERTY_INVALID';
   ANNOTATION_RELATION_INVALID: 'RAMEN_ANNOTATION_RELATION_INVALID';
   ANNOTATION_BOUNDS_INVALID: 'RAMEN_ANNOTATION_BOUNDS_INVALID';
-  ANNOTATION_RELATION_EXTENSION: 'RAMEN_ANNOTATION_RELATION_EXTENSION';
   PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED';
 }> = {
   BASE_MODEL_REQUIRED: 'RAMEN_BASE_MODEL_REQUIRED',
@@ -48,12 +45,9 @@ export const RAMEN_VALIDATION_ERROR: Readonly<{
   ANNOTATION_TYPE_EMPTY: 'RAMEN_ANNOTATION_TYPE_EMPTY',
   ANNOTATION_TYPE_DUPLICATE: 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
   ANNOTATION_NODE_INVALID: 'RAMEN_ANNOTATION_NODE_INVALID',
-  ANNOTATION_REFINES_INVALID: 'RAMEN_ANNOTATION_REFINES_INVALID',
-  ANNOTATION_REFINEMENT_REQUIRED: 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED',
   ANNOTATION_PROPERTY_INVALID: 'RAMEN_ANNOTATION_PROPERTY_INVALID',
   ANNOTATION_RELATION_INVALID: 'RAMEN_ANNOTATION_RELATION_INVALID',
   ANNOTATION_BOUNDS_INVALID: 'RAMEN_ANNOTATION_BOUNDS_INVALID',
-  ANNOTATION_RELATION_EXTENSION: 'RAMEN_ANNOTATION_RELATION_EXTENSION',
   PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED',
 } as const;
 
@@ -184,8 +178,8 @@ export class RamenValidator {
       );
     this.registerOwnerType(resolved.modelId, definition, owner, ownerTypes, path, diagnostics);
     this.validateProperties(graph, resolved, owner, diagnostics);
-    this.validateRelations(graph, annotations, resolved, owner, diagnostics);
-    this.validateRefinement(graph, annotations, resolved, owner, diagnostics);
+    this.validateRelations(graph, resolved, owner, diagnostics);
+    this.validateInheritedType(graph, annotations, resolved, owner, diagnostics);
   }
 
   private registerIdentifier(
@@ -263,27 +257,21 @@ export class RamenValidator {
 
   private validateRelations(
     graph: ProjectGraph,
-    annotations: RamenAnnotationGraph,
     resolved: ResolvedRamenAnnotation,
     owner: ResolvedModelElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
     const seen: Set<string> = new Set<string>();
-    const parent: ResolvedRamenAnnotation | undefined = resolved.annotation.refines
-      ? annotations.resolve(resolved.modelId, resolved.annotation.refines)
-      : undefined;
 
     for (const requirement of resolved.annotation.relations) {
-      this.validateRelation(graph, annotations, resolved, owner, parent, requirement, seen, diagnostics);
+      this.validateRelation(graph, resolved, owner, requirement, seen, diagnostics);
     }
   }
 
   private validateRelation(
     graph: ProjectGraph,
-    annotations: RamenAnnotationGraph,
     resolved: ResolvedRamenAnnotation,
     owner: ResolvedModelElement<Node>,
-    parent: ResolvedRamenAnnotation | undefined,
     requirement: RamenAnnotationRelation,
     seen: Set<string>,
     diagnostics: Diagnostic[],
@@ -297,7 +285,6 @@ export class RamenValidator {
     const path: DiagnosticPath = this.path(resolved.modelId, resolved.annotation.id).property('relations');
 
     this.validateRelationShape(resolved, requirement, relation, modeledBounds, validEndpoint, seen.has(key), path, diagnostics);
-    if (parent) this.validateRefinedRelation(graph, annotations, resolved, parent, requirement, path, diagnostics);
     seen.add(key);
   }
 
@@ -346,79 +333,22 @@ export class RamenValidator {
     return direction === 'outgoing' ? relation.element.to.bounds : relation.element.from.bounds;
   }
 
-  private validateRefinement(
+  private validateInheritedType(
     graph: ProjectGraph,
     annotations: RamenAnnotationGraph,
     resolved: ResolvedRamenAnnotation,
     owner: ResolvedModelElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
-    const path: DiagnosticPath = this.path(resolved.modelId, resolved.annotation.id).property('refines');
-    const parent: ResolvedRamenAnnotation | undefined = resolved.annotation.refines
-      ? annotations.resolve(resolved.modelId, resolved.annotation.refines)
-      : undefined;
     const inherited: ResolvedRamenAnnotation | undefined = this.findInheritedAnnotation(graph, annotations, resolved, owner);
-
-    if (!resolved.annotation.refines && inherited) {
-      this.error(
-        diagnostics,
-        RAMEN_VALIDATION_ERROR.ANNOTATION_REFINEMENT_REQUIRED,
-        `Annotation '${resolved.annotation.type}' already exists on an ancestor; refine it explicitly.`,
-        path,
-        resolved.annotation.id,
-      );
-
-      return;
-    }
-    if (!resolved.annotation.refines) return;
-    if (!this.isValidRefinement(graph, resolved, owner, parent)) {
-      this.error(
-        diagnostics,
-        RAMEN_VALIDATION_ERROR.ANNOTATION_REFINES_INVALID,
-        'Annotation refinement must preserve its type and belong to a refined Annotation node.',
-        path,
-        resolved.annotation.id,
-      );
-
-      return;
-    }
-    if (parent) this.validateRefinedProperties(annotations, resolved, parent, diagnostics);
-  }
-
-  private validateRefinedProperties(
-    annotations: RamenAnnotationGraph,
-    resolved: ResolvedRamenAnnotation,
-    parent: ResolvedRamenAnnotation,
-    diagnostics: Diagnostic[],
-  ): void {
-    for (const property of resolved.annotation.properties) {
-      const inherited: RamenAnnotationProperty | undefined = this.findParentProperty(annotations, parent, property.attributeId);
-
-      if (!property.bounds || !inherited?.bounds || this.narrows(property.bounds, inherited.bounds)) continue;
-      this.error(
-        diagnostics,
-        RAMEN_VALIDATION_ERROR.ANNOTATION_BOUNDS_INVALID,
-        `Refined annotation '${resolved.annotation.type}' must narrow inherited property cardinality.`,
-        this.path(resolved.modelId, resolved.annotation.id).property('properties'),
-        resolved.annotation.id,
-      );
-    }
-  }
-
-  private findParentProperty(
-    annotations: RamenAnnotationGraph,
-    parent: ResolvedRamenAnnotation,
-    attributeRef: Ref,
-  ): RamenAnnotationProperty | undefined {
-    const attributeId: Id = this.refId(attributeRef);
-    for (const current of annotations.getRefinementLineage(parent)) {
-      const inherited: RamenAnnotationProperty | undefined = current.annotation.properties.find(
-        (property: RamenAnnotationProperty): boolean => this.refId(property.attributeId) === attributeId,
-      );
-
-      if (inherited) return inherited;
-    }
-    return undefined;
+    if (!inherited) return;
+    this.error(
+      diagnostics,
+      RAMEN_VALIDATION_ERROR.ANNOTATION_TYPE_DUPLICATE,
+      `Annotation type '${resolved.annotation.type}' is already inherited from an ancestor.`,
+      this.path(resolved.modelId, resolved.annotation.id).property('type'),
+      resolved.annotation.id,
+    );
   }
 
   private findInheritedAnnotation(
@@ -437,79 +367,6 @@ export class RamenValidator {
         if (candidateOwner?.modelId === owner.modelId && candidateOwner.element.id === owner.element.id) continue;
       }
       return candidate;
-    }
-    return undefined;
-  }
-
-  private isValidRefinement(
-    graph: ProjectGraph,
-    resolved: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
-    parent: ResolvedRamenAnnotation | undefined,
-  ): boolean {
-    if (parent?.annotation.type !== resolved.annotation.type) return false;
-    const parentOwner: ResolvedModelElement<Node> | undefined = graph.resolveNode(parent.modelId, parent.annotation.annotationId);
-    if (!parentOwner) return false;
-    if (
-      resolved.modelId === parent.modelId &&
-      owner.modelId === parentOwner.modelId &&
-      owner.element.id === parentOwner.element.id
-    )
-      return false;
-    return graph.isNodeSameOrSubtype(owner, parentOwner);
-  }
-
-  private validateRefinedRelation(
-    graph: ProjectGraph,
-    annotations: RamenAnnotationGraph,
-    resolved: ResolvedRamenAnnotation,
-    parent: ResolvedRamenAnnotation,
-    requirement: RamenAnnotationRelation,
-    path: DiagnosticPath,
-    diagnostics: Diagnostic[],
-  ): void {
-    const inherited: RamenAnnotationRelation | undefined = this.findParentRelation(
-      graph,
-      annotations,
-      resolved.modelId,
-      parent,
-      requirement,
-    );
-
-    if (!inherited)
-      this.error(
-        diagnostics,
-        RAMEN_VALIDATION_ERROR.ANNOTATION_RELATION_EXTENSION,
-        `Refined annotation '${resolved.annotation.type}' cannot introduce relation '${requirement.relationId}'.`,
-        path,
-        resolved.annotation.id,
-      );
-    else if (!this.narrows(requirement.bounds, inherited.bounds))
-      this.error(
-        diagnostics,
-        RAMEN_VALIDATION_ERROR.ANNOTATION_BOUNDS_INVALID,
-        `Refined annotation '${resolved.annotation.type}' must narrow inherited relation cardinality.`,
-        path,
-        resolved.annotation.id,
-      );
-  }
-
-  private findParentRelation(
-    graph: ProjectGraph,
-    annotations: RamenAnnotationGraph,
-    actualModelId: Id,
-    parent: ResolvedRamenAnnotation,
-    requirement: RamenAnnotationRelation,
-  ): RamenAnnotationRelation | undefined {
-    for (const current of annotations.getRefinementLineage(parent)) {
-      const modelId: Id = current.modelId;
-      const inherited: RamenAnnotationRelation | undefined = current.annotation.relations.find(
-        (candidate: RamenAnnotationRelation): boolean =>
-          candidate.direction === requirement.direction &&
-          graph.isRelationRefSameOrSubtype(actualModelId, requirement.relationId, modelId, candidate.relationId),
-      );
-
-      if (inherited) return inherited;
     }
     return undefined;
   }

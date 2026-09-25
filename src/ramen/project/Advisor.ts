@@ -199,8 +199,8 @@ export class RamenAdvisor {
   }
 
   /** Suggests valid properties, relations, targets, and cardinalities for an annotation definition. */
-  public adviseAnnotation(modelId: Id, annotationNodeId: Id, refines?: Ref): AnnotationAdvice | undefined {
-    return new RamenAnnotationAdvisor(this.graph, this.models).advise(modelId, annotationNodeId, refines);
+  public adviseAnnotation(modelId: Id, annotationNodeId: Id): AnnotationAdvice | undefined {
+    return new RamenAnnotationAdvisor(this.graph, this.models).advise(modelId, annotationNodeId);
   }
 
   /** Lists the modeled relations permitted by one effective annotation type. */

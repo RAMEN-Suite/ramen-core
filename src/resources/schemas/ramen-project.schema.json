@@ -250,7 +250,6 @@
         "id": { "$ref": "#/$defs/RamenId" },
         "annotationId": { "$ref": "#/$defs/RamenRef" },
         "type": { "type": "string", "minLength": 1 },
-        "refines": { "$ref": "#/$defs/RamenRef" },
         "properties": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationProperty" }, "default": [] },
         "relations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationRelation" }, "default": [] }
       }

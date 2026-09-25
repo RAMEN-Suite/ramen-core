@@ -88,7 +88,7 @@ function assertValidReusedAnnotation(model: RamenModel, type: string): void {
   assert.deepEqual(result.diagnostics, []);
 }
 
-void test('narrows an inherited annotation type while reusing the same imported node', (): void => {
+void test('inherits an annotation type unchanged while reusing the same imported node', (): void => {
   const reference: Relation | undefined = RAMEN_MODEL.relations.find(
     (relation: Relation): boolean => relation.name === 'REFERS_TO' && relation.to.nodeId === RAMEN_ELEMENT.ENTITY,
   );
@@ -113,20 +113,12 @@ void test('narrows an inherited annotation type while reusing the same imported 
     name: 'Second level',
     version: '1.0.0',
   });
-  const narrowed: RamenChange<RamenAnnotation> = second.refineAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
-    refines: original.element.id,
-    relations: [
-      { relationId: `${RAMEN_MODEL.id}:${reference.id}`, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } },
-    ],
-  });
-
-  assert.equal(narrowed.validation.valid, true);
+  assert.equal(second.validate().valid, true);
   assert.equal(second.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION).length, 1);
-  assert.equal(second.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION)[0]?.annotationId, narrowed.element.id);
+  assert.equal(second.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION)[0]?.annotationId, original.element.id);
 });
 
-void test('requires an explicit refinement when redeclaring an imported annotation type', (): void => {
+void test('rejects redeclaration of an inherited annotation type', (): void => {
   const first: RamenModel = RamenModel.create({
     id: 'annotationBaseType01',
     uri: 'https://example.org/models/annotation-base-type',
@@ -149,7 +141,7 @@ void test('requires an explicit refinement when redeclaring an imported annotati
   assert.equal(replacement.validation.valid, false);
   assert.ok(
     replacement.validation.diagnostics.some(
-      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED',
+      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
     ),
   );
 });
@@ -344,7 +336,7 @@ function personAnnotationGraph(fixture: CorrespondenceFixture): ModelInstanceGra
   };
 }
 
-void test('rejects duplicate types and implicit replacement of inherited definitions', (): void => {
+void test('rejects duplicate types on the same node and on a refined node', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const duplicate: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
     annotationId: fixture.nodes.annotation.id,
@@ -371,7 +363,7 @@ void test('rejects duplicate types and implicit replacement of inherited definit
 
   assert.ok(
     replacement.validation.diagnostics.some(
-      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED',
+      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
     ),
   );
 });

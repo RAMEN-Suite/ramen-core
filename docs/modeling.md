@@ -42,7 +42,7 @@ const note = correspondence.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOT
 const types = correspondence.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION);
 ```
 
-Create a node refinement when Annotation needs a new structural attribute. Declare a new annotation type for a new `type` value. To narrow an existing type at a later level, call `refineAnnotation()` with the inherited definition ID; this also works when both definitions use the same imported Annotation node. Narrowing may invalidate existing data, so compare model states before migrating data.
+Create a node refinement when Annotation needs a new structural attribute. Declare each annotation type once for a new `type` value. Later model levels inherit the declaration unchanged, including when they refine its Annotation node. A changed type rule belongs to model evolution rather than another model level.
 
 ## Validate and exchange
 

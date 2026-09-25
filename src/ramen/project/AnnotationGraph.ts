@@ -1,5 +1,5 @@
-import { ModelRef, ProjectGraph } from '../../model/index';
-import type { Model, Node, Id, QualifiedParts, Ref, ResolvedModelElement } from '../../model/index';
+import { ProjectGraph } from '../../model/index';
+import type { Model, Node, Id, Ref, ResolvedModelElement } from '../../model/index';
 import { RamenAnnotation, RamenAnnotations } from '../model/Annotations';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 
@@ -38,17 +38,6 @@ export class RamenAnnotationGraph {
     );
   }
 
-  /** Resolves a local or qualified annotation reference. */
-  public resolve(ownerModelId: Id, reference: Ref): ResolvedRamenAnnotation | undefined {
-    const target: QualifiedParts = ModelRef.isQualified(reference)
-      ? ModelRef.splitQualified(reference)
-      : { modelId: ownerModelId, refId: reference };
-    const annotation: RamenAnnotation | undefined = this.getDeclared(target.modelId).find(
-      (candidate: RamenAnnotation): boolean => candidate.id === target.refId,
-    );
-    return annotation ? { modelId: target.modelId, annotation: annotation } : undefined;
-  }
-
   /** Returns declarations applicable to a node from the selected model's point of view. */
   public getApplicable(modelId: Id, nodeRef: Ref): readonly ResolvedRamenAnnotation[] {
     const node: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, nodeRef);
@@ -85,23 +74,6 @@ export class RamenAnnotationGraph {
     return this.getEffective(modelId, nodeRef).find(
       (candidate: ResolvedRamenAnnotation): boolean => candidate.annotation.type === type,
     );
-  }
-
-  /** Returns one annotation definition and all definitions it transitively refines, nearest first. */
-  public getRefinementLineage(start: ResolvedRamenAnnotation | undefined): readonly ResolvedRamenAnnotation[] {
-    const result: ResolvedRamenAnnotation[] = [];
-    const visited: Set<string> = new Set<string>();
-    let current: ResolvedRamenAnnotation | undefined = start;
-
-    while (current) {
-      const key: string = `${current.modelId}:${current.annotation.id}`;
-
-      if (visited.has(key)) break;
-      visited.add(key);
-      result.push(current);
-      current = current.annotation.refines ? this.resolve(current.modelId, current.annotation.refines) : undefined;
-    }
-    return result;
   }
 
   /** Reports whether a reachable node is RAMEN Annotation or one of its transitive refinements. */

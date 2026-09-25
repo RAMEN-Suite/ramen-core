@@ -96,7 +96,7 @@ void test('refines the complete Correspondence model at another level', (): void
     scholarly.model.imports.map((item: Import): string => item.modelId),
     [base.model.id],
   );
-  assert.equal(scholarly.model.annotations.length, 1);
+  assert.equal(scholarly.model.annotations.length, 0);
   assert.equal(scholarly.project.suggestAnnotations(base.nodes.annotation.id).length, 5);
   const annotations: readonly string[] = annotationTypes(
     advisor.suggestAnnotations(SCHOLARLY_MODEL_ID, scholarly.nodes.annotation.id),

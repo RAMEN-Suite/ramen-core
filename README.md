@@ -55,7 +55,7 @@ const restored = RamenModel.importBundle(JSON.parse(JSON.stringify(exported.bund
 
 `exportBundle()` keeps all reachable model levels and their imports in one JSON file. `RamenModel.importBundle()` restores the editable root. `validate()` checks model rules; `validateInstances(data)` checks a complete data graph. Edits return `{ element, validation }` and stay in the model even when validation reports an error.
 
-Use `preview(draft => { ... })` to check a detached edit, or `apply(draft => { ... })` to commit a valid group of edits atomically. New annotation types can use an imported Annotation node directly; refine that node when it needs new structural attributes. `refineAnnotation()` narrows an existing type, while `createAnnotation()` declares a new `type` value.
+New annotation types can use an imported Annotation node directly; refine that node when it needs new structural attributes. `createAnnotation()` declares a new `type` value.
 
 The generic APIs also provide `ModelFactory.createRootModel()`, `ModelEditor`, `ModelValidator`, `InstanceValidator`, `createModelBundle`, and `splitModelBundle`. Use those when building without RAMEN-specific rules. Registered constraint languages can inspect the full data and project graph through `ConstraintContext.graph`; model JSON is never executed as code.
 

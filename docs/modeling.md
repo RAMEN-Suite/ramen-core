@@ -48,4 +48,4 @@ Create a node refinement when Annotation needs a new structural attribute. Decla
 
 `model.validate()` checks the complete model chain. `model.validateInstances(data)` checks complete data against it. `model.exportBundle()` returns one JSON container holding the reachable documents; `RamenModel.importBundle(value)` restores the editable root model.
 
-Individual changes return both the edited element and the current validation result. They retain invalid edits so an editor can correct them. Use `model.preview(draft => { ... })` to inspect several edits without changing the model, or `model.apply(draft => { ... })` to commit them only when the final model is valid. Export succeeds only after validation passes.
+Individual changes return both the edited element and the current validation result. Semantically invalid edits stay in the model so an editor can correct them. Structurally invalid annotation definitions are rejected before they are saved. Export succeeds only after validation passes.

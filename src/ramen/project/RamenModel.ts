@@ -99,12 +99,6 @@ export interface RamenChange<T> {
   readonly validation: ProjectValidationResult;
 }
 
-/** Detached model state and diagnostics produced by a proposed edit. */
-export interface RamenPreview {
-  readonly model: RamenModelDocument;
-  readonly validation: ProjectValidationResult;
-}
-
 /** Stateful convenience API for creating and validating one RAMEN project model. */
 export class RamenModel {
   private model: Model;
@@ -171,22 +165,6 @@ export class RamenModel {
   /** Validates the complete current project and returns its graph on success. */
   public validate(): ProjectValidationResult {
     return this.validator.validateProject(this.model.id, this.validationInputs());
-  }
-
-  /** Evaluates several edits on a detached draft without changing this model. */
-  public preview(edit: (draft: RamenModel) => void): RamenPreview {
-    const draft: RamenModel = new RamenModel(this.getModel(), [...this.dependencies.values()]);
-    edit(draft);
-
-    return { model: draft.getModel(), validation: draft.validate() };
-  }
-
-  /** Applies several edits atomically when the resulting project is valid. */
-  public apply(edit: (draft: RamenModel) => void): ProjectValidationResult {
-    const proposal: RamenPreview = this.preview(edit);
-    if (proposal.validation.valid) this.model = proposal.model;
-
-    return proposal.validation;
   }
 
   /** Validates a complete data graph using this project's models and optional custom constraint languages. */

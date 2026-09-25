@@ -21,7 +21,6 @@ import type {
   RamenAnnotation,
   RamenChange,
   RamenModelDocument,
-  RamenPreview,
   Node,
   Relation,
   ValidationResult,
@@ -142,17 +141,17 @@ void test('requires an explicit refinement when redeclaring an imported annotati
     name: 'Repeated type',
     version: '1.0.0',
   });
-  const proposal: RamenPreview = second.preview((draft: RamenModel): void => {
-    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
+  const replacement: RamenChange<RamenAnnotation> = second.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'note',
   });
 
-  assert.equal(proposal.validation.valid, false);
+  assert.equal(replacement.validation.valid, false);
   assert.ok(
-    proposal.validation.diagnostics.some(
+    replacement.validation.diagnostics.some(
       (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED',
     ),
   );
-  assert.equal(second.validate().valid, true);
 });
 
 void test('uses an imported Annotation node and relation in project data', (): void => {

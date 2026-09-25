@@ -12,8 +12,6 @@ import type {
   Literal,
   Model,
   RamenModelBundle,
-  RamenPreview,
-  ProjectValidationResult,
   RamenModelDocument,
   Node,
   NodeRefinementSuggestion,
@@ -29,44 +27,22 @@ import type {
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
 
-void test('previews edits and applies only a valid final model', (): void => {
+void test('corrects a semantically invalid annotation edit through the simple model API', (): void => {
   const model: RamenModel = RamenModel.create({
-    id: 'atomicChangesModel01',
-    uri: 'https://example.org/models/atomic-changes',
-    name: 'Atomic changes',
+    id: 'editableChangesModel01',
+    uri: 'https://example.org/models/editable-changes',
+    name: 'Editable changes',
     version: '1.0.0',
   });
-  const before: Model = model.getModel();
-  const proposed: RamenPreview = model.preview((draft: RamenModel): void => {
-    draft.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY });
+  model.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
+  const duplicate: RamenChange<RamenAnnotation> = model.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'draft',
   });
+  const corrected: RamenChange<RamenAnnotation> = model.updateAnnotation(duplicate.element.id, { type: 'note' });
 
-  assert.equal(proposed.validation.valid, true);
-  assert.equal(proposed.model.classifiers.length, 1);
-  assert.deepEqual(model.getModel(), before);
-
-  const invalid: ProjectValidationResult = model.apply((draft: RamenModel): void => {
-    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
-    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
-  });
-
-  assert.equal(invalid.valid, false);
-  assert.deepEqual(model.getModel(), before);
-
-  const valid: ProjectValidationResult = model.apply((draft: RamenModel): void => {
-    draft.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY });
-    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
-    const duplicate: RamenChange<RamenAnnotation> = draft.createAnnotation({
-      annotationId: RAMEN_ELEMENT.ANNOTATION,
-      type: 'draft',
-    });
-
-    assert.equal(duplicate.validation.valid, false);
-    draft.updateAnnotation(duplicate.element.id, { type: 'note' });
-  });
-
-  assert.equal(valid.valid, true);
-  assert.equal(model.getModel().classifiers.length, 1);
+  assert.equal(duplicate.validation.valid, false);
+  assert.equal(corrected.validation.valid, true);
   assert.deepEqual(
     model.getAnnotations().map((annotation: RamenAnnotation): string => annotation.type),
     ['draft', 'note'],

@@ -45,7 +45,7 @@ void test('suggests all attachable annotations for Text and Person', (): void =>
   assert.deepEqual(person, expected);
 });
 
-void test('suggests only the modeled relation of persName', (): void => {
+void test('suggests the modeled attachment and target relations of persName', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const advisor: RamenAdvisor = fixture.project.createAdvisor();
 
@@ -56,10 +56,14 @@ void test('suggests only the modeled relation of persName', (): void => {
     'persName',
   );
 
-  assert.equal(relations.length, 1);
-  assert.equal(relations[0]?.name, 'REFERS_TO');
-  assert.equal(relations[0]?.targetName, 'Person');
-  assert.deepEqual(relations[0]?.suggestedBounds, { lowerBound: 1, upperBound: 1 });
+  assert.equal(relations.length, 3);
+  const target: AnnotationRelationAdvice | undefined = relations.find(
+    (relation: AnnotationRelationAdvice): boolean => relation.direction === 'outgoing',
+  );
+
+  assert.equal(target?.name, 'REFERS_TO');
+  assert.equal(target?.targetName, 'Person');
+  assert.deepEqual(target?.suggestedBounds, { lowerBound: 1, upperBound: 1 });
 });
 
 void test('suggests Letter above Witness and Text below Witness', (): void => {

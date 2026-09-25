@@ -42,6 +42,8 @@ const note = correspondence.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOT
 const types = correspondence.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION);
 ```
 
+This declares a type but does not make it attachable to data yet. Select a modeled incoming `HAS_ANNOTATION` relation in its `relations` list to permit a carrier such as Text or Image. `suggestAnnotationsForNode()` then returns only types whose incoming relation accepts the selected node, including compatible refinements.
+
 Create a node refinement when Annotation needs a new structural attribute. Declare each annotation type once for a new `type` value. Later model levels inherit the declaration unchanged, including when they refine its Annotation node. A changed type rule belongs to model evolution rather than another model level.
 
 ## Validate and exchange

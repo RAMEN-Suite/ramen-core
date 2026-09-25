@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ramen-schema.org/ramen/1.0.0/annotations.schema.json",
   "title": "RAMEN Annotation Definitions",
-  "description": "Closed RAMEN annotation definitions declared by a project model.",
+  "description": "Project-defined annotation types. Each type selects the properties and modeled relations allowed for data carrying its type value.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -40,50 +40,62 @@
     },
     "AnnotationProperty": {
       "type": "object",
+      "description": "Allows one attribute declared on the owning Annotation node, optionally with narrower cardinality.",
       "required": ["attributeId"],
       "additionalProperties": false,
       "properties": {
         "attributeId": {
-          "$ref": "#/$defs/Ref"
+          "$ref": "#/$defs/Ref",
+          "description": "Reference to an attribute available on the owning Annotation node."
         },
         "bounds": {
-          "$ref": "#/$defs/Bounds"
+          "$ref": "#/$defs/Bounds",
+          "description": "Optional type-specific cardinality; the attribute's modeled cardinality applies when omitted."
         }
       }
     },
     "AnnotationRelation": {
       "type": "object",
+      "description": "Allows one modeled relation for this annotation type, including its direction from the annotation and a type-specific cardinality.",
       "required": ["relationId", "direction", "bounds"],
       "additionalProperties": false,
       "properties": {
         "relationId": {
-          "$ref": "#/$defs/Ref"
+          "$ref": "#/$defs/Ref",
+          "description": "Reference to a modeled relation. Its endpoint types determine which nodes can be connected."
         },
         "direction": {
-          "enum": ["outgoing", "incoming"]
+          "enum": ["outgoing", "incoming"],
+          "description": "Direction viewed from the Annotation node. An incoming HAS_ANNOTATION relation determines a permitted carrier such as Text or Image."
         },
         "bounds": {
-          "$ref": "#/$defs/Bounds"
+          "$ref": "#/$defs/Bounds",
+          "description": "Number of matching relations allowed for one annotation; it must not widen the modeled relation cardinality."
         }
       }
     },
     "Annotation": {
       "type": "object",
+      "description": "One closed type value scoped to an Annotation node and inherited by refinements of that node.",
       "required": ["id", "annotationId", "type", "properties", "relations"],
       "additionalProperties": false,
       "properties": {
         "id": {
-          "$ref": "#/$defs/Id"
+          "$ref": "#/$defs/Id",
+          "description": "Stable identifier of this type declaration, separate from its serialized type value."
         },
         "annotationId": {
-          "$ref": "#/$defs/Ref"
+          "$ref": "#/$defs/Ref",
+          "description": "Annotation node on which this type is declared. It may be the imported RAMEN Annotation node."
         },
         "type": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Required value of the Annotation.type property in data using this declaration."
         },
         "properties": {
           "type": "array",
+          "description": "Complete allowlist of additional properties for this type; common attributes of RAMEN Annotation remain available.",
           "items": {
             "$ref": "#/$defs/AnnotationProperty"
           },
@@ -91,6 +103,7 @@
         },
         "relations": {
           "type": "array",
+          "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
           "items": {
             "$ref": "#/$defs/AnnotationRelation"
           },

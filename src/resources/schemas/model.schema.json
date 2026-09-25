@@ -56,7 +56,7 @@
       "type": "object",
       "additionalProperties": true,
       "default": {},
-      "$comment": "Tool-specific metadata; no semantic meaning."
+      "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it."
     }
   },
   "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modeling rather than full behavioral or reflective semantics.",
@@ -123,7 +123,7 @@
         "name": {
           "type": "string",
           "minLength": 1,
-          "$comment": "Human-readable name of the model."
+          "description": "Optional display label for the import; model identity and resolution use modelId, modelUri, and version."
         },
         "version": {
           "$ref": "#/$defs/Version",
@@ -188,6 +188,7 @@
         "ext": {
           "type": "object",
           "additionalProperties": true,
+          "description": "Opaque tool metadata for this constraint; it has no RMF validation semantics.",
           "default": {}
         }
       }
@@ -242,6 +243,7 @@
         "ext": {
           "type": "object",
           "additionalProperties": true,
+          "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
           "default": {}
         }
       }
@@ -282,6 +284,7 @@
         "ext": {
           "type": "object",
           "additionalProperties": true,
+          "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
           "default": {}
         }
       }
@@ -299,10 +302,12 @@
           "type": "string"
         },
         "value": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Numeric value represented by this literal, when the data type uses an integer value domain."
         },
         "literal": {
-          "type": "string"
+          "type": "string",
+          "description": "String value represented by this literal; name remains its display label."
         },
         "constraints": {
           "type": "array",
@@ -314,6 +319,7 @@
         "ext": {
           "type": "object",
           "additionalProperties": true,
+          "description": "Opaque tool metadata for this literal; it has no RMF model semantics.",
           "default": {}
         }
       }
@@ -339,22 +345,22 @@
         "isKey": {
           "type": "boolean",
           "default": false,
-          "$comment": "Marks this attribute as identifying."
+          "description": "Marks a required single-valued attribute as identifying data of this node type. The model validator enforces cardinality 1..1; uniqueness across data records is not currently checked."
         },
         "isReadOnly": {
           "type": "boolean",
           "default": false,
-          "$comment": "Value cannot be modified generally."
+          "description": "Tells data-entry tools that a value may be set on creation but should not be changed afterward. This rule concerns edits over time, not one data snapshot."
         },
         "isOrdered": {
           "type": "boolean",
           "default": true,
-          "$comment": "Order matters for multi-valued attributes."
+          "description": "For a multi-valued attribute, array position carries domain meaning when true. The current validator does not impose a canonical order."
         },
         "isUnique": {
           "type": "boolean",
           "default": true,
-          "$comment": "Duplicate values are not allowed for multi-valued attributes."
+          "description": "For one data record, a multi-valued attribute must not contain duplicate values when true. This is distinct from key uniqueness across records."
         },
         "constraints": {
           "type": "array",
@@ -366,6 +372,7 @@
         "ext": {
           "type": "object",
           "additionalProperties": true,
+          "description": "Opaque tool metadata for this attribute; it has no RMF model semantics.",
           "default": {}
         }
       }
@@ -410,6 +417,7 @@
         "ext": {
           "type": "object",
           "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
           "default": {}
         }
       }
@@ -435,12 +443,12 @@
         "isComposite": {
           "type": "boolean",
           "default": false,
-          "$comment": "Composition/containment: this end is the owning (whole) end. Typically only one end is composite."
+          "description": "Marks this end as the conceptual whole or owner. At most one end may be composite; automatic deletion and acyclicity are not implied."
         },
         "isNavigable": {
           "type": "boolean",
           "default": false,
-          "$comment": "Controls navigability of this relation end only."
+          "description": "Tells tools whether a node at the opposite end can navigate this relation toward nodes at this end. It does not restrict which relations may be stored."
         },
         "constraints": {
           "type": "array",
@@ -452,6 +460,7 @@
         "ext": {
           "type": "object",
           "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation end; it has no RMF model semantics.",
           "default": {}
         }
       }

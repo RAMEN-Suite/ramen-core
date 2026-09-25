@@ -37,7 +37,7 @@
       "type": "object",
       "additionalProperties": true,
       "default": {},
-      "$comment": "Tool-specific metadata; no semantic meaning.",
+      "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it.",
       "properties": { "ramen": false }
     },
     "annotations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotation" }, "default": [] }
@@ -82,7 +82,11 @@
       "properties": {
         "modelUri": { "type": "string", "format": "uri" },
         "modelId": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string", "minLength": 1, "$comment": "Human-readable name of the model." },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional display label for the import; model identity and resolution use modelId, modelUri, and version."
+        },
         "version": { "$ref": "#/$defs/Version", "$comment": "Exact imported model version required for reproducible resolution." }
       }
     },
@@ -109,7 +113,12 @@
         "severity": { "type": "string", "enum": ["error", "warn", "info"], "default": "error" },
         "message": { "type": "string" },
         "code": { "type": "string" },
-        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this constraint; it has no RMF validation semantics.",
+          "default": {}
+        }
       }
     },
     "Classifier": { "oneOf": [{ "$ref": "#/$defs/Node" }, { "$ref": "#/$defs/DataType" }] },
@@ -125,7 +134,12 @@
         "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
         "attributes": { "type": "array", "items": { "$ref": "#/$defs/Attribute" }, "default": [] },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
-        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
+          "default": {}
+        }
       }
     },
     "DataType": {
@@ -143,7 +157,12 @@
         },
         "literals": { "type": "array", "items": { "$ref": "#/$defs/Literal" }, "minItems": 1 },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
-        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
+          "default": {}
+        }
       }
     },
     "Literal": {
@@ -154,10 +173,21 @@
       "properties": {
         "id": { "$ref": "#/$defs/Id" },
         "name": { "type": "string" },
-        "value": { "type": "integer" },
-        "literal": { "type": "string" },
+        "value": {
+          "type": "integer",
+          "description": "Numeric value represented by this literal, when the data type uses an integer value domain."
+        },
+        "literal": {
+          "type": "string",
+          "description": "String value represented by this literal; name remains its display label."
+        },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
-        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this literal; it has no RMF model semantics.",
+          "default": {}
+        }
       }
     },
     "Attribute": {
@@ -170,16 +200,33 @@
         "name": { "type": "string" },
         "typeId": { "$ref": "#/$defs/TypeRef" },
         "bounds": { "$ref": "#/$defs/Bounds" },
-        "isKey": { "type": "boolean", "default": false, "$comment": "Marks this attribute as identifying." },
-        "isReadOnly": { "type": "boolean", "default": false, "$comment": "Value cannot be modified generally." },
-        "isOrdered": { "type": "boolean", "default": true, "$comment": "Order matters for multi-valued attributes." },
+        "isKey": {
+          "type": "boolean",
+          "default": false,
+          "description": "Marks a required single-valued attribute as identifying data of this node type. The model validator enforces cardinality 1..1; uniqueness across data records is not currently checked."
+        },
+        "isReadOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Tells data-entry tools that a value may be set on creation but should not be changed afterward. This rule concerns edits over time, not one data snapshot."
+        },
+        "isOrdered": {
+          "type": "boolean",
+          "default": true,
+          "description": "For a multi-valued attribute, array position carries domain meaning when true. The current validator does not impose a canonical order."
+        },
         "isUnique": {
           "type": "boolean",
           "default": true,
-          "$comment": "Duplicate values are not allowed for multi-valued attributes."
+          "description": "For one data record, a multi-valued attribute must not contain duplicate values when true. This is distinct from key uniqueness across records."
         },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
-        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this attribute; it has no RMF model semantics.",
+          "default": {}
+        }
       }
     },
     "Relation": {
@@ -195,7 +242,12 @@
         "from": { "$ref": "#/$defs/RelationEnd" },
         "to": { "$ref": "#/$defs/RelationEnd" },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
-        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
+          "default": {}
+        }
       }
     },
     "RelationEnd": {
@@ -211,11 +263,20 @@
         "isComposite": {
           "type": "boolean",
           "default": false,
-          "$comment": "Composition/containment: this end is the owning (whole) end. Typically only one end is composite."
+          "description": "Marks this end as the conceptual whole or owner. At most one end may be composite; automatic deletion and acyclicity are not implied."
         },
-        "isNavigable": { "type": "boolean", "default": false, "$comment": "Controls navigability of this relation end only." },
+        "isNavigable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Tells tools whether a node at the opposite end can navigate this relation toward nodes at this end. It does not restrict which relations may be stored."
+        },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
-        "ext": { "type": "object", "additionalProperties": true, "default": {} }
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation end; it has no RMF model semantics.",
+          "default": {}
+        }
       }
     },
     "RamenId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,}$" },
@@ -228,30 +289,71 @@
     },
     "RamenAnnotationProperty": {
       "type": "object",
+      "description": "Allows one attribute declared on the owning Annotation node, optionally with narrower cardinality.",
       "required": ["attributeId"],
       "additionalProperties": false,
-      "properties": { "attributeId": { "$ref": "#/$defs/RamenRef" }, "bounds": { "$ref": "#/$defs/RamenBounds" } }
+      "properties": {
+        "attributeId": {
+          "$ref": "#/$defs/RamenRef",
+          "description": "Reference to an attribute available on the owning Annotation node."
+        },
+        "bounds": {
+          "$ref": "#/$defs/RamenBounds",
+          "description": "Optional type-specific cardinality; the attribute's modeled cardinality applies when omitted."
+        }
+      }
     },
     "RamenAnnotationRelation": {
       "type": "object",
+      "description": "Allows one modeled relation for this annotation type, including its direction from the annotation and a type-specific cardinality.",
       "required": ["relationId", "direction", "bounds"],
       "additionalProperties": false,
       "properties": {
-        "relationId": { "$ref": "#/$defs/RamenRef" },
-        "direction": { "enum": ["outgoing", "incoming"] },
-        "bounds": { "$ref": "#/$defs/RamenBounds" }
+        "relationId": {
+          "$ref": "#/$defs/RamenRef",
+          "description": "Reference to a modeled relation. Its endpoint types determine which nodes can be connected."
+        },
+        "direction": {
+          "enum": ["outgoing", "incoming"],
+          "description": "Direction viewed from the Annotation node. An incoming HAS_ANNOTATION relation determines a permitted carrier such as Text or Image."
+        },
+        "bounds": {
+          "$ref": "#/$defs/RamenBounds",
+          "description": "Number of matching relations allowed for one annotation; it must not widen the modeled relation cardinality."
+        }
       }
     },
     "RamenAnnotation": {
       "type": "object",
+      "description": "One closed type value scoped to an Annotation node and inherited by refinements of that node.",
       "required": ["id", "annotationId", "type", "properties", "relations"],
       "additionalProperties": false,
       "properties": {
-        "id": { "$ref": "#/$defs/RamenId" },
-        "annotationId": { "$ref": "#/$defs/RamenRef" },
-        "type": { "type": "string", "minLength": 1 },
-        "properties": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationProperty" }, "default": [] },
-        "relations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationRelation" }, "default": [] }
+        "id": {
+          "$ref": "#/$defs/RamenId",
+          "description": "Stable identifier of this type declaration, separate from its serialized type value."
+        },
+        "annotationId": {
+          "$ref": "#/$defs/RamenRef",
+          "description": "Annotation node on which this type is declared. It may be the imported RAMEN Annotation node."
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required value of the Annotation.type property in data using this declaration."
+        },
+        "properties": {
+          "type": "array",
+          "description": "Complete allowlist of additional properties for this type; common attributes of RAMEN Annotation remain available.",
+          "items": { "$ref": "#/$defs/RamenAnnotationProperty" },
+          "default": []
+        },
+        "relations": {
+          "type": "array",
+          "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
+          "items": { "$ref": "#/$defs/RamenAnnotationRelation" },
+          "default": []
+        }
       }
     }
   }

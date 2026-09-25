@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/index.js';
-import type { Attribute, Node, Relation, RamenAnnotation, RamenChange, RamenModelDocument } from '../../dist/index.js';
+import type {
+  Attribute,
+  Node,
+  Relation,
+  RamenAnnotation,
+  RamenAnnotationRelation,
+  RamenChange,
+  RamenModelDocument,
+} from '../../dist/index.js';
 
 export const CORRESPONDENCE_MODEL_ID: string = 'correspondence01';
 export const SCHOLARLY_MODEL_ID: string = 'scholarlyCorrespondence01';
@@ -148,35 +156,83 @@ function createAnnotations(
   relations: CorrespondenceRelations,
   url: Attribute,
 ): CorrespondenceAnnotations {
-  const persName: RamenAnnotation = project.createAnnotation({
-    annotationId: nodes.annotation.id,
-    type: 'persName',
-    relations: [{ relationId: relations.refersPerson.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
+  const attachments: readonly RamenAnnotationRelation[] = attachmentRelations(relations);
+  const persName: RamenAnnotation = createReferenceAnnotation(
+    project,
+    nodes.annotation,
+    'persName',
+    relations.refersPerson,
+    attachments,
+  );
+  const placeName: RamenAnnotation = createReferenceAnnotation(
+    project,
+    nodes.annotation,
+    'placeName',
+    relations.refersPlace,
+    attachments,
+  );
+  const other: Pick<CorrespondenceAnnotations, 'date' | 'comment' | 'externalReference'> = createOtherAnnotations(
+    project,
+    nodes.annotation,
+    relations,
+    url,
+    attachments,
+  );
+
+  return { persName: persName, placeName: placeName, ...other };
+}
+
+function createOtherAnnotations(
+  project: RamenModel,
+  owner: Node,
+  relations: CorrespondenceRelations,
+  url: Attribute,
+  attachments: readonly RamenAnnotationRelation[],
+): Pick<CorrespondenceAnnotations, 'date' | 'comment' | 'externalReference'> {
+  const date: RamenAnnotation = project.createAnnotation({
+    annotationId: owner.id,
+    type: 'date',
+    relations: attachments,
   }).element;
-  const placeName: RamenAnnotation = project.createAnnotation({
-    annotationId: nodes.annotation.id,
-    type: 'placeName',
-    relations: [{ relationId: relations.refersPlace.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
-  }).element;
-  const date: RamenAnnotation = project.createAnnotation({ annotationId: nodes.annotation.id, type: 'date' }).element;
   const comment: RamenAnnotation = project.createAnnotation({
-    annotationId: nodes.annotation.id,
+    annotationId: owner.id,
     type: 'comment',
     relations: [
+      ...attachments,
       { relationId: relations.annotatesAnnotation.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } },
     ],
   }).element;
   const externalReference: RamenAnnotation = project.createAnnotation({
-    annotationId: nodes.annotation.id,
+    annotationId: owner.id,
     type: 'externalReference',
     properties: [{ attributeId: url.id, bounds: { lowerBound: 1, upperBound: 1 } }],
+    relations: attachments,
   }).element;
 
   return {
-    persName: persName,
-    placeName: placeName,
     date: date,
     comment: comment,
     externalReference: externalReference,
   };
+}
+
+function attachmentRelations(relations: CorrespondenceRelations): readonly RamenAnnotationRelation[] {
+  return [
+    { relationId: relations.textAnnotation.id, direction: 'incoming', bounds: { lowerBound: 0, upperBound: -1 } },
+    { relationId: relations.personAnnotation.id, direction: 'incoming', bounds: { lowerBound: 0, upperBound: -1 } },
+  ];
+}
+
+function createReferenceAnnotation(
+  project: RamenModel,
+  owner: Node,
+  type: string,
+  reference: Relation,
+  attachments: readonly RamenAnnotationRelation[],
+): RamenAnnotation {
+  return project.createAnnotation({
+    annotationId: owner.id,
+    type: type,
+    relations: [...attachments, { relationId: reference.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
+  }).element;
 }

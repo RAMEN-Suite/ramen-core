@@ -48,7 +48,7 @@ void test('declares and reuses annotation types without refining the imported An
       .createAdvisor()
       .suggestAnnotationsForNode(first.getModel().id, text.id)
       .map((item: AnnotationSuggestion): string => item.type),
-    ['note'],
+    [],
   );
 
   const second: RamenModel = first.createNextLevel({
@@ -86,6 +86,98 @@ function assertValidReusedAnnotation(model: RamenModel, type: string): void {
   const result: ValidationResult = model.validateInstances(data);
 
   assert.deepEqual(result.diagnostics, []);
+}
+
+void test('suggests different types for Text and Image sharing the imported Annotation node', (): void => {
+  const attachment: Relation | undefined = RAMEN_MODEL.relations.find(
+    (relation: Relation): boolean => relation.name === 'HAS_ANNOTATION' && relation.from.nodeId === RAMEN_ELEMENT.CONTENT,
+  );
+  assert.ok(attachment);
+
+  const project: RamenModel = RamenModel.create({
+    id: 'sharedAnnotation01',
+    uri: 'https://example.org/models/shared-annotation',
+    name: 'Shared Annotation',
+    version: '1.0.0',
+  });
+  const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const image: Node = project.createNode({ name: 'Image', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const textAttachment: Relation = project.createRelation({
+    refines: attachment.id,
+    fromNodeId: text.id,
+    toNodeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
+  }).element;
+  const imageAttachment: Relation = project.createRelation({
+    refines: attachment.id,
+    fromNodeId: image.id,
+    toNodeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
+  }).element;
+
+  project.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'emphasis',
+    relations: [{ relationId: textAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  project.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'imageRegion',
+    relations: [{ relationId: imageAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+
+  assert.equal(project.validate().valid, true, JSON.stringify(project.validate().diagnostics));
+  assert.deepEqual(annotationTypesForNode(project, text), ['emphasis']);
+  assert.deepEqual(annotationTypesForNode(project, image), ['imageRegion']);
+
+  assertInheritedTextSuggestion(project, text);
+});
+
+function assertInheritedTextSuggestion(project: RamenModel, text: Node): void {
+  const next: RamenModel = project.createNextLevel({
+    id: 'sharedAnnotationNext01',
+    uri: 'https://example.org/models/shared-annotation-next',
+    name: 'Shared Annotation Next',
+    version: '1.0.0',
+  });
+  const refinedText: Node = next.createNode({ name: 'NormalizedText', refines: text.id }).element;
+
+  assert.deepEqual(annotationTypesForNode(next, refinedText), ['emphasis']);
+}
+
+void test('suggests types of separate TextAnnotation and ImageAnnotation nodes', (): void => {
+  const project: RamenModel = RamenModel.create({
+    id: 'separateAnnotation01',
+    uri: 'https://example.org/models/separate-annotation',
+    name: 'Separate Annotations',
+    version: '1.0.0',
+  });
+  const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const image: Node = project.createNode({ name: 'Image', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const textAnnotation: Node = project.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const imageAnnotation: Node = project.createNode({ name: 'ImageAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const textAttachment: Relation = project.hasAnnotation(text, textAnnotation).element;
+  const imageAttachment: Relation = project.hasAnnotation(image, imageAnnotation).element;
+
+  project.createAnnotation({
+    annotationId: textAnnotation.id,
+    type: 'emphasis',
+    relations: [{ relationId: textAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  project.createAnnotation({
+    annotationId: imageAnnotation.id,
+    type: 'imageRegion',
+    relations: [{ relationId: imageAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+
+  assert.equal(project.validate().valid, true);
+  assert.deepEqual(annotationTypesForNode(project, text), ['emphasis']);
+  assert.deepEqual(annotationTypesForNode(project, image), ['imageRegion']);
+});
+
+function annotationTypesForNode(model: RamenModel, node: Node): readonly string[] {
+  return model
+    .createAdvisor()
+    .suggestAnnotationsForNode(model.getModel().id, node.id)
+    .map((item: AnnotationSuggestion): string => item.type);
 }
 
 void test('inherits an annotation type unchanged while reusing the same imported node', (): void => {
@@ -292,6 +384,10 @@ void test('accepts one modeled person relation and rejects another annotation re
 
   assert.deepEqual(accepted.diagnostics, []);
 
+  const genericAttachment: Relation | undefined = RAMEN_MODEL.relations.find(
+    (relation: Relation): boolean => relation.name === 'HAS_ANNOTATION' && relation.from.nodeId === RAMEN_ELEMENT.ENTITY,
+  );
+  assert.ok(genericAttachment);
   const annotationId: string = valid.nodes[0]?.id ?? '';
   const personId: string = valid.nodes[1]?.id ?? '';
   const invalid: ModelInstanceGraph = {
@@ -300,7 +396,7 @@ void test('accepts one modeled person relation and rejects another annotation re
       ...valid.relations,
       {
         id: 'hasAnnotation0001',
-        typeId: fixture.relations.personAnnotation.id,
+        typeId: `${RAMEN_MODEL.id}:${genericAttachment.id}`,
         fromId: personId,
         toId: annotationId,
       },

@@ -22,17 +22,23 @@ const model = RamenModel.create({
 });
 
 const person = model.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+const text = model.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
 const annotation = model.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+const attachment = model.hasAnnotation(text, annotation).element;
 const reference = model.refersTo(annotation, person).element;
 
 model.createAnnotation({
   annotationId: annotation.id,
   type: 'person',
-  relations: [{ relationId: reference.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
+  relations: [
+    { relationId: attachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } },
+    { relationId: reference.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } },
+  ],
 });
 ```
 
 `refines` accepts an element ID. The model finds its owner in the imported model chain. Annotation names such as `person` or `place` belong to the project, not the RAMEN reference model.
+The incoming relation selects where an annotation type can be attached; outgoing relations select its possible targets. Two types may select different incoming relations while sharing the same Annotation node.
 RAMEN also offers `partOf(part, whole)` and `hasAnnotation(subject, annotation)`. For custom or ambiguous connections, use `suggestRelations()` and pass a selected suggestion to `connect()`.
 
 ## Refine and exchange

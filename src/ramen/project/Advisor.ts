@@ -188,6 +188,20 @@ export class RamenAdvisor {
         const target: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, targetId);
         if (!target || !annotations.isAnnotationNode(target.modelId, target.element.id)) continue;
         for (const suggestion of this.suggestAnnotations(modelId, targetId)) {
+          const definition: ResolvedRamenAnnotation | undefined = annotations.findEffective(modelId, targetId, suggestion.type);
+          const acceptsRelation: boolean =
+            definition?.annotation.relations.some(
+              (requirement): boolean =>
+                requirement.direction === 'incoming' &&
+                this.graph.isRelationRefSameOrSubtype(
+                  relation.modelId,
+                  relation.relationId,
+                  definition.modelId,
+                  requirement.relationId,
+                ),
+            ) ?? false;
+          if (!acceptsRelation) continue;
+
           result.set(`${suggestion.modelId}:${suggestion.annotationId}`, suggestion);
         }
       }

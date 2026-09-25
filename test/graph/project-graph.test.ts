@@ -44,6 +44,10 @@ void test('builds a graph for a model chain and resolves an imported node', (): 
     result.graph.getModels().map((item: Model): string => item.id),
     [ROOT_ID, MIDDLE_ID, BASE_ID],
   );
+  assert.deepEqual(
+    result.graph.getTransitiveImports(MIDDLE_ID).map((item: Model): string => item.id),
+    [BASE_ID],
+  );
   assert.equal(result.graph.resolveNode(ROOT_ID, `${BASE_ID}:${NODE_ID}`)?.element.id, NODE_ID);
   assert.deepEqual(
     result.graph.getNodeAncestors(ROOT_ID, CHILD_ID).map((item: ResolvedModelElement<Node>): string => item.element.id),

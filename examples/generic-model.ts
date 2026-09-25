@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {
-  MODEL_SCHEMA_URI,
   InstanceValidator,
   ModelEditor,
   ModelFactory,
@@ -27,17 +26,13 @@ const vehicle: Node = {
   attributes: [],
 };
 
-const transport: Model = {
-  $schema: MODEL_SCHEMA_URI,
-  $id: 'https://example.org/models/transport',
+const emptyTransport: Model = ModelFactory.createRootModel({
   id: 'transportBase0001',
-  version: '1.0.0',
-  kind: 'Model',
+  uri: 'https://example.org/models/transport',
   name: 'Transport',
-  imports: [],
-  classifiers: [vehicle],
-  relations: [],
-};
+  version: '1.0.0',
+});
+const transport: Model = ModelEditor.addClassifier(emptyTransport, vehicle);
 
 const emptyProject: Model = ModelFactory.createModel(transport, {
   id: 'bicycleProject001',

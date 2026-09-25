@@ -12,7 +12,7 @@ import {
   RelationEnd,
   TypeRef,
 } from './Types';
-import { ModelSchemaValidator } from './validation/ModelSchema';
+import { MODEL_SCHEMA_URI } from './validation/ModelSchema';
 import ShortUniqueId from 'short-unique-id';
 import { ModelRef } from './project/Refs';
 import { ModelElementIndex } from './project/Elements';
@@ -64,17 +64,26 @@ export interface ConnectedNode {
 
 /** Creates valid RAMEN model elements with stable identifiers and empty extension data. */
 export class ModelFactory {
-  /** Creates an empty model with an exact import of the supplied base model. */
-  public static createModel(base: Model, input: CreateModelInput): Model {
-    const schemaUri: string | undefined = ModelSchemaValidator.getSchemaNode().$id;
-    if (!schemaUri) throw new Error('RAMEN model format schema has no $id.');
+  /** Creates a new generic base model without imports. */
+  public static createRootModel(input: CreateModelInput): Model {
     return {
-      $schema: schemaUri,
+      $schema: MODEL_SCHEMA_URI,
       $id: input.uri,
       id: input.id,
       version: input.version,
       kind: 'Model',
       name: input.name,
+      imports: [],
+      classifiers: [],
+      relations: [],
+      ext: {},
+    };
+  }
+
+  /** Creates an empty model with an exact import of the supplied base model. */
+  public static createModel(base: Model, input: CreateModelInput): Model {
+    return {
+      ...this.createRootModel(input),
 
       imports: [
         {
@@ -84,10 +93,6 @@ export class ModelFactory {
           name: base.name,
         },
       ],
-
-      classifiers: [],
-      relations: [],
-      ext: {},
     };
   }
 

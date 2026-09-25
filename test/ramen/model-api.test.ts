@@ -12,8 +12,11 @@ import type {
   Literal,
   Model,
   RamenModelBundle,
+  RamenPreview,
+  ProjectValidationResult,
   RamenModelDocument,
   Node,
+  NodeRefinementSuggestion,
   NodeRelationSuggestion,
   RamenAdvisor,
   RamenAnnotation,
@@ -25,6 +28,96 @@ import type {
 } from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
+
+void test('previews edits and applies only a valid final model', (): void => {
+  const model: RamenModel = RamenModel.create({
+    id: 'atomicChangesModel01',
+    uri: 'https://example.org/models/atomic-changes',
+    name: 'Atomic changes',
+    version: '1.0.0',
+  });
+  const before: Model = model.getModel();
+  const proposed: RamenPreview = model.preview((draft: RamenModel): void => {
+    draft.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY });
+  });
+
+  assert.equal(proposed.validation.valid, true);
+  assert.equal(proposed.model.classifiers.length, 1);
+  assert.deepEqual(model.getModel(), before);
+
+  const invalid: ProjectValidationResult = model.apply((draft: RamenModel): void => {
+    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
+    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
+  });
+
+  assert.equal(invalid.valid, false);
+  assert.deepEqual(model.getModel(), before);
+
+  const valid: ProjectValidationResult = model.apply((draft: RamenModel): void => {
+    draft.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY });
+    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
+    const duplicate: RamenChange<RamenAnnotation> = draft.createAnnotation({
+      annotationId: RAMEN_ELEMENT.ANNOTATION,
+      type: 'draft',
+    });
+
+    assert.equal(duplicate.validation.valid, false);
+    draft.updateAnnotation(duplicate.element.id, { type: 'note' });
+  });
+
+  assert.equal(valid.valid, true);
+  assert.equal(model.getModel().classifiers.length, 1);
+  assert.deepEqual(
+    model.getAnnotations().map((annotation: RamenAnnotation): string => annotation.type),
+    ['draft', 'note'],
+  );
+});
+
+void test('rejects a structurally invalid annotation edit before mutating the model', (): void => {
+  const model: RamenModel = RamenModel.create({
+    id: 'invalidAnnotation01',
+    uri: 'https://example.org/models/invalid-annotation',
+    name: 'Invalid annotation',
+    version: '1.0.0',
+  });
+  const before: Model = model.getModel();
+
+  assert.throws(
+    (): RamenChange<RamenAnnotation> => model.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: '' }),
+    /Invalid annotation definitions/,
+  );
+  assert.deepEqual(model.getModel(), before);
+});
+
+void test('suggests only actual imports when advising an intermediate model level', (): void => {
+  const first: RamenModel = RamenModel.create({
+    id: 'advisorFirstLevel01',
+    uri: 'https://example.org/models/advisor-first',
+    name: 'First',
+    version: '1.0.0',
+  });
+  const person: Node = first.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+  const second: RamenModel = first.createNextLevel({
+    id: 'advisorSecondLevel01',
+    uri: 'https://example.org/models/advisor-second',
+    name: 'Second',
+    version: '1.0.0',
+  });
+  const third: RamenModel = second.createNextLevel({
+    id: 'advisorThirdLevel01',
+    uri: 'https://example.org/models/advisor-third',
+    name: 'Third',
+    version: '1.0.0',
+  });
+  const descendant: Node = third.createNode({ name: 'Descendant', refines: person.id }).element;
+  const options: readonly string[] = third
+    .createAdvisor()
+    .suggestNodeRefinements(second.getModel().id)
+    .map((item: NodeRefinementSuggestion): string => item.nodeId);
+
+  assert.ok(options.includes(person.id));
+  assert.equal(options.includes(descendant.id), false);
+});
 
 void test('connects compatible RAMEN nodes without naming the relation', (): void => {
   const model: RamenModel = RamenModel.create({

@@ -35,8 +35,17 @@ The edition imports the correspondence model. It can directly reuse any imported
 
 The RAMEN reference model defines three relation families. Use `model.partOf(part, whole)`, `model.hasAnnotation(subject, annotation)`, or `model.refersTo(annotation, target)` directly. These methods check endpoint compatibility and refine the most specific matching relation. For custom or ambiguous cases, `model.suggestRelations(from.id, to.id)` lists the options; pass a selected option to `model.connect(from, to, selected)`.
 
-An annotation definition is separate from an Annotation node. It names a project-specific `type` and restricts the modeled properties and relations allowed for that type. A refined Annotation node inherits existing definitions; call `refineAnnotation()` only when a definition needs to become more specific.
+An annotation definition is separate from an Annotation node. It names a project-specific `type` and restricts the modeled properties and relations allowed for that type. You can declare a new type on the imported RAMEN Annotation node without refining that node:
+
+```ts
+const note = correspondence.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'note' }).element;
+const types = correspondence.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION);
+```
+
+Create a node refinement when Annotation needs a new structural attribute. Declare a new annotation type for a new `type` value. To narrow an existing type at a later level, call `refineAnnotation()` with the inherited definition ID; this also works when both definitions use the same imported Annotation node. Narrowing may invalidate existing data, so compare model states before migrating data.
 
 ## Validate and exchange
 
-`model.validate()` checks the complete model chain. `model.validateInstances(data)` checks complete data against it. `model.exportBundle()` returns one JSON container holding the reachable documents; `RamenModel.importBundle(value)` restores the editable root model. Individual changes return both the created or edited element and the current validation result. An invalid change remains available for an editor to correct; export succeeds only after validation passes.
+`model.validate()` checks the complete model chain. `model.validateInstances(data)` checks complete data against it. `model.exportBundle()` returns one JSON container holding the reachable documents; `RamenModel.importBundle(value)` restores the editable root model.
+
+Individual changes return both the edited element and the current validation result. They retain invalid edits so an editor can correct them. Use `model.preview(draft => { ... })` to inspect several edits without changing the model, or `model.apply(draft => { ... })` to commit them only when the final model is valid. Export succeeds only after validation passes.

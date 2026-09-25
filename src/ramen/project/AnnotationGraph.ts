@@ -49,33 +49,40 @@ export class RamenAnnotationGraph {
     return annotation ? { modelId: target.modelId, annotation: annotation } : undefined;
   }
 
-  /** Returns the effective closed annotation variants available to one Annotation node. */
-  public getEffective(modelId: Id, nodeId: Id): readonly ResolvedRamenAnnotation[] {
-    const node: Node | undefined = this.graph.getNode(modelId, nodeId);
+  /** Returns declarations applicable to a node from the selected model's point of view. */
+  public getApplicable(modelId: Id, nodeRef: Ref): readonly ResolvedRamenAnnotation[] {
+    const node: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, nodeRef);
     if (!node) return [];
-    const lineage: readonly ResolvedModelElement<Node>[] = [
-      { modelId: modelId, element: node },
-      ...this.graph.getNodeAncestors(modelId, nodeId),
-    ];
-    const result: Map<string, ResolvedRamenAnnotation> = new Map<string, ResolvedRamenAnnotation>();
+    const lineage: readonly ResolvedModelElement<Node>[] = [node, ...this.graph.getNodeAncestors(node.modelId, node.element.id)];
+    const current: Model | undefined = this.graph.getModel(modelId);
+    const models: readonly Model[] = current ? [current, ...this.graph.getTransitiveImports(modelId)] : [];
+    const result: ResolvedRamenAnnotation[] = [];
 
     for (const owner of lineage) {
-      for (const annotation of this.getDeclared(owner.modelId)) {
-        const declaredNode: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(
-          owner.modelId,
-          annotation.annotationId,
-        );
-
-        if (declaredNode?.modelId !== owner.modelId || declaredNode.element.id !== owner.element.id) continue;
-        if (!result.has(annotation.type)) result.set(annotation.type, { modelId: owner.modelId, annotation: annotation });
+      for (const model of models) {
+        for (const annotation of this.getDeclared(model.id)) {
+          const declaredNode: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(model.id, annotation.annotationId);
+          if (declaredNode?.modelId !== owner.modelId || declaredNode.element.id !== owner.element.id) continue;
+          result.push({ modelId: model.id, annotation: annotation });
+        }
       }
+    }
+    return result;
+  }
+
+  /** Returns the effective closed annotation variants available to one Annotation node. */
+  public getEffective(modelId: Id, nodeRef: Ref): readonly ResolvedRamenAnnotation[] {
+    const result: Map<string, ResolvedRamenAnnotation> = new Map<string, ResolvedRamenAnnotation>();
+
+    for (const candidate of this.getApplicable(modelId, nodeRef)) {
+      if (!result.has(candidate.annotation.type)) result.set(candidate.annotation.type, candidate);
     }
     return [...result.values()];
   }
 
   /** Finds one effective annotation variant by its serialized `type` value. */
-  public findEffective(modelId: Id, nodeId: Id, type: string): ResolvedRamenAnnotation | undefined {
-    return this.getEffective(modelId, nodeId).find(
+  public findEffective(modelId: Id, nodeRef: Ref, type: string): ResolvedRamenAnnotation | undefined {
+    return this.getEffective(modelId, nodeRef).find(
       (candidate: ResolvedRamenAnnotation): boolean => candidate.annotation.type === type,
     );
   }

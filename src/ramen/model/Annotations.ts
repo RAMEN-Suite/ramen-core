@@ -77,6 +77,9 @@ export class RamenAnnotations {
 
   private static write<T extends Model>(model: T, annotations: readonly RamenAnnotation[]): T {
     if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) throw new Error('Annotation definitions require a RAMEN project model.');
+    if (!RamenAnnotationSchemaValidator.isValid({ annotations: annotations })) {
+      throw new Error('Invalid annotation definitions.');
+    }
     return { ...model, annotations: structuredClone(annotations) };
   }
 }

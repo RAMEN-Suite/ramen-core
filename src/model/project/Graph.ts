@@ -46,6 +46,36 @@ export class ProjectGraph {
     });
   }
 
+  /** Returns only the selected model's transitive imports, nearest imports first. */
+  public getTransitiveImports(modelId: Id): readonly Model[] {
+    const result: Model[] = [];
+    const visited: Set<Id> = new Set<Id>();
+
+    const visit: (ownerId: Id) => void = (ownerId: Id): void => {
+      for (const imported of this.getImportedModels(ownerId)) {
+        if (visited.has(imported.id)) continue;
+        visited.add(imported.id);
+        result.push(imported);
+        visit(imported.id);
+      }
+    };
+
+    visit(modelId);
+    return result;
+  }
+
+  /** Returns node types declared by the selected model and its transitive imports. */
+  public getAvailableNodes(modelId: Id): readonly ResolvedModelElement<Node>[] {
+    const current: Model | undefined = this.getModel(modelId);
+    const models: readonly Model[] = current ? [current, ...this.getTransitiveImports(modelId)] : [];
+
+    return models.flatMap((model: Model): ResolvedModelElement<Node>[] =>
+      model.classifiers.flatMap((classifier): ResolvedModelElement<Node>[] =>
+        classifier.kind === 'Node' ? [{ modelId: model.id, element: classifier }] : [],
+      ),
+    );
+  }
+
   /** Looks up a node owned by a specific model. */
   public getNode(modelId: Id, nodeId: Id): Node | undefined {
     return this.indexesByModelId.get(modelId)?.nodesById.get(nodeId);

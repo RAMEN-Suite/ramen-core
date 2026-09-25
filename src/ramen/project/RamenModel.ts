@@ -60,17 +60,17 @@ export interface CreateRamenRelationInput {
   readonly toBounds?: Bounds;
 }
 
-/** Values needed to declare one closed annotation variant for a local Annotation node. */
+/** Values needed to declare one closed annotation variant on a local or imported Annotation node. */
 export interface CreateRamenAnnotationInput {
-  readonly annotationId: Id;
+  readonly annotationId: RamenRef;
   readonly type: string;
   readonly properties?: readonly RamenAnnotationProperty[];
   readonly relations?: readonly RamenAnnotationRelation[];
 }
 
-/** Values needed to narrow an inherited annotation definition for a refined Annotation node. */
+/** Values needed to narrow an inherited annotation definition, with or without node refinement. */
 export interface RefineRamenAnnotationInput {
-  readonly annotationId: Id;
+  readonly annotationId: RamenRef;
   readonly refines: RamenRef;
   readonly properties?: readonly RamenAnnotationProperty[];
   readonly relations?: readonly RamenAnnotationRelation[];
@@ -96,6 +96,12 @@ export type UpdateRamenLiteralInput = Partial<Pick<Literal, 'name' | 'literal' |
 /** Result of a model change together with immediate whole-project validation. */
 export interface RamenChange<T> {
   readonly element: T;
+  readonly validation: ProjectValidationResult;
+}
+
+/** Detached model state and diagnostics produced by a proposed edit. */
+export interface RamenPreview {
+  readonly model: RamenModelDocument;
   readonly validation: ProjectValidationResult;
 }
 
@@ -167,6 +173,22 @@ export class RamenModel {
     return this.validator.validateProject(this.model.id, this.validationInputs());
   }
 
+  /** Evaluates several edits on a detached draft without changing this model. */
+  public preview(edit: (draft: RamenModel) => void): RamenPreview {
+    const draft: RamenModel = new RamenModel(this.getModel(), [...this.dependencies.values()]);
+    edit(draft);
+
+    return { model: draft.getModel(), validation: draft.validate() };
+  }
+
+  /** Applies several edits atomically when the resulting project is valid. */
+  public apply(edit: (draft: RamenModel) => void): ProjectValidationResult {
+    const proposal: RamenPreview = this.preview(edit);
+    if (proposal.validation.valid) this.model = proposal.model;
+
+    return proposal.validation;
+  }
+
   /** Validates a complete data graph using this project's models and optional custom constraint languages. */
   public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
     const validator: RamenInstanceValidator = constraints
@@ -204,7 +226,8 @@ export class RamenModel {
   /** Lists annotation definitions available on a local or imported node. */
   public suggestAnnotations(nodeId: Id): readonly AnnotationSuggestion[] {
     const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
-    return this.createAdvisor().suggestAnnotations(owner.modelId, owner.elementId);
+    const reference: Id = owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
+    return this.createAdvisor().suggestAnnotations(this.model.id, reference);
   }
 
   /** Adds a node refinement and immediately validates the resulting project. */
@@ -249,9 +272,10 @@ export class RamenModel {
 
   /** Declares a new annotation variant without creating another model node. */
   public createAnnotation(input: CreateRamenAnnotationInput): RamenChange<RamenAnnotation> {
+    const owner: RamenElementRef = this.resolveRef(input.annotationId, 'node');
     const annotation: RamenAnnotation = {
       id: ModelFactory.createIdentifier(),
-      annotationId: input.annotationId,
+      annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
       type: input.type,
       properties: structuredClone(input.properties ?? []),
       relations: structuredClone(input.relations ?? []),
@@ -261,14 +285,15 @@ export class RamenModel {
     return this.change(annotation);
   }
 
-  /** Narrows an inherited annotation definition for a refined local Annotation node. */
+  /** Narrows an inherited annotation definition on a compatible local or imported Annotation node. */
   public refineAnnotation(input: RefineRamenAnnotationInput): RamenChange<RamenAnnotation> {
     const base: RamenElementRef = this.resolveRef(input.refines, 'annotation');
+    const owner: RamenElementRef = this.resolveRef(input.annotationId, 'node');
     const parent: RamenAnnotation | undefined = this.findAnnotation(base);
     if (!parent) throw new Error(`Annotation definition not found: '${base.modelId}:${base.elementId}'.`);
     const annotation: RamenAnnotation = {
       id: ModelFactory.createIdentifier(),
-      annotationId: input.annotationId,
+      annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
       type: parent.type,
       refines: ModelRef.qualify(base.modelId, base.elementId),
       properties: structuredClone(input.properties ?? []),

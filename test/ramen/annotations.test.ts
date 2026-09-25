@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConstraintRegistry, Diagnostics, RAMEN_MODEL, RamenInstanceValidator, RamenModel } from '../../dist/index.js';
+import {
+  ConstraintRegistry,
+  Diagnostics,
+  RAMEN_ELEMENT,
+  RAMEN_MODEL,
+  RamenInstanceValidator,
+  RamenModel,
+} from '../../dist/index.js';
 import type {
   AnnotationAdvice,
+  AnnotationSuggestion,
   AnnotationPropertyAdvice,
   Classifier,
   Constraint,
@@ -13,10 +21,187 @@ import type {
   RamenAnnotation,
   RamenChange,
   RamenModelDocument,
+  RamenPreview,
+  Node,
+  Relation,
   ValidationResult,
 } from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
+
+void test('declares and reuses annotation types without refining the imported Annotation node', (): void => {
+  const first: RamenModel = RamenModel.create({
+    id: 'annotationReuseOne01',
+    uri: 'https://example.org/models/annotation-reuse-one',
+    name: 'First level',
+    version: '1.0.0',
+  });
+  const text: Node = first.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const note: RamenChange<RamenAnnotation> = first.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
+
+  assert.equal(note.validation.valid, true);
+  assert.deepEqual(
+    first.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION).map((item: AnnotationSuggestion): string => item.type),
+    ['note'],
+  );
+  assert.deepEqual(
+    first
+      .createAdvisor()
+      .suggestAnnotationsForNode(first.getModel().id, text.id)
+      .map((item: AnnotationSuggestion): string => item.type),
+    ['note'],
+  );
+
+  const second: RamenModel = first.createNextLevel({
+    id: 'annotationReuseTwo01',
+    uri: 'https://example.org/models/annotation-reuse-two',
+    name: 'Second level',
+    version: '1.0.0',
+  });
+  const comment: RamenChange<RamenAnnotation> = second.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'comment',
+  });
+  const annotations: readonly string[] = second
+    .suggestAnnotations(RAMEN_ELEMENT.ANNOTATION)
+    .map((item: AnnotationSuggestion): string => item.type);
+
+  assert.equal(comment.validation.valid, true);
+  assert.deepEqual(annotations, ['comment', 'note']);
+
+  for (const type of annotations) assertValidReusedAnnotation(second, type);
+});
+
+function assertValidReusedAnnotation(model: RamenModel, type: string): void {
+  const data: ModelInstanceGraph = {
+    modelId: model.getModel().id,
+    nodes: [
+      {
+        id: 'annotationValue001',
+        typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
+        properties: { uuid: 'abac88bd-b3e3-418a-8afe-6ac14409b9a1', type: type },
+      },
+    ],
+    relations: [],
+  };
+  const result: ValidationResult = model.validateInstances(data);
+
+  assert.deepEqual(result.diagnostics, []);
+}
+
+void test('narrows an inherited annotation type while reusing the same imported node', (): void => {
+  const reference: Relation | undefined = RAMEN_MODEL.relations.find(
+    (relation: Relation): boolean => relation.name === 'REFERS_TO' && relation.to.nodeId === RAMEN_ELEMENT.ENTITY,
+  );
+  assert.ok(reference);
+
+  const first: RamenModel = RamenModel.create({
+    id: 'sameNodeRefineOne',
+    uri: 'https://example.org/models/same-node-one',
+    name: 'First level',
+    version: '1.0.0',
+  });
+  const original: RamenChange<RamenAnnotation> = first.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'entityLink',
+    relations: [
+      { relationId: `${RAMEN_MODEL.id}:${reference.id}`, direction: 'outgoing', bounds: { lowerBound: 0, upperBound: -1 } },
+    ],
+  });
+  const second: RamenModel = first.createNextLevel({
+    id: 'sameNodeRefineTwo',
+    uri: 'https://example.org/models/same-node-two',
+    name: 'Second level',
+    version: '1.0.0',
+  });
+  const narrowed: RamenChange<RamenAnnotation> = second.refineAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    refines: original.element.id,
+    relations: [
+      { relationId: `${RAMEN_MODEL.id}:${reference.id}`, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } },
+    ],
+  });
+
+  assert.equal(narrowed.validation.valid, true);
+  assert.equal(second.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION).length, 1);
+  assert.equal(second.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION)[0]?.annotationId, narrowed.element.id);
+});
+
+void test('requires an explicit refinement when redeclaring an imported annotation type', (): void => {
+  const first: RamenModel = RamenModel.create({
+    id: 'annotationBaseType01',
+    uri: 'https://example.org/models/annotation-base-type',
+    name: 'Base type',
+    version: '1.0.0',
+  });
+  first.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
+
+  const second: RamenModel = first.createNextLevel({
+    id: 'annotationRepeat01',
+    uri: 'https://example.org/models/annotation-repeat',
+    name: 'Repeated type',
+    version: '1.0.0',
+  });
+  const proposal: RamenPreview = second.preview((draft: RamenModel): void => {
+    draft.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
+  });
+
+  assert.equal(proposal.validation.valid, false);
+  assert.ok(
+    proposal.validation.diagnostics.some(
+      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_REFINEMENT_REQUIRED',
+    ),
+  );
+  assert.equal(second.validate().valid, true);
+});
+
+void test('uses an imported Annotation node and relation in project data', (): void => {
+  const relation: Relation | undefined = RAMEN_MODEL.relations.find(
+    (candidate: Relation): boolean => candidate.name === 'HAS_ANNOTATION' && candidate.from.nodeId === RAMEN_ELEMENT.CONTENT,
+  );
+  assert.ok(relation);
+
+  const model: RamenModel = RamenModel.create({
+    id: 'directAnnotationUse01',
+    uri: 'https://example.org/models/direct-annotation-use',
+    name: 'Direct annotation use',
+    version: '1.0.0',
+  });
+  const text: Node = model.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const definition: RamenChange<RamenAnnotation> = model.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'note',
+    relations: [
+      { relationId: `${RAMEN_MODEL.id}:${relation.id}`, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } },
+    ],
+  });
+  const data: ModelInstanceGraph = linkedAnnotationData(model.getModel().id, text.id, relation.id);
+
+  assert.equal(definition.validation.valid, true);
+  assert.deepEqual(model.validateInstances(data).diagnostics, []);
+});
+
+function linkedAnnotationData(modelId: string, textTypeId: string, relationTypeId: string): ModelInstanceGraph {
+  return {
+    modelId: modelId,
+    nodes: [
+      { id: 'textObject000001', typeId: textTypeId, properties: { uuid: 'abac88bd-b3e3-418a-8afe-6ac14409b9a1' } },
+      {
+        id: 'noteObject000001',
+        typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
+        properties: { uuid: '68ec6fb5-f6de-4b69-b107-96ee89881448', type: 'note' },
+      },
+    ],
+    relations: [
+      {
+        id: 'noteRelation0001',
+        typeId: `${RAMEN_MODEL.id}:${relationTypeId}`,
+        fromId: 'textObject000001',
+        toId: 'noteObject000001',
+      },
+    ],
+  };
+}
 
 void test('stores five closed annotation definitions outside the model node list', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();

@@ -9,7 +9,6 @@ export * from './project/Refs';
 export * from './project/Effective';
 export * from './project/Evolution';
 export * from './validation/Validate';
-export * from './validation/Project';
 export * from './validation/Constraints';
 export * from './validation/Instances';
 export * from './validation/InstanceSchema';

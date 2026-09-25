@@ -144,17 +144,6 @@ export class RamenValidator {
     const identifiers: Set<string> = new Set<string>();
     const ownerTypes: Set<string> = new Set<string>();
 
-    for (const model of models) {
-      if (!graph.hasModel(model.id)) continue;
-      if (RamenAnnotations.hasValidSection(model)) continue;
-      this.error(
-        diagnostics,
-        RAMEN_VALIDATION_ERROR.ANNOTATIONS_INVALID,
-        `Model '${model.id}' has an invalid RAMEN annotations section.`,
-        DiagnosticPath.root().property('models').property(model.id).property('ext').property('ramen').property('annotations'),
-        model.id,
-      );
-    }
     for (const resolved of annotations.getAll()) {
       this.validateAnnotation(graph, annotations, resolved, identifiers, ownerTypes, diagnostics);
     }
@@ -193,7 +182,7 @@ export class RamenValidator {
         path,
         definition.id,
       );
-    this.registerOwnerType(definition, owner, ownerTypes, path, diagnostics);
+    this.registerOwnerType(resolved.modelId, definition, owner, ownerTypes, path, diagnostics);
     this.validateProperties(graph, resolved, owner, diagnostics);
     this.validateRelations(graph, annotations, resolved, owner, diagnostics);
     this.validateRefinement(graph, annotations, resolved, owner, diagnostics);
@@ -218,13 +207,14 @@ export class RamenValidator {
   }
 
   private registerOwnerType(
+    modelId: Id,
     definition: RamenAnnotation,
     owner: ResolvedModelElement<Node>,
     ownerTypes: Set<string>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const ownerType: string = `${owner.modelId}:${owner.element.id}:${definition.type}`;
+    const ownerType: string = `${modelId}:${owner.modelId}:${owner.element.id}:${definition.type}`;
     if (ownerTypes.has(ownerType))
       this.error(
         diagnostics,
@@ -367,12 +357,7 @@ export class RamenValidator {
     const parent: ResolvedRamenAnnotation | undefined = resolved.annotation.refines
       ? annotations.resolve(resolved.modelId, resolved.annotation.refines)
       : undefined;
-    const inherited: ResolvedRamenAnnotation | undefined = this.findInheritedAnnotation(
-      graph,
-      annotations,
-      owner,
-      resolved.annotation.type,
-    );
+    const inherited: ResolvedRamenAnnotation | undefined = this.findInheritedAnnotation(graph, annotations, resolved, owner);
 
     if (!resolved.annotation.refines && inherited) {
       this.error(
@@ -439,15 +424,19 @@ export class RamenValidator {
   private findInheritedAnnotation(
     graph: ProjectGraph,
     annotations: RamenAnnotationGraph,
+    current: ResolvedRamenAnnotation,
     owner: ResolvedModelElement<Node>,
-    type: string,
   ): ResolvedRamenAnnotation | undefined {
-    for (const ancestor of graph.getNodeAncestors(owner.modelId, owner.element.id)) {
-      const annotation: RamenAnnotation | undefined = annotations
-        .getDeclared(ancestor.modelId)
-        .find((candidate: RamenAnnotation): boolean => candidate.annotationId === ancestor.element.id && candidate.type === type);
-
-      if (annotation) return { modelId: ancestor.modelId, annotation: annotation };
+    for (const candidate of annotations.getApplicable(current.modelId, current.annotation.annotationId)) {
+      if (candidate.annotation.type !== current.annotation.type) continue;
+      if (candidate.modelId === current.modelId) {
+        const candidateOwner: ResolvedModelElement<Node> | undefined = graph.resolveNode(
+          candidate.modelId,
+          candidate.annotation.annotationId,
+        );
+        if (candidateOwner?.modelId === owner.modelId && candidateOwner.element.id === owner.element.id) continue;
+      }
+      return candidate;
     }
     return undefined;
   }
@@ -461,7 +450,12 @@ export class RamenValidator {
     if (parent?.annotation.type !== resolved.annotation.type) return false;
     const parentOwner: ResolvedModelElement<Node> | undefined = graph.resolveNode(parent.modelId, parent.annotation.annotationId);
     if (!parentOwner) return false;
-    if (owner.modelId === parentOwner.modelId && owner.element.id === parentOwner.element.id) return false;
+    if (
+      resolved.modelId === parent.modelId &&
+      owner.modelId === parentOwner.modelId &&
+      owner.element.id === parentOwner.element.id
+    )
+      return false;
     return graph.isNodeSameOrSubtype(owner, parentOwner);
   }
 
@@ -529,13 +523,7 @@ export class RamenValidator {
   }
 
   private path(modelId: Id, annotationId: Id): DiagnosticPath {
-    return DiagnosticPath.root()
-      .property('models')
-      .property(modelId)
-      .property('ext')
-      .property('ramen')
-      .property('annotations')
-      .property(annotationId);
+    return DiagnosticPath.root().property('models').property(modelId).property('annotations').property(annotationId);
   }
 
   private error(diagnostics: Diagnostic[], code: string, message: string, path: DiagnosticPath, ref: Id): void {

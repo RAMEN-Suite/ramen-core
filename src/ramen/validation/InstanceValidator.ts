@@ -105,7 +105,7 @@ export class RamenInstanceValidator {
 
       return;
     }
-    const selected: ResolvedRamenAnnotation | undefined = annotations.findEffective(resolved.modelId, resolved.element.id, type);
+    const selected: ResolvedRamenAnnotation | undefined = annotations.findEffective(instance.modelId, node.typeId, type);
     if (!selected) {
       this.error(
         diagnostics,

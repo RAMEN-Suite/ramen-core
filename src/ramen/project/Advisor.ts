@@ -79,7 +79,8 @@ export interface NodeRelationSuggestion {
   readonly direction: 'outgoing' | 'incoming';
   readonly role: string;
   readonly requiredTarget: NodeLineageItem;
-  readonly compatibleTargetNodeIds: readonly Id[];
+  /** Local IDs or qualified references for imported target nodes. */
+  readonly compatibleTargetNodeIds: readonly Ref[];
   readonly actions: readonly ('reuse' | 'refine')[];
 }
 
@@ -154,9 +155,13 @@ export class RamenAdvisor {
   /** Lists all reachable annotations, or only the effective variants of one Annotation node. */
   public suggestAnnotations(modelId: Id, annotationNodeId?: Id): readonly AnnotationSuggestion[] {
     const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph, this.models);
+    const visibleModels: ReadonlySet<Id> = new Set<Id>([
+      modelId,
+      ...this.importedModels(modelId).map((model: Model): Id => model.id),
+    ]);
     const candidates: readonly ResolvedRamenAnnotation[] = annotationNodeId
       ? annotations.getEffective(modelId, annotationNodeId)
-      : annotations.getAll();
+      : annotations.getAll().filter((candidate: ResolvedRamenAnnotation): boolean => visibleModels.has(candidate.modelId));
 
     return candidates
       .map((candidate: ResolvedRamenAnnotation): AnnotationSuggestion => ({
@@ -180,7 +185,8 @@ export class RamenAdvisor {
     for (const relation of this.nodeRelationSuggestions(modelId, actual)) {
       if (relation.direction !== 'outgoing') continue;
       for (const targetId of relation.compatibleTargetNodeIds) {
-        if (!annotations.isAnnotationNode(modelId, targetId)) continue;
+        const target: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, targetId);
+        if (!target || !annotations.isAnnotationNode(target.modelId, target.element.id)) continue;
         for (const suggestion of this.suggestAnnotations(modelId, targetId)) {
           result.set(`${suggestion.modelId}:${suggestion.annotationId}`, suggestion);
         }
@@ -267,7 +273,7 @@ export class RamenAdvisor {
   }
 
   private importedModels(modelId: Id): readonly Model[] {
-    return this.graph.getModels().filter((model: Model): boolean => model.id !== modelId);
+    return this.graph.getTransitiveImports(modelId);
   }
 
   private attributeSuggestions(
@@ -288,7 +294,10 @@ export class RamenAdvisor {
 
   private nodeRelationSuggestions(modelId: Id, actual: ResolvedModelElement<Node>): readonly NodeRelationSuggestion[] {
     const suggestions: NodeRelationSuggestion[] = [];
-    for (const owner of this.graph.getModels()) {
+    const current: Model | undefined = this.graph.getModel(modelId);
+    const models: readonly Model[] = current ? [current, ...this.importedModels(modelId)] : [];
+
+    for (const owner of models) {
       for (const relation of owner.relations) {
         if (this.graph.acceptsNode(owner.id, relation.from.nodeId, actual)) {
           const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
@@ -325,9 +334,12 @@ export class RamenAdvisor {
     const target: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
 
     if (!target) return undefined;
-    const compatibleTargetNodeIds: Id[] = this.localNodes(modelId)
+    const compatibleTargetNodeIds: Ref[] = this.graph
+      .getAvailableNodes(modelId)
       .filter((candidate: ResolvedModelElement<Node>): boolean => this.graph.acceptsNode(owner.id, targetRef, candidate))
-      .map((candidate: ResolvedModelElement<Node>): Id => candidate.element.id);
+      .map((candidate: ResolvedModelElement<Node>): Ref =>
+        candidate.modelId === modelId ? candidate.element.id : ModelRef.qualify(candidate.modelId, candidate.element.id),
+      );
 
     return {
       modelId: owner.id,
@@ -340,14 +352,6 @@ export class RamenAdvisor {
       compatibleTargetNodeIds: compatibleTargetNodeIds,
       actions: owner.id === modelId ? ['reuse'] : ['reuse', 'refine'],
     };
-  }
-
-  private localNodes(modelId: Id): readonly ResolvedModelElement<Node>[] {
-    const model: Model | undefined = this.graph.getModel(modelId);
-    if (!model) return [];
-    return model.classifiers.flatMap((classifier): ResolvedModelElement<Node>[] =>
-      classifier.kind === 'Node' ? [{ modelId: modelId, element: classifier }] : [],
-    );
   }
 
   private lineageItem(item: ResolvedModelElement<Node>, ownerModelId: Id): NodeLineageItem {

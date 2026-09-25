@@ -10,6 +10,15 @@ const projectInput: { uri: string; id: string; name: string; version: string } =
   version: '1.0.0',
 };
 
+void test('createRootModel starts a generic model without imports', (): void => {
+  const root: Model = ModelFactory.createRootModel(projectInput);
+
+  assert.equal(root.id, projectInput.id);
+  assert.deepEqual(root.imports, []);
+  assert.deepEqual(root.classifiers, []);
+  assert.equal(ModelSchemaValidator.isValid(root), true);
+});
+
 void test('createModel creates an empty model that imports its base model', (): void => {
   const model: Model = ModelFactory.createModel(RAMEN_MODEL, projectInput);
   assert.equal(model.id, projectInput.id);

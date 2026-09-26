@@ -66,6 +66,7 @@ New annotation types can use an imported Annotation node directly; refine that n
 The generic APIs also provide `ModelFactory.createRootModel()`, `ModelEditor`, `ModelValidator`, `InstanceValidator`, `createModelBundle`, and `splitModelBundle`. Use those when building without RAMEN-specific rules. Registered constraint languages can inspect the full data and project graph through `ConstraintContext.graph`; model JSON is never executed as code.
 
 See [Modeling with RAMEN](docs/modeling.md) for the model-level workflow and relation selection.
+The [testing strategy and scenario matrix](docs/testing.md) show which modeling workflows are covered, which remain open, and where to start reading the implementation.
 
 ## Runnable examples
 

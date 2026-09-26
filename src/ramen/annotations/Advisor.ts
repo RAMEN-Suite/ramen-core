@@ -1,11 +1,11 @@
-import { AnnotationProperties } from './AnnotationProperties';
-import { RamenRelationScope } from './RelationScope';
+import { AnnotationProperties } from './Properties';
+import { ModelRelationScope } from '../../model/graph/RelationScope';
 import { EffectiveModel, ModelRef, ProjectGraph } from '../../model/index';
 import { Cardinality } from '../../model/validation/Cardinality';
 import type { Bounds, EffectiveNode, Attribute, Model, Node, Relation, Id, Ref, ResolvedModelElement } from '../../model/index';
-import { RamenAnnotations, RamenAnnotationRelation } from '../model/Annotations';
+import { RamenAnnotations, RamenAnnotationRelation } from './Definitions';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
-import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
+import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './AnnotationIndex';
 
 /** Property that can be selected for an annotation definition. */
 export interface AnnotationPropertyAdvice {
@@ -44,17 +44,12 @@ export interface AnnotationAdvice {
 
 /** Computes valid annotation properties, relations, targets, and cardinality choices. */
 export class RamenAnnotationAdvisor {
-  private readonly annotations: RamenAnnotationGraph;
-  private readonly relations: RamenRelationScope;
-
   /** Creates annotation advice over an already validated project graph. */
   public constructor(
     private readonly graph: ProjectGraph,
-    models: readonly Model[],
-  ) {
-    this.annotations = new RamenAnnotationGraph(graph, models);
-    this.relations = new RamenRelationScope(graph, models);
-  }
+    private readonly relations: ModelRelationScope,
+    private readonly annotations: RamenAnnotationIndex,
+  ) {}
 
   /** Advises properties and relations available for a new annotation type. */
   public advise(modelId: Id, annotationNodeId: Id): AnnotationAdvice | undefined {

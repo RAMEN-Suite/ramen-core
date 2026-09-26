@@ -4,14 +4,14 @@ export type {
   RamenAnnotationProperty,
   RamenAttributeReference,
   RamenAnnotationRelation,
-} from './model/Annotations';
+} from './annotations/Definitions';
 export * from './model/Document';
-export type { AnnotationAdvice, AnnotationPropertyAdvice, AnnotationRelationAdvice } from './project/AnnotationAdvice';
-export * from './project/RamenModel';
-export * from './project/Bundle';
-export * from './project/Evolution';
-export * from './project/Advisor';
-export * from './validation/AnnotationSchema';
+export type { AnnotationAdvice, AnnotationPropertyAdvice, AnnotationRelationAdvice } from './annotations/Advisor';
+export * from './RamenModel';
+export * from './exchange/Bundle';
+export * from './exchange/Comparison';
+export * from './Advisor';
+export * from './annotations/Schema';
 export * from './validation/ProjectSchema';
 export * from './validation/ModelValidator';
 export * from './validation/InstanceValidator';

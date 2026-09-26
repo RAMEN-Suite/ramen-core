@@ -1,12 +1,13 @@
-import { ProjectGraph } from '../project/Graph';
-import { VALIDATION_ERROR } from './Codes';
-import { ConstraintRegistry } from './Constraints';
-import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
+import { ModelRelationScope } from '../graph/RelationScope';
+import { ProjectGraph } from '../graph/ProjectGraph';
+import { VALIDATION_ERROR } from '../validation/Codes';
+import { ConstraintRegistry } from '../validation/Constraints';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { InstanceRelationValidator } from './InstanceRelations';
 import { InstanceSchemaValidator } from './InstanceSchema';
 import { InstanceValidationOptions, ModelInstanceGraph, ResolvedInstanceNode } from './InstanceTypes';
 import { InstanceValueValidator } from './InstanceValues';
-import type { ValidationResult } from './ModelValidator';
+import type { ValidationResult } from '../validation/ModelValidator';
 
 export * from './InstanceTypes';
 
@@ -48,7 +49,7 @@ export class InstanceValidator {
         project: graph,
         instances: instance,
       },
-      options.relations,
+      options.relations ?? new ModelRelationScope(graph).available(instance.modelId),
     );
     const nodesById: Map<string, ResolvedInstanceNode> = values.validate(graph, instance, diagnostics);
 

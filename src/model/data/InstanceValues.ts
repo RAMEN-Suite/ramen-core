@@ -1,12 +1,12 @@
 import { BuiltinDataTypes } from '../Builtins';
 import { Bounds, Attribute, Constraint, DataType, Literal, Node, Id } from '../Types';
-import { EffectiveModel, EffectiveNode } from '../project/Effective';
-import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
-import { ConstraintRegistry } from './Constraints';
-import type { ConstraintGraphContext } from './Constraints';
-import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
+import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
+import { ProjectGraph, ResolvedModelElement } from '../graph/ProjectGraph';
+import { ConstraintRegistry } from '../validation/Constraints';
+import type { ConstraintGraphContext } from '../validation/Constraints';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
-import { ValidationCode } from './Codes';
+import { ValidationCode } from '../validation/Codes';
 
 /** Validates instance properties against effective node attributes and constraints. */
 export class InstanceValueValidator {

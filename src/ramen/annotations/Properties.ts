@@ -2,8 +2,8 @@ import { BuiltinDataTypes } from '../../model/Builtins';
 import { EffectiveModel, ModelRef, Diagnostics, DiagnosticPath } from '../../model/index';
 import type { Attribute, Diagnostic, Node, ProjectGraph, ResolvedModelElement } from '../../model/index';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { RamenAnnotationProperty } from '../model/Annotations';
-import type { ResolvedRamenAnnotation } from './AnnotationGraph';
+import type { RamenAnnotationProperty } from './Definitions';
+import type { ResolvedRamenAnnotation } from './AnnotationIndex';
 
 /** Resolves node attribute selections and properties owned by an annotation type. */
 export class AnnotationProperties {

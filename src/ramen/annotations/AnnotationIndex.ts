@@ -1,6 +1,7 @@
-import { ProjectGraph } from '../../model/index';
+import { ModelRef, ProjectGraph } from '../../model/index';
 import type { Model, Node, Id, Ref, ResolvedModelElement } from '../../model/index';
-import { RamenAnnotation, RamenAnnotations } from '../model/Annotations';
+import { RamenAnnotation } from './Definitions';
+import { RamenModelFormat } from '../model/Document';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 
 /** Annotation definition resolved together with the model that declares it. */
@@ -10,7 +11,8 @@ export interface ResolvedRamenAnnotation {
 }
 
 /** Resolves RAMEN annotations and their inheritance over a validated project graph. */
-export class RamenAnnotationGraph {
+export class RamenAnnotationIndex {
+  private readonly annotationsByNode: Map<Ref, ResolvedRamenAnnotation[]> = new Map<Ref, ResolvedRamenAnnotation[]>();
   private readonly annotationsByModel: ReadonlyMap<Id, readonly RamenAnnotation[]>;
 
   /** Indexes annotations from every reachable model. */
@@ -19,8 +21,24 @@ export class RamenAnnotationGraph {
     models: readonly Model[],
   ) {
     this.annotationsByModel = new Map<Id, readonly RamenAnnotation[]>(
-      models.map((model: Model): [Id, readonly RamenAnnotation[]] => [model.id, RamenAnnotations.get(model)]),
+      models.map((model: Model): [Id, readonly RamenAnnotation[]] => [
+        model.id,
+        RamenModelFormat.isDocument(model) ? structuredClone(model.annotations) : [],
+      ]),
     );
+    for (const definition of this.getAll()) this.indexDefinition(definition);
+  }
+
+  private indexDefinition(definition: ResolvedRamenAnnotation): void {
+    const node: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(
+      definition.modelId,
+      definition.annotation.annotationId,
+    );
+    if (!node) return;
+    const key: Ref = ModelRef.qualify(node.modelId, node.element.id);
+    const definitions: ResolvedRamenAnnotation[] = this.annotationsByNode.get(key) ?? [];
+    definitions.push(definition);
+    this.annotationsByNode.set(key, definitions);
   }
 
   /** Returns annotations declared directly by one model. */
@@ -43,20 +61,16 @@ export class RamenAnnotationGraph {
     const node: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, nodeRef);
     if (!node) return [];
     const lineage: readonly ResolvedModelElement<Node>[] = [node, ...this.graph.getNodeAncestors(node.modelId, node.element.id)];
-    const current: Model | undefined = this.graph.getModel(modelId);
-    const models: readonly Model[] = current ? [current, ...this.graph.getTransitiveImports(modelId)] : [];
-    const result: ResolvedRamenAnnotation[] = [];
-
-    for (const owner of lineage) {
-      for (const model of models) {
-        for (const annotation of this.getDeclared(model.id)) {
-          const declaredNode: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(model.id, annotation.annotationId);
-          if (declaredNode?.modelId !== owner.modelId || declaredNode.element.id !== owner.element.id) continue;
-          result.push({ modelId: model.id, annotation: annotation });
-        }
-      }
-    }
-    return result;
+    const visible: ReadonlySet<Id> = new Set<Id>([
+      modelId,
+      ...this.graph.getTransitiveImports(modelId).map((model: Model): Id => model.id),
+    ]);
+    return lineage.flatMap((owner: ResolvedModelElement<Node>): ResolvedRamenAnnotation[] => {
+      const key: Ref = ModelRef.qualify(owner.modelId, owner.element.id);
+      return (this.annotationsByNode.get(key) ?? []).filter((definition: ResolvedRamenAnnotation): boolean =>
+        visible.has(definition.modelId),
+      );
+    });
   }
 
   /** Returns the effective closed annotation variants available to one Annotation node. */

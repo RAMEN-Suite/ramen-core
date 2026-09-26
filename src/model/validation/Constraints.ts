@@ -2,8 +2,8 @@ import { Constraint, Id } from '../Types';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
 import { VALIDATION_ERROR } from './Codes';
-import type { ProjectGraph } from '../project/Graph';
-import type { ModelInstanceGraph } from './InstanceTypes';
+import type { ProjectGraph } from '../graph/ProjectGraph';
+import type { ModelInstanceGraph } from '../data/InstanceTypes';
 
 const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string, SchemaNode>(
   ['uuid', 'date', 'date-time', 'email'].map((format: string): [string, SchemaNode] => [

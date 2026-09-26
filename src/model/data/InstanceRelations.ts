@@ -1,10 +1,10 @@
 import { Bounds, Node, Relation, Id, Ref } from '../Types';
-import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
-import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
+import { ProjectGraph, ResolvedModelElement } from '../graph/ProjectGraph';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
-import { ValidationCode } from './Codes';
-import { ConstraintRegistry } from './Constraints';
-import type { ConstraintGraphContext } from './Constraints';
+import { ValidationCode } from '../validation/Codes';
+import { ConstraintRegistry } from '../validation/Constraints';
+import type { ConstraintGraphContext } from '../validation/Constraints';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {
@@ -38,7 +38,8 @@ export class InstanceRelationValidator {
       );
       if (resolved) result.push(resolved);
     });
-    this.validateRelationCardinalities(graph, instance.modelId, nodesById, result, diagnostics);
+    const counts: ReadonlyMap<string, number> = this.relationCounts(graph, result);
+    this.validateRelationCardinalities(graph, instance.modelId, nodesById, counts, diagnostics);
     return result;
   }
 
@@ -210,7 +211,7 @@ export class InstanceRelationValidator {
     graph: ProjectGraph,
     ownerModelId: Id,
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
-    relations: readonly ResolvedInstanceRelation[],
+    counts: ReadonlyMap<string, number>,
     diagnostics: Diagnostic[],
   ): void {
     const selected: readonly ResolvedModelElement<Relation>[] =
@@ -221,7 +222,7 @@ export class InstanceRelationValidator {
           model.relations.map((element: Relation): ResolvedModelElement<Relation> => ({ modelId: model.id, element })),
         );
     for (const item of selected)
-      this.validateRelationTypeCardinalities(graph, ownerModelId, item.modelId, item.element, nodesById, relations, diagnostics);
+      this.validateRelationTypeCardinalities(graph, ownerModelId, item.modelId, item.element, nodesById, counts, diagnostics);
   }
 
   private validateRelationTypeCardinalities(
@@ -230,7 +231,7 @@ export class InstanceRelationValidator {
     relationModelId: Id,
     relation: Relation,
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
-    relations: readonly ResolvedInstanceRelation[],
+    counts: ReadonlyMap<string, number>,
     diagnostics: Diagnostic[],
   ): void {
     const relationRef: Ref = relationModelId === ownerModelId ? relation.id : `${relationModelId}:${relation.id}`;
@@ -239,7 +240,7 @@ export class InstanceRelationValidator {
       const acceptsTo: boolean = graph.acceptsNode(relationModelId, relation.to.nodeId, node.type);
 
       if (acceptsFrom) {
-        const count: number = this.countRelations(graph, relations, node.instance.id, 'from', relationModelId, relation.id);
+        const count: number = counts.get(`${relationModelId}:${relation.id}:from:${node.instance.id}`) ?? 0;
 
         this.validateCount(
           relation.to.role,
@@ -251,7 +252,7 @@ export class InstanceRelationValidator {
         );
       }
       if (acceptsTo) {
-        const count: number = this.countRelations(graph, relations, node.instance.id, 'to', relationModelId, relation.id);
+        const count: number = counts.get(`${relationModelId}:${relation.id}:to:${node.instance.id}`) ?? 0;
 
         this.validateCount(
           relation.from.role,
@@ -265,18 +266,22 @@ export class InstanceRelationValidator {
     }
   }
 
-  private countRelations(
-    graph: ProjectGraph,
-    relations: readonly ResolvedInstanceRelation[],
-    nodeId: Id,
-    end: 'from' | 'to',
-    modelId: Id,
-    relationId: Id,
-  ): number {
-    return relations.filter((item: ResolvedInstanceRelation): boolean => {
-      const matchesNode: boolean = end === 'from' ? item.instance.fromId === nodeId : item.instance.toId === nodeId;
-      return matchesNode && graph.isRelationRefSameOrSubtype(item.type.modelId, item.type.element.id, modelId, relationId);
-    }).length;
+  private relationCounts(graph: ProjectGraph, relations: readonly ResolvedInstanceRelation[]): ReadonlyMap<string, number> {
+    const counts: Map<string, number> = new Map<string, number>();
+    for (const relation of relations) {
+      const lineage: readonly ResolvedModelElement<Relation>[] = [
+        relation.type,
+        ...graph.getRelationAncestors(relation.type.modelId, relation.type.element.id),
+      ];
+      for (const type of lineage) {
+        const prefix: string = `${type.modelId}:${type.element.id}`;
+        const from: string = `${prefix}:from:${relation.instance.fromId}`;
+        const to: string = `${prefix}:to:${relation.instance.toId}`;
+        counts.set(from, (counts.get(from) ?? 0) + 1);
+        counts.set(to, (counts.get(to) ?? 0) + 1);
+      }
+    }
+    return counts;
   }
 
   private validateCount(

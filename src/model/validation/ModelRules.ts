@@ -1,19 +1,52 @@
 import { Attribute, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types';
-import { EffectiveModel, EffectiveNode } from '../project/Effective';
-import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
+import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
+import { ProjectGraph, ResolvedModelElement } from '../graph/ProjectGraph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
+import { ModelRelationScope, RelationSelections } from '../graph/RelationScope';
 import { Cardinality } from './Cardinality';
 import { ValidationCode } from './Codes';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
 export class ModelRules {
   /** Validates every reachable model and returns all semantic findings. */
-  public validate(graph: ProjectGraph): readonly Diagnostic[] {
+  public validate(graph: ProjectGraph, selections?: RelationSelections): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
+    const scope: ModelRelationScope = new ModelRelationScope(graph, selections);
     for (const model of graph.getModels()) {
       this.validateModel(graph, model, diagnostics);
+      this.validateRelationSelections(model, scope, selections?.get(model.id) ?? [], diagnostics);
     }
     return diagnostics;
+  }
+
+  private validateRelationSelections(
+    model: Model,
+    scope: ModelRelationScope,
+    selections: readonly Ref[],
+    diagnostics: Diagnostic[],
+  ): void {
+    const references: readonly Ref[] =
+      model.imports.length > 0
+        ? model.relations
+            .filter(
+              (relation: Relation): boolean => !relation.superTypes[0] || !scope.allowsBase(model.id, relation.superTypes[0]),
+            )
+            .map((relation: Relation): Ref => relation.id)
+        : [];
+    const invalid: readonly Ref[] = [
+      ...references,
+      ...selections.filter((ref: Ref): boolean => !scope.allowsBase(model.id, ref)),
+    ];
+    for (const reference of invalid) {
+      diagnostics.push(
+        this.error(
+          'RELATION_SCOPE_INVALID',
+          'Select a relation permitted by the preceding model level.',
+          DiagnosticPath.root().property('models').property(model.id).property('relations'),
+          reference,
+        ),
+      );
+    }
   }
 
   private validateModel(graph: ProjectGraph, model: Model, diagnostics: Diagnostic[]): void {

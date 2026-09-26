@@ -1,6 +1,6 @@
 import { DataType, Model, Node, Relation, Id, Ref } from '../Types';
-import { ModelElementIndex } from './Elements';
-import { ModelRef, QualifiedParts } from './Refs';
+import { ModelElementIndex } from './ElementIndex';
+import { ModelRef, QualifiedParts } from './References';
 
 interface ResolvedRef {
   readonly modelId: Id;
@@ -15,6 +15,16 @@ export interface ResolvedModelElement<T> {
 
 /** Read-only resolved view of all models in one RAMEN model project. */
 export class ProjectGraph {
+  private readonly importCache: Map<Id, readonly Model[]> = new Map<Id, readonly Model[]>();
+  private readonly nodeAncestorCache: Map<Ref, readonly ResolvedModelElement<Node>[]> = new Map<
+    Ref,
+    readonly ResolvedModelElement<Node>[]
+  >();
+  private readonly relationAncestorCache: Map<Ref, readonly ResolvedModelElement<Relation>[]> = new Map<
+    Ref,
+    readonly ResolvedModelElement<Relation>[]
+  >();
+
   /** @internal */
   public constructor(
     private readonly rootModelId: Id,
@@ -48,6 +58,8 @@ export class ProjectGraph {
 
   /** Returns only the selected model's transitive imports, nearest imports first. */
   public getTransitiveImports(modelId: Id): readonly Model[] {
+    const cached: readonly Model[] | undefined = this.importCache.get(modelId);
+    if (cached) return cached;
     const result: Model[] = [];
     const visited: Set<Id> = new Set<Id>();
 
@@ -61,7 +73,9 @@ export class ProjectGraph {
     };
 
     visit(modelId);
-    return result;
+    const imports: readonly Model[] = Object.freeze(result);
+    this.importCache.set(modelId, imports);
+    return imports;
   }
 
   /** Returns node types declared by the selected model and its transitive imports. */
@@ -114,55 +128,52 @@ export class ProjectGraph {
 
   /** Returns all resolvable transitive supertypes of a node in breadth-first order. */
   public getNodeAncestors(modelId: Id, nodeId: Id): readonly ResolvedModelElement<Node>[] {
-    const result: ResolvedModelElement<Node>[] = [];
-    const visited: Set<string> = new Set<string>();
-    const queue: ResolvedModelElement<Node>[] = [];
-    const start: Node | undefined = this.getNode(modelId, nodeId);
-
-    if (!start) return result;
-    for (const superType of start.superTypes) {
-      const resolved: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, superType);
-
-      if (resolved) queue.push(resolved);
-    }
-    while (queue.length > 0) {
-      const current: ResolvedModelElement<Node> | undefined = queue.shift();
-
-      if (!current) break;
-      const key: string = `${current.modelId}:${current.element.id}`;
-      if (visited.has(key)) continue;
-      visited.add(key);
-      result.push(current);
-
-      for (const superType of current.element.superTypes) {
-        const resolved: ResolvedModelElement<Node> | undefined = this.resolveNode(current.modelId, superType);
-
-        if (resolved) queue.push(resolved);
-      }
-    }
-    return result;
+    const key: Ref = ModelRef.qualify(modelId, nodeId);
+    const cached: readonly ResolvedModelElement<Node>[] | undefined = this.nodeAncestorCache.get(key);
+    if (cached) return cached;
+    const ancestors: readonly ResolvedModelElement<Node>[] = this.collectAncestors(
+      this.getNode(modelId, nodeId)?.superTypes ?? [],
+      modelId,
+      (ownerId: Id, ref: Ref): ResolvedModelElement<Node> | undefined => this.resolveNode(ownerId, ref),
+    );
+    this.nodeAncestorCache.set(key, ancestors);
+    return ancestors;
   }
 
   /** Returns all resolvable transitive supertypes of a relation in nearest-first order. */
   public getRelationAncestors(modelId: Id, relationId: Id): readonly ResolvedModelElement<Relation>[] {
-    const result: ResolvedModelElement<Relation>[] = [];
-    const visited: Set<string> = new Set<string>();
-    let current: ResolvedModelElement<Relation> | undefined;
-    const relation: Relation | undefined = this.getRelation(modelId, relationId);
-    const superType: Ref | undefined = relation?.superTypes[0];
+    const key: Ref = ModelRef.qualify(modelId, relationId);
+    const cached: readonly ResolvedModelElement<Relation>[] | undefined = this.relationAncestorCache.get(key);
+    if (cached) return cached;
+    const ancestors: readonly ResolvedModelElement<Relation>[] = this.collectAncestors(
+      this.getRelation(modelId, relationId)?.superTypes ?? [],
+      modelId,
+      (ownerId: Id, ref: Ref): ResolvedModelElement<Relation> | undefined => this.resolveRelation(ownerId, ref),
+    );
+    this.relationAncestorCache.set(key, ancestors);
+    return ancestors;
+  }
 
-    if (superType) current = this.resolveRelation(modelId, superType);
-    while (current) {
-      const key: string = `${current.modelId}:${current.element.id}`;
-
-      if (visited.has(key)) break;
+  private collectAncestors<T extends Node | Relation>(
+    initial: readonly Ref[],
+    modelId: Id,
+    resolve: (ownerId: Id, ref: Ref) => ResolvedModelElement<T> | undefined,
+  ): readonly ResolvedModelElement<T>[] {
+    const queue: ResolvedModelElement<T>[] = [];
+    const visited: Set<Ref> = new Set<Ref>();
+    const append: (ownerId: Id, ref: Ref) => void = (ownerId: Id, ref: Ref): void => {
+      const item: ResolvedModelElement<T> | undefined = resolve(ownerId, ref);
+      if (!item) return;
+      const key: Ref = ModelRef.qualify(item.modelId, item.element.id);
+      if (visited.has(key)) return;
       visited.add(key);
-      result.push(current);
-
-      const nextRef: Ref | undefined = current.element.superTypes[0];
-      current = nextRef ? this.resolveRelation(current.modelId, nextRef) : undefined;
+      queue.push(Object.freeze(item));
+    };
+    initial.forEach((ref: Ref): void => append(modelId, ref));
+    for (const item of queue) {
+      item.element.superTypes.forEach((ref: Ref): void => append(item.modelId, ref));
     }
-    return result;
+    return Object.freeze(queue);
   }
 
   /** Reports whether an actual node is the expected node or one of its transitive refinements. */

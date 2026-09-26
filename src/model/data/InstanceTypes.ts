@@ -1,5 +1,5 @@
 import type { Attribute, Node, Relation, Id, Ref } from '../Types';
-import type { ResolvedModelElement } from '../project/Graph';
+import type { ResolvedModelElement } from '../graph/ProjectGraph';
 
 /** One modeled object containing only properties declared by its RAMEN model format node type. */
 export interface ModelInstanceNode {

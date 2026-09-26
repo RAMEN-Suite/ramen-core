@@ -99,68 +99,41 @@ export class ModelEditor {
 
   /** Adds an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
   public static addAttribute(model: Model, nodeId: Id, attribute: Attribute): Model {
-    const classifiers: readonly Classifier[] = model.classifiers ?? [];
-    let foundNode: boolean = false;
-
-    const patched: Classifier[] = classifiers.map((classifier: Classifier): Classifier => {
-      if (classifier.kind !== 'Node') return classifier;
-      if (classifier.id !== nodeId) return classifier;
-
-      foundNode = true;
-      const node: Node = classifier;
-      const attributes: readonly Attribute[] = node.attributes ?? [];
-      return { ...node, attributes: [...attributes, attribute] };
-    });
-    if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
-    return { ...model, classifiers: patched };
+    const node: Node = this.requireNode(model, nodeId);
+    return this.replaceNode(model, { ...node, attributes: [...node.attributes, structuredClone(attribute)] });
   }
 
   /** Updates an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
   public static updateAttribute(model: Model, nodeId: Id, attributeId: Id, patch: UpdateAttributeInput): Model {
-    const classifiers: readonly Classifier[] = model.classifiers ?? [];
-    let foundNode: boolean = false;
-    let foundAttribute: boolean = false;
-
-    const patched: Classifier[] = classifiers.map((classifier: Classifier): Classifier => {
-      if (classifier.kind !== 'Node') return classifier;
-      if (classifier.id !== nodeId) return classifier;
-
-      foundNode = true;
-      const node: Node = classifier;
-      const attributes: readonly Attribute[] = node.attributes ?? [];
-
-      const nextAttributes: Attribute[] = attributes.map((attribute: Attribute): Attribute => {
-        if (attribute.id !== attributeId) return attribute;
-        foundAttribute = true;
-        return { ...attribute, ...structuredClone(patch) };
-      });
-      return foundAttribute ? { ...node, attributes: nextAttributes } : node;
-    });
-    if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
-    if (!foundAttribute) throw new Error(`Attribute not found: '${attributeId}'`);
-    return { ...model, classifiers: patched };
+    const node: Node = this.requireNode(model, nodeId);
+    if (!node.attributes.some((attribute: Attribute): boolean => attribute.id === attributeId))
+      throw new Error(`Attribute not found: '${attributeId}'`);
+    const attributes: Attribute[] = node.attributes.map((attribute: Attribute): Attribute =>
+      attribute.id === attributeId ? { ...attribute, ...structuredClone(patch) } : attribute,
+    );
+    return this.replaceNode(model, { ...node, attributes });
   }
 
   /** Removes a named attribute from a node without mutating the source model. */
   public static removeAttribute(model: Model, nodeId: Id, attributeId: Id): Model {
-    const classifiers: readonly Classifier[] = model.classifiers ?? [];
-    let foundNode: boolean = false;
-    let removed: boolean = false;
+    const node: Node = this.requireNode(model, nodeId);
+    const attributes: Attribute[] = node.attributes.filter((attribute: Attribute): boolean => attribute.id !== attributeId);
+    if (attributes.length === node.attributes.length) throw new Error(`Attribute not found: '${attributeId}'`);
+    return this.replaceNode(model, { ...node, attributes });
+  }
 
-    const patched: Classifier[] = classifiers.map((classifier: Classifier): Classifier => {
-      if (classifier.kind !== 'Node') return classifier;
-      if (classifier.id !== nodeId) return classifier;
+  private static requireNode(model: Model, nodeId: Id): Node {
+    const classifier: Classifier | undefined = model.classifiers.find(
+      (item: Classifier): boolean => item.id === nodeId && item.kind === 'Node',
+    );
+    if (classifier?.kind !== 'Node') throw new Error(`Node not found: '${nodeId}'`);
+    return classifier;
+  }
 
-      foundNode = true;
-      const node: Node = classifier;
-      const attributes: readonly Attribute[] = node.attributes ?? [];
-      const filtered: Attribute[] = attributes.filter((attribute: Attribute): boolean => attribute.id !== attributeId);
-
-      if (filtered.length !== attributes.length) removed = true;
-      return removed ? { ...node, attributes: filtered } : node;
-    });
-    if (!foundNode) throw new Error(`Node not found: '${nodeId}'`);
-    if (!removed) throw new Error(`Attribute not found: '${attributeId}'`);
-    return { ...model, classifiers: patched };
+  private static replaceNode(model: Model, node: Node): Model {
+    const classifiers: Classifier[] = model.classifiers.map((item: Classifier): Classifier =>
+      item.id === node.id && item.kind === 'Node' ? node : item,
+    );
+    return { ...model, classifiers };
   }
 }

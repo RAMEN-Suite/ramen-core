@@ -144,6 +144,7 @@ function assertInheritedTextSuggestion(project: RamenModel, text: Node): void {
   next.hasAnnotation(refinedText, RAMEN_ELEMENT.ANNOTATION);
 
   assert.deepEqual(annotationTypesForNode(next, refinedText), ['emphasis']);
+  assert.equal(next.suggestAnnotationsForNode(refinedText.id, RAMEN_ELEMENT.ANNOTATION)[0]?.type, 'emphasis');
   assert.equal(next.validate().valid, true);
 }
 
@@ -175,7 +176,17 @@ void test('suggests types of separate TextAnnotation and ImageAnnotation nodes',
   assert.equal(project.validate().valid, true);
   assert.deepEqual(annotationTypesForNode(project, text), ['emphasis']);
   assert.deepEqual(annotationTypesForNode(project, image), ['imageRegion']);
+  assertSelectedTargets(project, text, image, textAnnotation, imageAnnotation);
 });
+
+function assertSelectedTargets(project: RamenModel, text: Node, image: Node, textAnnotation: Node, imageAnnotation: Node): void {
+  const types: readonly string[] = project
+    .suggestAnnotationsForNode(text.id, textAnnotation.id)
+    .map((item: AnnotationSuggestion): string => item.type);
+  assert.deepEqual(types, ['emphasis']);
+  assert.deepEqual(project.suggestAnnotationsForNode(text.id, imageAnnotation.id), []);
+  assert.deepEqual(project.suggestAnnotationsForNode(image.id, textAnnotation.id), []);
+}
 
 function annotationTypesForNode(model: RamenModel, node: Node): readonly string[] {
   return model

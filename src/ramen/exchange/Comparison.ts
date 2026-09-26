@@ -1,6 +1,6 @@
 import { ModelEvolution } from '../../model/index';
-import type { EvolutionReport, Id, Model } from '../../model/index';
-import { RamenAnnotation, RamenAnnotations } from '../model/Annotations';
+import type { EvolutionChange, EvolutionReport, Id, Model } from '../../model/index';
+import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions';
 import { RamenModelFormat } from '../model/Document';
 import { RamenValidator } from '../validation/ModelValidator';
 
@@ -32,16 +32,16 @@ export class RamenEvolution {
     afterRootModelId: Id,
     afterModels: readonly Model[],
   ): RamenEvolutionReport {
-    const generic: EvolutionReport = ModelEvolution.compare(
-      beforeRootModelId,
+    const changes: readonly EvolutionChange[] = ModelEvolution.compareChanges(
       beforeModels.map((model: Model): Model => RamenModelFormat.toGeneric(model)),
-      afterRootModelId,
       afterModels.map((model: Model): Model => RamenModelFormat.toGeneric(model)),
     );
     const validator: RamenValidator = new RamenValidator();
 
     return {
-      ...generic,
+      beforeRootModelId,
+      afterRootModelId,
+      changes,
       beforeDiagnostics: validator.validateProject(beforeRootModelId, beforeModels).diagnostics,
       afterDiagnostics: validator.validateProject(afterRootModelId, afterModels).diagnostics,
       annotationChanges: this.compareAnnotations(beforeModels, afterModels),

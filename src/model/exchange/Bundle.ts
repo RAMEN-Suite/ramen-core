@@ -1,7 +1,7 @@
 import { Model, ModelBundle, Id } from '../Types';
 import { ModelSchemaValidator } from '../validation/ModelSchema';
 import { Diagnostic } from '../validation/Diagnostics';
-import { buildProjectGraph, ProjectGraphResult } from './Build';
+import { ModelValidator, ProjectValidationResult } from '../validation/ModelValidator';
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import bundleSchema from '../../resources/schemas/model-bundle.schema.json';
 
@@ -21,8 +21,8 @@ export type CreateBundleResult =
  * Model boundaries, identifiers, versions, and imports remain unchanged.
  */
 export function createModelBundle(rootModelId: Id, models: readonly Model[]): CreateBundleResult {
-  const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
-  if (!graphResult.ok) return { ok: false, diagnostics: graphResult.diagnostics };
+  const graphResult: ProjectValidationResult = new ModelValidator().validateProject(rootModelId, models);
+  if (!graphResult.valid) return { ok: false, diagnostics: graphResult.diagnostics };
   const bundle: ModelBundle = {
     $schema: MODEL_BUNDLE_SCHEMA,
     kind: 'ModelBundle',
@@ -45,9 +45,9 @@ export function splitModelBundle(input: unknown): readonly Model[] {
 /** Validates an unknown bundle and returns a detached, graph-ordered representation. */
 export function parseModelBundle(input: unknown): ModelBundle {
   const bundle: ModelBundle = readBundleEnvelope(input);
-  const result: ProjectGraphResult = buildProjectGraph({ rootModelId: bundle.rootModelId, models: bundle.models });
+  const result: ProjectValidationResult = new ModelValidator().validateModels(bundle.rootModelId, bundle.models);
 
-  if (!result.ok) throw new Error(formatBundleErrors(result.diagnostics));
+  if (!result.valid) throw new Error(formatBundleErrors(result.diagnostics));
   return {
     ...bundle,
     models: result.graph.getModels().map((model: Model): Model => structuredClone(model)),

@@ -14,8 +14,8 @@ import {
 } from './Types';
 import { MODEL_SCHEMA_URI } from './validation/ModelSchema';
 import ShortUniqueId from 'short-unique-id';
-import { ModelRef } from './project/Refs';
-import { ModelElementIndex } from './project/Elements';
+import { ModelRef } from './graph/References';
+import { ModelElementIndex } from './graph/ElementIndex';
 
 /** Values needed to create a model that imports a base model. */
 export interface CreateModelInput {

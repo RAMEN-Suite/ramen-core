@@ -1,9 +1,9 @@
 import { BuiltinDataTypes } from '../Builtins';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { Classifier, Constraint, Model, Node, Relation, Id, Import, Ref } from '../Types';
-import { ModelElementIndex } from './Elements';
-import { ModelRef } from './Refs';
-import { ProjectGraph } from './Graph';
+import { ModelElementIndex } from './ElementIndex';
+import { ModelRef } from './References';
+import { ProjectGraph } from './ProjectGraph';
 import { ValidationCode } from '../validation/Codes';
 
 /** Root selection and available models used to build a project graph. */

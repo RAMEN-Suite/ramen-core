@@ -1,5 +1,7 @@
+import { BuiltinDataTypes } from '../Builtins';
+import { ModelRef } from './References';
 import { Attribute, Constraint, Node, Relation, Id } from '../Types';
-import { ProjectGraph, ResolvedModelElement } from './Graph';
+import { ProjectGraph, ResolvedModelElement } from './ProjectGraph';
 
 /** Node together with the features inherited through its complete refinement chain. */
 export interface EffectiveNode {
@@ -29,7 +31,13 @@ export class EffectiveModel {
     const constraints: Constraint[] = [];
 
     for (const item of lineage) {
-      for (const attribute of item.element.attributes) attributesByName.set(attribute.name, attribute);
+      for (const attribute of item.element.attributes) {
+        const typeId: string =
+          item.modelId === modelId || BuiltinDataTypes.isBuiltin(attribute.typeId) || ModelRef.isQualified(attribute.typeId)
+            ? attribute.typeId
+            : ModelRef.qualify(item.modelId, attribute.typeId);
+        attributesByName.set(attribute.name, { ...attribute, typeId });
+      }
       constraints.push(...(item.element.constraints ?? []));
     }
 

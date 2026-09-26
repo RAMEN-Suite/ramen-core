@@ -1,7 +1,7 @@
-import type { Attribute, Bounds, Model, Id, Ref } from '../../model/index';
-import { RamenAnnotationSchemaValidator } from '../validation/AnnotationSchema';
-import { RAMEN_PROJECT_SCHEMA_URI } from './Document';
-import type { RamenModelDocument } from './Document';
+import type { Attribute, Bounds, Model, Id, Ref, RelationSelections } from '../../model/index';
+import { RamenAnnotationSchemaValidator } from './Schema';
+import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat } from '../model/Document';
+import type { RamenModelDocument } from '../model/Document';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
 export interface RamenAttributeReference {
@@ -32,6 +32,18 @@ export interface RamenAnnotation {
 
 /** Reads and updates annotation definitions in RAMEN project documents. */
 export class RamenAnnotations {
+  public static relationSelections(inputs: readonly unknown[]): RelationSelections {
+    const models: readonly RamenModelDocument[] = inputs.filter(RamenModelFormat.isDocument);
+    return new Map<Id, readonly Ref[]>(
+      models.map((model: RamenModelDocument): [Id, readonly Ref[]] => [
+        model.id,
+        model.annotations.flatMap((annotation: RamenAnnotation): Ref[] =>
+          annotation.relations.flatMap((relation: RamenAnnotationRelation): readonly Ref[] => this.relationRefs(relation)),
+        ),
+      ]),
+    );
+  }
+
   public static relationRefs(relation: RamenAnnotationRelation): readonly Ref[] {
     return [relation.relationId, ...(relation.alternatives ?? [])];
   }

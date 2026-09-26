@@ -3,6 +3,8 @@ import test from 'node:test';
 import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel, RamenValidator } from '../../dist/index.js';
 import type {
   Diagnostic,
+  RamenAdvisor,
+  AnnotationSuggestion,
   ModelInstanceGraph,
   Node,
   ProjectValidationResult,
@@ -63,9 +65,7 @@ void test('a direct RAMEN import cannot restore an excluded project relation', (
 
   assert.equal(result.valid, false);
   assert.ok(
-    result.diagnostics.some(
-      (item: Diagnostic): boolean => item.code === 'RAMEN_RELATION_SCOPE_INVALID' && item.ref === invalid.id,
-    ),
+    result.diagnostics.some((item: Diagnostic): boolean => item.code === 'RELATION_SCOPE_INVALID' && item.ref === invalid.id),
   );
   assert.equal(second.exportBundle().ok, false);
 });
@@ -93,5 +93,30 @@ void test('data cannot use an ancestor relation without selecting it at the curr
   assert.deepEqual(
     second.suggestRelations(node.id, node.id).map((item: RelationRefinementSuggestion): string => item.relationId),
     [relation.id],
+  );
+});
+
+void test('model edits refresh suggestions while previous advisors keep their original snapshot', (): void => {
+  const first: RamenModel = project();
+  const text: Node = first.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const link: Relation = first.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
+  const before: RamenAdvisor = first.createAdvisor();
+  first.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'comment',
+    relations: [{ relationId: link.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  const after: RamenAdvisor = first.createAdvisor();
+
+  assert.deepEqual(before.suggestAnnotationsForNode(first.getModel().id, text.id), []);
+  assert.deepEqual(
+    after.suggestAnnotationsForNode(first.getModel().id, text.id).map((item: AnnotationSuggestion): string => item.type),
+    ['comment'],
+  );
+  first.removeRelation(link.id);
+  assert.deepEqual(first.createAdvisor().suggestAnnotationsForNode(first.getModel().id, text.id), []);
+  assert.deepEqual(
+    after.suggestAnnotationsForNode(first.getModel().id, text.id).map((item: AnnotationSuggestion): string => item.type),
+    ['comment'],
   );
 });

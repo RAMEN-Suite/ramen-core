@@ -1,6 +1,7 @@
+import { RelationSelections } from '../graph/RelationScope';
 import { Model, Id } from '../Types';
-import { buildProjectGraph, ProjectGraphResult } from '../project/Build';
-import { ProjectGraph } from '../project/Graph';
+import { buildProjectGraph, ProjectGraphResult } from '../graph/BuildGraph';
+import { ProjectGraph } from '../graph/ProjectGraph';
 import { VALIDATION_ERROR } from './Codes';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelRules } from './ModelRules';
@@ -38,7 +39,7 @@ export class ModelValidator {
    * Validates all input models reachable from the root and returns their graph only when it is safe to interpret.
    * Inputs are unknown because schema validation is the trust boundary for JSON documents.
    */
-  public validateProject(rootModelId: Id, inputs: readonly unknown[]): ProjectValidationResult {
+  public validateProject(rootModelId: Id, inputs: readonly unknown[], selections?: RelationSelections): ProjectValidationResult {
     const diagnostics: Diagnostic[] = [];
     const models: Model[] = [];
 
@@ -58,9 +59,14 @@ export class ModelValidator {
     });
     if (diagnostics.length > 0) return { valid: false, diagnostics: diagnostics, hasErrors: true };
 
+    return this.validateModels(rootModelId, models, selections);
+  }
+
+  /** Validates references and rules after a format-specific reader has checked the document schemas. */
+  public validateModels(rootModelId: Id, models: readonly Model[], selections?: RelationSelections): ProjectValidationResult {
     const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
     if (!graphResult.ok) return { valid: false, diagnostics: graphResult.diagnostics, hasErrors: true };
-    const semanticDiagnostics: readonly Diagnostic[] = this.semantics.validate(graphResult.graph);
+    const semanticDiagnostics: readonly Diagnostic[] = this.semantics.validate(graphResult.graph, selections);
     if (semanticDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error')) {
       return { valid: false, diagnostics: semanticDiagnostics, hasErrors: true };
     }

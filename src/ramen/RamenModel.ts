@@ -1,4 +1,4 @@
-import { ModelEditor, ModelFactory, ModelRef } from '../../model/index';
+import { ModelEditor, ModelFactory, ModelRef } from '../model/index';
 import type {
   Bounds,
   Classifier,
@@ -20,20 +20,20 @@ import type {
   UpdateNodeInput,
   UpdateRelationInput,
   ValidationResult,
-} from '../../model/index';
-import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from '../model/Annotations';
-import { RamenModelFormat } from '../model/Document';
-import type { RamenModelDocument } from '../model/Document';
-import { RAMEN_MODEL } from '../model/ReferenceModel';
-import { RamenValidator } from '../validation/ModelValidator';
-import { RamenInstanceValidator } from '../validation/InstanceValidator';
-import type { AnnotationPropertyAdvice } from './AnnotationAdvice';
+} from '../model/index';
+import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from './annotations/Definitions';
+import { RamenModelFormat } from './model/Document';
+import type { RamenModelDocument } from './model/Document';
+import { RAMEN_MODEL } from './model/ReferenceModel';
+import { RamenValidator } from './validation/ModelValidator';
+import { RamenInstanceValidator } from './validation/InstanceValidator';
+import type { AnnotationPropertyAdvice } from './annotations/Advisor';
 import { RamenAdvisor } from './Advisor';
 import type { AnnotationSuggestion, AttributeSuggestion, RelationRefinementSuggestion } from './Advisor';
-import { createRamenBundle, parseRamenBundle } from './Bundle';
-import type { CreateRamenBundleResult, RamenModelBundle } from './Bundle';
-import { RamenEvolution } from './Evolution';
-import type { RamenEvolutionReport } from './Evolution';
+import { createRamenBundle, parseRamenBundle } from './exchange/Bundle';
+import type { CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
+import { RamenEvolution } from './exchange/Comparison';
+import type { RamenEvolutionReport } from './exchange/Comparison';
 
 /** Reference to one node or relation in a specific model. */
 export interface RamenElementRef {
@@ -98,6 +98,10 @@ export class RamenModel {
   private readonly dependencies: ReadonlyMap<Id, Model>;
   private readonly validator: RamenValidator = new RamenValidator();
 
+  private validatedModel: Model | undefined;
+  private validation: ProjectValidationResult | undefined;
+  private advisor: RamenAdvisor | undefined;
+
   private constructor(model: RamenModelDocument, dependencies: readonly Model[]) {
     this.model = structuredClone(model);
     this.dependencies = new Map<Id, Model>(dependencies.map((item: Model): [Id, Model] => [item.id, structuredClone(item)]));
@@ -157,7 +161,15 @@ export class RamenModel {
 
   /** Validates the complete current project and returns its graph on success. */
   public validate(): ProjectValidationResult {
-    return this.validator.validateProject(this.model.id, this.validationInputs());
+    if (this.validatedModel === this.model && this.validation) return this.validation;
+    const result: ProjectValidationResult = this.validator.validateProject(this.model.id, this.validationInputs());
+    this.validatedModel = this.model;
+    this.advisor = undefined;
+    this.validation = Object.freeze({
+      ...result,
+      diagnostics: Object.freeze(result.diagnostics.map((diagnostic): typeof diagnostic => Object.freeze(diagnostic))),
+    });
+    return this.validation;
   }
 
   /** Validates a complete data graph using this project's models and optional custom constraint languages. */
@@ -180,7 +192,8 @@ export class RamenModel {
     if (!result.valid)
       throw new Error(`Cannot advise an invalid RAMEN model: ${result.diagnostics[0]?.message ?? 'Unknown error.'}`);
 
-    return new RamenAdvisor(result, this.validationInputs());
+    this.advisor ??= new RamenAdvisor(result, this.validationInputs());
+    return this.advisor;
   }
 
   /** Lists attributes visible on a local or imported node. */
@@ -204,6 +217,12 @@ export class RamenModel {
     const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
     const reference: Id = owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
     return this.createAdvisor().suggestAnnotations(this.model.id, reference);
+  }
+
+  /** Lists annotation types allowed on a carrier, optionally for one chosen Annotation node. */
+  public suggestAnnotationsForNode(nodeId: Id, annotationNodeId?: Id): readonly AnnotationSuggestion[] {
+    const target: Id | undefined = annotationNodeId ? this.nodeReference(annotationNodeId) : undefined;
+    return this.createAdvisor().suggestAnnotationsForNode(this.model.id, this.nodeReference(nodeId), target);
   }
 
   /** Adds a node refinement and immediately validates the resulting project. */
@@ -430,10 +449,11 @@ export class RamenModel {
     const validation: ProjectValidationResult = this.validate();
     if (!validation.valid) throw new Error('Cannot infer a relation from an invalid RAMEN model.');
 
-    const compatible: readonly RelationRefinementSuggestion[] = new RamenAdvisor(
-      validation,
-      this.validationInputs(),
-    ).suggestRelations(this.model.id, fromNodeId, toNodeId);
+    const compatible: readonly RelationRefinementSuggestion[] = this.createAdvisor().suggestRelations(
+      this.model.id,
+      fromNodeId,
+      toNodeId,
+    );
     const suggestions: readonly RelationRefinementSuggestion[] = family
       ? compatible.filter((candidate: RelationRefinementSuggestion): boolean =>
           this.belongsToRamenFamily(candidate, family, validation.graph),

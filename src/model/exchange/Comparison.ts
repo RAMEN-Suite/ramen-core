@@ -45,6 +45,17 @@ export class ModelEvolution {
     const validator: ModelValidator = new ModelValidator();
     const beforeDiagnostics: readonly Diagnostic[] = validator.validateProject(beforeRootModelId, beforeModels).diagnostics;
     const afterDiagnostics: readonly Diagnostic[] = validator.validateProject(afterRootModelId, afterModels).diagnostics;
+    return {
+      beforeRootModelId,
+      afterRootModelId,
+      beforeDiagnostics,
+      afterDiagnostics,
+      changes: this.compareChanges(beforeModels, afterModels),
+    };
+  }
+
+  /** Reports element changes only; callers choose whether and how to validate the two states. */
+  public static compareChanges(beforeModels: readonly Model[], afterModels: readonly Model[]): readonly EvolutionChange[] {
     const before: ReadonlyMap<string, ElementRecord> = this.index(beforeModels);
     const after: ReadonlyMap<string, ElementRecord> = this.index(afterModels);
     const keys: readonly string[] = [...new Set<string>([...before.keys(), ...after.keys()])].sort();
@@ -69,7 +80,7 @@ export class ModelEvolution {
       });
     }
 
-    return { beforeRootModelId, afterRootModelId, beforeDiagnostics, afterDiagnostics, changes };
+    return changes;
   }
 
   private static index(models: readonly Model[]): ReadonlyMap<string, ElementRecord> {

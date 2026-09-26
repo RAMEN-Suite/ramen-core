@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MODEL_BUNDLE_SCHEMA, createModelBundle, splitModelBundle } from '../../dist/index.js';
-import type { CreateBundleResult, Model } from '../../dist/index.js';
+import type { CreateBundleResult, Diagnostic, Model } from '../../dist/index.js';
 
 const BASE_ID: string = 'bundleBase000001';
 const ROOT_ID: string = 'bundleRoot000001';
@@ -68,4 +68,20 @@ void test('rejects a bundle whose root cannot be resolved', (): void => {
     rootModelId: ROOT_ID,
   };
   assert.throws((): readonly Model[] => splitModelBundle(invalid), /Root model not found/);
+});
+
+void test('generic bundle export rejects a model that violates semantic rules', (): void => {
+  const root: Model = model('semanticBundle001');
+  root.classifiers.push({
+    kind: 'Node',
+    id: 'semanticNode00001',
+    name: 'Record',
+    superTypes: [],
+    attributes: [{ id: 'semanticField001', name: 'name', typeId: 'String', bounds: { lowerBound: 2, upperBound: 1 } }],
+  });
+  const result: CreateBundleResult = createModelBundle(root.id, [root]);
+
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.ok(result.diagnostics.some((item: Diagnostic): boolean => item.code === 'ATTRIBUTE_BOUNDS_INVALID'));
 });

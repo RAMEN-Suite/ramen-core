@@ -1,6 +1,6 @@
-import { ModelDraft, ModelInput } from './ModelDraft';
+import { ModelDraft, ModelInput } from './editing/Draft';
 import { ModelAdvisor } from './Advisor';
-import { ModelFactory } from './ModelFactory';
+import { ModelFactory } from './editing/Factory';
 import { ModelValidator, ProjectValidationResult, ValidProjectResult, ValidationResult } from './validation/ModelValidator';
 import { InstanceValidator } from './data/InstanceValidator';
 import type { ConstraintRegistry } from './validation/Constraints';

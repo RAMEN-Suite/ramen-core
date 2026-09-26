@@ -38,7 +38,8 @@
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
     "prepare": "husky",
     "schema:generate": "node scripts/generate-ramen-project-schema.mjs",
-    "schema:check": "node scripts/generate-ramen-project-schema.mjs --check"
+    "schema:check": "node scripts/generate-ramen-project-schema.mjs --check",
+    "test:coverage": "npm run build && npm run typecheck:tests && node --experimental-strip-types --experimental-test-coverage --test-coverage-include='dist/**/*.js' --test test/**/*.test.ts"
   },
   "dependencies": {
     "json-schema-library": "^11.0.4",

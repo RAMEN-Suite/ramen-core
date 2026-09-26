@@ -1,5 +1,5 @@
-import { ModelRef } from './graph/References';
-import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from './Types';
+import { ModelRef } from '../graph/References';
+import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from '../Types';
 
 /** Editable node fields. */
 export type UpdateNodeInput = Partial<Pick<Node, 'name' | 'superTypes' | 'constraints' | 'ext'>>;

@@ -1,7 +1,7 @@
 import type { Attribute, Bounds, Model, Id, Ref, RelationSelections } from '../../model/index';
 import { RamenAnnotationSchemaValidator } from './Schema';
-import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat } from '../model/Document';
-import type { RamenModelDocument } from '../model/Document';
+import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat } from '../Document';
+import type { RamenModelDocument } from '../Document';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
 export interface AttributeReference {

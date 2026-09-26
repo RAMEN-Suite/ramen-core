@@ -1,9 +1,9 @@
-import { ModelAdvisor, RelationSuggestion } from './Advisor';
-import { ModelFactory } from './ModelFactory';
-import { ModelRef } from './graph/References';
-import type { RelationSelections } from './graph/RelationScope';
-import type { ValidProjectResult } from './validation/ModelValidator';
-import type { Model, Node, Ref, Relation } from './Types';
+import { ModelAdvisor, RelationSuggestion } from '../Advisor';
+import { ModelFactory } from './Factory';
+import { ModelRef } from '../graph/References';
+import type { RelationSelections } from '../graph/RelationScope';
+import type { ValidProjectResult } from '../validation/ModelValidator';
+import type { Model, Node, Ref, Relation } from '../Types';
 
 /** A selected relation reference or an unchanged suggestion returned by the advisor. */
 export type RelationChoice = Ref | Pick<RelationSuggestion, 'ref'>;

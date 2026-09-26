@@ -25,9 +25,9 @@ import type {
   ValidationResult,
 } from '../../model/index';
 import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions';
-import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
-import { RamenAnnotationIndex, ResolvedRamenAnnotation } from '../annotations/AnnotationIndex';
-import { RamenValidator } from './ModelValidator';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
+import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex';
+import { RamenValidator } from '../validation/ModelValidator';
 
 /** Stable diagnostic codes emitted while validating RAMEN instances. */
 export const RAMEN_INSTANCE_ERROR: Readonly<{
@@ -62,7 +62,7 @@ export class RamenInstanceValidator {
   public validate(rootModelId: Id, models: readonly Model[], input: unknown): ValidationResult {
     const project: ProjectValidationResult = this.projects.validateProject(rootModelId, models);
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
-    const annotations: RamenAnnotationIndex = new RamenAnnotationIndex(project.graph, models);
+    const annotations: AnnotationIndex = new AnnotationIndex(project.graph, models);
     const base: ValidationResult = this.instances.validate(project.graph, input, {
       relations: new ModelRelationScope(project.graph, RamenAnnotations.relationSelections(models)).available(rootModelId),
       attributes: (type: ResolvedElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
@@ -82,14 +82,14 @@ export class RamenInstanceValidator {
 
   private effectiveAttributes(
     graph: ProjectGraph,
-    annotations: RamenAnnotationIndex,
+    annotations: AnnotationIndex,
     modelId: Id,
     type: ResolvedElement<Node>,
     node: ModelInstanceNode,
   ): readonly Attribute[] {
     const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, type.modelId, type.element.id)?.attributes ?? [];
     if (typeof node.properties.type !== 'string') return attributes;
-    const definition: ResolvedRamenAnnotation | undefined = annotations.findEffective(modelId, node.typeId, node.properties.type);
+    const definition: ResolvedAnnotation | undefined = annotations.findEffective(modelId, node.typeId, node.properties.type);
     if (!definition) return attributes;
     const byName: Map<string, Attribute> = new Map<string, Attribute>(
       attributes.map((item: Attribute): [string, Attribute] => [item.name, item]),
@@ -100,7 +100,7 @@ export class RamenInstanceValidator {
 
   private validateAnnotationNode(
     graph: ProjectGraph,
-    annotations: RamenAnnotationIndex,
+    annotations: AnnotationIndex,
     instance: ModelInstanceGraph,
     node: ModelInstanceNode,
     index: number,
@@ -122,7 +122,7 @@ export class RamenInstanceValidator {
 
       return;
     }
-    const selected: ResolvedRamenAnnotation | undefined = annotations.findEffective(instance.modelId, node.typeId, type);
+    const selected: ResolvedAnnotation | undefined = annotations.findEffective(instance.modelId, node.typeId, type);
     if (!selected) {
       this.error(
         diagnostics,
@@ -141,7 +141,7 @@ export class RamenInstanceValidator {
   private validateProperties(
     graph: ProjectGraph,
     nodeType: ResolvedElement<Node>,
-    selected: ResolvedRamenAnnotation,
+    selected: ResolvedAnnotation,
     node: ModelInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -157,7 +157,7 @@ export class RamenInstanceValidator {
 
   private validateAllowedProperties(
     node: ModelInstanceNode,
-    selected: ResolvedRamenAnnotation,
+    selected: ResolvedAnnotation,
     allowedNames: ReadonlySet<string>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -176,7 +176,7 @@ export class RamenInstanceValidator {
 
   private validateRelations(
     graph: ProjectGraph,
-    selected: ResolvedRamenAnnotation,
+    selected: ResolvedAnnotation,
     instance: ModelInstanceGraph,
     node: ModelInstanceNode,
     path: DiagnosticPath,
@@ -210,7 +210,7 @@ export class RamenInstanceValidator {
 
   private validateAllowedRelations(
     graph: ProjectGraph,
-    selected: ResolvedRamenAnnotation,
+    selected: ResolvedAnnotation,
     instanceModelId: Id,
     node: ModelInstanceNode,
     path: DiagnosticPath,

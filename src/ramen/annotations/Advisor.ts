@@ -4,8 +4,8 @@ import { EffectiveModel, ModelRef, ProjectGraph } from '../../model/index';
 import { Cardinality } from '../../model/validation/Cardinality';
 import type { Bounds, EffectiveNode, Attribute, Model, Node, Relation, Id, Ref, ResolvedElement } from '../../model/index';
 import { RamenAnnotations, AnnotationRelation } from './Definitions';
-import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
-import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './AnnotationIndex';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
+import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
 
 /** Property that can be selected for an annotation definition. */
 export interface PropertyAdvice {
@@ -45,12 +45,12 @@ export interface AnnotationAdvice {
 }
 
 /** Computes valid annotation properties, relations, targets, and cardinality choices. */
-export class RamenAnnotationAdvisor {
+export class AnnotationAdvisor {
   /** Creates annotation advice over an already validated project graph. */
   public constructor(
     private readonly graph: ProjectGraph,
     private readonly relations: ModelRelationScope,
-    private readonly annotations: RamenAnnotationIndex,
+    private readonly annotations: AnnotationIndex,
   ) {}
 
   /** Advises properties and relations available for a new annotation type. */
@@ -65,7 +65,7 @@ export class RamenAnnotationAdvisor {
 
   /** Returns the effective properties and relations selected by one annotation type. */
   public adviseEffective(modelId: Id, annotationNodeId: Id, type: string): AnnotationAdvice | undefined {
-    const definition: ResolvedRamenAnnotation | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
+    const definition: ResolvedAnnotation | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
     if (!definition) return undefined;
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual) return undefined;
@@ -78,7 +78,7 @@ export class RamenAnnotationAdvisor {
   private selectedPropertyAdvice(
     contextModelId: Id,
     actual: ResolvedElement<Node>,
-    definition: ResolvedRamenAnnotation,
+    definition: ResolvedAnnotation,
   ): readonly PropertyAdvice[] {
     const lineage: readonly ResolvedElement<Node>[] = [actual, ...this.graph.getNodeAncestors(actual.modelId, actual.element.id)];
     return AnnotationProperties.resolve(this.graph, definition, actual).map((attribute: Attribute): PropertyAdvice => {
@@ -167,33 +167,39 @@ export class RamenAnnotationAdvisor {
   private selectedRelationAdvice(
     modelId: Id,
     actual: ResolvedElement<Node>,
-    definition: ResolvedRamenAnnotation,
+    definition: ResolvedAnnotation,
   ): readonly RelationAdvice[] {
-    return this.relationAdvice(modelId, actual).flatMap((choice: RelationAdvice): RelationAdvice[] => {
-      const requirement: AnnotationRelation | undefined = definition.annotation.relations.find(
-        (candidate: AnnotationRelation): boolean =>
-          candidate.direction === choice.direction &&
-          RamenAnnotations.relationRefs(candidate).some((ref: Ref): boolean =>
-            this.graph.isRelationRefSameOrSubtype(choice.modelId, choice.relationId, definition.modelId, ref),
-          ),
-      );
-      if (!requirement) return [];
+    const selected: RelationAdvice[] = [];
+    for (const choice of this.relationAdvice(modelId, actual)) {
+      const requirement: AnnotationRelation | undefined = this.findRequirement(choice, definition);
+      if (!requirement) continue;
+      selected.push(this.applyRequirement(choice, requirement, definition.modelId));
+    }
+    return selected;
+  }
 
-      return [
-        {
-          ...choice,
-          suggestedBounds: requirement.bounds,
-          cardinalityOptions: this.cardinalityOptions(requirement.bounds),
-          ...(requirement.alternatives
-            ? {
-                alternatives: RamenAnnotations.relationRefs(requirement).map((ref: Ref): Ref =>
-                  ModelRef.isQualified(ref) ? ref : ModelRef.qualify(definition.modelId, ref),
-                ),
-              }
-            : {}),
-        },
-      ];
-    });
+  private findRequirement(choice: RelationAdvice, definition: ResolvedAnnotation): AnnotationRelation | undefined {
+    for (const requirement of definition.annotation.relations) {
+      if (requirement.direction !== choice.direction) continue;
+      const matches: boolean = RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
+        this.graph.isRelationRefSameOrSubtype(choice.modelId, choice.relationId, definition.modelId, ref),
+      );
+      if (matches) return requirement;
+    }
+    return undefined;
+  }
+
+  private applyRequirement(choice: RelationAdvice, requirement: AnnotationRelation, modelId: Id): RelationAdvice {
+    const selected: RelationAdvice = {
+      ...choice,
+      suggestedBounds: requirement.bounds,
+      cardinalityOptions: this.cardinalityOptions(requirement.bounds),
+    };
+    if (!requirement.alternatives) return selected;
+    const alternatives: readonly Ref[] = RamenAnnotations.relationRefs(requirement).map((ref: Ref): Ref =>
+      ModelRef.isQualified(ref) ? ref : ModelRef.qualify(modelId, ref),
+    );
+    return { ...selected, alternatives };
   }
 
   private commonAnnotationAttributeIds(): ReadonlySet<Id> {
@@ -231,13 +237,9 @@ export class RamenAnnotationAdvisor {
     const unique: Map<string, Bounds> = new Map<string, Bounds>();
 
     for (const bounds of common) {
-      if (!this.narrows(bounds, allowed)) continue;
+      if (!Cardinality.isModelBoundsCompatible(allowed, bounds)) continue;
       unique.set(`${bounds.lowerBound}:${bounds.upperBound}`, { ...bounds });
     }
     return [...unique.values()];
-  }
-
-  private narrows(actual: Bounds, allowed: Bounds): boolean {
-    return Cardinality.isModelBoundsCompatible(allowed, actual);
   }
 }

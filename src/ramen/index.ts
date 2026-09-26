@@ -1,6 +1,6 @@
-export * from './model/ReferenceModel';
+export * from './ReferenceModel';
 export type { RamenAnnotation, AnnotationProperty, AttributeReference, AnnotationRelation } from './annotations/Definitions';
-export * from './model/Document';
+export * from './Document';
 export type { AnnotationAdvice, PropertyAdvice, RelationAdvice } from './annotations/Advisor';
 export * from './RamenModel';
 export * from './exchange/Bundle';
@@ -9,6 +9,6 @@ export * from './Advisor';
 export * from './annotations/Schema';
 export * from './validation/ProjectSchema';
 export * from './validation/ModelValidator';
-export * from './validation/InstanceValidator';
+export * from './data/InstanceValidator';
 
 export * from './exchange/File';

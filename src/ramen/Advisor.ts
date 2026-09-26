@@ -4,8 +4,8 @@ import type { Model, Node, Id, Ref } from '../model/Types';
 import type { ResolvedElement } from '../model/graph/ProjectGraph';
 import type { ValidProjectResult } from '../model/validation/ModelValidator';
 import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions';
-import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './annotations/AnnotationIndex';
-import { AnnotationAdvice, PropertyAdvice, RelationAdvice, RamenAnnotationAdvisor } from './annotations/Advisor';
+import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex';
+import { AnnotationAdvice, PropertyAdvice, RelationAdvice, AnnotationAdvisor } from './annotations/Advisor';
 export type {
   NodeSuggestion,
   DataTypeSuggestion,
@@ -28,14 +28,14 @@ export interface AnnotationSuggestion {
 
 /** Adds RAMEN annotation suggestions to the generic modeling advisor. */
 export class RamenAdvisor extends ModelAdvisor {
-  private readonly annotations: RamenAnnotationIndex;
-  private readonly annotationAdvisor: RamenAnnotationAdvisor;
+  private readonly annotations: AnnotationIndex;
+  private readonly annotationAdvisor: AnnotationAdvisor;
 
   /** Creates a RAMEN advisor for a validated snapshot. */
   public constructor(result: ValidProjectResult, models: readonly Model[]) {
     super(result, RamenAnnotations.relationSelections(models));
-    this.annotations = new RamenAnnotationIndex(result.graph, models);
-    this.annotationAdvisor = new RamenAnnotationAdvisor(result.graph, this.relations, this.annotations);
+    this.annotations = new AnnotationIndex(result.graph, models);
+    this.annotationAdvisor = new AnnotationAdvisor(result.graph, this.relations, this.annotations);
   }
 
   /** Lists all reachable annotations, or only the effective variants of one Annotation node. */
@@ -44,12 +44,12 @@ export class RamenAdvisor extends ModelAdvisor {
       modelId,
       ...this.importedModels(modelId).map((model: Model): Id => model.id),
     ]);
-    const candidates: readonly ResolvedRamenAnnotation[] = annotationNodeId
+    const candidates: readonly ResolvedAnnotation[] = annotationNodeId
       ? this.annotations.getEffective(modelId, annotationNodeId)
-      : this.annotations.getAll().filter((candidate: ResolvedRamenAnnotation): boolean => visibleModels.has(candidate.modelId));
+      : this.annotations.getAll().filter((candidate: ResolvedAnnotation): boolean => visibleModels.has(candidate.modelId));
 
     return candidates
-      .map((candidate: ResolvedRamenAnnotation): AnnotationSuggestion => ({
+      .map((candidate: ResolvedAnnotation): AnnotationSuggestion => ({
         modelId: candidate.modelId,
         annotationId: candidate.annotation.id,
         ownerNodeId: candidate.annotation.annotationId,
@@ -98,7 +98,7 @@ export class RamenAdvisor extends ModelAdvisor {
     relation: NodeRelationSuggestion,
   ): readonly AnnotationSuggestion[] {
     return this.suggestAnnotations(modelId, targetId).filter((suggestion: AnnotationSuggestion): boolean => {
-      const definition: ResolvedRamenAnnotation | undefined = this.annotations.findEffective(modelId, targetId, suggestion.type);
+      const definition: ResolvedAnnotation | undefined = this.annotations.findEffective(modelId, targetId, suggestion.type);
       if (!definition) return false;
       return definition.annotation.relations.some(
         (requirement: AnnotationRelation): boolean =>

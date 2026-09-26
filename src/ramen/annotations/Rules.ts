@@ -3,7 +3,7 @@ import { DiagnosticPath, Diagnostics, ModelRef, ProjectGraph } from '../../model
 import { Cardinality } from '../../model/validation/Cardinality';
 import type { Bounds, Diagnostic, Model, Node, Relation, Id, Ref, ResolvedElement } from '../../model/index';
 import { RamenAnnotation, AnnotationRelation, RamenAnnotations } from './Definitions';
-import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './AnnotationIndex';
+import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
 export const RAMEN_VALIDATION_ERROR: Readonly<{
@@ -40,7 +40,7 @@ interface RelationIndex {
 /** Applies only the additional rules of RAMEN annotation definitions. */
 export class RamenAnnotationRules {
   public validate(graph: ProjectGraph, models: readonly Model[]): readonly Diagnostic[] {
-    const annotations: RamenAnnotationIndex = new RamenAnnotationIndex(graph, models);
+    const annotations: AnnotationIndex = new AnnotationIndex(graph, models);
     const diagnostics: Diagnostic[] = [];
     const identifiers: Set<string> = new Set<string>();
     const ownerTypes: Set<string> = new Set<string>();
@@ -53,8 +53,8 @@ export class RamenAnnotationRules {
 
   private validateAnnotation(
     graph: ProjectGraph,
-    annotations: RamenAnnotationIndex,
-    resolved: ResolvedRamenAnnotation,
+    annotations: AnnotationIndex,
+    resolved: ResolvedAnnotation,
     identifiers: Set<string>,
     ownerTypes: Set<string>,
     diagnostics: Diagnostic[],
@@ -90,7 +90,7 @@ export class RamenAnnotationRules {
   }
 
   private registerIdentifier(
-    resolved: ResolvedRamenAnnotation,
+    resolved: ResolvedAnnotation,
     identifiers: Set<string>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -129,7 +129,7 @@ export class RamenAnnotationRules {
 
   private validateRelations(
     graph: ProjectGraph,
-    resolved: ResolvedRamenAnnotation,
+    resolved: ResolvedAnnotation,
     owner: ResolvedElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
@@ -142,7 +142,7 @@ export class RamenAnnotationRules {
 
   private validateRelation(
     graph: ProjectGraph,
-    resolved: ResolvedRamenAnnotation,
+    resolved: ResolvedAnnotation,
     owner: ResolvedElement<Node>,
     requirement: AnnotationRelation,
     seen: RelationIndex,
@@ -194,7 +194,7 @@ export class RamenAnnotationRules {
   }
 
   private validateRelationShape(
-    resolved: ResolvedRamenAnnotation,
+    resolved: ResolvedAnnotation,
     requirement: AnnotationRelation,
     relation: ResolvedElement<Relation> | undefined,
     modeledBounds: Bounds | undefined,
@@ -234,12 +234,12 @@ export class RamenAnnotationRules {
 
   private validateInheritedType(
     graph: ProjectGraph,
-    annotations: RamenAnnotationIndex,
-    resolved: ResolvedRamenAnnotation,
+    annotations: AnnotationIndex,
+    resolved: ResolvedAnnotation,
     owner: ResolvedElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
-    const inherited: ResolvedRamenAnnotation | undefined = this.findInheritedAnnotation(graph, annotations, resolved, owner);
+    const inherited: ResolvedAnnotation | undefined = this.findInheritedAnnotation(graph, annotations, resolved, owner);
     if (!inherited) return;
     this.error(
       diagnostics,
@@ -252,10 +252,10 @@ export class RamenAnnotationRules {
 
   private findInheritedAnnotation(
     graph: ProjectGraph,
-    annotations: RamenAnnotationIndex,
-    current: ResolvedRamenAnnotation,
+    annotations: AnnotationIndex,
+    current: ResolvedAnnotation,
     owner: ResolvedElement<Node>,
-  ): ResolvedRamenAnnotation | undefined {
+  ): ResolvedAnnotation | undefined {
     for (const candidate of annotations.getApplicable(current.modelId, current.annotation.annotationId)) {
       if (candidate.annotation.type !== current.annotation.type) continue;
       if (candidate.modelId === current.modelId) {

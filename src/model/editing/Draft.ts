@@ -1,14 +1,14 @@
 import { ModelConnections, RelationChoice } from './Connections';
-import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './ModelEditor';
-import { ModelFactory, CreateModelInput, CreateAttributeInput, CreateDataTypeInput } from './ModelFactory';
-import { ModelAdvisor, AttributeSuggestion, DataTypeSuggestion, NodeSuggestion, RelationSuggestion } from './Advisor';
-import { ModelRef } from './graph/References';
-import type { RelationSelections } from './graph/RelationScope';
-import type { ResolvedElement } from './graph/ProjectGraph';
-import type { Diagnostic } from './validation/Diagnostics';
-import { BuiltinDataTypes } from './Builtins';
-import type { ProjectValidationResult, ValidProjectResult } from './validation/ModelValidator';
-import type { Attribute, Bounds, Classifier, DataType, Id, Literal, Model, Node, Ref, Relation } from './Types';
+import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './Editor';
+import { ModelFactory, CreateModelInput, CreateAttributeInput, CreateDataTypeInput } from './Factory';
+import { ModelAdvisor, AttributeSuggestion, DataTypeSuggestion, NodeSuggestion, RelationSuggestion } from '../Advisor';
+import { ModelRef } from '../graph/References';
+import type { RelationSelections } from '../graph/RelationScope';
+import type { ResolvedElement } from '../graph/ProjectGraph';
+import type { Diagnostic } from '../validation/Diagnostics';
+import { BuiltinDataTypes } from '../Builtins';
+import type { ProjectValidationResult, ValidProjectResult } from '../validation/ModelValidator';
+import type { Attribute, Bounds, Classifier, DataType, Id, Literal, Model, Node, Ref, Relation } from '../Types';
 
 /** Model identity; omitted IDs and URIs are generated, and version defaults to 1.0.0. */
 export interface ModelInput {
@@ -85,22 +85,6 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   protected constructor(model: Model, dependencies: readonly Model[]) {
     this.model = structuredClone(model);
     this.dependencies = new Map<Id, Model>(dependencies.map((item: Model): [Id, Model] => [item.id, structuredClone(item)]));
-  }
-
-  protected abstract check(): ProjectValidationResult;
-  protected abstract advise(result: ValidProjectResult): A;
-  protected selections(): RelationSelections | undefined {
-    return undefined;
-  }
-
-  protected onRemove(_input: Removal): void {
-    /* Domain extensions may clean up references after an edit. */
-  }
-
-  protected static options(input: ModelInput | string): CreateModelInput {
-    const values: ModelInput = typeof input === 'string' ? { name: input } : input;
-    const id: Id = values.id ?? ModelFactory.createIdentifier();
-    return { id, name: values.name, uri: values.uri ?? `urn:rmf:model:${id}`, version: values.version ?? '1.0.0' };
   }
 
   /** Lists imported node types that this level can refine. */
@@ -299,11 +283,6 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.connectBy(from, to, choice);
   }
 
-  protected nodeReference(nodeId: ElementInput): Id {
-    const owner: ElementRef = this.resolveRef(nodeId, 'node');
-    return owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
-  }
-
   /** Updates a local relation and validates the resulting project. */
   public updateRelation(relationId: Id, input: UpdateRelationInput): ModelChange<Relation> {
     this.requireRelation(relationId);
@@ -320,6 +299,29 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     this.onRemove({ relationIds: new Set<Id>([relationId]) });
 
     return this.change(relation);
+  }
+
+  protected abstract check(): ProjectValidationResult;
+
+  protected abstract advise(result: ValidProjectResult): A;
+
+  protected selections(): RelationSelections | undefined {
+    return undefined;
+  }
+
+  protected onRemove(_input: Removal): void {
+    /* Domain extensions may clean up references after an edit. */
+  }
+
+  protected static options(input: ModelInput | string): CreateModelInput {
+    const values: ModelInput = typeof input === 'string' ? { name: input } : input;
+    const id: Id = values.id ?? ModelFactory.createIdentifier();
+    return { id, name: values.name, uri: values.uri ?? `urn:rmf:model:${id}`, version: values.version ?? '1.0.0' };
+  }
+
+  protected nodeReference(nodeId: ElementInput): Id {
+    const owner: ElementRef = this.resolveRef(nodeId, 'node');
+    return owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
   }
 
   protected change<T>(element: T): ModelChange<T> {
@@ -353,26 +355,40 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return { modelId: owner.id, elementId: reference };
   }
 
+  protected connectBy(
+    from: ElementInput,
+    to: ElementInput,
+    choice?: RelationChoice,
+    family?: readonly Ref[],
+  ): ModelChange<Relation> {
+    const fromRef: Ref = this.nodeReference(from);
+    const toRef: Ref = this.nodeReference(to);
+    const result: ProjectValidationResult = this.validate();
+    if (!result.valid) throw new Error('Cannot infer a relation from an invalid model.');
+    const connections: ModelConnections = new ModelConnections(result, this.selections());
+    const suggestions: readonly RelationSuggestion[] = connections.suggest(fromRef, toRef);
+    const candidates: readonly RelationSuggestion[] = this.selectFamily(result, suggestions, family);
+    const selected: RelationSuggestion = connections.select(candidates, choice);
+    const relation: Relation = connections.connect(fromRef, toRef, selected.ref);
+    this.model = ModelEditor.addRelation(this.model, relation);
+    return this.change(relation);
+  }
+
   private requireNode(nodeId: Id): Node {
     const classifier: Classifier | undefined = this.model.classifiers.find((item: Classifier): boolean => item.id === nodeId);
-
     if (classifier?.kind !== 'Node') throw new Error(`Node not found: '${nodeId}'.`);
-
     return classifier;
   }
 
   private requireDataType(dataTypeId: Id): DataType {
     const classifier: Classifier | undefined = this.model.classifiers.find((item: Classifier): boolean => item.id === dataTypeId);
-
     if (classifier?.kind !== 'DataType') throw new Error(`Data type not found: '${dataTypeId}'.`);
-
     return classifier;
   }
 
   private requireLiteral(dataType: DataType, literalId: Id): Literal {
     const literal: Literal | undefined = dataType.literals?.find((item: Literal): boolean => item.id === literalId);
     if (!literal) throw new Error(`Literal not found: '${literalId}'.`);
-
     return literal;
   }
 
@@ -380,19 +396,16 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const attribute: Attribute | undefined = this.requireNode(nodeId).attributes.find(
       (item: Attribute): boolean => item.id === attributeId,
     );
-
     if (!attribute) throw new Error(`Attribute not found: '${attributeId}'.`);
-
     return attribute;
   }
 
   private requireRelation(relationId: Id): Relation {
     const relation: Relation | undefined = this.model.relations.find((item: Relation): boolean => item.id === relationId);
-
     if (!relation) throw new Error(`Relation not found: '${relationId}'.`);
-
     return relation;
   }
+
   private newNode(input: NodeInput): Node {
     if (input.refines !== undefined) {
       const base: ElementRef = this.resolveRef(input.refines, 'node');
@@ -462,33 +475,23 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
   }
 
-  protected connectBy(
-    from: ElementInput,
-    to: ElementInput,
-    choice?: RelationChoice,
+  private selectFamily(
+    project: ValidProjectResult,
+    suggestions: readonly RelationSuggestion[],
     family?: readonly Ref[],
-  ): ModelChange<Relation> {
-    const fromRef: Ref = this.nodeReference(from);
-    const toRef: Ref = this.nodeReference(to);
-    const result: ProjectValidationResult = this.validate();
-    if (!result.valid) throw new Error('Cannot infer a relation from an invalid model.');
-    const connections: ModelConnections = new ModelConnections(result, this.selections());
-    const suggestions: readonly RelationSuggestion[] = connections.suggest(fromRef, toRef);
-    const roots: ReadonlySet<Ref> | undefined = family ? new Set<Ref>(family) : undefined;
-    const candidates: readonly RelationSuggestion[] = roots
-      ? suggestions.filter(
-          (item: RelationSuggestion): boolean =>
-            roots.has(item.ref) ||
-            result.graph
-              .getRelationAncestors(item.modelId, item.relationId)
-              .some((ancestor: ResolvedElement<Relation>): boolean =>
-                roots.has(ModelRef.qualify(ancestor.modelId, ancestor.element.id)),
-              ),
-        )
-      : suggestions;
-    const selected: RelationSuggestion = connections.select(candidates, choice);
-    const relation: Relation = connections.connect(fromRef, toRef, selected.ref);
-    this.model = ModelEditor.addRelation(this.model, relation);
-    return this.change(relation);
+  ): readonly RelationSuggestion[] {
+    if (!family) return suggestions;
+    const roots: ReadonlySet<Ref> = new Set<Ref>(family);
+
+    return suggestions.filter((choice: RelationSuggestion): boolean => {
+      if (roots.has(choice.ref)) return true;
+      const ancestors: readonly ResolvedElement<Relation>[] = project.graph.getRelationAncestors(
+        choice.modelId,
+        choice.relationId,
+      );
+      return ancestors.some((ancestor: ResolvedElement<Relation>): boolean =>
+        roots.has(ModelRef.qualify(ancestor.modelId, ancestor.element.id)),
+      );
+    });
   }
 }

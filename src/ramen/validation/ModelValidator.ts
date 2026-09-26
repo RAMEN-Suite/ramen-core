@@ -8,8 +8,8 @@ import {
 } from '../../model/index';
 import type { Diagnostic, Model, Id, ProjectValidationResult } from '../../model/index';
 import { RamenAnnotations } from '../annotations/Definitions';
-import { RamenModelFormat } from '../model/Document';
-import { RAMEN_MODEL } from '../model/ReferenceModel';
+import { RamenModelFormat } from '../Document';
+import { RAMEN_MODEL } from '../ReferenceModel';
 import { RamenProjectSchemaValidator } from './ProjectSchema';
 import { RamenAnnotationRules, RAMEN_VALIDATION_ERROR } from '../annotations/Rules';
 export { RAMEN_VALIDATION_ERROR } from '../annotations/Rules';

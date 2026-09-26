@@ -2,13 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Diagnostic, EvolutionChange, Model, Node, Relation } from '../../dist/model/index.js';
 import { RamenModel } from '../../dist/ramen/index.js';
-import type {
-  AnnotationSuggestion,
-  CreateRamenBundleResult,
-  RamenChange,
-  RamenEvolutionReport,
-  RelationSuggestion,
-} from '../../dist/ramen/index.js';
+import type { AnnotationSuggestion, RamenChange, RamenEvolutionReport, RelationSuggestion } from '../../dist/ramen/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
 
@@ -56,7 +50,9 @@ void test('M06: reject a widened relation, correct it and exchange the valid mod
   });
   assert.equal(invalid.validation.valid, false);
   assert.ok(invalid.validation.diagnostics.some((item: Diagnostic): boolean => item.code === 'RELATION_BOUNDS_WIDENED'));
-  assert.equal(edition.exportBundle().ok, false);
+  assert.throws((): void => {
+    edition.export();
+  });
 
   const corrected: RamenChange<Relation> = edition.updateRelation(invalid.element.id, {
     to: { ...invalid.element.to, bounds: { lowerBound: 1, upperBound: 1 } },
@@ -84,20 +80,17 @@ function suggestedTypes(project: RamenModel, carrier: Node): readonly string[] {
 }
 
 function roundTrip(project: RamenModel): RamenModel {
-  const exported: CreateRamenBundleResult = project.exportBundle();
-  assert.ok(exported.ok, JSON.stringify(exported));
-
-  const json: string = JSON.stringify(exported.bundle);
+  const json: string = JSON.stringify(project.export());
   const input: unknown = JSON.parse(json);
-  const restored: RamenModel = RamenModel.importBundle(input);
+  const restored: RamenModel = RamenModel.import(input);
 
-  assert.deepEqual(serializedModels(restored), serializedModels(project));
+  assert.deepEqual(modelsById(restored), modelsById(project));
   assert.equal(restored.validate().valid, true);
   return restored;
 }
 
-function serializedModels(project: RamenModel): ReadonlyMap<string, string> {
-  return new Map<string, string>(project.getModels().map((model: Model): [string, string] => [model.id, JSON.stringify(model)]));
+function modelsById(project: RamenModel): ReadonlyMap<string, Model> {
+  return new Map<string, Model>(project.getModels().map((model: Model): [string, Model] => [model.id, model]));
 }
 
 function assertRenameReported(before: RamenModel, after: RamenModel, node: Node): void {

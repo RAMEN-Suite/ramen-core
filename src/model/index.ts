@@ -1,6 +1,6 @@
 export * from './Types';
-export * from './ModelFactory';
-export * from './ModelEditor';
+export * from './editing/Factory';
+export * from './editing/Editor';
 export * from './Names';
 export * from './graph/ProjectGraph';
 export * from './graph/BuildGraph';
@@ -17,7 +17,7 @@ export * from './validation/Diagnostics';
 export * from './validation/Codes';
 export * from './graph/RelationScope';
 export * from './Advisor';
-export * from './Connections';
+export * from './editing/Connections';
 export * from './Modeler';
 export type {
   ModelInput,
@@ -29,7 +29,7 @@ export type {
   LiteralInput,
   LiteralUpdate,
   ModelChange,
-} from './ModelDraft';
+} from './editing/Draft';
 
 export { ModelFiles } from './exchange/File';
 export type { ModelFile, ModelHeader, Owned } from './exchange/File';

@@ -4,8 +4,8 @@ import type { ModelFile, Owned } from '../../model/exchange/File';
 import type { Id, Model } from '../../model/Types';
 import type { ProjectValidationResult } from '../../model/validation/ModelValidator';
 import { RamenValidator } from '../validation/ModelValidator';
-import { RamenModelFormat } from '../model/Document';
-import type { RamenModelDocument } from '../model/Document';
+import { RamenModelFormat } from '../Document';
+import type { RamenModelDocument } from '../Document';
 import type { RamenAnnotation } from '../annotations/Definitions';
 import fileSchema from '../../resources/schemas/ramen-file.schema.json';
 

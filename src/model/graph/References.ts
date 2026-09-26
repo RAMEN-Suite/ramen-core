@@ -1,5 +1,6 @@
-import { REGEXP } from '../Patterns';
-import { Id, QualifiedRef, Ref } from '../Types';
+import type { Id, QualifiedRef, Ref } from '../Types';
+
+const QUALIFIED_REF: RegExp = /^[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,}$/;
 
 /** Parsed model and element identifiers of a qualified reference. */
 export interface QualifiedParts {
@@ -11,7 +12,7 @@ export interface QualifiedParts {
 export class ModelRef {
   /** Reports whether a reference contains both a model and element identifier. */
   public static isQualified(ref: Ref): boolean {
-    return REGEXP.QUALIFIED_REF.test(ref);
+    return QUALIFIED_REF.test(ref);
   }
 
   /** Splits a qualified reference or throws when its syntax is invalid. */

@@ -1,4 +1,4 @@
-import { ModelDraft } from '../model/ModelDraft';
+import { ModelDraft } from '../model/editing/Draft';
 import type {
   ElementInput,
   ElementRef,
@@ -9,7 +9,7 @@ import type {
   LiteralUpdate,
   ModelChange,
   Removal,
-} from '../model/ModelDraft';
+} from '../model/editing/Draft';
 import { ModelFactory, ModelRef } from '../model/index';
 import type {
   ConstraintRegistry,
@@ -23,10 +23,10 @@ import type {
   ValidationResult,
 } from '../model/index';
 import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions';
-import { RamenModelFormat, RamenModelDocument } from './model/Document';
-import { RAMEN_MODEL } from './model/ReferenceModel';
+import { RamenModelFormat, RamenModelDocument } from './Document';
+import { RAMEN_MODEL } from './ReferenceModel';
 import { RamenValidator } from './validation/ModelValidator';
-import { RamenInstanceValidator } from './validation/InstanceValidator';
+import { RamenInstanceValidator } from './data/InstanceValidator';
 import type { AnnotationAdvice, PropertyAdvice, RelationAdvice } from './annotations/Advisor';
 import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
 import { createRamenBundle, parseRamenBundle, CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';

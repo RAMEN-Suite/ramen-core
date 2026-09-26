@@ -51,3 +51,35 @@ Tests cover generic merge/split, malformed files, identity collisions, inherited
 unchanged and refined Annotation nodes, Text/Image suggestions, shared cardinalities, edits,
 and data validation before and after JSON transport. Tests call package exports, not example helpers.
 The legacy bundle API remains available; new examples use `export()` and `import()`.
+
+## Reading the code
+
+Start at `model/Modeler.ts` or `ramen/RamenModel.ts`. These are the consumer entry points.
+Then follow the operation into one folder:
+
+| Folder              | Owns                                                  |
+| ------------------- | ----------------------------------------------------- |
+| `model/editing`     | Draft state, element creation, edits and connections  |
+| `model/graph`       | Reference lookup, ancestors and allowed relations     |
+| `model/validation`  | Model structure and refinement rules                  |
+| `model/data`        | Captured values and their relations                   |
+| `model/exchange`    | Shared files, legacy bundles and change reports       |
+| `ramen/annotations` | Annotation definitions, inheritance, advice and rules |
+| `ramen/validation`  | RAMEN model checks on top of generic checks           |
+| `ramen/data`        | Additional annotation checks for captured data        |
+| `ramen/exchange`    | Exchange with annotation definitions included         |
+| `resources`         | Reference model and JSON schemas                      |
+
+`ramen/ReferenceModel.ts` loads the RAMEN vocabulary. `ramen/Document.ts` defines a
+project document. Generic code never imports RAMEN code.
+
+Run `npm run verify` for all quality checks and executable examples.
+Run `npm run test:coverage` to measure executed lines, branches and functions.
+This measures built entry bundles; shared code occurs in several bundles. It is a
+regression aid, not proof that every modeling case is covered.
+
+Scenario tests build models through the public API. They cover selection, refinement,
+annotation advice, correction after an invalid edit, exchange and change reports.
+A generic scenario checks five consecutive refinements and verifies that an omitted
+relation cannot return on a later level. Larger graphs and generated combinations of
+valid and invalid refinements still need dedicated tests.

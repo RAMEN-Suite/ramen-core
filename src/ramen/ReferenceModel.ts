@@ -1,5 +1,5 @@
-import type { Model } from '../../model/index';
-import ramenModel from '../../resources/models/ramen.model.json';
+import type { Model } from '../model/index';
+import ramenModel from '../resources/models/ramen.model.json';
 
 /** Canonical identifier of the versioned RAMEN base model. */
 export const RAMEN_MODEL_URI: string = 'https://ramen-schema.org/ramen/1.0.0/model.json';

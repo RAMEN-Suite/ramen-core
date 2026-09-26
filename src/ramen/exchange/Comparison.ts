@@ -1,7 +1,7 @@
 import { ModelEvolution } from '../../model/index';
 import type { EvolutionChange, EvolutionReport, Id, Model } from '../../model/index';
 import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions';
-import { RamenModelFormat } from '../model/Document';
+import { RamenModelFormat } from '../Document';
 import { RamenValidator } from '../validation/ModelValidator';
 
 /** One added, removed, or changed RAMEN annotation definition. */

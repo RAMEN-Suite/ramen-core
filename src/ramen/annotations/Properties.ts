@@ -3,15 +3,11 @@ import { EffectiveModel, ModelRef, Diagnostics, DiagnosticPath } from '../../mod
 import type { Attribute, Diagnostic, Node, ProjectGraph, ResolvedElement } from '../../model/index';
 import { Cardinality } from '../../model/validation/Cardinality';
 import type { AnnotationProperty } from './Definitions';
-import type { ResolvedRamenAnnotation } from './AnnotationIndex';
+import type { ResolvedAnnotation } from './AnnotationIndex';
 
 /** Resolves node attribute selections and properties owned by an annotation type. */
 export class AnnotationProperties {
-  public static resolve(
-    graph: ProjectGraph,
-    definition: ResolvedRamenAnnotation,
-    owner: ResolvedElement<Node>,
-  ): readonly Attribute[] {
+  public static resolve(graph: ProjectGraph, definition: ResolvedAnnotation, owner: ResolvedElement<Node>): readonly Attribute[] {
     const result: Attribute[] = [];
     for (const property of definition.annotation.properties) {
       if ('attributeId' in property) {
@@ -24,7 +20,7 @@ export class AnnotationProperties {
 
   public static validate(
     graph: ProjectGraph,
-    definition: ResolvedRamenAnnotation,
+    definition: ResolvedAnnotation,
     owner: ResolvedElement<Node>,
   ): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
@@ -61,7 +57,7 @@ export class AnnotationProperties {
   }
 
   private static validateBounds(
-    definition: ResolvedRamenAnnotation,
+    definition: ResolvedAnnotation,
     attribute: Attribute,
     property: AnnotationProperty,
   ): readonly Diagnostic[] {
@@ -107,7 +103,7 @@ export class AnnotationProperties {
     return { ...attribute, typeId };
   }
 
-  private static error(definition: ResolvedRamenAnnotation, code: string, message: string): Diagnostic {
+  private static error(definition: ResolvedAnnotation, code: string, message: string): Diagnostic {
     return Diagnostics.error({
       code,
       message,

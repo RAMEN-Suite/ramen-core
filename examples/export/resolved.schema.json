@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ramen-schema.org/draft/resolved.schema.json",
+  "title": "Resolved model \u2014 experimental structural export",
+  "description": "One effective project model and the original declarations needed to reconstruct its source models. Not a published format. Import must regenerate and compare the effective model; JSON Schema alone cannot check semantic consistency.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "model", "origin"],
+  "properties": {
+    "$schema": {
+      "const": "https://ramen-schema.org/draft/resolved.schema.json"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "nodes", "dataTypes", "relations"],
+      "properties": {
+        "id": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Version"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        },
+        "dataTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DataType"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Relation"
+          }
+        }
+      },
+      "description": "The exported project itself; no additional rootModelId. Relations contain only selections allowed at this project level."
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["models", "classifiers", "relations"],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Header"
+          }
+        },
+        "classifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["modelId", "value"],
+            "properties": {
+              "modelId": {
+                "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+              },
+              "value": {
+                "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Classifier"
+              }
+            }
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["modelId", "value"],
+            "properties": {
+              "modelId": {
+                "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+              },
+              "value": {
+                "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Relation"
+              }
+            }
+          }
+        }
+      },
+      "description": "Original model headers and declarations. Inherited properties occur only in their declaring node here. This section is for editing and exact reconstruction, not runtime permission lookup."
+    }
+  },
+  "$defs": {
+    "Node": {
+      "type": "object",
+      "required": ["kind", "id", "name", "attributes", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "Node"
+        },
+        "id": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute"
+          },
+          "default": []
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Constraint"
+          },
+          "default": []
+        },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
+          "default": {}
+        },
+        "ref": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+        }
+      },
+      "description": "Usable node with all inherited properties and constraints already resolved. ref is its globally unambiguous identity."
+    },
+    "DataType": {
+      "type": "object",
+      "required": ["kind", "id", "name", "baseType", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "DataType"
+        },
+        "id": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "baseType": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/BuiltinType",
+          "$comment": "Primitive representation validated before datatype literals and constraints."
+        },
+        "literals": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Literal"
+          },
+          "minItems": 1
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Constraint"
+          },
+          "default": []
+        },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
+          "default": {}
+        },
+        "ref": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+        }
+      }
+    },
+    "End": {
+      "type": "object",
+      "required": ["id", "nodeId", "role", "bounds", "accepts"],
+      "additionalProperties": false,
+      "$comment": "Association end with role name and multiplicity.",
+      "properties": {
+        "id": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+        },
+        "nodeId": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+        },
+        "role": {
+          "type": "string"
+        },
+        "bounds": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Bounds"
+        },
+        "isComposite": {
+          "type": "boolean",
+          "default": false,
+          "description": "Marks this end as the conceptual whole or owner. At most one end may be composite; automatic deletion and acyclicity are not implied."
+        },
+        "isNavigable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Tells tools whether a node at the opposite end can navigate this relation toward nodes at this end. It does not restrict which relations may be stored."
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Constraint"
+          },
+          "default": []
+        },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation end; it has no RMF model semantics.",
+          "default": {}
+        },
+        "accepts": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+          }
+        }
+      },
+      "description": "Effective endpoint. accepts enumerates all compatible node refs; consumers do not need to traverse inheritance."
+    },
+    "Relation": {
+      "type": "object",
+      "required": ["kind", "id", "name", "from", "to", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "Relation"
+        },
+        "id": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "from": {
+          "$ref": "#/$defs/End"
+        },
+        "to": {
+          "$ref": "#/$defs/End"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Constraint"
+          },
+          "default": []
+        },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
+          "default": {}
+        },
+        "ref": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+        }
+      }
+    },
+    "Header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$schema", "$id", "id", "version", "kind", "name", "imports"],
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "$id": {
+          "type": "string",
+          "format": "uri"
+        },
+        "id": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id",
+          "$comment": "Stable model identifier used for imports and versioning (independent of JSON Schema $id)."
+        },
+        "version": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Version"
+        },
+        "kind": {
+          "const": "Model"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Human-readable name of the model."
+        },
+        "imports": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Import"
+          },
+          "default": [],
+          "$comment": "Imported models whose elements may be referenced via qualified ids."
+        },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "default": {},
+          "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it."
+        },
+        "annotations": {
+          "type": "array",
+          "maxItems": 0,
+          "description": "This structural prototype rejects annotation variants until their resolved form is implemented."
+        }
+      }
+    }
+  }
+}

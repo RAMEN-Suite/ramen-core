@@ -27,7 +27,7 @@ import { RamenModelFormat, RamenModelDocument } from './model/Document';
 import { RAMEN_MODEL } from './model/ReferenceModel';
 import { RamenValidator } from './validation/ModelValidator';
 import { RamenInstanceValidator } from './validation/InstanceValidator';
-import type { AnnotationAdvice, AnnotationPropertyAdvice, AnnotationRelationAdvice } from './annotations/Advisor';
+import type { AnnotationAdvice, PropertyAdvice, RelationAdvice } from './annotations/Advisor';
 import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
 import { createRamenBundle, parseRamenBundle, CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
 import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
@@ -54,7 +54,7 @@ export type UpdateRamenLiteralInput = LiteralUpdate;
 export type RamenChange<T> = ModelChange<T>;
 
 /** Values needed to declare one closed annotation variant on a local or imported Annotation node. */
-export interface CreateRamenAnnotationInput {
+export interface AnnotationInput {
   readonly annotationId: RamenRef;
   readonly type: string;
   readonly properties?: readonly AnnotationProperty[];
@@ -62,7 +62,7 @@ export interface CreateRamenAnnotationInput {
 }
 
 /** Editable fields of a locally declared annotation definition. */
-export interface UpdateRamenAnnotationInput {
+export interface AnnotationUpdate {
   readonly type?: string;
   readonly properties?: readonly AnnotationProperty[];
   readonly relations?: readonly AnnotationRelation[];
@@ -159,12 +159,12 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /** Lists current-level relations allowed by one annotation type, including its cardinality rules. */
-  public suggestRelationsForAnnotation(node: ElementInput, type: string): readonly AnnotationRelationAdvice[] {
+  public suggestRelationsForAnnotation(node: ElementInput, type: string): readonly RelationAdvice[] {
     return this.createAdvisor().suggestRelationsForAnnotation(this.model.id, this.nodeReference(node), type);
   }
 
   /** Lists the properties selected or declared by one annotation type. */
-  public suggestAttributesForAnnotation(nodeId: ElementInput, type: string): readonly AnnotationPropertyAdvice[] {
+  public suggestAttributesForAnnotation(nodeId: ElementInput, type: string): readonly PropertyAdvice[] {
     return this.createAdvisor().suggestAttributesForAnnotation(this.model.id, this.nodeReference(nodeId), type);
   }
 
@@ -187,7 +187,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /** Declares a new annotation variant without creating another model node. */
-  public createAnnotation(input: CreateRamenAnnotationInput): RamenChange<RamenAnnotation> {
+  public createAnnotation(input: AnnotationInput): RamenChange<RamenAnnotation> {
     const owner: RamenElementRef = this.resolveRef(input.annotationId, 'node');
     const annotation: RamenAnnotation = {
       id: ModelFactory.createIdentifier(),
@@ -202,7 +202,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /** Updates a locally declared annotation and validates the complete project. */
-  public updateAnnotation(annotationId: Id, input: UpdateRamenAnnotationInput): RamenChange<RamenAnnotation> {
+  public updateAnnotation(annotationId: Id, input: AnnotationUpdate): RamenChange<RamenAnnotation> {
     const current: RamenAnnotation | undefined = this.getAnnotations().find(
       (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
     );

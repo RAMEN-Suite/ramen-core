@@ -3,8 +3,8 @@ import test from 'node:test';
 import { ModelFactory, RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/index.js';
 import type {
   AnnotationAdvice,
-  AnnotationRelationAdvice,
-  AnnotationPropertyAdvice,
+  RelationAdvice,
+  PropertyAdvice,
   AnnotationSuggestion,
   Attribute,
   DataType,
@@ -74,7 +74,7 @@ void test('type-owned properties remain separate from the shared Annotation node
   assert.deepEqual(
     fixture.project
       .suggestAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'imageRegion')
-      .map((item: AnnotationPropertyAdvice): string => item.name),
+      .map((item: PropertyAdvice): string => item.name),
     ['width'],
   );
   assert.deepEqual(fixture.project.suggestAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'emphasis'), []);
@@ -114,7 +114,7 @@ void test('own properties coexist with selected attributes and reject unresolved
 
   assert.equal(valid.validation.valid, true);
   assert.deepEqual(
-    fixture.project.suggestAttributesForAnnotation(owner.id, 'region').map((item: AnnotationPropertyAdvice): string => item.name),
+    fixture.project.suggestAttributesForAnnotation(owner.id, 'region').map((item: PropertyAdvice): string => item.name),
     ['label', 'width'],
   );
   const invalid: RamenChange<RamenAnnotation> = fixture.project.updateAnnotation(valid.element.id, {
@@ -197,7 +197,7 @@ void test('properties keep their datatype and advice through a refined Annotatio
     version: '1.0.0',
   });
   const owner: Node = next.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
-  const advice: readonly AnnotationPropertyAdvice[] = next.suggestAttributesForAnnotation(owner.id, 'caption');
+  const advice: readonly PropertyAdvice[] = next.suggestAttributesForAnnotation(owner.id, 'caption');
 
   assert.equal(next.validate().valid, true);
   assert.equal(advice[0]?.ref, `${fixture.project.getModel().id}:${property.id}`);
@@ -282,7 +282,7 @@ void test('annotation advice exposes selected properties, carrier relations and 
   const advice: AnnotationAdvice | undefined = fixture.project.adviseAnnotation(owner);
   assert.ok(advice);
   assert.deepEqual(
-    advice.properties.map((item: AnnotationPropertyAdvice): string => item.name),
+    advice.properties.map((item: PropertyAdvice): string => item.name),
     ['label'],
   );
   assert.equal(fixture.project.adviseAnnotation(fixture.text), undefined);
@@ -293,12 +293,12 @@ void test('annotation advice exposes selected properties, carrier relations and 
     properties: [{ attributeId: label.id, bounds: { lowerBound: 1, upperBound: 1 } }],
     relations: [{ relationId: fixture.textLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
-  const properties: readonly AnnotationPropertyAdvice[] = fixture.project.suggestAttributesForAnnotation(owner, 'caption');
-  const relations: readonly AnnotationRelationAdvice[] = fixture.project.suggestRelationsForAnnotation(owner, 'caption');
+  const properties: readonly PropertyAdvice[] = fixture.project.suggestAttributesForAnnotation(owner, 'caption');
+  const relations: readonly RelationAdvice[] = fixture.project.suggestRelationsForAnnotation(owner, 'caption');
   assert.deepEqual(properties[0]?.suggestedBounds, { lowerBound: 1, upperBound: 1 });
   assert.deepEqual(properties[0]?.cardinalityOptions, [{ lowerBound: 1, upperBound: 1 }]);
   assert.deepEqual(
-    relations.map((item: AnnotationRelationAdvice): string => item.targetName),
+    relations.map((item: RelationAdvice): string => item.targetName),
     ['Text'],
   );
   assert.deepEqual(relations[0]?.cardinalityOptions, [{ lowerBound: 1, upperBound: 1 }]);
@@ -309,7 +309,7 @@ void test('annotation advice exposes selected properties, carrier relations and 
   assert.deepEqual(next.suggestRelationsForAnnotation(refined, 'caption'), []);
   next.hasAnnotation(fixture.text, refined);
   assert.deepEqual(
-    next.suggestRelationsForAnnotation(refined, 'caption').map((item: AnnotationRelationAdvice): string => item.targetName),
+    next.suggestRelationsForAnnotation(refined, 'caption').map((item: RelationAdvice): string => item.targetName),
     ['Text'],
   );
   assert.deepEqual(next.suggestAnnotationsForNode(fixture.image, refined), []);

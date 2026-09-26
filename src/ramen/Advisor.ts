@@ -5,12 +5,7 @@ import type { ResolvedElement } from '../model/graph/ProjectGraph';
 import type { ValidProjectResult } from '../model/validation/ModelValidator';
 import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions';
 import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './annotations/AnnotationIndex';
-import {
-  AnnotationAdvice,
-  AnnotationPropertyAdvice,
-  AnnotationRelationAdvice,
-  RamenAnnotationAdvisor,
-} from './annotations/Advisor';
+import { AnnotationAdvice, PropertyAdvice, RelationAdvice, RamenAnnotationAdvisor } from './annotations/Advisor';
 export type {
   NodeSuggestion,
   DataTypeSuggestion,
@@ -122,12 +117,12 @@ export class RamenAdvisor extends ModelAdvisor {
   }
 
   /** Lists the modeled relations permitted by one effective annotation type. */
-  public suggestRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly AnnotationRelationAdvice[] {
+  public suggestRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly RelationAdvice[] {
     return this.annotationAdvisor.adviseEffective(modelId, annotationNodeId, type)?.relations ?? [];
   }
 
   /** Lists properties available for one annotation type, including its own declarations. */
-  public suggestAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly AnnotationPropertyAdvice[] {
+  public suggestAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly PropertyAdvice[] {
     return this.annotationAdvisor.adviseEffective(modelId, nodeId, type)?.properties ?? [];
   }
 }

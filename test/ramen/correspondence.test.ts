@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { RamenModel } from '../../dist/index.js';
 import type {
-  AnnotationRelationAdvice,
+  RelationAdvice,
   AnnotationSuggestion,
   CreateRamenBundleResult,
   Diagnostic,
@@ -50,15 +50,15 @@ void test('suggests the modeled attachment and target relations of persName', ()
   const advisor: RamenAdvisor = fixture.project.createAdvisor();
 
   assert.ok(advisor);
-  const relations: readonly AnnotationRelationAdvice[] = advisor.suggestRelationsForAnnotation(
+  const relations: readonly RelationAdvice[] = advisor.suggestRelationsForAnnotation(
     CORRESPONDENCE_MODEL_ID,
     fixture.nodes.annotation.id,
     'persName',
   );
 
   assert.equal(relations.length, 3);
-  const target: AnnotationRelationAdvice | undefined = relations.find(
-    (relation: AnnotationRelationAdvice): boolean => relation.direction === 'outgoing',
+  const target: RelationAdvice | undefined = relations.find(
+    (relation: RelationAdvice): boolean => relation.direction === 'outgoing',
   );
 
   assert.equal(target?.name, 'REFERS_TO');

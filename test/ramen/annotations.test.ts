@@ -11,7 +11,7 @@ import {
 import type {
   AnnotationAdvice,
   AnnotationSuggestion,
-  AnnotationPropertyAdvice,
+  PropertyAdvice,
   Classifier,
   Constraint,
   ConstraintContext,
@@ -318,8 +318,8 @@ void test('advises selectable annotation properties and their cardinalities', ()
     .adviseAnnotation(fixture.model.id, fixture.nodes.annotation.id);
 
   assert.ok(advice);
-  const url: AnnotationPropertyAdvice | undefined = advice.properties.find(
-    (property: AnnotationPropertyAdvice): boolean => property.attributeId === fixture.url.id,
+  const url: PropertyAdvice | undefined = advice.properties.find(
+    (property: PropertyAdvice): boolean => property.attributeId === fixture.url.id,
   );
 
   assert.ok(url);

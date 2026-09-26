@@ -27,7 +27,7 @@ import { RamenModelFormat, RamenModelDocument } from './model/Document';
 import { RAMEN_MODEL } from './model/ReferenceModel';
 import { RamenValidator } from './validation/ModelValidator';
 import { RamenInstanceValidator } from './validation/InstanceValidator';
-import type { AnnotationPropertyAdvice } from './annotations/Advisor';
+import type { AnnotationAdvice, AnnotationPropertyAdvice, AnnotationRelationAdvice } from './annotations/Advisor';
 import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
 import { createRamenBundle, parseRamenBundle, CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
 import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
@@ -151,6 +151,16 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   /** Compares this project with a later state and includes RAMEN validation findings from both states. */
   public compareTo(next: RamenModel): RamenEvolutionReport {
     return RamenEvolution.compare(this.model.id, this.validationInputs(), next.model.id, next.validationInputs());
+  }
+
+  /** Lists properties and selected model relations available when declaring an annotation type. */
+  public adviseAnnotation(node: ElementInput): AnnotationAdvice | undefined {
+    return this.createAdvisor().adviseAnnotation(this.model.id, this.nodeReference(node));
+  }
+
+  /** Lists current-level relations allowed by one annotation type, including its cardinality rules. */
+  public suggestRelationsForAnnotation(node: ElementInput, type: string): readonly AnnotationRelationAdvice[] {
+    return this.createAdvisor().suggestRelationsForAnnotation(this.model.id, this.nodeReference(node), type);
   }
 
   /** Lists the properties selected or declared by one annotation type. */

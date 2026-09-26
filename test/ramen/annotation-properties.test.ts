@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ModelFactory, RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/index.js';
 import type {
+  AnnotationAdvice,
+  AnnotationRelationAdvice,
   AnnotationPropertyAdvice,
   AnnotationSuggestion,
   Attribute,
@@ -271,4 +273,45 @@ void test('alternative groups reject duplicate relations, invalid endpoints and 
     });
     assert.equal(result.validation.valid, false);
   }
+});
+
+void test('annotation advice exposes selected properties, carrier relations and cardinality presets through the model API', (): void => {
+  const fixture: MediaModel = mediaModel();
+  const owner: Node = fixture.project.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const label: Attribute = fixture.project.createAttribute(owner, { name: 'label', typeId: 'String' }).element;
+  const advice: AnnotationAdvice | undefined = fixture.project.adviseAnnotation(owner);
+  assert.ok(advice);
+  assert.deepEqual(
+    advice.properties.map((item: AnnotationPropertyAdvice): string => item.name),
+    ['label'],
+  );
+  assert.equal(fixture.project.adviseAnnotation(fixture.text), undefined);
+
+  fixture.project.createAnnotation({
+    annotationId: owner,
+    type: 'caption',
+    properties: [{ attributeId: label.id, bounds: { lowerBound: 1, upperBound: 1 } }],
+    relations: [{ relationId: fixture.textLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  const properties: readonly AnnotationPropertyAdvice[] = fixture.project.suggestAttributesForAnnotation(owner, 'caption');
+  const relations: readonly AnnotationRelationAdvice[] = fixture.project.suggestRelationsForAnnotation(owner, 'caption');
+  assert.deepEqual(properties[0]?.suggestedBounds, { lowerBound: 1, upperBound: 1 });
+  assert.deepEqual(properties[0]?.cardinalityOptions, [{ lowerBound: 1, upperBound: 1 }]);
+  assert.deepEqual(
+    relations.map((item: AnnotationRelationAdvice): string => item.targetName),
+    ['Text'],
+  );
+  assert.deepEqual(relations[0]?.cardinalityOptions, [{ lowerBound: 1, upperBound: 1 }]);
+  assert.deepEqual(fixture.project.suggestRelationsForAnnotation(owner, 'unknown'), []);
+
+  const next: RamenModel = fixture.project.createNextLevel('Edition');
+  const refined: Node = next.createNode({ name: 'EditionAnnotation', refines: owner }).element;
+  assert.deepEqual(next.suggestRelationsForAnnotation(refined, 'caption'), []);
+  next.hasAnnotation(fixture.text, refined);
+  assert.deepEqual(
+    next.suggestRelationsForAnnotation(refined, 'caption').map((item: AnnotationRelationAdvice): string => item.targetName),
+    ['Text'],
+  );
+  assert.deepEqual(next.suggestAnnotationsForNode(fixture.image, refined), []);
+  assert.equal(next.validate().valid, true);
 });

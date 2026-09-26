@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import type { Node, Relation } from '../dist/model/index.js';
-import { RamenModel } from '../dist/ramen/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen/index.js';
 import type { NodeSuggestion, RelationSuggestion } from '../dist/ramen/index.js';
 
 interface NodeOption {
@@ -52,17 +52,15 @@ const selectedNode: NodeOption | undefined = nodeOptions.find((option: NodeOptio
 assert.ok(selectedNode);
 
 const annotation: Node = model.createNode({ name: 'Annotation', refines: selectedNode.id }).element;
-const options: readonly ConnectionOption[] = getConnectionOptions(model, annotation, annotation);
-
-assert.ok(options.length > 1);
+const person: Node = model.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+const options: readonly ConnectionOption[] = getConnectionOptions(model, annotation, person);
+console.log('Choices for Annotation → Person:', JSON.stringify(options, null, 2));
 
 const selectedOption: ConnectionOption | undefined = options.find(
   (option: ConnectionOption): boolean => option.label === 'REFERS_TO',
 );
 assert.ok(selectedOption);
 
-const relation: Relation = applyConnectionChoice(model, annotation, annotation, selectedOption.id);
+const relation: Relation = applyConnectionChoice(model, annotation, person, selectedOption.id);
 assert.equal(relation.name, 'REFERS_TO');
 assert.equal(model.validate().valid, true);
-
-console.log(options);

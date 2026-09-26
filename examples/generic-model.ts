@@ -1,27 +1,32 @@
 import assert from 'node:assert/strict';
 import { Modeler } from '../dist/model/index.js';
-import type { CreateBundleResult, ModelInstanceGraph, Node } from '../dist/model/index.js';
+import type { CreateBundleResult, Node, Relation, RelationSuggestion } from '../dist/model/index.js';
 
-// Define a small modeling language once. IDs and default metadata are generated.
-const transport: Modeler = Modeler.create('Transport');
-const vehicle: Node = transport.createNode('Vehicle').element;
-transport.createRelation({ name: 'TOWS', fromNodeId: vehicle, toNodeId: vehicle });
+// Define which node types and connections the language permits.
+const language: Modeler = Modeler.create('Documents');
+const document: Node = language.createNode('Document').element;
+const folder: Node = language.createNode('Folder').element;
+language.createRelation({ name: 'FILED_IN', fromNodeId: document, toNodeId: folder });
 
-// Each new level remembers its base models and offers their permitted choices.
-const project: Modeler = transport.createNextLevel('Bicycle Project');
-const bicycle: Node = project.createNode({ name: 'Bicycle', refines: vehicle }).element;
-project.createAttribute(bicycle, { name: 'gears', typeId: 'Integer' });
-project.connect(bicycle, bicycle);
+// Refine the types into a project vocabulary. These are types, not captured letters.
+const project: Modeler = language.createNextLevel('Correspondence');
+const letter: Node = project.createNode({ name: 'Letter', refines: document }).element;
+const archive: Node = project.createNode({ name: 'Archive', refines: folder }).element;
+project.createAttribute(letter, { name: 'title', typeId: 'String' });
 
+// This array contains permitted relation choices, not connected objects.
+const choices: readonly RelationSuggestion[] = project.suggestRelations(letter, archive);
+console.log('Relation choices for Letter → Archive:', JSON.stringify(choices, null, 2));
+const selected: RelationSuggestion | undefined = choices.find(
+  (choice: RelationSuggestion): boolean => choice.name === 'FILED_IN',
+);
+assert.ok(selected);
+
+// A UI passes its chosen suggestion. With one possible relation, connect(letter, archive) also works.
+const connection: Relation = project.connect(letter, archive, selected).element;
+assert.equal(connection.from.nodeId, letter.id);
+assert.equal(connection.to.nodeId, archive.id);
 assert.equal(project.validate().valid, true);
-assert.equal(project.suggestNodes()[0]?.name, 'Vehicle');
-
-const data: ModelInstanceGraph = {
-  modelId: project.getModel().id,
-  nodes: [{ id: 'bicycleObject001', typeId: bicycle.id, properties: { gears: 7 } }],
-  relations: [],
-};
-assert.equal(project.validateInstances(data).hasErrors, false);
 
 const exported: CreateBundleResult = project.exportBundle();
 assert.ok(exported.ok);

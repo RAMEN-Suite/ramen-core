@@ -15,6 +15,7 @@ export interface AnnotationPropertyAdvice {
   readonly name: string;
   readonly modeledBounds: Bounds;
   readonly suggestedBounds: Bounds;
+  /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
   readonly cardinalityOptions: readonly Bounds[];
 }
 
@@ -31,6 +32,7 @@ export interface AnnotationRelationAdvice {
   readonly compatibleTargetNodeIds: readonly Ref[];
   readonly modeledBounds: Bounds;
   readonly suggestedBounds: Bounds;
+  /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
   readonly cardinalityOptions: readonly Bounds[];
   /** Relation references counted together by suggestedBounds, when this choice belongs to an alternative group. */
   readonly alternatives?: readonly Ref[];

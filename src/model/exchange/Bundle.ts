@@ -1,4 +1,3 @@
-import type { ConstraintRegistry } from '../validation/Constraints';
 import { Model, ModelBundle, Id } from '../Types';
 import { ModelSchemaValidator } from '../validation/ModelSchema';
 import { Diagnostic } from '../validation/Diagnostics';
@@ -21,12 +20,8 @@ export type CreateBundleResult =
  * Creates a portable single-file container for every model reachable from the root.
  * Model boundaries, identifiers, versions, and imports remain unchanged.
  */
-export function createModelBundle(
-  rootModelId: Id,
-  models: readonly Model[],
-  constraints?: ConstraintRegistry,
-): CreateBundleResult {
-  const graphResult: ProjectValidationResult = new ModelValidator(constraints).validateProject(rootModelId, models);
+export function createModelBundle(rootModelId: Id, models: readonly Model[]): CreateBundleResult {
+  const graphResult: ProjectValidationResult = new ModelValidator().validateProject(rootModelId, models);
   if (!graphResult.valid) return { ok: false, diagnostics: graphResult.diagnostics };
   const bundle: ModelBundle = {
     $schema: MODEL_BUNDLE_SCHEMA,
@@ -43,14 +38,14 @@ export function createModelBundle(
  *
  * @throws Error when the envelope, contained models, or project graph is invalid.
  */
-export function splitModelBundle(input: unknown, constraints?: ConstraintRegistry): readonly Model[] {
-  return parseModelBundle(input, constraints).models;
+export function splitModelBundle(input: unknown): readonly Model[] {
+  return parseModelBundle(input).models;
 }
 
 /** Validates an unknown bundle and returns a detached, graph-ordered representation. */
-export function parseModelBundle(input: unknown, constraints?: ConstraintRegistry): ModelBundle {
+export function parseModelBundle(input: unknown): ModelBundle {
   const bundle: ModelBundle = readBundleEnvelope(input);
-  const result: ProjectValidationResult = new ModelValidator(constraints).validateModels(bundle.rootModelId, bundle.models);
+  const result: ProjectValidationResult = new ModelValidator().validateModels(bundle.rootModelId, bundle.models);
 
   if (!result.valid) throw new Error(formatBundleErrors(result.diagnostics));
   return {

@@ -1,4 +1,3 @@
-import type { ConstraintRegistry } from '../../model/validation/Constraints';
 import { ModelEvolution } from '../../model/index';
 import type { EvolutionChange, EvolutionReport, Id, Model } from '../../model/index';
 import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions';
@@ -32,13 +31,12 @@ export class RamenEvolution {
     beforeModels: readonly Model[],
     afterRootModelId: Id,
     afterModels: readonly Model[],
-    constraints?: ConstraintRegistry,
   ): RamenEvolutionReport {
     const changes: readonly EvolutionChange[] = ModelEvolution.compareChanges(
       beforeModels.map((model: Model): Model => RamenModelFormat.toGeneric(model)),
       afterModels.map((model: Model): Model => RamenModelFormat.toGeneric(model)),
     );
-    const validator: RamenValidator = new RamenValidator(constraints);
+    const validator: RamenValidator = new RamenValidator();
 
     return {
       beforeRootModelId,

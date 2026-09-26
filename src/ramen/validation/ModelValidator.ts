@@ -1,6 +1,3 @@
-import { ConstraintRegistry } from '../../model/validation/Constraints';
-import { ModelConstraints } from '../../model/validation/ModelConstraints';
-import type { AnnotationProperty, RamenAnnotation } from '../annotations/Definitions';
 import {
   DiagnosticPath,
   Diagnostics,
@@ -19,12 +16,7 @@ export { RAMEN_VALIDATION_ERROR } from '../annotations/Rules';
 
 /** Validates the RAMEN model format first and then the closed annotation definitions. */
 export class RamenValidator {
-  private readonly models: ModelValidator;
-
-  /** Uses the same language registry for generic and annotation-owned model declarations. */
-  public constructor(private readonly constraints: ConstraintRegistry = ConstraintRegistry.createDefault()) {
-    this.models = new ModelValidator(constraints);
-  }
+  public constructor(private readonly models: ModelValidator = new ModelValidator()) {}
 
   /** Validates a complete RAMEN project and exposes its graph only on success. */
   public validateProject(rootModelId: Id, inputs: readonly unknown[]): ProjectValidationResult {
@@ -43,30 +35,9 @@ export class RamenValidator {
     const requirements: readonly Diagnostic[] = this.validateRequirements(rootModelId, inputs, result.graph);
     if (requirements.length > 0) return { valid: false, hasErrors: true, diagnostics: requirements };
 
-    const diagnostics: Diagnostic[] = [...new RamenAnnotationRules().validate(result.graph, inputs as readonly Model[])];
-    if (diagnostics.length === 0) diagnostics.push(...this.annotationConstraints(result.graph, inputs as readonly Model[]));
+    const diagnostics: readonly Diagnostic[] = new RamenAnnotationRules().validate(result.graph, inputs as readonly Model[]);
     if (diagnostics.length === 0) return result;
-    const all: readonly Diagnostic[] = [...result.diagnostics, ...diagnostics];
-    if (all.some((item: Diagnostic): boolean => item.severity === 'error'))
-      return { valid: false, hasErrors: true, diagnostics: all };
-    return { ...result, diagnostics: all };
-  }
-
-  private annotationConstraints(graph: ProjectGraph, inputs: readonly Model[]): readonly Diagnostic[] {
-    const diagnostics: Diagnostic[] = [];
-    const rules: ModelConstraints = new ModelConstraints(this.constraints);
-    for (const model of inputs) {
-      if (!graph.hasModel(model.id)) continue;
-      const path: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id).property('annotations');
-      RamenAnnotations.get(model).forEach((annotation: RamenAnnotation, index: number): void => {
-        annotation.properties.forEach((property: AnnotationProperty, propertyIndex: number): void => {
-          if ('attributeId' in property) return;
-          const propertyPath: DiagnosticPath = path.index(index).property('properties').index(propertyIndex);
-          diagnostics.push(...rules.element(graph, model.id, property, 'attribute', propertyPath));
-        });
-      });
-    }
-    return diagnostics;
+    return { valid: false, hasErrors: true, diagnostics: [...result.diagnostics, ...diagnostics] };
   }
 
   private validateRequirements(rootModelId: Id, inputs: readonly unknown[], graph: ProjectGraph): readonly Diagnostic[] {

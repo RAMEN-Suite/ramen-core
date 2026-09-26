@@ -140,7 +140,11 @@ function assertInheritedTextSuggestion(project: RamenModel, text: Node): void {
   });
   const refinedText: Node = next.createNode({ name: 'NormalizedText', refines: text.id }).element;
 
+  assert.deepEqual(annotationTypesForNode(next, refinedText), []);
+  next.hasAnnotation(refinedText, RAMEN_ELEMENT.ANNOTATION);
+
   assert.deepEqual(annotationTypesForNode(next, refinedText), ['emphasis']);
+  assert.equal(next.validate().valid, true);
 }
 
 void test('suggests types of separate TextAnnotation and ImageAnnotation nodes', (): void => {

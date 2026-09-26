@@ -1,17 +1,22 @@
-import type { Bounds, Model, Id, Ref } from '../../model/index';
+import type { Attribute, Bounds, Model, Id, Ref } from '../../model/index';
 import { RamenAnnotationSchemaValidator } from '../validation/AnnotationSchema';
 import { RAMEN_PROJECT_SCHEMA_URI } from './Document';
 import type { RamenModelDocument } from './Document';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
-export interface RamenAnnotationProperty {
+export interface RamenAttributeReference {
   readonly attributeId: Ref;
   readonly bounds?: Bounds;
 }
 
+/** An existing node attribute or a property declared directly by this type. */
+export type RamenAnnotationProperty = RamenAttributeReference | Attribute;
+
 /** Relation selected for one closed RAMEN annotation definition. */
 export interface RamenAnnotationRelation {
   readonly relationId: Ref;
+  /** Other permitted relations counted together with relationId. */
+  readonly alternatives?: readonly Ref[];
   readonly direction: 'outgoing' | 'incoming';
   readonly bounds: Bounds;
 }
@@ -27,6 +32,10 @@ export interface RamenAnnotation {
 
 /** Reads and updates annotation definitions in RAMEN project documents. */
 export class RamenAnnotations {
+  public static relationRefs(relation: RamenAnnotationRelation): readonly Ref[] {
+    return [relation.relationId, ...(relation.alternatives ?? [])];
+  }
+
   /** Returns a detached list of annotations declared by the model. */
   public static get(model: Model): readonly RamenAnnotation[] {
     if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) return [];

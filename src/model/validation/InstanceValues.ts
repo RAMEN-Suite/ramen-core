@@ -5,7 +5,7 @@ import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { ConstraintRegistry } from './Constraints';
 import type { ConstraintGraphContext } from './Constraints';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
-import { ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
+import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
 import { ValidationCode } from './Codes';
 
 /** Validates instance properties against effective node attributes and constraints. */
@@ -14,6 +14,7 @@ export class InstanceValueValidator {
   public constructor(
     private readonly constraints: ConstraintRegistry,
     private readonly graphContext: ConstraintGraphContext,
+    private readonly attributes?: InstanceValidationOptions['attributes'],
   ) {}
 
   /** Resolves instance node types and validates their modeled properties. */
@@ -54,12 +55,13 @@ export class InstanceValueValidator {
   ): void {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, type.modelId, type.element.id);
     if (!effective) return;
+    const attributes: readonly Attribute[] = this.attributes?.(type, instance) ?? effective.attributes;
     const attributesByName: Map<string, Attribute> = new Map<string, Attribute>(
-      effective.attributes.map((attribute: Attribute): [string, Attribute] => [attribute.name, attribute]),
+      attributes.map((attribute: Attribute): [string, Attribute] => [attribute.name, attribute]),
     );
 
     this.validateUnknownProperties(instance, type.element, attributesByName, path, diagnostics);
-    for (const attribute of effective.attributes) {
+    for (const attribute of attributes) {
       const value: unknown = instance.properties[attribute.name];
       const attributePath: DiagnosticPath = path.property('properties').property(attribute.name);
 
@@ -133,7 +135,7 @@ export class InstanceValueValidator {
     if (values.length === 0 && !Array.isArray(value)) return;
     this.validateCount(attribute.name, attribute.bounds, values.length, path, attribute.id, diagnostics);
     if (
-      attribute.isUnique === true &&
+      attribute.isUnique !== false &&
       new Set(values.map((item: unknown): string => JSON.stringify(item))).size !== values.length
     ) {
       diagnostics.push(

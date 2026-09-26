@@ -32,13 +32,11 @@
     "lint:fix": "eslint src test examples scripts --fix",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
-    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run typecheck && npm run examples:check && npm run docs:check && npm test",
+    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run typecheck && npm run examples:check && npm test",
     "examples:check": "tsc -p tsconfig.examples.json --noEmit && node --experimental-strip-types examples/ramen-programmatic.ts && node --experimental-strip-types examples/ramen-interface.ts && node --experimental-strip-types examples/generic-model.ts",
     "test:watch": "node --experimental-strip-types --test --watch test/**/*.test.ts",
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
     "prepare": "husky",
-    "docs": "typedoc",
-    "docs:check": "typedoc --emit none",
     "schema:generate": "node scripts/generate-ramen-project-schema.mjs",
     "schema:check": "node scripts/generate-ramen-project-schema.mjs --check"
   },
@@ -56,7 +54,6 @@
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "prettier": "^3.9.6",
-    "typedoc": "^0.28.20",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.67.0"
   },

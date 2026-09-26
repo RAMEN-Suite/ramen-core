@@ -1,3 +1,4 @@
+import { ModelSchemaValidator } from '../../model/validation/ModelSchema';
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import schema from '../../resources/schemas/ramen-annotations.schema.json';
 
@@ -6,7 +7,7 @@ export const RAMEN_ANNOTATION_SCHEMA_URI: string = 'https://ramen-schema.org/ram
 
 /** Validates an object containing RAMEN annotation definitions. */
 export class RamenAnnotationSchemaValidator {
-  private static readonly schemaNode: SchemaNode = compileSchema(schema);
+  private static readonly schemaNode: SchemaNode = compileSchema(schema, { remote: ModelSchemaValidator.getSchemaNode() });
 
   /** Returns the compiled, versioned RAMEN JSON Schema node. */
   public static getSchemaNode(): SchemaNode {

@@ -12,7 +12,8 @@ function qualifyRefs(value) {
   if (value === null || typeof value !== 'object') return value;
   const result = {};
   for (const [key, entry] of Object.entries(value)) {
-    result[key] = key === '$ref' && typeof entry === 'string' ? entry.replace('#/$defs/', '#/$defs/Ramen') : qualifyRefs(entry);
+    result[key] =
+      key === '$ref' && typeof entry === 'string' ? entry.replace(/^#\/\$defs\//, '#/$defs/Ramen') : qualifyRefs(entry);
   }
   return result;
 }

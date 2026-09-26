@@ -1,3 +1,5 @@
+import { RamenAnnotations, RamenAnnotationRelation } from '../model/Annotations';
+import { RamenRelationScope } from './RelationScope';
 import { ModelRef, ProjectGraph } from '../../model/index';
 import { BuiltinDataTypes } from '../../model/Builtins';
 import type {
@@ -14,7 +16,7 @@ import type {
   ValidProjectResult,
 } from '../../model/index';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
-import { AnnotationAdvice, AnnotationRelationAdvice, RamenAnnotationAdvisor } from './AnnotationAdvice';
+import { AnnotationAdvice, AnnotationPropertyAdvice, AnnotationRelationAdvice, RamenAnnotationAdvisor } from './AnnotationAdvice';
 
 /** One node type that a new project node can refine. */
 export interface NodeRefinementSuggestion {
@@ -84,7 +86,7 @@ export interface NodeRelationSuggestion {
   readonly actions: readonly ('reuse' | 'refine')[];
 }
 
-/** Complete deterministic advice for one local node in a validated project. */
+/** Complete deterministic advice for one local or imported node in a validated project. */
 export interface NodeAdvice {
   readonly lineage: readonly NodeLineageItem[];
   readonly attributes: readonly AttributeSuggestion[];
@@ -100,6 +102,7 @@ export interface AttributeCreationAdvice {
 /** Computes deterministic modeling suggestions from an already validated project graph. */
 export class RamenAdvisor {
   private readonly graph: ProjectGraph;
+  private readonly relations: RamenRelationScope;
 
   /** Creates an advisor from a successful project validation result. */
   public constructor(
@@ -107,6 +110,7 @@ export class RamenAdvisor {
     private readonly models: readonly Model[],
   ) {
     this.graph = result.graph;
+    this.relations = new RamenRelationScope(result.graph, models);
   }
 
   /** Lists imported node types that can be refined by a new node in the selected model. */
@@ -175,9 +179,9 @@ export class RamenAdvisor {
       .sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number => left.type.localeCompare(right.type));
   }
 
-  /** Lists effective annotation variants attachable to one local node through modeled relations. */
+  /** Lists effective annotation variants attachable to one local or imported node through modeled relations. */
   public suggestAnnotationsForNode(modelId: Id, nodeId: Id): readonly AnnotationSuggestion[] {
-    const actual: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, nodeId);
+    const actual: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
     const annotations: RamenAnnotationGraph = new RamenAnnotationGraph(this.graph, this.models);
     const result: Map<string, AnnotationSuggestion> = new Map<string, AnnotationSuggestion>();
@@ -187,21 +191,7 @@ export class RamenAdvisor {
       for (const targetId of relation.compatibleTargetNodeIds) {
         const target: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, targetId);
         if (!target || !annotations.isAnnotationNode(target.modelId, target.element.id)) continue;
-        for (const suggestion of this.suggestAnnotations(modelId, targetId)) {
-          const definition: ResolvedRamenAnnotation | undefined = annotations.findEffective(modelId, targetId, suggestion.type);
-          const acceptsRelation: boolean =
-            definition?.annotation.relations.some(
-              (requirement): boolean =>
-                requirement.direction === 'incoming' &&
-                this.graph.isRelationRefSameOrSubtype(
-                  relation.modelId,
-                  relation.relationId,
-                  definition.modelId,
-                  requirement.relationId,
-                ),
-            ) ?? false;
-          if (!acceptsRelation) continue;
-
+        for (const suggestion of this.annotationsAcceptingRelation(modelId, targetId, relation, annotations)) {
           result.set(`${suggestion.modelId}:${suggestion.annotationId}`, suggestion);
         }
       }
@@ -210,6 +200,26 @@ export class RamenAdvisor {
     return [...result.values()].sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number =>
       left.type.localeCompare(right.type),
     );
+  }
+
+  private annotationsAcceptingRelation(
+    modelId: Id,
+    targetId: Id,
+    relation: NodeRelationSuggestion,
+    annotations: RamenAnnotationGraph,
+  ): readonly AnnotationSuggestion[] {
+    return this.suggestAnnotations(modelId, targetId).filter((suggestion: AnnotationSuggestion): boolean => {
+      const definition: ResolvedRamenAnnotation | undefined = annotations.findEffective(modelId, targetId, suggestion.type);
+      if (!definition) return false;
+      return definition.annotation.relations.some(
+        (requirement: RamenAnnotationRelation): boolean =>
+          requirement.direction === 'incoming' &&
+          requirement.bounds.upperBound !== 0 &&
+          RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
+            this.graph.isRelationRefSameOrSubtype(relation.modelId, relation.relationId, definition.modelId, ref),
+          ),
+      );
+    });
   }
 
   /** Suggests valid properties, relations, targets, and cardinalities for an annotation definition. */
@@ -222,9 +232,14 @@ export class RamenAdvisor {
     return new RamenAnnotationAdvisor(this.graph, this.models).adviseEffective(modelId, annotationNodeId, type)?.relations ?? [];
   }
 
-  /** Returns the refinement lineage, effective attributes, and possible relations for one local node. */
+  /** Lists properties available for one annotation type, including its own declarations. */
+  public suggestAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly AnnotationPropertyAdvice[] {
+    return new RamenAnnotationAdvisor(this.graph, this.models).adviseEffective(modelId, nodeId, type)?.properties ?? [];
+  }
+
+  /** Returns the refinement lineage, effective attributes, and possible relations for one local or imported node. */
   public adviseNode(modelId: Id, nodeId: Id): NodeAdvice | undefined {
-    const actual: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, nodeId);
+    const actual: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return undefined;
     const ancestors: ResolvedModelElement<Node>[] = [...this.graph.getNodeAncestors(modelId, nodeId)].reverse();
     const lineage: readonly ResolvedModelElement<Node>[] = [...ancestors, actual];
@@ -241,7 +256,7 @@ export class RamenAdvisor {
     return this.adviseNode(modelId, nodeId)?.attributes ?? [];
   }
 
-  /** Lists possible incoming and outgoing connections for one local node. */
+  /** Lists possible incoming and outgoing connections for one local or imported node. */
   public suggestConnections(modelId: Id, nodeId: Id): readonly NodeRelationSuggestion[] {
     return this.adviseNode(modelId, nodeId)?.relations ?? [];
   }
@@ -259,28 +274,27 @@ export class RamenAdvisor {
 
   /** Lists imported relations whose endpoint types accept the selected source and target nodes. */
   public suggestRelations(modelId: Id, fromNodeId: Id, toNodeId: Id): readonly RelationRefinementSuggestion[] {
-    const from: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, fromNodeId);
-    const to: ResolvedModelElement<Node> | undefined = this.resolveLocalNode(modelId, toNodeId);
+    const from: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, fromNodeId);
+    const to: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, toNodeId);
 
     if (!from || !to) return [];
-    return this.importedModels(modelId)
-      .flatMap((model: Model): RelationRefinementSuggestion[] =>
-        model.relations.flatMap((relation: Relation): RelationRefinementSuggestion[] => {
-          if (!this.graph.acceptsNode(model.id, relation.from.nodeId, from)) return [];
-          if (!this.graph.acceptsNode(model.id, relation.to.nodeId, to)) return [];
-
-          return [
-            {
-              modelId: model.id,
-              relationId: relation.id,
-              ref: ModelRef.qualify(model.id, relation.id),
-              name: relation.name,
-              actions: ['reuse', 'refine'],
-              explanation: `'${relation.name}' accepts '${from.element.name}' as source and '${to.element.name}' as target.`,
-            },
-          ];
-        }),
-      )
+    return this.relations
+      .bases(modelId)
+      .flatMap((item: ResolvedModelElement<Relation>): RelationRefinementSuggestion[] => {
+        const relation: Relation = item.element;
+        if (!this.graph.acceptsNode(item.modelId, relation.from.nodeId, from)) return [];
+        if (!this.graph.acceptsNode(item.modelId, relation.to.nodeId, to)) return [];
+        return [
+          {
+            modelId: item.modelId,
+            relationId: relation.id,
+            ref: ModelRef.qualify(item.modelId, relation.id),
+            name: relation.name,
+            actions: ['reuse', 'refine'],
+            explanation: `'${relation.name}' accepts '${from.element.name}' as source and '${to.element.name}' as target.`,
+          },
+        ];
+      })
       .sort((left: RelationRefinementSuggestion, right: RelationRefinementSuggestion): number =>
         left.name.localeCompare(right.name),
       );
@@ -308,31 +322,19 @@ export class RamenAdvisor {
 
   private nodeRelationSuggestions(modelId: Id, actual: ResolvedModelElement<Node>): readonly NodeRelationSuggestion[] {
     const suggestions: NodeRelationSuggestion[] = [];
-    const current: Model | undefined = this.graph.getModel(modelId);
-    const models: readonly Model[] = current ? [current, ...this.importedModels(modelId)] : [];
-
-    for (const owner of models) {
-      for (const relation of owner.relations) {
-        if (this.graph.acceptsNode(owner.id, relation.from.nodeId, actual)) {
-          const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
-            modelId,
-            owner,
-            relation,
-            'outgoing',
-          );
-
-          if (suggestion) suggestions.push(suggestion);
-        }
-        if (this.graph.acceptsNode(owner.id, relation.to.nodeId, actual)) {
-          const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
-            modelId,
-            owner,
-            relation,
-            'incoming',
-          );
-
-          if (suggestion) suggestions.push(suggestion);
-        }
+    for (const item of this.relations.available(modelId)) {
+      const owner: Model | undefined = this.graph.getModel(item.modelId);
+      if (!owner) continue;
+      for (const direction of ['outgoing', 'incoming'] as const) {
+        const endpoint: Ref = direction === 'outgoing' ? item.element.from.nodeId : item.element.to.nodeId;
+        if (!this.graph.acceptsNode(owner.id, endpoint, actual)) continue;
+        const suggestion: NodeRelationSuggestion | undefined = this.nodeRelationSuggestion(
+          modelId,
+          owner,
+          item.element,
+          direction,
+        );
+        if (suggestion) suggestions.push(suggestion);
       }
     }
     return suggestions;
@@ -377,8 +379,7 @@ export class RamenAdvisor {
     };
   }
 
-  private resolveLocalNode(modelId: Id, nodeId: Id): ResolvedModelElement<Node> | undefined {
-    const node: Node | undefined = this.graph.getNode(modelId, nodeId);
-    return node ? { modelId: modelId, element: node } : undefined;
+  private resolveNode(modelId: Id, nodeId: Id): ResolvedModelElement<Node> | undefined {
+    return this.graph.resolveNode(modelId, nodeId);
   }
 }

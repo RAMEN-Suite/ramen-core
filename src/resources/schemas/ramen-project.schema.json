@@ -288,20 +288,11 @@
       "properties": { "lowerBound": { "type": "integer", "minimum": 0 }, "upperBound": { "type": "integer", "minimum": -1 } }
     },
     "RamenAnnotationProperty": {
-      "type": "object",
-      "description": "Allows one attribute declared on the owning Annotation node, optionally with narrower cardinality.",
-      "required": ["attributeId"],
-      "additionalProperties": false,
-      "properties": {
-        "attributeId": {
-          "$ref": "#/$defs/RamenRef",
-          "description": "Reference to an attribute available on the owning Annotation node."
-        },
-        "bounds": {
-          "$ref": "#/$defs/RamenBounds",
-          "description": "Optional type-specific cardinality; the attribute's modeled cardinality applies when omitted."
-        }
-      }
+      "description": "An attribute reference or a property declared only for this annotation type.",
+      "oneOf": [
+        { "$ref": "#/$defs/RamenAnnotationPropertyReference" },
+        { "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute" }
+      ]
     },
     "RamenAnnotationRelation": {
       "type": "object",
@@ -320,6 +311,13 @@
         "bounds": {
           "$ref": "#/$defs/RamenBounds",
           "description": "Number of matching relations allowed for one annotation; it must not widen the modeled relation cardinality."
+        },
+        "alternatives": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/RamenRef" },
+          "description": "Other allowed relations. The bounds count all selected alternatives together, not each one separately."
         }
       }
     },
@@ -344,7 +342,7 @@
         },
         "properties": {
           "type": "array",
-          "description": "Complete allowlist of additional properties for this type; common attributes of RAMEN Annotation remain available.",
+          "description": "Properties selected from the node or declared here for this type. Common RAMEN attributes stay available.",
           "items": { "$ref": "#/$defs/RamenAnnotationProperty" },
           "default": []
         },
@@ -353,6 +351,22 @@
           "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
           "items": { "$ref": "#/$defs/RamenAnnotationRelation" },
           "default": []
+        }
+      }
+    },
+    "RamenAnnotationPropertyReference": {
+      "type": "object",
+      "description": "Allows one attribute declared on the owning Annotation node, optionally with narrower cardinality.",
+      "required": ["attributeId"],
+      "additionalProperties": false,
+      "properties": {
+        "attributeId": {
+          "$ref": "#/$defs/RamenRef",
+          "description": "Reference to an attribute available on the owning Annotation node."
+        },
+        "bounds": {
+          "$ref": "#/$defs/RamenBounds",
+          "description": "Optional type-specific cardinality; the attribute's modeled cardinality applies when omitted."
         }
       }
     }

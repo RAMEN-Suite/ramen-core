@@ -4,9 +4,9 @@ import { ConstraintRegistry } from './Constraints';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { InstanceRelationValidator } from './InstanceRelations';
 import { InstanceSchemaValidator } from './InstanceSchema';
-import { ModelInstanceGraph, ResolvedInstanceNode } from './InstanceTypes';
+import { InstanceValidationOptions, ModelInstanceGraph, ResolvedInstanceNode } from './InstanceTypes';
 import { InstanceValueValidator } from './InstanceValues';
-import type { ValidationResult } from './Validate';
+import type { ValidationResult } from './ModelValidator';
 
 export * from './InstanceTypes';
 
@@ -19,7 +19,7 @@ export class InstanceValidator {
    * Validates a complete instance graph, including values, endpoints, and lower and upper cardinalities.
    * Callers must not pass a database page or partial update because absence has model-level meaning.
    */
-  public validate(graph: ProjectGraph, input: unknown): ValidationResult {
+  public validate(graph: ProjectGraph, input: unknown, options: InstanceValidationOptions = {}): ValidationResult {
     try {
       InstanceSchemaValidator.assertValid(input);
     } catch (error: unknown) {
@@ -37,11 +37,19 @@ export class InstanceValidator {
 
     const instance: ModelInstanceGraph = input;
     const diagnostics: Diagnostic[] = [];
-    const values: InstanceValueValidator = new InstanceValueValidator(this.constraints, { project: graph, instances: instance });
-    const relations: InstanceRelationValidator = new InstanceRelationValidator(this.constraints, {
-      project: graph,
-      instances: instance,
-    });
+    const values: InstanceValueValidator = new InstanceValueValidator(
+      this.constraints,
+      { project: graph, instances: instance },
+      options.attributes,
+    );
+    const relations: InstanceRelationValidator = new InstanceRelationValidator(
+      this.constraints,
+      {
+        project: graph,
+        instances: instance,
+      },
+      options.relations,
+    );
     const nodesById: Map<string, ResolvedInstanceNode> = values.validate(graph, instance, diagnostics);
 
     relations.validate(graph, instance, nodesById, diagnostics);

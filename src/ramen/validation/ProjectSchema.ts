@@ -1,10 +1,11 @@
+import { ModelSchemaValidator } from '../../model/validation/ModelSchema';
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import schema from '../../resources/schemas/ramen-project.schema.json';
 import { RAMEN_PROJECT_SCHEMA_URI } from '../model/Document';
 
 /** Validates the standalone RAMEN project model document format. */
 export class RamenProjectSchemaValidator {
-  private static readonly schemaNode: SchemaNode = compileSchema(schema);
+  private static readonly schemaNode: SchemaNode = compileSchema(schema, { remote: ModelSchemaValidator.getSchemaNode() });
 
   /** Returns the versioned RAMEN project JSON Schema node. */
   public static getSchemaNode(): SchemaNode {

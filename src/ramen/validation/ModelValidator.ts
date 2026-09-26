@@ -1,17 +1,10 @@
-import {
-  DiagnosticPath,
-  Diagnostics,
-  EffectiveModel,
-  ModelRef,
-  ModelValidator,
-  ProjectGraph,
-  VALIDATION_ERROR,
-} from '../../model/index';
-import { ModelSemantics } from '../../model/validation/Semantics';
+import { AnnotationProperties } from '../project/AnnotationProperties';
+import { RamenRelationScope } from '../project/RelationScope';
+import { DiagnosticPath, Diagnostics, ModelRef, ModelValidator, ProjectGraph, VALIDATION_ERROR } from '../../model/index';
+import { Cardinality } from '../../model/validation/Cardinality';
 import type {
   Bounds,
   Diagnostic,
-  Attribute,
   Model,
   Node,
   Relation,
@@ -28,6 +21,7 @@ import { RamenProjectSchemaValidator } from './ProjectSchema';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
 export const RAMEN_VALIDATION_ERROR: Readonly<{
+  RELATION_SCOPE_INVALID: 'RAMEN_RELATION_SCOPE_INVALID';
   BASE_MODEL_REQUIRED: 'RAMEN_BASE_MODEL_REQUIRED';
   ANNOTATIONS_INVALID: 'RAMEN_ANNOTATIONS_INVALID';
   ANNOTATION_ID_DUPLICATE: 'RAMEN_ANNOTATION_ID_DUPLICATE';
@@ -39,6 +33,7 @@ export const RAMEN_VALIDATION_ERROR: Readonly<{
   ANNOTATION_BOUNDS_INVALID: 'RAMEN_ANNOTATION_BOUNDS_INVALID';
   PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED';
 }> = {
+  RELATION_SCOPE_INVALID: 'RAMEN_RELATION_SCOPE_INVALID',
   BASE_MODEL_REQUIRED: 'RAMEN_BASE_MODEL_REQUIRED',
   ANNOTATIONS_INVALID: 'RAMEN_ANNOTATIONS_INVALID',
   ANNOTATION_ID_DUPLICATE: 'RAMEN_ANNOTATION_ID_DUPLICATE',
@@ -68,7 +63,10 @@ export class RamenValidator {
     const requirements: readonly Diagnostic[] = this.validateRequirements(rootModelId, inputs, result.graph);
     if (requirements.length > 0) return { valid: false, hasErrors: true, diagnostics: requirements };
 
-    const diagnostics: readonly Diagnostic[] = this.validateAnnotations(result.graph, inputs as readonly Model[]);
+    const diagnostics: readonly Diagnostic[] = [
+      ...new RamenRelationScope(result.graph, inputs as readonly Model[]).validate(),
+      ...this.validateAnnotations(result.graph, inputs as readonly Model[]),
+    ];
     if (diagnostics.length === 0) return result;
     return { valid: false, hasErrors: true, diagnostics: [...result.diagnostics, ...diagnostics] };
   }
@@ -177,7 +175,7 @@ export class RamenValidator {
         definition.id,
       );
     this.registerOwnerType(resolved.modelId, definition, owner, ownerTypes, path, diagnostics);
-    this.validateProperties(graph, resolved, owner, diagnostics);
+    diagnostics.push(...AnnotationProperties.validate(graph, resolved, owner));
     this.validateRelations(graph, resolved, owner, diagnostics);
     this.validateInheritedType(graph, annotations, resolved, owner, diagnostics);
   }
@@ -220,41 +218,6 @@ export class RamenValidator {
     ownerTypes.add(ownerType);
   }
 
-  private validateProperties(
-    graph: ProjectGraph,
-    resolved: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
-    diagnostics: Diagnostic[],
-  ): void {
-    const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, owner.modelId, owner.element.id)?.attributes ?? [];
-    const seen: Set<Id> = new Set<Id>();
-
-    for (const property of resolved.annotation.properties) {
-      const attributeId: Id = this.refId(property.attributeId);
-      const attribute: Attribute | undefined = attributes.find((candidate: Attribute): boolean => candidate.id === attributeId);
-      const path: DiagnosticPath = this.path(resolved.modelId, resolved.annotation.id).property('properties');
-
-      if (!attribute || seen.has(attributeId)) {
-        this.error(
-          diagnostics,
-          RAMEN_VALIDATION_ERROR.ANNOTATION_PROPERTY_INVALID,
-          `Annotation property '${property.attributeId}' must reference one effective attribute exactly once.`,
-          path,
-          resolved.annotation.id,
-        );
-      } else if (property.bounds && !this.narrows(property.bounds, attribute.bounds)) {
-        this.error(
-          diagnostics,
-          RAMEN_VALIDATION_ERROR.ANNOTATION_BOUNDS_INVALID,
-          `Annotation property '${attribute.name}' must narrow its modeled bounds.`,
-          path,
-          resolved.annotation.id,
-        );
-      }
-      seen.add(attributeId);
-    }
-  }
-
   private validateRelations(
     graph: ProjectGraph,
     resolved: ResolvedRamenAnnotation,
@@ -276,16 +239,46 @@ export class RamenValidator {
     seen: Set<string>,
     diagnostics: Diagnostic[],
   ): void {
-    const key: string = `${requirement.direction}:${requirement.relationId}`;
-    const relation: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(resolved.modelId, requirement.relationId);
-    const endpointRef: Ref | undefined = this.annotationEnd(relation, requirement.direction);
-    const validEndpoint: boolean =
-      relation !== undefined && endpointRef !== undefined ? graph.acceptsNode(relation.modelId, endpointRef, owner) : false;
-    const modeledBounds: Bounds | undefined = this.targetBounds(relation, requirement.direction);
+    const refs: readonly Ref[] = RamenAnnotations.relationRefs(requirement);
+    const relations: readonly (ResolvedModelElement<Relation> | undefined)[] = refs.map(
+      (ref: Ref): ResolvedModelElement<Relation> | undefined => graph.resolveRelation(resolved.modelId, ref),
+    );
+    const validEndpoint: boolean = relations.every((relation: ResolvedModelElement<Relation> | undefined): boolean => {
+      const endpoint: Ref | undefined = this.annotationEnd(relation, requirement.direction);
+      return relation !== undefined && endpoint !== undefined && graph.acceptsNode(relation.modelId, endpoint, owner);
+    });
+    const bounds: readonly Bounds[] = relations.flatMap((relation: ResolvedModelElement<Relation> | undefined): Bounds[] => {
+      const bound: Bounds | undefined = this.targetBounds(relation, requirement.direction);
+      return bound ? [bound] : [];
+    });
+    const modeledBounds: Bounds = {
+      lowerBound: bounds.reduce((sum: number, value: Bounds): number => sum + value.lowerBound, 0),
+      upperBound: bounds.some((value: Bounds): boolean => value.upperBound === -1)
+        ? -1
+        : bounds.reduce((sum: number, value: Bounds): number => sum + value.upperBound, 0),
+    };
+    const duplicate: boolean = this.overlaps(graph, resolved.modelId, requirement, seen);
     const path: DiagnosticPath = this.path(resolved.modelId, resolved.annotation.id).property('relations');
+    this.validateRelationShape(resolved, requirement, relations[0], modeledBounds, validEndpoint, duplicate, path, diagnostics);
+  }
 
-    this.validateRelationShape(resolved, requirement, relation, modeledBounds, validEndpoint, seen.has(key), path, diagnostics);
-    seen.add(key);
+  private overlaps(graph: ProjectGraph, modelId: Id, requirement: RamenAnnotationRelation, seen: Set<string>): boolean {
+    let overlap: boolean = false;
+    const prefix: string = `${requirement.direction}:`;
+    for (const ref of RamenAnnotations.relationRefs(requirement)) {
+      const qualified: Ref = ModelRef.isQualified(ref) ? ref : ModelRef.qualify(modelId, ref);
+      for (const previous of seen) {
+        if (!previous.startsWith(prefix)) continue;
+        const other: Ref = previous.slice(prefix.length);
+        if (
+          graph.isRelationRefSameOrSubtype(modelId, qualified, modelId, other) ||
+          graph.isRelationRefSameOrSubtype(modelId, other, modelId, qualified)
+        )
+          overlap = true;
+      }
+      seen.add(`${prefix}${qualified}`);
+    }
+    return overlap;
   }
 
   private validateRelationShape(
@@ -302,7 +295,7 @@ export class RamenValidator {
       this.error(
         diagnostics,
         RAMEN_VALIDATION_ERROR.ANNOTATION_RELATION_INVALID,
-        `Annotation relation '${requirement.relationId}' must reference one applicable relation exactly once.`,
+        `Annotation relation '${requirement.relationId}' must select applicable, non-overlapping relations exactly once.`,
         path,
         resolved.annotation.id,
       );
@@ -372,11 +365,7 @@ export class RamenValidator {
   }
 
   private narrows(actual: Bounds, modeled: Bounds): boolean {
-    return ModelSemantics.isModelBoundsCompatible(modeled, actual);
-  }
-
-  private refId(reference: Ref): Id {
-    return ModelRef.localId(reference);
+    return Cardinality.isModelBoundsCompatible(modeled, actual);
   }
 
   private path(modelId: Id, annotationId: Id): DiagnosticPath {

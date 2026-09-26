@@ -12,6 +12,7 @@ export class InstanceRelationValidator {
   public constructor(
     private readonly constraints: ConstraintRegistry,
     private readonly graphContext: ConstraintGraphContext,
+    private readonly selected?: readonly ResolvedModelElement<Relation>[],
   ) {}
 
   /** Resolves and validates every relation in an instance graph. */
@@ -143,6 +144,18 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedModelElement<Relation> | undefined {
     const type: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
+    if (
+      type &&
+      this.selected &&
+      !this.selected.some(
+        (item: ResolvedModelElement<Relation>): boolean => item.modelId === type.modelId && item.element.id === type.element.id,
+      )
+    ) {
+      diagnostics.push(
+        this.error('INSTANCE_RELATION_TYPE_NOT_ALLOWED', 'Relation type is not selected by this model level.', path, relation.id),
+      );
+      return undefined;
+    }
     if (type) return type;
     diagnostics.push(
       this.error(
@@ -200,11 +213,15 @@ export class InstanceRelationValidator {
     relations: readonly ResolvedInstanceRelation[],
     diagnostics: Diagnostic[],
   ): void {
-    for (const model of graph.getModels()) {
-      for (const relation of model.relations) {
-        this.validateRelationTypeCardinalities(graph, ownerModelId, model.id, relation, nodesById, relations, diagnostics);
-      }
-    }
+    const selected: readonly ResolvedModelElement<Relation>[] =
+      this.selected ??
+      graph
+        .getModels()
+        .flatMap((model): ResolvedModelElement<Relation>[] =>
+          model.relations.map((element: Relation): ResolvedModelElement<Relation> => ({ modelId: model.id, element })),
+        );
+    for (const item of selected)
+      this.validateRelationTypeCardinalities(graph, ownerModelId, item.modelId, item.element, nodesById, relations, diagnostics);
   }
 
   private validateRelationTypeCardinalities(

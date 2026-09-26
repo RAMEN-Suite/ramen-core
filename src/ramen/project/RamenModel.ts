@@ -27,6 +27,7 @@ import type { RamenModelDocument } from '../model/Document';
 import { RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenValidator } from '../validation/ModelValidator';
 import { RamenInstanceValidator } from '../validation/InstanceValidator';
+import type { AnnotationPropertyAdvice } from './AnnotationAdvice';
 import { RamenAdvisor } from './Advisor';
 import type { AnnotationSuggestion, AttributeSuggestion, RelationRefinementSuggestion } from './Advisor';
 import { createRamenBundle, parseRamenBundle } from './Bundle';
@@ -188,9 +189,14 @@ export class RamenModel {
     return this.createAdvisor().suggestAttributes(owner.modelId, owner.elementId);
   }
 
+  /** Lists the properties selected or declared by one annotation type. */
+  public suggestAttributesForAnnotation(nodeId: Id, type: string): readonly AnnotationPropertyAdvice[] {
+    return this.createAdvisor().suggestAttributesForAnnotation(this.model.id, this.nodeReference(nodeId), type);
+  }
+
   /** Lists relations that can connect two nodes in this model. */
   public suggestRelations(fromNodeId: Id, toNodeId: Id): readonly RelationRefinementSuggestion[] {
-    return this.createAdvisor().suggestRelations(this.model.id, fromNodeId, toNodeId);
+    return this.createAdvisor().suggestRelations(this.model.id, this.nodeReference(fromNodeId), this.nodeReference(toNodeId));
   }
 
   /** Lists annotation definitions available on a local or imported node. */
@@ -375,8 +381,8 @@ export class RamenModel {
     if (!base) throw new Error(`Relation base model not found: '${reference.modelId}'.`);
     const relation: Relation = ModelFactory.createRelation(base, reference.modelId, {
       baseRelationId: reference.elementId,
-      fromNodeId: input.fromNodeId,
-      toNodeId: input.toNodeId,
+      fromNodeId: this.nodeReference(input.fromNodeId),
+      toNodeId: this.nodeReference(input.toNodeId),
     });
     const narrowed: Relation = {
       ...relation,
@@ -408,14 +414,19 @@ export class RamenModel {
     return this.connectBy(annotation, target, undefined, 'REFERS_TO');
   }
 
+  private nodeReference(nodeId: Id): Id {
+    const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
+    return owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
+  }
+
   private connectBy(
     from: Node | Id,
     to: Node | Id,
     choice?: RelationRefinementSuggestion,
     family?: RamenRelationKind,
   ): RamenChange<Relation> {
-    const fromNodeId: Id = typeof from === 'string' ? from : from.id;
-    const toNodeId: Id = typeof to === 'string' ? to : to.id;
+    const fromNodeId: Id = this.nodeReference(typeof from === 'string' ? from : from.id);
+    const toNodeId: Id = this.nodeReference(typeof to === 'string' ? to : to.id);
     const validation: ProjectValidationResult = this.validate();
     if (!validation.valid) throw new Error('Cannot infer a relation from an invalid RAMEN model.');
 
@@ -561,6 +572,19 @@ export class RamenModel {
     return relation;
   }
 
+  private remainingRelations(
+    relations: readonly RamenAnnotationRelation[],
+    removed?: ReadonlySet<Id>,
+  ): readonly RamenAnnotationRelation[] {
+    return relations.flatMap((relation: RamenAnnotationRelation): RamenAnnotationRelation[] => {
+      const refs: readonly Id[] = RamenAnnotations.relationRefs(relation).filter((ref: Id): boolean => !removed?.has(ref));
+      const relationId: Id | undefined = refs[0];
+      if (!relationId) return [];
+      const { alternatives: _alternatives, ...rest }: RamenAnnotationRelation = relation;
+      return [{ ...rest, relationId, ...(refs.length > 1 ? { alternatives: refs.slice(1) } : {}) }];
+    });
+  }
+
   private cleanAnnotationReferences(input: {
     readonly nodeId?: Id;
     readonly attributeId?: Id;
@@ -572,13 +596,16 @@ export class RamenModel {
         continue;
       }
       const properties: readonly RamenAnnotationProperty[] = annotation.properties.filter(
-        (property: RamenAnnotationProperty): boolean => property.attributeId !== input.attributeId,
+        (property: RamenAnnotationProperty): boolean =>
+          !('attributeId' in property) || property.attributeId !== input.attributeId,
       );
-      const relations: readonly RamenAnnotationRelation[] = annotation.relations.filter(
-        (relation: RamenAnnotationRelation): boolean => !input.relationIds?.has(relation.relationId),
-      );
+      const relations: readonly RamenAnnotationRelation[] = this.remainingRelations(annotation.relations, input.relationIds);
 
-      if (properties.length === annotation.properties.length && relations.length === annotation.relations.length) continue;
+      if (
+        properties.length === annotation.properties.length &&
+        JSON.stringify(relations) === JSON.stringify(annotation.relations)
+      )
+        continue;
       this.model = RamenAnnotations.update(this.model, annotation.id, {
         ...annotation,
         properties: properties,

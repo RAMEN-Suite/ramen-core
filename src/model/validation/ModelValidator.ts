@@ -3,7 +3,7 @@ import { buildProjectGraph, ProjectGraphResult } from '../project/Build';
 import { ProjectGraph } from '../project/Graph';
 import { VALIDATION_ERROR } from './Codes';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
-import { ProjectSemanticValidator } from './Project';
+import { ModelRules } from './ModelRules';
 import { ModelSchemaValidator } from './ModelSchema';
 
 /** Diagnostics and summarized error state produced by instance validation. */
@@ -32,7 +32,7 @@ export type ProjectValidationResult = ValidProjectResult | InvalidProjectResult;
 
 /** Validates schema conformance, reference resolution, and semantics for a complete RAMEN model project. */
 export class ModelValidator {
-  private readonly semantics: ProjectSemanticValidator = new ProjectSemanticValidator();
+  private readonly semantics: ModelRules = new ModelRules();
 
   /**
    * Validates all input models reachable from the root and returns their graph only when it is safe to interpret.

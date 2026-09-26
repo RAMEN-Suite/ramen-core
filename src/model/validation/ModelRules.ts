@@ -2,11 +2,11 @@ import { Attribute, DataType, Literal, Model, Node, Relation, Id, Import, Relati
 import { EffectiveModel, EffectiveNode } from '../project/Effective';
 import { ProjectGraph, ResolvedModelElement } from '../project/Graph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
-import { ModelSemantics } from './Semantics';
+import { Cardinality } from './Cardinality';
 import { ValidationCode } from './Codes';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
-export class ProjectSemanticValidator {
+export class ModelRules {
   /** Validates every reachable model and returns all semantic findings. */
   public validate(graph: ProjectGraph): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
@@ -187,7 +187,7 @@ export class ProjectSemanticValidator {
   }
 
   private validateAttribute(attribute: Attribute, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
-    if (!ModelSemantics.areBoundsCoherent(attribute.bounds)) {
+    if (!Cardinality.areBoundsCoherent(attribute.bounds)) {
       diagnostics.push(
         this.error(
           'ATTRIBUTE_BOUNDS_INVALID',
@@ -250,7 +250,7 @@ export class ProjectSemanticValidator {
   }
 
   private validateRelationEnd(end: RelationEnd, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
-    if (!ModelSemantics.areBoundsCoherent(end.bounds)) {
+    if (!Cardinality.areBoundsCoherent(end.bounds)) {
       diagnostics.push(
         this.error('RELATION_END_BOUNDS_INVALID', `Relation role '${end.role}' has incoherent bounds.`, path, end.id),
       );
@@ -317,7 +317,7 @@ export class ProjectSemanticValidator {
         this.error('RELATION_ROLE_MISMATCH', `Role '${end.role}' must remain '${baseEnd.role}'.`, path.property('role'), end.id),
       );
     }
-    if (!ModelSemantics.isModelBoundsCompatible(baseEnd.bounds, end.bounds)) {
+    if (!Cardinality.isModelBoundsCompatible(baseEnd.bounds, end.bounds)) {
       diagnostics.push(
         this.error('RELATION_BOUNDS_WIDENED', `Role '${end.role}' widens its base cardinality.`, path.property('bounds'), end.id),
       );

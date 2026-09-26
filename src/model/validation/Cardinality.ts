@@ -1,8 +1,7 @@
-import { Bounds, Relation } from '../Types';
-import { ModelRef } from '../project/Refs';
+import { Bounds } from '../Types';
 
-/** Pure predicates shared by RAMEN model format semantic validation rules. */
-export class ModelSemantics {
+/** Checks cardinality intervals and refinement. */
+export class Cardinality {
   public static readonly UNBOUNDED: -1 = -1;
 
   /** Reports whether lower and upper cardinality bounds form a valid interval. */
@@ -19,10 +18,5 @@ export class ModelSemantics {
     if (base.upperBound === this.UNBOUNDED) return true;
     if (model.upperBound === this.UNBOUNDED) return false;
     return model.upperBound <= base.upperBound;
-  }
-
-  /** Reports whether both relation ends use local node references. */
-  public static areRelationEndsLocal(relation: Relation): boolean {
-    return !ModelRef.isQualified(relation.from.nodeId) && !ModelRef.isQualified(relation.to.nodeId);
   }
 }

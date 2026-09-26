@@ -1,11 +1,13 @@
+import { AnnotationProperties } from './AnnotationProperties';
+import { RamenRelationScope } from './RelationScope';
 import { EffectiveModel, ModelRef, ProjectGraph } from '../../model/index';
-import { ModelSemantics } from '../../model/validation/Semantics';
+import { Cardinality } from '../../model/validation/Cardinality';
 import type { Bounds, EffectiveNode, Attribute, Model, Node, Relation, Id, Ref, ResolvedModelElement } from '../../model/index';
-import { RamenAnnotationProperty, RamenAnnotationRelation } from '../model/Annotations';
+import { RamenAnnotations, RamenAnnotationRelation } from '../model/Annotations';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenAnnotationGraph, ResolvedRamenAnnotation } from './AnnotationGraph';
 
-/** Property that can be selected for a new or refined annotation definition. */
+/** Property that can be selected for an annotation definition. */
 export interface AnnotationPropertyAdvice {
   readonly modelId: Id;
   readonly attributeId: Id;
@@ -16,7 +18,7 @@ export interface AnnotationPropertyAdvice {
   readonly cardinalityOptions: readonly Bounds[];
 }
 
-/** Relation that can be selected for a new or refined annotation definition. */
+/** Relation that can be selected for an annotation definition. */
 export interface AnnotationRelationAdvice {
   readonly modelId: Id;
   readonly relationId: Id;
@@ -30,6 +32,8 @@ export interface AnnotationRelationAdvice {
   readonly modeledBounds: Bounds;
   readonly suggestedBounds: Bounds;
   readonly cardinalityOptions: readonly Bounds[];
+  /** Relation references counted together by suggestedBounds, when this choice belongs to an alternative group. */
+  readonly alternatives?: readonly Ref[];
 }
 
 /** Complete creation advice for an annotation definition. */
@@ -41,6 +45,7 @@ export interface AnnotationAdvice {
 /** Computes valid annotation properties, relations, targets, and cardinality choices. */
 export class RamenAnnotationAdvisor {
   private readonly annotations: RamenAnnotationGraph;
+  private readonly relations: RamenRelationScope;
 
   /** Creates annotation advice over an already validated project graph. */
   public constructor(
@@ -48,6 +53,7 @@ export class RamenAnnotationAdvisor {
     models: readonly Model[],
   ) {
     this.annotations = new RamenAnnotationGraph(graph, models);
+    this.relations = new RamenRelationScope(graph, models);
   }
 
   /** Advises properties and relations available for a new annotation type. */
@@ -77,22 +83,22 @@ export class RamenAnnotationAdvisor {
     actual: ResolvedModelElement<Node>,
     definition: ResolvedRamenAnnotation,
   ): readonly AnnotationPropertyAdvice[] {
-    const selected: ReadonlyMap<Id, RamenAnnotationProperty> = new Map<Id, RamenAnnotationProperty>(
-      definition.annotation.properties.map((property: RamenAnnotationProperty): [Id, RamenAnnotationProperty] => [
-        this.refId(property.attributeId),
-        property,
-      ]),
-    );
-
-    return this.propertyAdvice(contextModelId, actual).flatMap(
-      (property: AnnotationPropertyAdvice): AnnotationPropertyAdvice[] => {
-        const requirement: RamenAnnotationProperty | undefined = selected.get(property.attributeId);
-        if (!requirement) return [];
-        const bounds: Bounds = requirement.bounds ?? property.modeledBounds;
-
-        return [{ ...property, suggestedBounds: bounds, cardinalityOptions: this.cardinalityOptions(bounds) }];
-      },
-    );
+    const lineage: readonly ResolvedModelElement<Node>[] = [
+      actual,
+      ...this.graph.getNodeAncestors(actual.modelId, actual.element.id),
+    ];
+    return AnnotationProperties.resolve(this.graph, definition, actual).map((attribute: Attribute): AnnotationPropertyAdvice => {
+      const modelId: Id = this.attributeOwner(lineage, attribute.id)?.modelId ?? definition.modelId;
+      return {
+        modelId,
+        attributeId: attribute.id,
+        ref: modelId === contextModelId ? attribute.id : ModelRef.qualify(modelId, attribute.id),
+        name: attribute.name,
+        modeledBounds: attribute.bounds,
+        suggestedBounds: attribute.bounds,
+        cardinalityOptions: this.cardinalityOptions(attribute.bounds),
+      };
+    });
   }
 
   private propertyAdvice(contextModelId: Id, actual: ResolvedModelElement<Node>): readonly AnnotationPropertyAdvice[] {
@@ -120,14 +126,11 @@ export class RamenAnnotationAdvisor {
   private relationAdvice(contextModelId: Id, actual: ResolvedModelElement<Node>): readonly AnnotationRelationAdvice[] {
     const result: AnnotationRelationAdvice[] = [];
 
-    const current: Model | undefined = this.graph.getModel(contextModelId);
-    const models: readonly Model[] = current ? [current, ...this.graph.getTransitiveImports(contextModelId)] : [];
-
-    for (const owner of models) {
-      for (const relation of owner.relations) {
-        this.addRelationAdvice(result, contextModelId, actual, owner, relation, 'outgoing');
-        this.addRelationAdvice(result, contextModelId, actual, owner, relation, 'incoming');
-      }
+    for (const item of this.relations.available(contextModelId)) {
+      const owner: Model | undefined = this.graph.getModel(item.modelId);
+      if (!owner) continue;
+      this.addRelationAdvice(result, contextModelId, actual, owner, item.element, 'outgoing');
+      this.addRelationAdvice(result, contextModelId, actual, owner, item.element, 'incoming');
     }
 
     return result.sort((left: AnnotationRelationAdvice, right: AnnotationRelationAdvice): number => {
@@ -176,12 +179,25 @@ export class RamenAnnotationAdvisor {
       const requirement: RamenAnnotationRelation | undefined = definition.annotation.relations.find(
         (candidate: RamenAnnotationRelation): boolean =>
           candidate.direction === choice.direction &&
-          this.graph.isRelationRefSameOrSubtype(choice.modelId, choice.relationId, definition.modelId, candidate.relationId),
+          RamenAnnotations.relationRefs(candidate).some((ref: Ref): boolean =>
+            this.graph.isRelationRefSameOrSubtype(choice.modelId, choice.relationId, definition.modelId, ref),
+          ),
       );
       if (!requirement) return [];
 
       return [
-        { ...choice, suggestedBounds: requirement.bounds, cardinalityOptions: this.cardinalityOptions(requirement.bounds) },
+        {
+          ...choice,
+          suggestedBounds: requirement.bounds,
+          cardinalityOptions: this.cardinalityOptions(requirement.bounds),
+          ...(requirement.alternatives
+            ? {
+                alternatives: RamenAnnotations.relationRefs(requirement).map((ref: Ref): Ref =>
+                  ModelRef.isQualified(ref) ? ref : ModelRef.qualify(definition.modelId, ref),
+                ),
+              }
+            : {}),
+        },
       ];
     });
   }
@@ -231,10 +247,6 @@ export class RamenAnnotationAdvisor {
   }
 
   private narrows(actual: Bounds, allowed: Bounds): boolean {
-    return ModelSemantics.isModelBoundsCompatible(allowed, actual);
-  }
-
-  private refId(reference: Ref): Id {
-    return ModelRef.localId(reference);
+    return Cardinality.isModelBoundsCompatible(allowed, actual);
   }
 }

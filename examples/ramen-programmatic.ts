@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { ModelFactory } from '../dist/model/index.js';
 import type { Attribute, Node, Relation } from '../dist/model/index.js';
 import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../dist/ramen/index.js';
 import type { CreateRamenBundleResult, RamenAnnotation, RamenModelBundle } from '../dist/ramen/index.js';
@@ -44,7 +45,17 @@ const annotations: readonly RamenAnnotation[] = [
     type: 'place',
     relations: [{ relationId: placeReference.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
   }).element,
-  correspondence.createAnnotation({ annotationId: annotation.id, type: 'date' }).element,
+  correspondence.createAnnotation({
+    annotationId: annotation.id,
+    type: 'date',
+    properties: [
+      ModelFactory.createAttribute({
+        name: 'value',
+        typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.DATE}`,
+        bounds: { lowerBound: 1, upperBound: 1 },
+      }),
+    ],
+  }).element,
   correspondence.createAnnotation({
     annotationId: annotation.id,
     type: 'comment',

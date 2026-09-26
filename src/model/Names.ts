@@ -15,7 +15,7 @@ export class ModelNames {
       .replace(NAME_START, (_: string, letter: string): string => letter.toUpperCase())
       .replace(NAME_INVALID_CHARS, '')
       .slice(0, 40);
-    return NODE_NAME_VALID_START.test(pascalized) ? pascalized : `N${pascalized}`;
+    return (NODE_NAME_VALID_START.test(pascalized) ? pascalized : `N${pascalized}`).slice(0, 40);
   }
 
   /** Converts text to a camelCase property name of at most 32 characters. */
@@ -26,12 +26,12 @@ export class ModelNames {
       .slice(0, 32);
 
     const camelized: string = pascalized.charAt(0).toLowerCase() + pascalized.slice(1);
-    return PROPERTY_VALID_START.test(camelized) ? camelized : `p${camelized}`;
+    return (PROPERTY_VALID_START.test(camelized) ? camelized : `p${camelized}`).slice(0, 32);
   }
 
   /** Converts text to an uppercase underscore-separated relation name. */
   public static toScreamedName(str: string): string {
     const screamingSnake: string = (str.match(RELATIONSHIP_NAME) ?? []).join('_').toUpperCase().slice(0, 32);
-    return RELATIONSHIP_VALID_START.test(screamingSnake) ? screamingSnake : `R_${screamingSnake}`;
+    return (RELATIONSHIP_VALID_START.test(screamingSnake) ? screamingSnake : `R_${screamingSnake}`).slice(0, 32);
   }
 }

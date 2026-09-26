@@ -13,7 +13,7 @@ export interface ResolvedElement<T> {
   readonly element: T;
 }
 
-/** Read-only resolved view of all models in one RAMEN model project. */
+/** Read-only resolved view of all models in one RMF project. */
 export class ProjectGraph {
   private readonly importCache: Map<Id, readonly Model[]> = new Map<Id, readonly Model[]>();
   private readonly nodeAncestorCache: Map<Ref, readonly ResolvedElement<Node>[]> = new Map<
@@ -56,23 +56,22 @@ export class ProjectGraph {
     });
   }
 
-  /** Returns only the selected model's transitive imports, nearest imports first. */
+  /** Returns transitive imports in stable depth-first order, without duplicates. */
   public getTransitiveImports(modelId: Id): readonly Model[] {
     const cached: readonly Model[] | undefined = this.importCache.get(modelId);
     if (cached) return cached;
     const result: Model[] = [];
     const visited: Set<Id> = new Set<Id>();
 
-    const visit: (ownerId: Id) => void = (ownerId: Id): void => {
-      for (const imported of this.getImportedModels(ownerId)) {
-        if (visited.has(imported.id)) continue;
-        visited.add(imported.id);
-        result.push(imported);
-        visit(imported.id);
-      }
-    };
+    const pending: Model[] = [...this.getImportedModels(modelId)].reverse();
+    while (pending.length > 0) {
+      const imported: Model | undefined = pending.pop();
+      if (!imported || visited.has(imported.id)) continue;
+      visited.add(imported.id);
+      result.push(imported);
+      pending.push(...[...this.getImportedModels(imported.id)].reverse());
+    }
 
-    visit(modelId);
     const imports: readonly Model[] = Object.freeze(result);
     this.importCache.set(modelId, imports);
     return imports;
@@ -108,6 +107,7 @@ export class ProjectGraph {
   /** Resolves a local or qualified node reference from its owning model. */
   public resolveNode(ownerModelId: Id, reference: Ref): ResolvedElement<Node> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
+    if (!this.isVisible(ownerModelId, target.modelId)) return undefined;
     const node: Node | undefined = this.getNode(target.modelId, target.elementId);
     return node ? { modelId: target.modelId, element: node } : undefined;
   }
@@ -115,6 +115,7 @@ export class ProjectGraph {
   /** Resolves a local or qualified data type reference from its owning model. */
   public resolveDataType(ownerModelId: Id, reference: Ref): ResolvedElement<DataType> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
+    if (!this.isVisible(ownerModelId, target.modelId)) return undefined;
     const dataType: DataType | undefined = this.getDataType(target.modelId, target.elementId);
     return dataType ? { modelId: target.modelId, element: dataType } : undefined;
   }
@@ -122,6 +123,7 @@ export class ProjectGraph {
   /** Resolves a local or qualified relation reference from its owning model. */
   public resolveRelation(ownerModelId: Id, reference: Ref): ResolvedElement<Relation> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
+    if (!this.isVisible(ownerModelId, target.modelId)) return undefined;
     const relation: Relation | undefined = this.getRelation(target.modelId, target.elementId);
     return relation ? { modelId: target.modelId, element: relation } : undefined;
   }
@@ -210,6 +212,12 @@ export class ProjectGraph {
   /** Reports whether a model is reachable from the graph root. */
   public hasModel(modelId: Id): boolean {
     return this.modelsById.has(modelId);
+  }
+
+  private isVisible(ownerId: Id, targetId: Id): boolean {
+    if (!this.hasModel(ownerId)) return false;
+    if (ownerId === targetId) return true;
+    return this.getTransitiveImports(ownerId).some((model: Model): boolean => model.id === targetId);
   }
 
   private resolveModelRef(ownerModelId: Id, reference: Ref): ResolvedRef {

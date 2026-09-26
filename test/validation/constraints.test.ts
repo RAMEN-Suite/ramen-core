@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConstraintRegistry, DiagnosticPath } from '../../dist/index.js';
+import { ConstraintRegistry, DiagnosticPath, RegexEvaluator } from '../../dist/index.js';
 import type { ConstraintContext, Diagnostic, Constraint } from '../../dist/index.js';
 
 function constraint(expression: Constraint['expression'], language: string = 'regex'): Constraint {
@@ -62,4 +62,38 @@ void test('validates standard date and date-time formats', (): void => {
     registry.evaluate(constraint('email', 'format'), { ...context, value: 'invalid' })[0]?.code,
     'CONSTRAINT_FORMAT_MISMATCH',
   );
+});
+
+void test('constraint languages reject bad inputs and preserve requested diagnostic severity', (): void => {
+  const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
+  const context: ConstraintContext = {
+    modelId: 'constraintModel1',
+    ownerId: 'constraintOwner1',
+    target: 'attribute',
+    value: 'bad',
+    path: DiagnosticPath.root(),
+  };
+  for (const rule of [constraint({}, 'regex'), constraint({}, 'format'), constraint('unsupported', 'format')]) {
+    assert.equal(registry.evaluate(rule, context)[0]?.code, 'CONSTRAINT_EXPRESSION_INVALID');
+  }
+  assert.equal(
+    registry.evaluate(constraint('date', 'format'), { ...context, value: 7 })[0]?.code,
+    'CONSTRAINT_EXPRESSION_INVALID',
+  );
+  assert.equal(registry.evaluate(constraint('.*'), { ...context, value: 7 })[0]?.code, 'CONSTRAINT_EXPRESSION_INVALID');
+  assert.throws((): void => {
+    registry.register(new RegexEvaluator());
+  }, /already registered/);
+
+  for (const severity of ['warn', 'info'] as const) {
+    for (const rule of [constraint('^A'), constraint('date', 'format')]) {
+      const result: readonly Diagnostic[] = registry.evaluate(
+        { ...rule, severity, code: 'CUSTOM', message: 'Explain this' },
+        context,
+      );
+      assert.equal(result[0]?.severity, severity);
+      assert.equal(result[0]?.code, 'CUSTOM');
+      assert.equal(result[0]?.message, 'Explain this');
+    }
+  }
 });

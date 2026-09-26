@@ -35,7 +35,7 @@ export class DiagnosticPath {
 
   /** Formats the path as a slash-separated string. */
   public toString(): string {
-    return `/${this.parts.map(String).join('/')}`;
+    return `/${this.parts.map((part: string | number): string => String(part).replaceAll('~', '~0').replaceAll('/', '~1')).join('/')}`;
   }
 }
 

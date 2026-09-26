@@ -28,10 +28,10 @@ export interface InvalidProjectResult {
   readonly diagnostics: readonly Diagnostic[];
 }
 
-/** Result of validating a complete project of versioned RAMEN models. */
+/** Result of validating a complete project of versioned RMF models. */
 export type ProjectValidationResult = ValidProjectResult | InvalidProjectResult;
 
-/** Validates schema conformance, reference resolution, and semantics for a complete RAMEN model project. */
+/** Validates schema conformance, reference resolution, and semantics for a complete RMF project. */
 export class ModelValidator {
   private readonly semantics: ModelRules = new ModelRules();
 

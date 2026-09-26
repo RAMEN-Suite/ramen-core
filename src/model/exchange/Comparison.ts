@@ -65,7 +65,8 @@ export class ModelEvolution {
       const oldRecord: ElementRecord | undefined = before.get(key);
       const newRecord: ElementRecord | undefined = after.get(key);
 
-      if (oldRecord && newRecord && this.sameJson(oldRecord.value, newRecord.value)) continue;
+      if (oldRecord && newRecord && oldRecord.ownerId === newRecord.ownerId && this.sameJson(oldRecord.value, newRecord.value))
+        continue;
       const record: ElementRecord | undefined = newRecord ?? oldRecord;
 
       if (!record) continue;
@@ -145,10 +146,10 @@ export class ModelEvolution {
     if (Array.isArray(value)) return value.map((item: unknown): unknown => this.canonical(item));
     if (value === null || typeof value !== 'object') return value;
     const record: Record<string, unknown> = value as Record<string, unknown>;
-    const sorted: Record<string, unknown> = {};
-
-    for (const key of Object.keys(record).sort()) sorted[key] = this.canonical(record[key]);
-
-    return sorted;
+    return Object.fromEntries(
+      Object.keys(record)
+        .sort()
+        .map((key: string): [string, unknown] => [key, this.canonical(record[key])]),
+    );
   }
 }

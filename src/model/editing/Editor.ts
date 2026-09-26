@@ -10,7 +10,7 @@ export type UpdateRelationInput = Partial<Pick<Relation, 'name' | 'from' | 'to' 
 /** Editable attribute fields. */
 export type UpdateAttributeInput = Partial<Omit<Attribute, 'id'>>;
 
-/** Applies immutable editing operations to an existing RAMEN model. */
+/** Applies immutable editing operations to an existing RMF model. */
 export class ModelEditor {
   /** Returns a model with the classifier appended. */
   public static addClassifier(model: Model, classifier: Classifier): Model {

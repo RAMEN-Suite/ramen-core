@@ -68,7 +68,7 @@ export class RamenInstanceValidator {
       attributes: (type: ResolvedElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
         this.effectiveAttributes(project.graph, annotations, rootModelId, type, node),
     });
-    if (!InstanceSchemaValidator.isValid(input)) return base;
+    if (!InstanceSchemaValidator.isValid(input) || input.modelId !== rootModelId) return base;
     const diagnostics: Diagnostic[] = [...base.diagnostics];
     input.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       this.validateAnnotationNode(project.graph, annotations, input, node, index, diagnostics);

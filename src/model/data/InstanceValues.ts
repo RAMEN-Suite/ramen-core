@@ -1,4 +1,5 @@
 import { BuiltinDataTypes } from '../Builtins';
+import { ModelRef } from '../graph/References';
 import { Bounds, Attribute, Constraint, DataType, Literal, Node, Id } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
 import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
@@ -62,7 +63,7 @@ export class InstanceValueValidator {
 
     this.validateUnknownProperties(instance, type.element, attributesByName, path, diagnostics);
     for (const attribute of attributes) {
-      const value: unknown = instance.properties[attribute.name];
+      const value: unknown = Object.hasOwn(instance.properties, attribute.name) ? instance.properties[attribute.name] : undefined;
       const attributePath: DiagnosticPath = path.property('properties').property(attribute.name);
 
       this.validateAttributeValue(graph, type.modelId, instance.id, attribute, value, attributePath, diagnostics);
@@ -193,7 +194,8 @@ export class InstanceValueValidator {
         );
       }
     } else {
-      const dataType: ResolvedElement<DataType> | undefined = graph.resolveDataType(modelId, attribute.typeId);
+      const contextId: Id = ModelRef.isQualified(attribute.typeId) ? this.graphContext.instances.modelId : modelId;
+      const dataType: ResolvedElement<DataType> | undefined = graph.resolveDataType(contextId, attribute.typeId);
 
       if (dataType) this.validateDataTypeValue(dataType, instanceId, attribute, value, path, diagnostics);
     }

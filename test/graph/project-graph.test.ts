@@ -271,3 +271,26 @@ void test('reports duplicate ids on nested model elements', (): void => {
   if (result.ok) return;
   assert.ok(result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'DUPLICATE_ELEMENT_ID'));
 });
+
+void test('a root import does not give a sibling model access to another sibling', (): void => {
+  const left: Model = model('leftSibling000001', [], [node('leftNode00000001')]);
+  const right: Model = model('rightSibling00001', [], [node('rightNode0000001')]);
+  const root: Model = model('siblingRoot000001', [left.id, right.id]);
+  const valid: ProjectGraphResult = buildProjectGraph({ rootModelId: root.id, models: [root, left, right] });
+  assert.ok(valid.ok);
+  assert.equal(valid.graph.resolveNode(left.id, `${right.id}:rightNode0000001`), undefined);
+  assert.ok(valid.graph.resolveNode(root.id, `${right.id}:rightNode0000001`));
+
+  const classifier: Node = left.classifiers[0] as Node;
+  classifier.superTypes = [`${right.id}:rightNode0000001`];
+  const invalid: ProjectGraphResult = buildProjectGraph({ rootModelId: root.id, models: [root, left, right] });
+  assert.equal(invalid.ok, false);
+  assert.ok(
+    invalid.diagnostics.some(
+      (item: Diagnostic): boolean =>
+        item.code === 'REFERENCE_MODEL_NOT_REACHABLE' &&
+        item.severity === 'error' &&
+        item.path?.endsWith('/superTypes/0') === true,
+    ),
+  );
+});

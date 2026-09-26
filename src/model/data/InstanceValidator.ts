@@ -17,7 +17,7 @@ export class InstanceValidator {
   public constructor(private readonly constraints: ConstraintRegistry = ConstraintRegistry.createDefault()) {}
 
   /**
-   * Validates a complete instance graph, including values, endpoints, and lower and upper cardinalities.
+   * Validates a complete instance graph against the graph root, including values, endpoints and cardinalities.
    * Callers must not pass a database page or partial update because absence has model-level meaning.
    */
   public validate(graph: ProjectGraph, input: unknown, options: InstanceValidationOptions = {}): ValidationResult {
@@ -36,7 +36,23 @@ export class InstanceValidator {
       };
     }
 
-    const instance: ModelInstanceGraph = input;
+    if (input.modelId !== graph.getRootModel().id) {
+      return {
+        hasErrors: true,
+        diagnostics: [
+          Diagnostics.error({
+            code: VALIDATION_ERROR.INSTANCE_MODEL_MISMATCH,
+            message: `Expected data for model '${graph.getRootModel().id}', received '${input.modelId}'.`,
+            path: DiagnosticPath.root().property('modelId'),
+            ref: input.modelId,
+          }),
+        ],
+      };
+    }
+    return this.validateData(graph, input, options);
+  }
+
+  private validateData(graph: ProjectGraph, instance: ModelInstanceGraph, options: InstanceValidationOptions): ValidationResult {
     const diagnostics: Diagnostic[] = [];
     const values: InstanceValueValidator = new InstanceValueValidator(
       this.constraints,

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  Modeler,
+  RamenModel,
+  RAMEN_MODEL,
+  DiagnosticPath,
   ConstraintRegistry,
   Diagnostics,
   MODEL_INSTANCES_SCHEMA_URI,
@@ -203,3 +207,46 @@ function registerPlaceLinkRule(registry: ConstraintRegistry, rule: Constraint): 
     },
   });
 }
+
+void test('data cannot select an ancestor or unknown model to bypass the chosen context', (): void => {
+  const base: Modeler = Modeler.create('Documents');
+  const project: Modeler = base.createNextLevel('Edition');
+  const ramen: RamenModel = RamenModel.create('Correspondence');
+  const cases: readonly [Modeler | RamenModel, string][] = [
+    [project, base.getModel().id],
+    [project, 'missingModel0001'],
+    [ramen, RAMEN_MODEL.id],
+    [ramen, 'missingModel0001'],
+  ];
+
+  for (const [target, modelId] of cases) {
+    const result: ValidationResult = target.validateInstances({ modelId, nodes: [], relations: [] });
+    assert.equal(result.hasErrors, true);
+    assert.equal(result.diagnostics[0]?.code, 'INSTANCE_MODEL_MISMATCH');
+    assert.equal(result.diagnostics[0]?.path, '/modelId');
+    assert.equal(result.diagnostics[0]?.severity, 'error');
+  }
+  assert.equal(project.validateInstances({ modelId: project.getModel().id, nodes: [], relations: [] }).hasErrors, false);
+});
+
+void test('diagnostic paths escape slashes and tildes in data property names', (): void => {
+  const path: DiagnosticPath = DiagnosticPath.root().property('properties').property('a/b~c');
+  assert.equal(path.toString(), '/properties/a~1b~0c');
+  assert.equal(DiagnosticPath.root().property('nodes').index(2).toString(), '/nodes/2');
+});
+
+void test('optional properties named like Object members are absent unless declared in the data', (): void => {
+  const project: Modeler = Modeler.create('Documents');
+  const document: Node = project.createNode('Document').element;
+  project.createAttribute(document, { name: 'toString', typeId: 'String' });
+  const input: ModelInstanceGraph = {
+    modelId: project.getModel().id,
+    nodes: [{ id: 'documentRecord01', typeId: document.id, properties: {} }],
+    relations: [],
+  };
+  assert.equal(project.validateInstances(input).hasErrors, false);
+  assert.equal(
+    project.validateInstances({ ...input, nodes: [{ ...input.nodes[0], properties: { toString: 4 } }] }).hasErrors,
+    true,
+  );
+});

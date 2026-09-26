@@ -34,7 +34,7 @@ export function createModelBundle(rootModelId: Id, models: readonly Model[]): Cr
 }
 
 /**
- * Validates an unknown bundle value and restores its separate RAMEN models.
+ * Validates an unknown bundle value and restores its separate RMF models.
  *
  * @throws Error when the envelope, contained models, or project graph is invalid.
  */

@@ -315,3 +315,101 @@ void test('annotation advice exposes selected properties, carrier relations and 
   assert.deepEqual(next.suggestAnnotationsForNode(fixture.image, refined), []);
   assert.equal(next.validate().valid, true);
 });
+
+void test('changing returned annotation advice cannot change later advice or validation', (): void => {
+  const fixture: MediaModel = mediaModel();
+  fixture.project.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'region',
+    properties: [width()],
+    relations: [{ relationId: fixture.imageLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  const property: PropertyAdvice | undefined = fixture.project.suggestAttributesForAnnotation(
+    RAMEN_ELEMENT.ANNOTATION,
+    'region',
+  )[0];
+  const relation: RelationAdvice | undefined = fixture.project.suggestRelationsForAnnotation(
+    RAMEN_ELEMENT.ANNOTATION,
+    'region',
+  )[0];
+  assert.ok(property);
+  assert.ok(relation);
+  property.suggestedBounds.lowerBound = 99;
+  relation.suggestedBounds.lowerBound = 99;
+
+  assert.equal(
+    fixture.project.suggestAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0]?.suggestedBounds.lowerBound,
+    1,
+  );
+  assert.equal(
+    fixture.project.suggestRelationsForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0]?.suggestedBounds.lowerBound,
+    1,
+  );
+  assert.equal(fixture.project.validate().valid, true);
+});
+
+function manyAnnotations(fixture: MediaModel, count: number): ModelInstanceGraph {
+  const nodes: ModelInstanceNode[] = [
+    { id: 'imageRecord00001', typeId: fixture.image.id, properties: { uuid: 'abac88bd-b3e3-418a-8afe-6ac14409b9a1' } },
+  ];
+  const relations: ModelInstanceRelation[] = [];
+  for (let index: number = 0; index < count; index += 1) {
+    const id: string = `annotation${String(index).padStart(16, '0')}`;
+    nodes.push({
+      id,
+      typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
+      properties: { uuid: 'abac88bd-b3e3-418a-8afe-6ac14409b9a1', type: 'region', width: 20 },
+    });
+    relations.push({
+      id: `link${String(index).padStart(16, '0')}`,
+      typeId: fixture.imageLink.id,
+      fromId: 'imageRecord00001',
+      toId: id,
+    });
+  }
+  return { modelId: fixture.project.getModel().id, nodes, relations };
+}
+
+void test('1000 annotations on an unchanged Annotation node retain carrier and property checks after exchange', (): void => {
+  const fixture: MediaModel = mediaModel();
+  fixture.project.createAnnotation({
+    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'region',
+    properties: [width()],
+    relations: [{ relationId: fixture.imageLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  const restored: RamenModel = RamenModel.import(fixture.project.export());
+  const data: ModelInstanceGraph = manyAnnotations(fixture, 1000);
+  assert.equal(restored.validateInstances(data).hasErrors, false);
+  assert.deepEqual(restored.suggestAnnotationsForNode(fixture.text), []);
+  assert.equal(restored.suggestAnnotationsForNode(fixture.image)[0]?.type, 'region');
+
+  const missing: ModelInstanceGraph = { ...data, relations: data.relations.slice(1) };
+  assert.ok(
+    restored
+      .validateInstances(missing)
+      .diagnostics.some(
+        (item: Diagnostic): boolean =>
+          item.code === 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY' && item.ref === data.nodes[1]?.id,
+      ),
+  );
+});
+
+void test('a type-owned custom datatype resolves in the project when Annotation is reused unchanged', (): void => {
+  const project: RamenModel = RamenModel.create('Media');
+  const count: DataType = project.createDataType({ name: 'Count', baseType: 'Integer' }).element;
+  const property: Attribute = ModelFactory.createAttribute({
+    name: 'width',
+    typeId: count.id,
+    bounds: { lowerBound: 1, upperBound: 1 },
+  });
+  project.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'region', properties: [property] });
+  const restored: RamenModel = RamenModel.import(project.export());
+  assert.equal(restored.validate().valid, true);
+  assert.equal(restored.validateInstances(annotationData(restored, { type: 'region', width: 2 })).hasErrors, false);
+  assert.ok(
+    restored
+      .validateInstances(annotationData(restored, { type: 'region', width: 'wrong' }))
+      .diagnostics.some((item: Diagnostic): boolean => item.code === 'INSTANCE_PROPERTY_TYPE_INVALID'),
+  );
+});

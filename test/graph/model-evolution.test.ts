@@ -72,3 +72,28 @@ void test('ignores JSON object key order while comparing unchanged elements', ()
 
   assert.deepEqual(report.changes, []);
 });
+
+void test('moving an unchanged attribute to another node is an observable change', (): void => {
+  const before: Model = model('movingModel00001');
+  const left: Node = node('movingLeft000001', 'Left');
+  const right: Node = node('movingRight00001', 'Right');
+  const title: Attribute = attribute('movingTitle00001', 'title', 'String');
+  left.attributes.push(title);
+  before.classifiers.push(left, right);
+
+  const after: Model = structuredClone(before);
+  (after.classifiers[0] as Node).attributes = [];
+  (after.classifiers[1] as Node).attributes = [structuredClone(title)];
+  const changes: readonly EvolutionChange[] = ModelEvolution.compareChanges([before], [after]);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.elementId, title.id);
+  assert.equal(changes[0]?.ownerId, right.id);
+  assert.equal(changes[0]?.action, 'changed');
+});
+
+void test('JSON comparison preserves ordinary __proto__ keys from parsed documents', (): void => {
+  const left: unknown = JSON.parse('{"__proto__":{"label":"before"}}');
+  const right: unknown = JSON.parse('{"__proto__":{"label":"after"}}');
+  assert.equal(ModelEvolution.sameJson(left, right), false);
+  assert.equal(ModelEvolution.sameJson(left, JSON.parse(JSON.stringify(left)) as unknown), true);
+});

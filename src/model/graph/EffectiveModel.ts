@@ -50,7 +50,11 @@ export class EffectiveModel {
     };
   }
 
-  /** Returns relations whose source or target accepts the node or one of its supertypes. */
+  /**
+   * Lists structurally applicable relations across all reachable models.
+   * This is an inspection view, not permission to use a relation at the current level.
+   * Use ModelAdvisor or ModelRelationScope for level-specific choices.
+   */
   public static getApplicableRelations(graph: ProjectGraph, modelId: Id, nodeId: Id): readonly ApplicableRelation[] {
     const effective: EffectiveNode | undefined = this.resolveNode(graph, modelId, nodeId);
     if (!effective) return [];

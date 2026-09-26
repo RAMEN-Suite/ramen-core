@@ -62,7 +62,7 @@ export interface ConnectedNode {
   readonly relations: readonly Relation[];
 }
 
-/** Creates valid RAMEN model elements with stable identifiers and empty extension data. */
+/** Creates RMF model elements with stable identifiers and empty extension data. */
 export class ModelFactory {
   /** Creates a new generic base model without imports. */
   public static createRootModel(input: CreateModelInput): Model {
@@ -115,7 +115,7 @@ export class ModelFactory {
       id: this.createIdentifier(),
       name: input.name,
       typeId: input.typeId,
-      bounds: input.bounds,
+      bounds: { ...input.bounds },
       isKey: input.isKey ?? false,
       isReadOnly: input.isReadOnly ?? false,
       isUnique: input.isUnique ?? true,
@@ -189,7 +189,9 @@ export class ModelFactory {
     const related: Relation[] = [];
 
     for (const relation of model.relations) {
-      const isRelevant: boolean = relation.from.nodeId === sourceNodeId || relation.to.nodeId === sourceNodeId;
+      const isRelevant: boolean =
+        ModelRef.matches(relation.from.nodeId, model.id, sourceNodeId) ||
+        ModelRef.matches(relation.to.nodeId, model.id, sourceNodeId);
 
       if (!isRelevant) continue;
       const clonedRelation: Relation = structuredClone(relation);
@@ -197,8 +199,8 @@ export class ModelFactory {
       clonedRelation.from.id = this.createIdentifier();
       clonedRelation.to.id = this.createIdentifier();
 
-      if (clonedRelation.from.nodeId === sourceNodeId) clonedRelation.from.nodeId = clonedNode.id;
-      if (clonedRelation.to.nodeId === sourceNodeId) clonedRelation.to.nodeId = clonedNode.id;
+      if (ModelRef.matches(clonedRelation.from.nodeId, model.id, sourceNodeId)) clonedRelation.from.nodeId = clonedNode.id;
+      if (ModelRef.matches(clonedRelation.to.nodeId, model.id, sourceNodeId)) clonedRelation.to.nodeId = clonedNode.id;
 
       const constraintFn: (constraint: Constraint) => Constraint = (constraint: Constraint): Constraint => {
         return { ...constraint, id: this.createIdentifier() };

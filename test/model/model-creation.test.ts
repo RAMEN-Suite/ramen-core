@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelFactory, RAMEN_MODEL, ModelRef, ModelSchemaValidator } from '../../dist/index.js';
-import type { Attribute, DataType, Literal, Model, Node, Relation, RelationEnd } from '../../dist/index.js';
+import { ModelFactory, RAMEN_MODEL, ModelRef, ModelSchemaValidator, ModelNames } from '../../dist/index.js';
+import type {
+  Bounds,
+  Constraint,
+  ConnectedNode,
+  Attribute,
+  DataType,
+  Literal,
+  Model,
+  Node,
+  Relation,
+  RelationEnd,
+} from '../../dist/index.js';
 
 const projectInput: { uri: string; id: string; name: string; version: string } = {
   uri: 'https://example.org/project',
@@ -91,4 +102,68 @@ void test('createRelationEnd creates an identifiable relation end', (): void => 
   assert.equal(end.id.length, 16);
   assert.equal(end.nodeId, 'localNode000001');
   assert.deepEqual(end.bounds, { lowerBound: 0, upperBound: -1 });
+});
+
+void test('factory attributes detach caller bounds and names respect their length limits', (): void => {
+  const bounds: Bounds = { lowerBound: 0, upperBound: 1 };
+  const attribute: Attribute = ModelFactory.createAttribute({ name: 'title', typeId: 'String', bounds });
+  bounds.lowerBound = 1;
+  assert.equal(attribute.bounds.lowerBound, 0);
+
+  const numeric: string = '1'.repeat(60);
+  assert.equal(ModelNames.toPascalName(numeric).length, 40);
+  assert.equal(ModelNames.toCamelName(numeric).length, 32);
+  assert.equal(ModelNames.toScreamedName(numeric).length, 32);
+  assert.match(ModelNames.toScreamedName(''), /^[A-Z]/);
+});
+
+void test('duplicateConnectedNode redirects qualified self-relations without touching the original', (): void => {
+  const model: Model = ModelFactory.createRootModel({ ...projectInput, id: 'duplicateModel001' });
+  const source: Node = { kind: 'Node', id: 'duplicateNode0001', name: 'Document', superTypes: [], attributes: [] };
+  const reference: string = ModelRef.qualify(model.id, source.id);
+  const relation: Relation = {
+    kind: 'Relation',
+    id: 'duplicateLink0001',
+    name: 'RELATED',
+    superTypes: [],
+    from: ModelFactory.createRelationEnd(reference, 'source', { lowerBound: 0, upperBound: -1 }),
+    to: ModelFactory.createRelationEnd(reference, 'target', { lowerBound: 0, upperBound: -1 }),
+  };
+  model.classifiers.push(source);
+  model.relations.push(relation);
+
+  const copy: ConnectedNode = ModelFactory.duplicateConnectedNode(model, source.id);
+  assert.equal(copy.relations.length, 1);
+  assert.equal(copy.relations[0]?.from.nodeId, copy.node.id);
+  assert.equal(copy.relations[0]?.to.nodeId, copy.node.id);
+  assert.notEqual(copy.relations[0]?.from.id, relation.from.id);
+  assert.equal(model.relations[0]?.from.nodeId, reference);
+});
+
+void test('node duplication renews identifiers of attributes and all owned constraints', (): void => {
+  const rule: Constraint = { id: 'originalRule0001', name: 'Uppercase', language: 'regex', expression: '^[A-Z]' };
+  const field: Attribute = ModelFactory.createAttribute({
+    name: 'title',
+    typeId: 'String',
+    bounds: { lowerBound: 0, upperBound: 1 },
+  });
+  field.constraints = [rule];
+  const source: Node = {
+    kind: 'Node',
+    id: 'originalNode0001',
+    name: 'Letter',
+    superTypes: [],
+    attributes: [field],
+    constraints: [{ ...rule, id: 'nodeRule00000001' }],
+  };
+  const copy: Node = ModelFactory.duplicateNode(source);
+  const copiedField: Attribute | undefined = copy.attributes[0];
+  const copiedRule: Constraint | undefined = copiedField?.constraints?.[0];
+  assert.ok(copiedField);
+  assert.ok(copiedRule);
+  assert.notEqual(copiedField.id, field.id);
+  assert.notEqual(copiedRule.id, rule.id);
+  assert.notEqual(copy.constraints?.[0]?.id, 'nodeRule00000001');
+  assert.equal(copiedRule.expression, rule.expression);
+  assert.equal(source.attributes[0]?.id, field.id);
 });

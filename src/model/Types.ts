@@ -11,7 +11,7 @@ export type BuiltinType = 'String' | 'Boolean' | 'Integer' | 'Float';
 /** Reference to a built-in or declared data type. */
 export type TypeRef = Ref;
 
-/** Versioned RAMEN model containing classifiers, relations, and imports. */
+/** Versioned RMF model containing classifiers, relations, and imports. */
 export interface Model {
   $schema: string;
   $id: string;
@@ -25,7 +25,7 @@ export interface Model {
   ext?: Record<string, unknown>;
 }
 
-/** Exact dependency on another versioned RAMEN model. */
+/** Exact dependency on another versioned RMF model. */
 export interface Import {
   /** Canonical URI (`$id`) of the imported model document. */
   modelUri: string;

@@ -88,8 +88,8 @@ export class AnnotationAdvisor {
         attributeId: attribute.id,
         ref: modelId === contextModelId ? attribute.id : ModelRef.qualify(modelId, attribute.id),
         name: attribute.name,
-        modeledBounds: attribute.bounds,
-        suggestedBounds: attribute.bounds,
+        modeledBounds: { ...attribute.bounds },
+        suggestedBounds: { ...attribute.bounds },
         cardinalityOptions: this.cardinalityOptions(attribute.bounds),
       };
     });
@@ -192,7 +192,7 @@ export class AnnotationAdvisor {
   private applyRequirement(choice: RelationAdvice, requirement: AnnotationRelation, modelId: Id): RelationAdvice {
     const selected: RelationAdvice = {
       ...choice,
-      suggestedBounds: requirement.bounds,
+      suggestedBounds: { ...requirement.bounds },
       cardinalityOptions: this.cardinalityOptions(requirement.bounds),
     };
     if (!requirement.alternatives) return selected;

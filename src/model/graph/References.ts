@@ -8,7 +8,7 @@ export interface QualifiedParts {
   readonly refId: Id;
 }
 
-/** Creates and parses references between RAMEN model elements. */
+/** Creates and parses references between RMF model elements. */
 export class ModelRef {
   /** Reports whether a reference contains both a model and element identifier. */
   public static isQualified(ref: Ref): boolean {

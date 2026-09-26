@@ -27,6 +27,7 @@ interface GraphBuildState {
   readonly reachableModelIds: Set<Id>;
   readonly indexesByModelId: Map<Id, ModelElementIndex>;
   readonly diagnostics: Diagnostic[];
+  readonly visibleModels: Map<Id, ReadonlySet<Id>>;
 }
 
 /**
@@ -44,6 +45,7 @@ export function buildProjectGraph(input: ProjectGraphInput): ProjectGraphResult 
     reachableModelIds: new Set<Id>(),
     indexesByModelId: new Map<Id, ModelElementIndex>(),
     diagnostics: [],
+    visibleModels: new Map<Id, ReadonlySet<Id>>(),
   };
 
   registerModels(input.models, state);
@@ -287,9 +289,14 @@ function validateModelRef(
     ? ModelRef.splitQualified(reference)
     : { modelId: ownerModelId, refId: reference };
 
-  if (!state.reachableModelIds.has(target.modelId)) {
+  if (!visibleModels(ownerModelId, state).has(target.modelId)) {
     state.diagnostics.push(
-      error('REFERENCE_MODEL_NOT_REACHABLE', `Reference target model is not reachable: '${target.modelId}'.`, path, reference),
+      error(
+        'REFERENCE_MODEL_NOT_REACHABLE',
+        `Reference target model '${target.modelId}' is not imported by '${ownerModelId}'.`,
+        path,
+        reference,
+      ),
     );
 
     return;
@@ -311,6 +318,22 @@ function validateModelRef(
       ),
     );
   }
+}
+
+function visibleModels(modelId: Id, state: GraphBuildState): ReadonlySet<Id> {
+  const cached: ReadonlySet<Id> | undefined = state.visibleModels.get(modelId);
+  if (cached) return cached;
+  const visible: Set<Id> = new Set<Id>();
+  const pending: Id[] = [modelId];
+
+  for (const id of pending) {
+    if (visible.has(id)) continue;
+    visible.add(id);
+    const model: Model | undefined = state.modelsById.get(id);
+    for (const imported of model?.imports ?? []) pending.push(imported.modelId);
+  }
+  state.visibleModels.set(modelId, visible);
+  return visible;
 }
 
 function validateInheritanceCycles(state: GraphBuildState): void {

@@ -119,3 +119,22 @@ void test('keeps first-class annotations when a project is bundled and split', (
   assert.deepEqual((restoredProject as RamenModelDocument | undefined)?.annotations, model.annotations);
   assert.equal(restoredProject?.ext?.ramen, undefined);
 });
+
+void test('standalone RAMEN schema assertions accept complete documents and explain malformed input', (): void => {
+  const project: RamenModel = createProject();
+  assert.doesNotThrow((): void => {
+    RamenProjectSchemaValidator.assertValid(project.getModel());
+  });
+  assert.doesNotThrow((): void => {
+    RamenAnnotationSchemaValidator.assertValid({ annotations: [] });
+  });
+  assert.throws((): void => {
+    RamenProjectSchemaValidator.assertValid({});
+  }, /Invalid RAMEN project model/);
+  assert.throws((): void => {
+    RamenAnnotationSchemaValidator.assertValid({ annotations: [{}] });
+  }, /RAMEN schema validation failed/);
+  assert.throws((): void => {
+    RamenModel.importBundle({});
+  }, /Invalid RAMEN project bundle envelope/);
+});

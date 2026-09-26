@@ -6,7 +6,7 @@ import type {
   AnnotationSuggestion,
   Attribute,
   DataType,
-  RamenAnnotationRelation,
+  AnnotationRelation,
   AttributeSuggestion,
   Diagnostic,
   ModelInstanceGraph,
@@ -243,7 +243,7 @@ void test('alternative groups reject duplicate relations, invalid endpoints and 
     fixture.text,
     fixture.project.createNode({ name: 'Page', refines: RAMEN_ELEMENT.COLLECTION }).element,
   ).element;
-  const variants: readonly RamenAnnotationRelation[] = [
+  const variants: readonly AnnotationRelation[] = [
     {
       relationId: fixture.textLink.id,
       alternatives: [fixture.textLink.id],

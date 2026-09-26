@@ -1,12 +1,12 @@
 import { ModelRelationScope, RelationSelections } from './graph/RelationScope';
 import { ModelRef } from './graph/References';
-import { ProjectGraph, ResolvedModelElement } from './graph/ProjectGraph';
+import { ProjectGraph, ResolvedElement } from './graph/ProjectGraph';
 import { BuiltinDataTypes } from './Builtins';
 import type { Bounds, BuiltinType, Attribute, DataType, Model, Node, Relation, Id, Ref } from './Types';
 import type { ValidProjectResult } from './validation/ModelValidator';
 
 /** One node type that a new project node can refine. */
-export interface NodeRefinementSuggestion {
+export interface NodeSuggestion {
   readonly modelId: Id;
   readonly nodeId: Id;
   readonly ref: Ref;
@@ -23,7 +23,7 @@ export interface DataTypeSuggestion {
 }
 
 /** One relation compatible with two selected project node types. */
-export interface RelationRefinementSuggestion {
+export interface RelationSuggestion {
   readonly modelId: Id;
   readonly relationId: Id;
   readonly ref: Ref;
@@ -89,10 +89,10 @@ export class ModelAdvisor {
   }
 
   /** Lists imported node types that can be refined by a new node in the selected model. */
-  public suggestNodeRefinements(modelId: Id): readonly NodeRefinementSuggestion[] {
+  public suggestNodeRefinements(modelId: Id): readonly NodeSuggestion[] {
     return this.importedModels(modelId)
-      .flatMap((model: Model): NodeRefinementSuggestion[] =>
-        model.classifiers.flatMap((classifier): NodeRefinementSuggestion[] => {
+      .flatMap((model: Model): NodeSuggestion[] =>
+        model.classifiers.flatMap((classifier): NodeSuggestion[] => {
           if (classifier.kind !== 'Node') return [];
           return [
             {
@@ -104,7 +104,7 @@ export class ModelAdvisor {
           ];
         }),
       )
-      .sort((left: NodeRefinementSuggestion, right: NodeRefinementSuggestion): number => left.name.localeCompare(right.name));
+      .sort((left: NodeSuggestion, right: NodeSuggestion): number => left.name.localeCompare(right.name));
   }
 
   /** Lists primitive and reachable declared data types available to an attribute. */
@@ -133,13 +133,13 @@ export class ModelAdvisor {
 
   /** Returns the refinement lineage, effective attributes, and possible relations for one local or imported node. */
   public adviseNode(modelId: Id, nodeId: Id): NodeAdvice | undefined {
-    const actual: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, nodeId);
+    const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return undefined;
-    const ancestors: ResolvedModelElement<Node>[] = [...this.graph.getNodeAncestors(actual.modelId, actual.element.id)].reverse();
-    const lineage: readonly ResolvedModelElement<Node>[] = [...ancestors, actual];
+    const ancestors: ResolvedElement<Node>[] = [...this.graph.getNodeAncestors(actual.modelId, actual.element.id)].reverse();
+    const lineage: readonly ResolvedElement<Node>[] = [...ancestors, actual];
 
     return {
-      lineage: lineage.map((item: ResolvedModelElement<Node>): NodeLineageItem => this.lineageItem(item, modelId)),
+      lineage: lineage.map((item: ResolvedElement<Node>): NodeLineageItem => this.lineageItem(item, modelId)),
       attributes: this.attributeSuggestions(lineage, actual),
       relations: this.nodeRelationSuggestions(modelId, actual),
     };
@@ -147,9 +147,9 @@ export class ModelAdvisor {
 
   /** Lists all inherited and local attributes visible on one node. */
   public suggestAttributes(modelId: Id, nodeId: Id): readonly AttributeSuggestion[] {
-    const actual: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, nodeId);
+    const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
-    const ancestors: readonly ResolvedModelElement<Node>[] = [
+    const ancestors: readonly ResolvedElement<Node>[] = [
       ...this.graph.getNodeAncestors(actual.modelId, actual.element.id),
     ].reverse();
     return this.attributeSuggestions([...ancestors, actual], actual);
@@ -157,7 +157,7 @@ export class ModelAdvisor {
 
   /** Lists possible incoming and outgoing connections for one local or imported node. */
   public suggestConnections(modelId: Id, nodeId: Id): readonly NodeRelationSuggestion[] {
-    const actual: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, nodeId);
+    const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     return actual ? this.nodeRelationSuggestions(modelId, actual) : [];
   }
 
@@ -173,14 +173,14 @@ export class ModelAdvisor {
   }
 
   /** Lists imported relations whose endpoint types accept the selected source and target nodes. */
-  public suggestRelations(modelId: Id, fromNodeId: Id, toNodeId: Id): readonly RelationRefinementSuggestion[] {
-    const from: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, fromNodeId);
-    const to: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, toNodeId);
+  public suggestRelations(modelId: Id, fromNodeId: Id, toNodeId: Id): readonly RelationSuggestion[] {
+    const from: ResolvedElement<Node> | undefined = this.resolveNode(modelId, fromNodeId);
+    const to: ResolvedElement<Node> | undefined = this.resolveNode(modelId, toNodeId);
 
     if (!from || !to) return [];
     return this.relations
       .bases(modelId)
-      .flatMap((item: ResolvedModelElement<Relation>): RelationRefinementSuggestion[] => {
+      .flatMap((item: ResolvedElement<Relation>): RelationSuggestion[] => {
         const relation: Relation = item.element;
         if (!this.graph.acceptsNode(item.modelId, relation.from.nodeId, from)) return [];
         if (!this.graph.acceptsNode(item.modelId, relation.to.nodeId, to)) return [];
@@ -195,9 +195,7 @@ export class ModelAdvisor {
           },
         ];
       })
-      .sort((left: RelationRefinementSuggestion, right: RelationRefinementSuggestion): number =>
-        left.name.localeCompare(right.name),
-      );
+      .sort((left: RelationSuggestion, right: RelationSuggestion): number => left.name.localeCompare(right.name));
   }
 
   protected importedModels(modelId: Id): readonly Model[] {
@@ -205,10 +203,10 @@ export class ModelAdvisor {
   }
 
   private attributeSuggestions(
-    lineage: readonly ResolvedModelElement<Node>[],
-    actual: ResolvedModelElement<Node>,
+    lineage: readonly ResolvedElement<Node>[],
+    actual: ResolvedElement<Node>,
   ): readonly AttributeSuggestion[] {
-    return lineage.flatMap((owner: ResolvedModelElement<Node>): AttributeSuggestion[] =>
+    return lineage.flatMap((owner: ResolvedElement<Node>): AttributeSuggestion[] =>
       owner.element.attributes.map((attribute: Attribute): AttributeSuggestion => ({
         attributeId: attribute.id,
         name: attribute.name,
@@ -225,7 +223,7 @@ export class ModelAdvisor {
     );
   }
 
-  protected nodeRelationSuggestions(modelId: Id, actual: ResolvedModelElement<Node>): readonly NodeRelationSuggestion[] {
+  protected nodeRelationSuggestions(modelId: Id, actual: ResolvedElement<Node>): readonly NodeRelationSuggestion[] {
     const suggestions: NodeRelationSuggestion[] = [];
     for (const item of this.relations.available(modelId)) {
       const owner: Model | undefined = this.graph.getModel(item.modelId);
@@ -252,13 +250,13 @@ export class ModelAdvisor {
     direction: 'outgoing' | 'incoming',
   ): NodeRelationSuggestion | undefined {
     const targetRef: Ref = direction === 'outgoing' ? relation.to.nodeId : relation.from.nodeId;
-    const target: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
+    const target: ResolvedElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
 
     if (!target) return undefined;
     const compatibleTargetNodeIds: Ref[] = this.graph
       .getAvailableNodes(modelId)
-      .filter((candidate: ResolvedModelElement<Node>): boolean => this.graph.acceptsNode(owner.id, targetRef, candidate))
-      .map((candidate: ResolvedModelElement<Node>): Ref =>
+      .filter((candidate: ResolvedElement<Node>): boolean => this.graph.acceptsNode(owner.id, targetRef, candidate))
+      .map((candidate: ResolvedElement<Node>): Ref =>
         candidate.modelId === modelId ? candidate.element.id : ModelRef.qualify(candidate.modelId, candidate.element.id),
       );
 
@@ -275,7 +273,7 @@ export class ModelAdvisor {
     };
   }
 
-  private lineageItem(item: ResolvedModelElement<Node>, ownerModelId: Id): NodeLineageItem {
+  private lineageItem(item: ResolvedElement<Node>, ownerModelId: Id): NodeLineageItem {
     return {
       modelId: item.modelId,
       nodeId: item.element.id,
@@ -284,7 +282,7 @@ export class ModelAdvisor {
     };
   }
 
-  protected resolveNode(modelId: Id, nodeId: Id): ResolvedModelElement<Node> | undefined {
+  protected resolveNode(modelId: Id, nodeId: Id): ResolvedElement<Node> | undefined {
     return this.graph.resolveNode(modelId, nodeId);
   }
 }

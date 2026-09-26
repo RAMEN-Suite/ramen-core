@@ -21,7 +21,7 @@ import type {
   UpdateRelationInput,
   ValidationResult,
 } from '../model/index';
-import { RamenAnnotation, RamenAnnotationProperty, RamenAnnotationRelation, RamenAnnotations } from './annotations/Definitions';
+import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions';
 import { RamenModelFormat } from './model/Document';
 import type { RamenModelDocument } from './model/Document';
 import { RAMEN_MODEL } from './model/ReferenceModel';
@@ -29,7 +29,7 @@ import { RamenValidator } from './validation/ModelValidator';
 import { RamenInstanceValidator } from './validation/InstanceValidator';
 import type { AnnotationPropertyAdvice } from './annotations/Advisor';
 import { RamenAdvisor } from './Advisor';
-import type { AnnotationSuggestion, AttributeSuggestion, RelationRefinementSuggestion } from './Advisor';
+import type { AnnotationSuggestion, AttributeSuggestion, RelationSuggestion } from './Advisor';
 import { createRamenBundle, parseRamenBundle } from './exchange/Bundle';
 import type { CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
 import { RamenEvolution } from './exchange/Comparison';
@@ -65,15 +65,15 @@ export interface CreateRamenRelationInput {
 export interface CreateRamenAnnotationInput {
   readonly annotationId: RamenRef;
   readonly type: string;
-  readonly properties?: readonly RamenAnnotationProperty[];
-  readonly relations?: readonly RamenAnnotationRelation[];
+  readonly properties?: readonly AnnotationProperty[];
+  readonly relations?: readonly AnnotationRelation[];
 }
 
 /** Editable fields of a locally declared annotation definition. */
 export interface UpdateRamenAnnotationInput {
   readonly type?: string;
-  readonly properties?: readonly RamenAnnotationProperty[];
-  readonly relations?: readonly RamenAnnotationRelation[];
+  readonly properties?: readonly AnnotationProperty[];
+  readonly relations?: readonly AnnotationRelation[];
 }
 
 /** Values of a named literal in a project-defined data type. */
@@ -208,7 +208,7 @@ export class RamenModel {
   }
 
   /** Lists relations that can connect two nodes in this model. */
-  public suggestRelations(fromNodeId: Id, toNodeId: Id): readonly RelationRefinementSuggestion[] {
+  public suggestRelations(fromNodeId: Id, toNodeId: Id): readonly RelationSuggestion[] {
     return this.createAdvisor().suggestRelations(this.model.id, this.nodeReference(fromNodeId), this.nodeReference(toNodeId));
   }
 
@@ -414,7 +414,7 @@ export class RamenModel {
   }
 
   /** Connects local nodes using a chosen suggestion, or infers the unique most specific relation. */
-  public connect(from: Node | Id, to: Node | Id, choice?: RelationRefinementSuggestion): RamenChange<Relation> {
+  public connect(from: Node | Id, to: Node | Id, choice?: RelationSuggestion): RamenChange<Relation> {
     return this.connectBy(from, to, choice);
   }
 
@@ -441,7 +441,7 @@ export class RamenModel {
   private connectBy(
     from: Node | Id,
     to: Node | Id,
-    choice?: RelationRefinementSuggestion,
+    choice?: RelationSuggestion,
     family?: RamenRelationKind,
   ): RamenChange<Relation> {
     const fromNodeId: Id = this.nodeReference(typeof from === 'string' ? from : from.id);
@@ -449,28 +449,23 @@ export class RamenModel {
     const validation: ProjectValidationResult = this.validate();
     if (!validation.valid) throw new Error('Cannot infer a relation from an invalid RAMEN model.');
 
-    const compatible: readonly RelationRefinementSuggestion[] = this.createAdvisor().suggestRelations(
-      this.model.id,
-      fromNodeId,
-      toNodeId,
-    );
-    const suggestions: readonly RelationRefinementSuggestion[] = family
-      ? compatible.filter((candidate: RelationRefinementSuggestion): boolean =>
+    const compatible: readonly RelationSuggestion[] = this.createAdvisor().suggestRelations(this.model.id, fromNodeId, toNodeId);
+    const suggestions: readonly RelationSuggestion[] = family
+      ? compatible.filter((candidate: RelationSuggestion): boolean =>
           this.belongsToRamenFamily(candidate, family, validation.graph),
         )
       : compatible;
-    const mostSpecific: readonly RelationRefinementSuggestion[] = this.mostSpecificRelations(suggestions, validation.graph);
+    const mostSpecific: readonly RelationSuggestion[] = this.mostSpecificRelations(suggestions, validation.graph);
 
-    const selected: RelationRefinementSuggestion | undefined = choice
+    const selected: RelationSuggestion | undefined = choice
       ? suggestions.find(
-          (item: RelationRefinementSuggestion): boolean =>
-            item.modelId === choice.modelId && item.relationId === choice.relationId,
+          (item: RelationSuggestion): boolean => item.modelId === choice.modelId && item.relationId === choice.relationId,
         )
       : mostSpecific[0];
 
     if (choice && !selected) throw new Error(`Selected relation '${choice.relationId}' does not connect these nodes.`);
     if ((!choice && mostSpecific.length !== 1) || !selected) {
-      const names: string = mostSpecific.map((item: RelationRefinementSuggestion): string => item.name).join(', ');
+      const names: string = mostSpecific.map((item: RelationSuggestion): string => item.name).join(', ');
       throw new Error(
         `Expected one relation for '${fromNodeId}' -> '${toNodeId}', found ${mostSpecific.length}${names ? `: ${names}` : ''}.`,
       );
@@ -478,7 +473,7 @@ export class RamenModel {
     return this.createRelation({ refines: selected.relationId, fromNodeId: fromNodeId, toNodeId: toNodeId });
   }
 
-  private belongsToRamenFamily(candidate: RelationRefinementSuggestion, family: RamenRelationKind, graph: ProjectGraph): boolean {
+  private belongsToRamenFamily(candidate: RelationSuggestion, family: RamenRelationKind, graph: ProjectGraph): boolean {
     return RAMEN_MODEL.relations.some(
       (base: Relation): boolean =>
         base.name === family &&
@@ -486,14 +481,11 @@ export class RamenModel {
     );
   }
 
-  private mostSpecificRelations(
-    suggestions: readonly RelationRefinementSuggestion[],
-    graph: ProjectGraph,
-  ): readonly RelationRefinementSuggestion[] {
+  private mostSpecificRelations(suggestions: readonly RelationSuggestion[], graph: ProjectGraph): readonly RelationSuggestion[] {
     return suggestions.filter(
-      (candidate: RelationRefinementSuggestion): boolean =>
+      (candidate: RelationSuggestion): boolean =>
         !suggestions.some(
-          (other: RelationRefinementSuggestion): boolean =>
+          (other: RelationSuggestion): boolean =>
             other !== candidate &&
             graph.isRelationRefSameOrSubtype(other.modelId, other.relationId, candidate.modelId, candidate.relationId),
         ),
@@ -592,15 +584,12 @@ export class RamenModel {
     return relation;
   }
 
-  private remainingRelations(
-    relations: readonly RamenAnnotationRelation[],
-    removed?: ReadonlySet<Id>,
-  ): readonly RamenAnnotationRelation[] {
-    return relations.flatMap((relation: RamenAnnotationRelation): RamenAnnotationRelation[] => {
+  private remainingRelations(relations: readonly AnnotationRelation[], removed?: ReadonlySet<Id>): readonly AnnotationRelation[] {
+    return relations.flatMap((relation: AnnotationRelation): AnnotationRelation[] => {
       const refs: readonly Id[] = RamenAnnotations.relationRefs(relation).filter((ref: Id): boolean => !removed?.has(ref));
       const relationId: Id | undefined = refs[0];
       if (!relationId) return [];
-      const { alternatives: _alternatives, ...rest }: RamenAnnotationRelation = relation;
+      const { alternatives: _alternatives, ...rest }: AnnotationRelation = relation;
       return [{ ...rest, relationId, ...(refs.length > 1 ? { alternatives: refs.slice(1) } : {}) }];
     });
   }
@@ -615,11 +604,10 @@ export class RamenModel {
         this.model = RamenAnnotations.remove(this.model, annotation.id);
         continue;
       }
-      const properties: readonly RamenAnnotationProperty[] = annotation.properties.filter(
-        (property: RamenAnnotationProperty): boolean =>
-          !('attributeId' in property) || property.attributeId !== input.attributeId,
+      const properties: readonly AnnotationProperty[] = annotation.properties.filter(
+        (property: AnnotationProperty): boolean => !('attributeId' in property) || property.attributeId !== input.attributeId,
       );
-      const relations: readonly RamenAnnotationRelation[] = this.remainingRelations(annotation.relations, input.relationIds);
+      const relations: readonly AnnotationRelation[] = this.remainingRelations(annotation.relations, input.relationIds);
 
       if (
         properties.length === annotation.properties.length &&

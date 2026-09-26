@@ -16,7 +16,7 @@ const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string,
 export type ConstraintTarget = 'node' | 'attribute' | 'dataType' | 'literal' | 'relation' | 'relationEnd';
 
 /** Complete model and data graph available during instance validation. */
-export interface ConstraintGraphContext {
+export interface ConstraintGraph {
   readonly project: ProjectGraph;
   readonly instances: ModelInstanceGraph;
 }
@@ -29,7 +29,7 @@ export interface ConstraintContext {
   readonly target: ConstraintTarget;
   readonly value: unknown;
   readonly path: DiagnosticPath;
-  readonly graph?: ConstraintGraphContext;
+  readonly graph?: ConstraintGraph;
 }
 
 /** Extension point for one safe, explicitly named constraint language. */
@@ -50,7 +50,7 @@ export class ConstraintRegistry {
 
   /** Creates the standard registry containing safe regular-expression and scalar-format evaluators. */
   public static createDefault(): ConstraintRegistry {
-    return new ConstraintRegistry([new RegexConstraintEvaluator(), new FormatConstraintEvaluator()]);
+    return new ConstraintRegistry([new RegexEvaluator(), new FormatEvaluator()]);
   }
 
   /** Registers an evaluator or throws when its language already exists. */
@@ -77,7 +77,7 @@ export class ConstraintRegistry {
 }
 
 /** Evaluates `regex` constraints without executing arbitrary model expressions. */
-export class RegexConstraintEvaluator implements ConstraintEvaluator {
+export class RegexEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'regex';
 
   /** Tests a string value against the constraint expression. */
@@ -123,7 +123,7 @@ export class RegexConstraintEvaluator implements ConstraintEvaluator {
 }
 
 /** Evaluates common JSON string formats without executing model-provided code. */
-export class FormatConstraintEvaluator implements ConstraintEvaluator {
+export class FormatEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'format';
 
   /** Validates standard JSON Schema string formats used by RAMEN model format data types. */

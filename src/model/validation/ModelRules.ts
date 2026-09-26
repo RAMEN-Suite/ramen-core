@@ -1,6 +1,6 @@
 import { Attribute, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
-import { ProjectGraph, ResolvedModelElement } from '../graph/ProjectGraph';
+import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelRelationScope, RelationSelections } from '../graph/RelationScope';
 import { Cardinality } from './Cardinality';
@@ -277,7 +277,7 @@ export class ModelRules {
 
     const superType: Ref | undefined = relation.superTypes[0];
     if (!superType) return;
-    const base: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(modelId, superType);
+    const base: ResolvedElement<Relation> | undefined = graph.resolveRelation(modelId, superType);
     if (!base) return;
     this.validateRelationRefinement(graph, modelId, relation, base, path, diagnostics);
   }
@@ -297,8 +297,8 @@ export class ModelRules {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const from: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, relation.from.nodeId);
-    const to: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, relation.to.nodeId);
+    const from: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, relation.from.nodeId);
+    const to: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, relation.to.nodeId);
 
     if (from) this.validateRoleAgainstNode(graph, from, relation.to.role, path.property('to').property('role'), diagnostics);
     if (to) this.validateRoleAgainstNode(graph, to, relation.from.role, path.property('from').property('role'), diagnostics);
@@ -306,7 +306,7 @@ export class ModelRules {
 
   private validateRoleAgainstNode(
     graph: ProjectGraph,
-    target: ResolvedModelElement<Node>,
+    target: ResolvedElement<Node>,
     role: string,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -328,7 +328,7 @@ export class ModelRules {
     graph: ProjectGraph,
     modelId: Id,
     relation: Relation,
-    base: ResolvedModelElement<Relation>,
+    base: ResolvedElement<Relation>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
@@ -361,8 +361,8 @@ export class ModelRules {
       );
     }
 
-    const actualNode: ResolvedModelElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);
-    const requiredNode: ResolvedModelElement<Node> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
+    const actualNode: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);
+    const requiredNode: ResolvedElement<Node> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
 
     if (actualNode && requiredNode && !graph.isNodeSameOrSubtype(actualNode, requiredNode)) {
       diagnostics.push(

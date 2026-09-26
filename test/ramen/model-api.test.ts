@@ -14,7 +14,7 @@ import type {
   RamenModelBundle,
   RamenModelDocument,
   Node,
-  NodeRefinementSuggestion,
+  NodeSuggestion,
   NodeRelationSuggestion,
   RamenAdvisor,
   RamenAnnotation,
@@ -22,7 +22,7 @@ import type {
   RamenChange,
   RamenEvolutionReport,
   Relation,
-  RelationRefinementSuggestion,
+  RelationSuggestion,
 } from '../../dist/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
@@ -89,7 +89,7 @@ void test('suggests only actual imports when advising an intermediate model leve
   const options: readonly string[] = third
     .createAdvisor()
     .suggestNodeRefinements(second.getModel().id)
-    .map((item: NodeRefinementSuggestion): string => item.nodeId);
+    .map((item: NodeSuggestion): string => item.nodeId);
 
   assert.ok(options.includes(person.id));
   assert.equal(options.includes(descendant.id), false);
@@ -110,9 +110,9 @@ void test('connects compatible RAMEN nodes without naming the relation', (): voi
   assert.equal(linked.validation.valid, true);
   assert.throws((): RamenChange<Relation> => model.connect(annotation, annotation), /found 2: HAS_ANNOTATION, REFERS_TO/);
 
-  const choices: readonly RelationRefinementSuggestion[] = model.suggestRelations(annotation.id, annotation.id);
-  const selected: RelationRefinementSuggestion | undefined = choices.find(
-    (item: RelationRefinementSuggestion): boolean => item.name === 'HAS_ANNOTATION',
+  const choices: readonly RelationSuggestion[] = model.suggestRelations(annotation.id, annotation.id);
+  const selected: RelationSuggestion | undefined = choices.find(
+    (item: RelationSuggestion): boolean => item.name === 'HAS_ANNOTATION',
   );
   assert.ok(selected);
   const explicit: RamenChange<Relation> = model.connect(annotation, annotation, selected);

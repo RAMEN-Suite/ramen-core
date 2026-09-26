@@ -7,7 +7,7 @@ import type {
   CreateRamenBundleResult,
   RamenChange,
   RamenEvolutionReport,
-  RelationRefinementSuggestion,
+  RelationSuggestion,
 } from '../../dist/ramen/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
@@ -19,9 +19,9 @@ void test('M05: model with selected suggestions, exchange the project and report
   const text: Node = edition.createNode({ name: 'EditedText', refines: base.nodes.text.id }).element;
   const annotation: Node = edition.createNode({ name: 'EditorialAnnotation', refines: base.nodes.annotation.id }).element;
 
-  const choices: readonly RelationRefinementSuggestion[] = edition.suggestRelations(text.id, annotation.id);
-  const choice: RelationRefinementSuggestion | undefined = choices.find(
-    (candidate: RelationRefinementSuggestion): boolean => candidate.relationId === base.relations.textAnnotation.id,
+  const choices: readonly RelationSuggestion[] = edition.suggestRelations(text.id, annotation.id);
+  const choice: RelationSuggestion | undefined = choices.find(
+    (candidate: RelationSuggestion): boolean => candidate.relationId === base.relations.textAnnotation.id,
   );
   assert.ok(choice);
 

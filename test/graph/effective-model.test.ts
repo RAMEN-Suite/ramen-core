@@ -12,7 +12,7 @@ import type {
   Node,
   Relation,
   ProjectGraphResult,
-  ResolvedModelElement,
+  ResolvedElement,
 } from '../../dist/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
@@ -44,7 +44,7 @@ void test('builds effective attributes across a refinement chain', (): void => {
     ['label', 'birthYear'],
   );
   assert.deepEqual(
-    effective?.lineage.map((item: ResolvedModelElement<Node>): string => item.element.id),
+    effective?.lineage.map((item: ResolvedElement<Node>): string => item.element.id),
     [BASE_NODE_ID, CHILD_NODE_ID],
   );
 });
@@ -86,9 +86,7 @@ void test('resolves relation refinement ancestors across model boundaries', (): 
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.deepEqual(
-    result.graph
-      .getRelationAncestors(PROJECT_ID, refined.id)
-      .map((item: ResolvedModelElement<Relation>): string => item.element.id),
+    result.graph.getRelationAncestors(PROJECT_ID, refined.id).map((item: ResolvedElement<Relation>): string => item.element.id),
     ['baseRelation0001'],
   );
 });

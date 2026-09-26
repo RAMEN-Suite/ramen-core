@@ -10,7 +10,7 @@ import type {
   ProjectValidationResult,
   RamenModelDocument,
   Relation,
-  RelationRefinementSuggestion,
+  RelationSuggestion,
 } from '../../dist/index.js';
 
 function project(): RamenModel {
@@ -91,7 +91,7 @@ void test('data cannot use an ancestor relation without selecting it at the curr
 
   assert.ok(result.some((item: Diagnostic): boolean => item.code === 'INSTANCE_RELATION_TYPE_NOT_ALLOWED'));
   assert.deepEqual(
-    second.suggestRelations(node.id, node.id).map((item: RelationRefinementSuggestion): string => item.relationId),
+    second.suggestRelations(node.id, node.id).map((item: RelationSuggestion): string => item.relationId),
     [relation.id],
   );
 });

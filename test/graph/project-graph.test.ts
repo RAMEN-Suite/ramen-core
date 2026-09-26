@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildProjectGraph } from '../../dist/index.js';
-import type { Diagnostic, Model, Node, Import, ProjectGraphResult, ResolvedModelElement } from '../../dist/index.js';
+import type { Diagnostic, Model, Node, Import, ProjectGraphResult, ResolvedElement } from '../../dist/index.js';
 
 const SCHEMA: string = 'https://ramen-schema.org/model/1.0.0/schema.json';
 const ROOT_ID: string = 'rootModel0000001';
@@ -50,7 +50,7 @@ void test('builds a graph for a model chain and resolves an imported node', (): 
   );
   assert.equal(result.graph.resolveNode(ROOT_ID, `${BASE_ID}:${NODE_ID}`)?.element.id, NODE_ID);
   assert.deepEqual(
-    result.graph.getNodeAncestors(ROOT_ID, CHILD_ID).map((item: ResolvedModelElement<Node>): string => item.element.id),
+    result.graph.getNodeAncestors(ROOT_ID, CHILD_ID).map((item: ResolvedElement<Node>): string => item.element.id),
     [NODE_ID],
   );
 });

@@ -1,9 +1,9 @@
 import { BuiltinDataTypes } from '../Builtins';
 import { Bounds, Attribute, Constraint, DataType, Literal, Node, Id } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
-import { ProjectGraph, ResolvedModelElement } from '../graph/ProjectGraph';
+import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { ConstraintRegistry } from '../validation/Constraints';
-import type { ConstraintGraphContext } from '../validation/Constraints';
+import type { ConstraintGraph } from '../validation/Constraints';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
 import { ValidationCode } from '../validation/Codes';
@@ -13,7 +13,7 @@ export class InstanceValueValidator {
   /** Creates a value validator with the supplied constraint languages. */
   public constructor(
     private readonly constraints: ConstraintRegistry,
-    private readonly graphContext: ConstraintGraphContext,
+    private readonly graphContext: ConstraintGraph,
     private readonly attributes?: InstanceValidationOptions['attributes'],
   ) {}
 
@@ -27,7 +27,7 @@ export class InstanceValueValidator {
 
         return;
       }
-      const type: ResolvedModelElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
+      const type: ResolvedElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
       if (!type) {
         diagnostics.push(
           this.error(
@@ -48,7 +48,7 @@ export class InstanceValueValidator {
 
   private validateProperties(
     graph: ProjectGraph,
-    type: ResolvedModelElement<Node>,
+    type: ResolvedElement<Node>,
     instance: ModelInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -91,7 +91,7 @@ export class InstanceValueValidator {
   }
 
   private validateNodeConstraints(
-    type: ResolvedModelElement<Node>,
+    type: ResolvedElement<Node>,
     instance: ModelInstanceNode,
     constraints: readonly Constraint[],
     path: DiagnosticPath,
@@ -193,7 +193,7 @@ export class InstanceValueValidator {
         );
       }
     } else {
-      const dataType: ResolvedModelElement<DataType> | undefined = graph.resolveDataType(modelId, attribute.typeId);
+      const dataType: ResolvedElement<DataType> | undefined = graph.resolveDataType(modelId, attribute.typeId);
 
       if (dataType) this.validateDataTypeValue(dataType, instanceId, attribute, value, path, diagnostics);
     }
@@ -213,7 +213,7 @@ export class InstanceValueValidator {
   }
 
   private validateDataTypeValue(
-    dataType: ResolvedModelElement<DataType>,
+    dataType: ResolvedElement<DataType>,
     instanceId: Id,
     attribute: Attribute,
     value: unknown,
@@ -249,7 +249,7 @@ export class InstanceValueValidator {
   }
 
   private validateLiteralValue(
-    dataType: ResolvedModelElement<DataType>,
+    dataType: ResolvedElement<DataType>,
     instanceId: Id,
     attribute: Attribute,
     value: unknown,

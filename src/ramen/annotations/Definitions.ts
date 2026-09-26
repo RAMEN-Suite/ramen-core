@@ -4,16 +4,16 @@ import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat } from '../model/Document';
 import type { RamenModelDocument } from '../model/Document';
 
 /** Attribute selected for one closed RAMEN annotation definition. */
-export interface RamenAttributeReference {
+export interface AttributeReference {
   readonly attributeId: Ref;
   readonly bounds?: Bounds;
 }
 
 /** An existing node attribute or a property declared directly by this type. */
-export type RamenAnnotationProperty = RamenAttributeReference | Attribute;
+export type AnnotationProperty = AttributeReference | Attribute;
 
 /** Relation selected for one closed RAMEN annotation definition. */
-export interface RamenAnnotationRelation {
+export interface AnnotationRelation {
   readonly relationId: Ref;
   /** Other permitted relations counted together with relationId. */
   readonly alternatives?: readonly Ref[];
@@ -26,8 +26,8 @@ export interface RamenAnnotation {
   readonly id: Id;
   readonly annotationId: Ref;
   readonly type: string;
-  readonly properties: readonly RamenAnnotationProperty[];
-  readonly relations: readonly RamenAnnotationRelation[];
+  readonly properties: readonly AnnotationProperty[];
+  readonly relations: readonly AnnotationRelation[];
 }
 
 /** Reads and updates annotation definitions in RAMEN project documents. */
@@ -38,13 +38,13 @@ export class RamenAnnotations {
       models.map((model: RamenModelDocument): [Id, readonly Ref[]] => [
         model.id,
         model.annotations.flatMap((annotation: RamenAnnotation): Ref[] =>
-          annotation.relations.flatMap((relation: RamenAnnotationRelation): readonly Ref[] => this.relationRefs(relation)),
+          annotation.relations.flatMap((relation: AnnotationRelation): readonly Ref[] => this.relationRefs(relation)),
         ),
       ]),
     );
   }
 
-  public static relationRefs(relation: RamenAnnotationRelation): readonly Ref[] {
+  public static relationRefs(relation: AnnotationRelation): readonly Ref[] {
     return [relation.relationId, ...(relation.alternatives ?? [])];
   }
 

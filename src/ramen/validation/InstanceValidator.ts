@@ -21,10 +21,10 @@ import type {
   ModelInstanceRelation,
   ProjectValidationResult,
   Ref,
-  ResolvedModelElement,
+  ResolvedElement,
   ValidationResult,
 } from '../../model/index';
-import { RamenAnnotations, RamenAnnotationRelation } from '../annotations/Definitions';
+import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenAnnotationIndex, ResolvedRamenAnnotation } from '../annotations/AnnotationIndex';
 import { RamenValidator } from './ModelValidator';
@@ -65,7 +65,7 @@ export class RamenInstanceValidator {
     const annotations: RamenAnnotationIndex = new RamenAnnotationIndex(project.graph, models);
     const base: ValidationResult = this.instances.validate(project.graph, input, {
       relations: new ModelRelationScope(project.graph, RamenAnnotations.relationSelections(models)).available(rootModelId),
-      attributes: (type: ResolvedModelElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
+      attributes: (type: ResolvedElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
         this.effectiveAttributes(project.graph, annotations, rootModelId, type, node),
     });
     if (!InstanceSchemaValidator.isValid(input)) return base;
@@ -84,7 +84,7 @@ export class RamenInstanceValidator {
     graph: ProjectGraph,
     annotations: RamenAnnotationIndex,
     modelId: Id,
-    type: ResolvedModelElement<Node>,
+    type: ResolvedElement<Node>,
     node: ModelInstanceNode,
   ): readonly Attribute[] {
     const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, type.modelId, type.element.id)?.attributes ?? [];
@@ -106,7 +106,7 @@ export class RamenInstanceValidator {
     index: number,
     diagnostics: Diagnostic[],
   ): void {
-    const resolved: ResolvedModelElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
+    const resolved: ResolvedElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
     if (!resolved || !annotations.isAnnotationNode(resolved.modelId, resolved.element.id)) return;
     const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
     const type: unknown = node.properties.type;
@@ -140,7 +140,7 @@ export class RamenInstanceValidator {
 
   private validateProperties(
     graph: ProjectGraph,
-    nodeType: ResolvedModelElement<Node>,
+    nodeType: ResolvedElement<Node>,
     selected: ResolvedRamenAnnotation,
     node: ModelInstanceNode,
     path: DiagnosticPath,
@@ -182,7 +182,7 @@ export class RamenInstanceValidator {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const requirements: readonly RamenAnnotationRelation[] = selected.annotation.relations;
+    const requirements: readonly AnnotationRelation[] = selected.annotation.relations;
     const connected: readonly ModelInstanceRelation[] = instance.relations.filter(
       (relation: ModelInstanceRelation): boolean => relation.fromId === node.id || relation.toId === node.id,
     );
@@ -214,13 +214,13 @@ export class RamenInstanceValidator {
     instanceModelId: Id,
     node: ModelInstanceNode,
     path: DiagnosticPath,
-    requirements: readonly RamenAnnotationRelation[],
+    requirements: readonly AnnotationRelation[],
     connected: readonly ModelInstanceRelation[],
     diagnostics: Diagnostic[],
   ): void {
     for (const relation of connected) {
       const allowed: boolean = requirements.some(
-        (requirement: RamenAnnotationRelation): boolean =>
+        (requirement: AnnotationRelation): boolean =>
           this.hasDirection(requirement, relation, node.id) &&
           RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
             graph.isRelationRefSameOrSubtype(instanceModelId, relation.typeId, selected.modelId, ref),
@@ -238,7 +238,7 @@ export class RamenInstanceValidator {
     }
   }
 
-  private hasDirection(requirement: RamenAnnotationRelation, relation: ModelInstanceRelation, nodeId: Id): boolean {
+  private hasDirection(requirement: AnnotationRelation, relation: ModelInstanceRelation, nodeId: Id): boolean {
     return requirement.direction === 'outgoing' ? relation.fromId === nodeId : relation.toId === nodeId;
   }
 

@@ -8,7 +8,7 @@ interface ResolvedRef {
 }
 
 /** Model element resolved together with the model that owns it. */
-export interface ResolvedModelElement<T> {
+export interface ResolvedElement<T> {
   readonly modelId: Id;
   readonly element: T;
 }
@@ -16,13 +16,13 @@ export interface ResolvedModelElement<T> {
 /** Read-only resolved view of all models in one RAMEN model project. */
 export class ProjectGraph {
   private readonly importCache: Map<Id, readonly Model[]> = new Map<Id, readonly Model[]>();
-  private readonly nodeAncestorCache: Map<Ref, readonly ResolvedModelElement<Node>[]> = new Map<
+  private readonly nodeAncestorCache: Map<Ref, readonly ResolvedElement<Node>[]> = new Map<
     Ref,
-    readonly ResolvedModelElement<Node>[]
+    readonly ResolvedElement<Node>[]
   >();
-  private readonly relationAncestorCache: Map<Ref, readonly ResolvedModelElement<Relation>[]> = new Map<
+  private readonly relationAncestorCache: Map<Ref, readonly ResolvedElement<Relation>[]> = new Map<
     Ref,
-    readonly ResolvedModelElement<Relation>[]
+    readonly ResolvedElement<Relation>[]
   >();
 
   /** @internal */
@@ -79,12 +79,12 @@ export class ProjectGraph {
   }
 
   /** Returns node types declared by the selected model and its transitive imports. */
-  public getAvailableNodes(modelId: Id): readonly ResolvedModelElement<Node>[] {
+  public getAvailableNodes(modelId: Id): readonly ResolvedElement<Node>[] {
     const current: Model | undefined = this.getModel(modelId);
     const models: readonly Model[] = current ? [current, ...this.getTransitiveImports(modelId)] : [];
 
-    return models.flatMap((model: Model): ResolvedModelElement<Node>[] =>
-      model.classifiers.flatMap((classifier): ResolvedModelElement<Node>[] =>
+    return models.flatMap((model: Model): ResolvedElement<Node>[] =>
+      model.classifiers.flatMap((classifier): ResolvedElement<Node>[] =>
         classifier.kind === 'Node' ? [{ modelId: model.id, element: classifier }] : [],
       ),
     );
@@ -106,49 +106,49 @@ export class ProjectGraph {
   }
 
   /** Resolves a local or qualified node reference from its owning model. */
-  public resolveNode(ownerModelId: Id, reference: Ref): ResolvedModelElement<Node> | undefined {
+  public resolveNode(ownerModelId: Id, reference: Ref): ResolvedElement<Node> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
     const node: Node | undefined = this.getNode(target.modelId, target.elementId);
     return node ? { modelId: target.modelId, element: node } : undefined;
   }
 
   /** Resolves a local or qualified data type reference from its owning model. */
-  public resolveDataType(ownerModelId: Id, reference: Ref): ResolvedModelElement<DataType> | undefined {
+  public resolveDataType(ownerModelId: Id, reference: Ref): ResolvedElement<DataType> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
     const dataType: DataType | undefined = this.getDataType(target.modelId, target.elementId);
     return dataType ? { modelId: target.modelId, element: dataType } : undefined;
   }
 
   /** Resolves a local or qualified relation reference from its owning model. */
-  public resolveRelation(ownerModelId: Id, reference: Ref): ResolvedModelElement<Relation> | undefined {
+  public resolveRelation(ownerModelId: Id, reference: Ref): ResolvedElement<Relation> | undefined {
     const target: ResolvedRef = this.resolveModelRef(ownerModelId, reference);
     const relation: Relation | undefined = this.getRelation(target.modelId, target.elementId);
     return relation ? { modelId: target.modelId, element: relation } : undefined;
   }
 
   /** Returns all resolvable transitive supertypes of a node in breadth-first order. */
-  public getNodeAncestors(modelId: Id, nodeId: Id): readonly ResolvedModelElement<Node>[] {
+  public getNodeAncestors(modelId: Id, nodeId: Id): readonly ResolvedElement<Node>[] {
     const key: Ref = ModelRef.qualify(modelId, nodeId);
-    const cached: readonly ResolvedModelElement<Node>[] | undefined = this.nodeAncestorCache.get(key);
+    const cached: readonly ResolvedElement<Node>[] | undefined = this.nodeAncestorCache.get(key);
     if (cached) return cached;
-    const ancestors: readonly ResolvedModelElement<Node>[] = this.collectAncestors(
+    const ancestors: readonly ResolvedElement<Node>[] = this.collectAncestors(
       this.getNode(modelId, nodeId)?.superTypes ?? [],
       modelId,
-      (ownerId: Id, ref: Ref): ResolvedModelElement<Node> | undefined => this.resolveNode(ownerId, ref),
+      (ownerId: Id, ref: Ref): ResolvedElement<Node> | undefined => this.resolveNode(ownerId, ref),
     );
     this.nodeAncestorCache.set(key, ancestors);
     return ancestors;
   }
 
   /** Returns all resolvable transitive supertypes of a relation in nearest-first order. */
-  public getRelationAncestors(modelId: Id, relationId: Id): readonly ResolvedModelElement<Relation>[] {
+  public getRelationAncestors(modelId: Id, relationId: Id): readonly ResolvedElement<Relation>[] {
     const key: Ref = ModelRef.qualify(modelId, relationId);
-    const cached: readonly ResolvedModelElement<Relation>[] | undefined = this.relationAncestorCache.get(key);
+    const cached: readonly ResolvedElement<Relation>[] | undefined = this.relationAncestorCache.get(key);
     if (cached) return cached;
-    const ancestors: readonly ResolvedModelElement<Relation>[] = this.collectAncestors(
+    const ancestors: readonly ResolvedElement<Relation>[] = this.collectAncestors(
       this.getRelation(modelId, relationId)?.superTypes ?? [],
       modelId,
-      (ownerId: Id, ref: Ref): ResolvedModelElement<Relation> | undefined => this.resolveRelation(ownerId, ref),
+      (ownerId: Id, ref: Ref): ResolvedElement<Relation> | undefined => this.resolveRelation(ownerId, ref),
     );
     this.relationAncestorCache.set(key, ancestors);
     return ancestors;
@@ -157,12 +157,12 @@ export class ProjectGraph {
   private collectAncestors<T extends Node | Relation>(
     initial: readonly Ref[],
     modelId: Id,
-    resolve: (ownerId: Id, ref: Ref) => ResolvedModelElement<T> | undefined,
-  ): readonly ResolvedModelElement<T>[] {
-    const queue: ResolvedModelElement<T>[] = [];
+    resolve: (ownerId: Id, ref: Ref) => ResolvedElement<T> | undefined,
+  ): readonly ResolvedElement<T>[] {
+    const queue: ResolvedElement<T>[] = [];
     const visited: Set<Ref> = new Set<Ref>();
     const append: (ownerId: Id, ref: Ref) => void = (ownerId: Id, ref: Ref): void => {
-      const item: ResolvedModelElement<T> | undefined = resolve(ownerId, ref);
+      const item: ResolvedElement<T> | undefined = resolve(ownerId, ref);
       if (!item) return;
       const key: Ref = ModelRef.qualify(item.modelId, item.element.id);
       if (visited.has(key)) return;
@@ -177,33 +177,33 @@ export class ProjectGraph {
   }
 
   /** Reports whether an actual node is the expected node or one of its transitive refinements. */
-  public isNodeSameOrSubtype(actual: ResolvedModelElement<Node>, expected: ResolvedModelElement<Node>): boolean {
+  public isNodeSameOrSubtype(actual: ResolvedElement<Node>, expected: ResolvedElement<Node>): boolean {
     if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
     return this.getNodeAncestors(actual.modelId, actual.element.id).some(
-      (ancestor: ResolvedModelElement<Node>): boolean =>
+      (ancestor: ResolvedElement<Node>): boolean =>
         ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
     );
   }
 
   /** Reports whether an actual relation is the expected relation or one of its transitive refinements. */
-  public isRelationSameOrSubtype(actual: ResolvedModelElement<Relation>, expected: ResolvedModelElement<Relation>): boolean {
+  public isRelationSameOrSubtype(actual: ResolvedElement<Relation>, expected: ResolvedElement<Relation>): boolean {
     if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
     return this.getRelationAncestors(actual.modelId, actual.element.id).some(
-      (ancestor: ResolvedModelElement<Relation>): boolean =>
+      (ancestor: ResolvedElement<Relation>): boolean =>
         ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
     );
   }
 
   /** Reports whether an actual node satisfies a local or qualified expected node reference. */
-  public acceptsNode(ownerModelId: Id, expectedRef: Ref, actual: ResolvedModelElement<Node>): boolean {
-    const expected: ResolvedModelElement<Node> | undefined = this.resolveNode(ownerModelId, expectedRef);
+  public acceptsNode(ownerModelId: Id, expectedRef: Ref, actual: ResolvedElement<Node>): boolean {
+    const expected: ResolvedElement<Node> | undefined = this.resolveNode(ownerModelId, expectedRef);
     return expected ? this.isNodeSameOrSubtype(actual, expected) : false;
   }
 
   /** Compares two local or qualified relation references including transitive refinement. */
   public isRelationRefSameOrSubtype(actualOwnerModelId: Id, actualRef: Ref, expectedOwnerModelId: Id, expectedRef: Ref): boolean {
-    const actual: ResolvedModelElement<Relation> | undefined = this.resolveRelation(actualOwnerModelId, actualRef);
-    const expected: ResolvedModelElement<Relation> | undefined = this.resolveRelation(expectedOwnerModelId, expectedRef);
+    const actual: ResolvedElement<Relation> | undefined = this.resolveRelation(actualOwnerModelId, actualRef);
+    const expected: ResolvedElement<Relation> | undefined = this.resolveRelation(expectedOwnerModelId, expectedRef);
     return actual && expected ? this.isRelationSameOrSubtype(actual, expected) : false;
   }
 

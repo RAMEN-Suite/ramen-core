@@ -1,10 +1,5 @@
 export * from './model/ReferenceModel';
-export type {
-  RamenAnnotation,
-  RamenAnnotationProperty,
-  RamenAttributeReference,
-  RamenAnnotationRelation,
-} from './annotations/Definitions';
+export type { RamenAnnotation, AnnotationProperty, AttributeReference, AnnotationRelation } from './annotations/Definitions';
 export * from './model/Document';
 export type { AnnotationAdvice, AnnotationPropertyAdvice, AnnotationRelationAdvice } from './annotations/Advisor';
 export * from './RamenModel';

@@ -1,9 +1,9 @@
 import { ModelAdvisor, NodeRelationSuggestion } from '../model/Advisor';
 import { ModelRef } from '../model/graph/References';
 import type { Model, Node, Id, Ref } from '../model/Types';
-import type { ResolvedModelElement } from '../model/graph/ProjectGraph';
+import type { ResolvedElement } from '../model/graph/ProjectGraph';
 import type { ValidProjectResult } from '../model/validation/ModelValidator';
-import { RamenAnnotations, RamenAnnotationRelation } from './annotations/Definitions';
+import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions';
 import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './annotations/AnnotationIndex';
 import {
   AnnotationAdvice,
@@ -12,9 +12,9 @@ import {
   RamenAnnotationAdvisor,
 } from './annotations/Advisor';
 export type {
-  NodeRefinementSuggestion,
+  NodeSuggestion,
   DataTypeSuggestion,
-  RelationRefinementSuggestion,
+  RelationSuggestion,
   NodeLineageItem,
   AttributeSuggestion,
   NodeRelationSuggestion,
@@ -67,9 +67,9 @@ export class RamenAdvisor extends ModelAdvisor {
 
   /** Lists effective annotation variants attachable to one local or imported node through modeled relations. */
   public suggestAnnotationsForNode(modelId: Id, nodeId: Id, annotationNodeId?: Ref): readonly AnnotationSuggestion[] {
-    const actual: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, nodeId);
+    const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
-    const selected: ResolvedModelElement<Node> | undefined = annotationNodeId
+    const selected: ResolvedElement<Node> | undefined = annotationNodeId
       ? this.resolveNode(modelId, annotationNodeId)
       : undefined;
     if (annotationNodeId && !selected) return [];
@@ -89,13 +89,9 @@ export class RamenAdvisor extends ModelAdvisor {
     );
   }
 
-  private annotationTargets(
-    modelId: Id,
-    relation: NodeRelationSuggestion,
-    selected?: ResolvedModelElement<Node>,
-  ): readonly Ref[] {
+  private annotationTargets(modelId: Id, relation: NodeRelationSuggestion, selected?: ResolvedElement<Node>): readonly Ref[] {
     return relation.compatibleTargetNodeIds.filter((ref: Ref): boolean => {
-      const target: ResolvedModelElement<Node> | undefined = this.resolveNode(modelId, ref);
+      const target: ResolvedElement<Node> | undefined = this.resolveNode(modelId, ref);
       if (!target || !this.annotations.isAnnotationNode(target.modelId, target.element.id)) return false;
       return !selected || (selected.modelId === target.modelId && selected.element.id === target.element.id);
     });
@@ -110,7 +106,7 @@ export class RamenAdvisor extends ModelAdvisor {
       const definition: ResolvedRamenAnnotation | undefined = this.annotations.findEffective(modelId, targetId, suggestion.type);
       if (!definition) return false;
       return definition.annotation.relations.some(
-        (requirement: RamenAnnotationRelation): boolean =>
+        (requirement: AnnotationRelation): boolean =>
           requirement.direction === 'incoming' &&
           requirement.bounds.upperBound !== 0 &&
           RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>

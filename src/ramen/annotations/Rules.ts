@@ -1,8 +1,8 @@
 import { AnnotationProperties } from './Properties';
 import { DiagnosticPath, Diagnostics, ModelRef, ProjectGraph } from '../../model/index';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { Bounds, Diagnostic, Model, Node, Relation, Id, Ref, ResolvedModelElement } from '../../model/index';
-import { RamenAnnotation, RamenAnnotationRelation, RamenAnnotations } from './Definitions';
+import type { Bounds, Diagnostic, Model, Node, Relation, Id, Ref, ResolvedElement } from '../../model/index';
+import { RamenAnnotation, AnnotationRelation, RamenAnnotations } from './Definitions';
 import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './AnnotationIndex';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
@@ -58,7 +58,7 @@ export class RamenAnnotationRules {
     const path: DiagnosticPath = this.path(resolved.modelId, definition.id);
 
     this.registerIdentifier(resolved, identifiers, path, diagnostics);
-    const owner: ResolvedModelElement<Node> | undefined = graph.resolveNode(resolved.modelId, definition.annotationId);
+    const owner: ResolvedElement<Node> | undefined = graph.resolveNode(resolved.modelId, definition.annotationId);
     if (!owner || !annotations.isAnnotationNode(owner.modelId, owner.element.id)) {
       this.error(
         diagnostics,
@@ -105,7 +105,7 @@ export class RamenAnnotationRules {
   private registerOwnerType(
     modelId: Id,
     definition: RamenAnnotation,
-    owner: ResolvedModelElement<Node>,
+    owner: ResolvedElement<Node>,
     ownerTypes: Set<string>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -125,7 +125,7 @@ export class RamenAnnotationRules {
   private validateRelations(
     graph: ProjectGraph,
     resolved: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
+    owner: ResolvedElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
     const seen: Set<string> = new Set<string>();
@@ -138,20 +138,20 @@ export class RamenAnnotationRules {
   private validateRelation(
     graph: ProjectGraph,
     resolved: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
-    requirement: RamenAnnotationRelation,
+    owner: ResolvedElement<Node>,
+    requirement: AnnotationRelation,
     seen: Set<string>,
     diagnostics: Diagnostic[],
   ): void {
     const refs: readonly Ref[] = RamenAnnotations.relationRefs(requirement);
-    const relations: readonly (ResolvedModelElement<Relation> | undefined)[] = refs.map(
-      (ref: Ref): ResolvedModelElement<Relation> | undefined => graph.resolveRelation(resolved.modelId, ref),
+    const relations: readonly (ResolvedElement<Relation> | undefined)[] = refs.map(
+      (ref: Ref): ResolvedElement<Relation> | undefined => graph.resolveRelation(resolved.modelId, ref),
     );
-    const validEndpoint: boolean = relations.every((relation: ResolvedModelElement<Relation> | undefined): boolean => {
+    const validEndpoint: boolean = relations.every((relation: ResolvedElement<Relation> | undefined): boolean => {
       const endpoint: Ref | undefined = this.annotationEnd(relation, requirement.direction);
       return relation !== undefined && endpoint !== undefined && graph.acceptsNode(relation.modelId, endpoint, owner);
     });
-    const bounds: readonly Bounds[] = relations.flatMap((relation: ResolvedModelElement<Relation> | undefined): Bounds[] => {
+    const bounds: readonly Bounds[] = relations.flatMap((relation: ResolvedElement<Relation> | undefined): Bounds[] => {
       const bound: Bounds | undefined = this.targetBounds(relation, requirement.direction);
       return bound ? [bound] : [];
     });
@@ -166,7 +166,7 @@ export class RamenAnnotationRules {
     this.validateRelationShape(resolved, requirement, relations[0], modeledBounds, validEndpoint, duplicate, path, diagnostics);
   }
 
-  private overlaps(graph: ProjectGraph, modelId: Id, requirement: RamenAnnotationRelation, seen: Set<string>): boolean {
+  private overlaps(graph: ProjectGraph, modelId: Id, requirement: AnnotationRelation, seen: Set<string>): boolean {
     let overlap: boolean = false;
     const prefix: string = `${requirement.direction}:`;
     for (const ref of RamenAnnotations.relationRefs(requirement)) {
@@ -187,8 +187,8 @@ export class RamenAnnotationRules {
 
   private validateRelationShape(
     resolved: ResolvedRamenAnnotation,
-    requirement: RamenAnnotationRelation,
-    relation: ResolvedModelElement<Relation> | undefined,
+    requirement: AnnotationRelation,
+    relation: ResolvedElement<Relation> | undefined,
     modeledBounds: Bounds | undefined,
     validEndpoint: boolean,
     duplicate: boolean,
@@ -214,18 +214,12 @@ export class RamenAnnotationRules {
     }
   }
 
-  private annotationEnd(
-    relation: ResolvedModelElement<Relation> | undefined,
-    direction: 'outgoing' | 'incoming',
-  ): Ref | undefined {
+  private annotationEnd(relation: ResolvedElement<Relation> | undefined, direction: 'outgoing' | 'incoming'): Ref | undefined {
     if (!relation) return undefined;
     return direction === 'outgoing' ? relation.element.from.nodeId : relation.element.to.nodeId;
   }
 
-  private targetBounds(
-    relation: ResolvedModelElement<Relation> | undefined,
-    direction: 'outgoing' | 'incoming',
-  ): Bounds | undefined {
+  private targetBounds(relation: ResolvedElement<Relation> | undefined, direction: 'outgoing' | 'incoming'): Bounds | undefined {
     if (!relation) return undefined;
     return direction === 'outgoing' ? relation.element.to.bounds : relation.element.from.bounds;
   }
@@ -234,7 +228,7 @@ export class RamenAnnotationRules {
     graph: ProjectGraph,
     annotations: RamenAnnotationIndex,
     resolved: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
+    owner: ResolvedElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
     const inherited: ResolvedRamenAnnotation | undefined = this.findInheritedAnnotation(graph, annotations, resolved, owner);
@@ -252,12 +246,12 @@ export class RamenAnnotationRules {
     graph: ProjectGraph,
     annotations: RamenAnnotationIndex,
     current: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
+    owner: ResolvedElement<Node>,
   ): ResolvedRamenAnnotation | undefined {
     for (const candidate of annotations.getApplicable(current.modelId, current.annotation.annotationId)) {
       if (candidate.annotation.type !== current.annotation.type) continue;
       if (candidate.modelId === current.modelId) {
-        const candidateOwner: ResolvedModelElement<Node> | undefined = graph.resolveNode(
+        const candidateOwner: ResolvedElement<Node> | undefined = graph.resolveNode(
           candidate.modelId,
           candidate.annotation.annotationId,
         );

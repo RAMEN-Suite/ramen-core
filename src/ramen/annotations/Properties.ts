@@ -1,8 +1,8 @@
 import { BuiltinDataTypes } from '../../model/Builtins';
 import { EffectiveModel, ModelRef, Diagnostics, DiagnosticPath } from '../../model/index';
-import type { Attribute, Diagnostic, Node, ProjectGraph, ResolvedModelElement } from '../../model/index';
+import type { Attribute, Diagnostic, Node, ProjectGraph, ResolvedElement } from '../../model/index';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { RamenAnnotationProperty } from './Definitions';
+import type { AnnotationProperty } from './Definitions';
 import type { ResolvedRamenAnnotation } from './AnnotationIndex';
 
 /** Resolves node attribute selections and properties owned by an annotation type. */
@@ -10,7 +10,7 @@ export class AnnotationProperties {
   public static resolve(
     graph: ProjectGraph,
     definition: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
+    owner: ResolvedElement<Node>,
   ): readonly Attribute[] {
     const result: Attribute[] = [];
     for (const property of definition.annotation.properties) {
@@ -25,7 +25,7 @@ export class AnnotationProperties {
   public static validate(
     graph: ProjectGraph,
     definition: ResolvedRamenAnnotation,
-    owner: ResolvedModelElement<Node>,
+    owner: ResolvedElement<Node>,
   ): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const names: Set<string> = new Set<string>();
@@ -54,8 +54,8 @@ export class AnnotationProperties {
 
   private static selected(
     graph: ProjectGraph,
-    owner: ResolvedModelElement<Node>,
-    property: RamenAnnotationProperty,
+    owner: ResolvedElement<Node>,
+    property: AnnotationProperty,
   ): Attribute | undefined {
     return 'attributeId' in property ? this.find(graph, owner, property.attributeId) : property;
   }
@@ -63,7 +63,7 @@ export class AnnotationProperties {
   private static validateBounds(
     definition: ResolvedRamenAnnotation,
     attribute: Attribute,
-    property: RamenAnnotationProperty,
+    property: AnnotationProperty,
   ): readonly Diagnostic[] {
     const bounds: Attribute['bounds'] = property.bounds ?? attribute.bounds;
     if (Cardinality.isModelBoundsCompatible(attribute.bounds, bounds) && !this.hasInvalidKeyBounds(attribute, bounds)) return [];
@@ -87,8 +87,8 @@ export class AnnotationProperties {
     return attribute.isKey === true && (bounds.lowerBound !== 1 || bounds.upperBound !== 1);
   }
 
-  private static find(graph: ProjectGraph, owner: ResolvedModelElement<Node>, reference: string): Attribute | undefined {
-    const lineage: readonly ResolvedModelElement<Node>[] = [owner, ...graph.getNodeAncestors(owner.modelId, owner.element.id)];
+  private static find(graph: ProjectGraph, owner: ResolvedElement<Node>, reference: string): Attribute | undefined {
+    const lineage: readonly ResolvedElement<Node>[] = [owner, ...graph.getNodeAncestors(owner.modelId, owner.element.id)];
     for (const item of lineage) {
       if (ModelRef.isQualified(reference) && ModelRef.splitQualified(reference).modelId !== item.modelId) continue;
       const attribute: Attribute | undefined = item.element.attributes.find(

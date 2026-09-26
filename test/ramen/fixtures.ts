@@ -5,7 +5,7 @@ import type {
   Node,
   Relation,
   RamenAnnotation,
-  RamenAnnotationRelation,
+  AnnotationRelation,
   RamenChange,
   RamenModelDocument,
 } from '../../dist/index.js';
@@ -156,7 +156,7 @@ function createAnnotations(
   relations: CorrespondenceRelations,
   url: Attribute,
 ): CorrespondenceAnnotations {
-  const attachments: readonly RamenAnnotationRelation[] = attachmentRelations(relations);
+  const attachments: readonly AnnotationRelation[] = attachmentRelations(relations);
   const persName: RamenAnnotation = createReferenceAnnotation(
     project,
     nodes.annotation,
@@ -187,7 +187,7 @@ function createOtherAnnotations(
   owner: Node,
   relations: CorrespondenceRelations,
   url: Attribute,
-  attachments: readonly RamenAnnotationRelation[],
+  attachments: readonly AnnotationRelation[],
 ): Pick<CorrespondenceAnnotations, 'date' | 'comment' | 'externalReference'> {
   const date: RamenAnnotation = project.createAnnotation({
     annotationId: owner.id,
@@ -216,7 +216,7 @@ function createOtherAnnotations(
   };
 }
 
-function attachmentRelations(relations: CorrespondenceRelations): readonly RamenAnnotationRelation[] {
+function attachmentRelations(relations: CorrespondenceRelations): readonly AnnotationRelation[] {
   return [
     { relationId: relations.textAnnotation.id, direction: 'incoming', bounds: { lowerBound: 0, upperBound: -1 } },
     { relationId: relations.personAnnotation.id, direction: 'incoming', bounds: { lowerBound: 0, upperBound: -1 } },
@@ -228,7 +228,7 @@ function createReferenceAnnotation(
   owner: Node,
   type: string,
   reference: Relation,
-  attachments: readonly RamenAnnotationRelation[],
+  attachments: readonly AnnotationRelation[],
 ): RamenAnnotation {
   return project.createAnnotation({
     annotationId: owner.id,

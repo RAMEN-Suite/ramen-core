@@ -1,18 +1,18 @@
 import { Bounds, Node, Relation, Id, Ref } from '../Types';
-import { ProjectGraph, ResolvedModelElement } from '../graph/ProjectGraph';
+import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
 import { ValidationCode } from '../validation/Codes';
 import { ConstraintRegistry } from '../validation/Constraints';
-import type { ConstraintGraphContext } from '../validation/Constraints';
+import type { ConstraintGraph } from '../validation/Constraints';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {
   /** Creates a relation validator with the supplied constraint languages. */
   public constructor(
     private readonly constraints: ConstraintRegistry,
-    private readonly graphContext: ConstraintGraphContext,
-    private readonly selected?: readonly ResolvedModelElement<Relation>[],
+    private readonly graphContext: ConstraintGraph,
+    private readonly selected?: readonly ResolvedElement<Relation>[],
   ) {}
 
   /** Resolves and validates every relation in an instance graph. */
@@ -53,7 +53,7 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedInstanceRelation | undefined {
     if (!this.registerRelationId(relation.id, path, ids, diagnostics)) return undefined;
-    const type: ResolvedModelElement<Relation> | undefined = this.resolveRelationType(
+    const type: ResolvedElement<Relation> | undefined = this.resolveRelationType(
       graph,
       ownerModelId,
       relation,
@@ -87,7 +87,7 @@ export class InstanceRelationValidator {
   }
 
   private validateConstraints(
-    type: ResolvedModelElement<Relation>,
+    type: ResolvedElement<Relation>,
     relation: ModelInstanceRelation,
     from: ResolvedInstanceNode,
     to: ResolvedInstanceNode,
@@ -143,13 +143,13 @@ export class InstanceRelationValidator {
     relation: ModelInstanceRelation,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
-  ): ResolvedModelElement<Relation> | undefined {
-    const type: ResolvedModelElement<Relation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
+  ): ResolvedElement<Relation> | undefined {
+    const type: ResolvedElement<Relation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
     if (
       type &&
       this.selected &&
       !this.selected.some(
-        (item: ResolvedModelElement<Relation>): boolean => item.modelId === type.modelId && item.element.id === type.element.id,
+        (item: ResolvedElement<Relation>): boolean => item.modelId === type.modelId && item.element.id === type.element.id,
       )
     ) {
       diagnostics.push(
@@ -188,13 +188,13 @@ export class InstanceRelationValidator {
 
   private validateRelationEndpoint(
     graph: ProjectGraph,
-    relationType: ResolvedModelElement<Relation>,
+    relationType: ResolvedElement<Relation>,
     requiredRef: Ref,
     actual: ResolvedInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const required: ResolvedModelElement<Node> | undefined = graph.resolveNode(relationType.modelId, requiredRef);
+    const required: ResolvedElement<Node> | undefined = graph.resolveNode(relationType.modelId, requiredRef);
     if (required && !graph.isNodeSameOrSubtype(actual.type, required)) {
       diagnostics.push(
         this.error(
@@ -214,12 +214,12 @@ export class InstanceRelationValidator {
     counts: ReadonlyMap<string, number>,
     diagnostics: Diagnostic[],
   ): void {
-    const selected: readonly ResolvedModelElement<Relation>[] =
+    const selected: readonly ResolvedElement<Relation>[] =
       this.selected ??
       graph
         .getModels()
-        .flatMap((model): ResolvedModelElement<Relation>[] =>
-          model.relations.map((element: Relation): ResolvedModelElement<Relation> => ({ modelId: model.id, element })),
+        .flatMap((model): ResolvedElement<Relation>[] =>
+          model.relations.map((element: Relation): ResolvedElement<Relation> => ({ modelId: model.id, element })),
         );
     for (const item of selected)
       this.validateRelationTypeCardinalities(graph, ownerModelId, item.modelId, item.element, nodesById, counts, diagnostics);
@@ -269,7 +269,7 @@ export class InstanceRelationValidator {
   private relationCounts(graph: ProjectGraph, relations: readonly ResolvedInstanceRelation[]): ReadonlyMap<string, number> {
     const counts: Map<string, number> = new Map<string, number>();
     for (const relation of relations) {
-      const lineage: readonly ResolvedModelElement<Relation>[] = [
+      const lineage: readonly ResolvedElement<Relation>[] = [
         relation.type,
         ...graph.getRelationAncestors(relation.type.modelId, relation.type.element.id),
       ];

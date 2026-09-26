@@ -1,5 +1,5 @@
 import { ModelRef, ProjectGraph } from '../../model/index';
-import type { Model, Node, Id, Ref, ResolvedModelElement } from '../../model/index';
+import type { Model, Node, Id, Ref, ResolvedElement } from '../../model/index';
 import { RamenAnnotation } from './Definitions';
 import { RamenModelFormat } from '../model/Document';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
@@ -30,7 +30,7 @@ export class RamenAnnotationIndex {
   }
 
   private indexDefinition(definition: ResolvedRamenAnnotation): void {
-    const node: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(
+    const node: ResolvedElement<Node> | undefined = this.graph.resolveNode(
       definition.modelId,
       definition.annotation.annotationId,
     );
@@ -58,14 +58,14 @@ export class RamenAnnotationIndex {
 
   /** Returns declarations applicable to a node from the selected model's point of view. */
   public getApplicable(modelId: Id, nodeRef: Ref): readonly ResolvedRamenAnnotation[] {
-    const node: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, nodeRef);
+    const node: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, nodeRef);
     if (!node) return [];
-    const lineage: readonly ResolvedModelElement<Node>[] = [node, ...this.graph.getNodeAncestors(node.modelId, node.element.id)];
+    const lineage: readonly ResolvedElement<Node>[] = [node, ...this.graph.getNodeAncestors(node.modelId, node.element.id)];
     const visible: ReadonlySet<Id> = new Set<Id>([
       modelId,
       ...this.graph.getTransitiveImports(modelId).map((model: Model): Id => model.id),
     ]);
-    return lineage.flatMap((owner: ResolvedModelElement<Node>): ResolvedRamenAnnotation[] => {
+    return lineage.flatMap((owner: ResolvedElement<Node>): ResolvedRamenAnnotation[] => {
       const key: Ref = ModelRef.qualify(owner.modelId, owner.element.id);
       return (this.annotationsByNode.get(key) ?? []).filter((definition: ResolvedRamenAnnotation): boolean =>
         visible.has(definition.modelId),

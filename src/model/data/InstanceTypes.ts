@@ -1,5 +1,5 @@
 import type { Attribute, Node, Relation, Id, Ref } from '../Types';
-import type { ResolvedModelElement } from '../graph/ProjectGraph';
+import type { ResolvedElement } from '../graph/ProjectGraph';
 
 /** One modeled object containing only properties declared by its RAMEN model format node type. */
 export interface ModelInstanceNode {
@@ -26,19 +26,19 @@ export interface ModelInstanceGraph {
 /** @internal Resolved instance node and its model type. */
 export interface ResolvedInstanceNode {
   readonly instance: ModelInstanceNode;
-  readonly type: ResolvedModelElement<Node>;
+  readonly type: ResolvedElement<Node>;
 }
 
 /** @internal Resolved instance relation and its model type. */
 export interface ResolvedInstanceRelation {
   readonly instance: ModelInstanceRelation;
-  readonly type: ResolvedModelElement<Relation>;
+  readonly type: ResolvedElement<Relation>;
 }
 
 /** Optional domain-specific model view used when validating captured data. */
 export interface InstanceValidationOptions {
   /** Restricts relation types to those selected by the current model. */
-  readonly relations?: readonly ResolvedModelElement<Relation>[];
+  readonly relations?: readonly ResolvedElement<Relation>[];
   /** Supplies additional type-dependent attributes without changing the model graph. */
-  readonly attributes?: (type: ResolvedModelElement<Node>, node: ModelInstanceNode) => readonly Attribute[];
+  readonly attributes?: (type: ResolvedElement<Node>, node: ModelInstanceNode) => readonly Attribute[];
 }

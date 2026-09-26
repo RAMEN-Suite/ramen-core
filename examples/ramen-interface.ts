@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import type { Node, Relation } from '../dist/model/index.js';
 import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen/index.js';
-import type { NodeRefinementSuggestion, RelationRefinementSuggestion } from '../dist/ramen/index.js';
+import type { NodeSuggestion, RelationSuggestion } from '../dist/ramen/index.js';
 
 interface NodeOption {
   readonly id: string;
@@ -16,9 +16,9 @@ interface ConnectionOption {
 
 // The model ID stays inside this adapter; a form only needs labels and option IDs.
 function getNodeOptions(model: RamenModel): readonly NodeOption[] {
-  const suggestions: readonly NodeRefinementSuggestion[] = model.createAdvisor().suggestNodeRefinements(model.getModel().id);
+  const suggestions: readonly NodeSuggestion[] = model.createAdvisor().suggestNodeRefinements(model.getModel().id);
 
-  return suggestions.map((suggestion: NodeRefinementSuggestion): NodeOption => ({
+  return suggestions.map((suggestion: NodeSuggestion): NodeOption => ({
     id: suggestion.nodeId,
     label: suggestion.name,
   }));
@@ -26,9 +26,9 @@ function getNodeOptions(model: RamenModel): readonly NodeOption[] {
 
 // A UI can call this after the user selects two node types.
 function getConnectionOptions(model: RamenModel, from: Node, to: Node): readonly ConnectionOption[] {
-  const suggestions: readonly RelationRefinementSuggestion[] = model.suggestRelations(from.id, to.id);
+  const suggestions: readonly RelationSuggestion[] = model.suggestRelations(from.id, to.id);
 
-  return suggestions.map((suggestion: RelationRefinementSuggestion): ConnectionOption => ({
+  return suggestions.map((suggestion: RelationSuggestion): ConnectionOption => ({
     id: suggestion.ref,
     label: suggestion.name,
     explanation: suggestion.explanation,
@@ -37,9 +37,9 @@ function getConnectionOptions(model: RamenModel, from: Node, to: Node): readonly
 
 // The UI sends back the selected option ID; the server resolves it again before editing.
 function applyConnectionChoice(model: RamenModel, from: Node, to: Node, optionId: string): Relation {
-  const suggestions: readonly RelationRefinementSuggestion[] = model.suggestRelations(from.id, to.id);
-  const choice: RelationRefinementSuggestion | undefined = suggestions.find(
-    (suggestion: RelationRefinementSuggestion): boolean => suggestion.ref === optionId,
+  const suggestions: readonly RelationSuggestion[] = model.suggestRelations(from.id, to.id);
+  const choice: RelationSuggestion | undefined = suggestions.find(
+    (suggestion: RelationSuggestion): boolean => suggestion.ref === optionId,
   );
 
   if (!choice) throw new Error(`Unknown connection option: ${optionId}`);

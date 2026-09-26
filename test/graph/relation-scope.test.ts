@@ -3,11 +3,11 @@ import test from 'node:test';
 import { ModelAdvisor, ModelRelationScope, ModelValidator } from '../../dist/model/index.js';
 import type {
   Diagnostic,
-  RelationRefinementSuggestion,
+  RelationSuggestion,
   Model,
   ProjectValidationResult,
   Relation,
-  ResolvedModelElement,
+  ResolvedElement,
 } from '../../dist/model/index.js';
 import { model, node, relation } from '../models.ts';
 
@@ -36,19 +36,19 @@ void test('generic models allow only explicitly selected predecessor relations',
   assert.ok(result.valid);
   const scope: ModelRelationScope = new ModelRelationScope(result.graph);
   const advisor: ModelAdvisor = new ModelAdvisor(result);
-  const choices: readonly RelationRefinementSuggestion[] = advisor.suggestRelations(
+  const choices: readonly RelationSuggestion[] = advisor.suggestRelations(
     child.id,
     `${base.id}:genericDocument001`,
     `${base.id}:genericFolder00001`,
   );
   assert.deepEqual(
-    choices.map((item: RelationRefinementSuggestion): string => item.relationId),
+    choices.map((item: RelationSuggestion): string => item.relationId),
     ['genericContains001'],
   );
 
   assert.deepEqual(scope.available(child.id), []);
   assert.deepEqual(
-    scope.bases(child.id).map((item: ResolvedModelElement<Relation>): string => item.element.id),
+    scope.bases(child.id).map((item: ResolvedElement<Relation>): string => item.element.id),
     ['genericContains001'],
   );
   child.relations.push(refinedRelation(base));

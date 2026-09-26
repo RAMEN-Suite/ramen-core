@@ -2,8 +2,8 @@ import { AnnotationProperties } from './Properties';
 import { ModelRelationScope } from '../../model/graph/RelationScope';
 import { EffectiveModel, ModelRef, ProjectGraph } from '../../model/index';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { Bounds, EffectiveNode, Attribute, Model, Node, Relation, Id, Ref, ResolvedModelElement } from '../../model/index';
-import { RamenAnnotations, RamenAnnotationRelation } from './Definitions';
+import type { Bounds, EffectiveNode, Attribute, Model, Node, Relation, Id, Ref, ResolvedElement } from '../../model/index';
+import { RamenAnnotations, AnnotationRelation } from './Definitions';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../model/ReferenceModel';
 import { RamenAnnotationIndex, ResolvedRamenAnnotation } from './AnnotationIndex';
 
@@ -53,7 +53,7 @@ export class RamenAnnotationAdvisor {
 
   /** Advises properties and relations available for a new annotation type. */
   public advise(modelId: Id, annotationNodeId: Id): AnnotationAdvice | undefined {
-    const actual: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
+    const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual || !this.annotations.isAnnotationNode(actual.modelId, actual.element.id)) return undefined;
     return {
       properties: this.propertyAdvice(modelId, actual),
@@ -65,7 +65,7 @@ export class RamenAnnotationAdvisor {
   public adviseEffective(modelId: Id, annotationNodeId: Id, type: string): AnnotationAdvice | undefined {
     const definition: ResolvedRamenAnnotation | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
     if (!definition) return undefined;
-    const actual: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
+    const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual) return undefined;
     return {
       properties: this.selectedPropertyAdvice(modelId, actual, definition),
@@ -75,13 +75,10 @@ export class RamenAnnotationAdvisor {
 
   private selectedPropertyAdvice(
     contextModelId: Id,
-    actual: ResolvedModelElement<Node>,
+    actual: ResolvedElement<Node>,
     definition: ResolvedRamenAnnotation,
   ): readonly AnnotationPropertyAdvice[] {
-    const lineage: readonly ResolvedModelElement<Node>[] = [
-      actual,
-      ...this.graph.getNodeAncestors(actual.modelId, actual.element.id),
-    ];
+    const lineage: readonly ResolvedElement<Node>[] = [actual, ...this.graph.getNodeAncestors(actual.modelId, actual.element.id)];
     return AnnotationProperties.resolve(this.graph, definition, actual).map((attribute: Attribute): AnnotationPropertyAdvice => {
       const modelId: Id = this.attributeOwner(lineage, attribute.id)?.modelId ?? definition.modelId;
       return {
@@ -96,7 +93,7 @@ export class RamenAnnotationAdvisor {
     });
   }
 
-  private propertyAdvice(contextModelId: Id, actual: ResolvedModelElement<Node>): readonly AnnotationPropertyAdvice[] {
+  private propertyAdvice(contextModelId: Id, actual: ResolvedElement<Node>): readonly AnnotationPropertyAdvice[] {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(this.graph, actual.modelId, actual.element.id);
     if (!effective) return [];
     const commonIds: ReadonlySet<Id> = this.commonAnnotationAttributeIds();
@@ -104,7 +101,7 @@ export class RamenAnnotationAdvisor {
     return effective.attributes
       .filter((attribute: Attribute): boolean => !commonIds.has(attribute.id))
       .map((attribute: Attribute): AnnotationPropertyAdvice => {
-        const owner: ResolvedModelElement<Node> = this.attributeOwner(effective.lineage, attribute.id) ?? actual;
+        const owner: ResolvedElement<Node> = this.attributeOwner(effective.lineage, attribute.id) ?? actual;
         return {
           modelId: owner.modelId,
           attributeId: attribute.id,
@@ -118,7 +115,7 @@ export class RamenAnnotationAdvisor {
       .sort((left: AnnotationPropertyAdvice, right: AnnotationPropertyAdvice): number => left.name.localeCompare(right.name));
   }
 
-  private relationAdvice(contextModelId: Id, actual: ResolvedModelElement<Node>): readonly AnnotationRelationAdvice[] {
+  private relationAdvice(contextModelId: Id, actual: ResolvedElement<Node>): readonly AnnotationRelationAdvice[] {
     const result: AnnotationRelationAdvice[] = [];
 
     for (const item of this.relations.available(contextModelId)) {
@@ -137,7 +134,7 @@ export class RamenAnnotationAdvisor {
   private addRelationAdvice(
     result: AnnotationRelationAdvice[],
     contextModelId: Id,
-    actual: ResolvedModelElement<Node>,
+    actual: ResolvedElement<Node>,
     owner: Model,
     relation: Relation,
     direction: 'outgoing' | 'incoming',
@@ -145,7 +142,7 @@ export class RamenAnnotationAdvisor {
     const annotationRef: Ref = direction === 'outgoing' ? relation.from.nodeId : relation.to.nodeId;
     if (!this.graph.acceptsNode(owner.id, annotationRef, actual)) return;
     const targetRef: Ref = direction === 'outgoing' ? relation.to.nodeId : relation.from.nodeId;
-    const target: ResolvedModelElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
+    const target: ResolvedElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
 
     if (!target) return;
     const modeled: Bounds = direction === 'outgoing' ? relation.to.bounds : relation.from.bounds;
@@ -167,12 +164,12 @@ export class RamenAnnotationAdvisor {
 
   private selectedRelationAdvice(
     modelId: Id,
-    actual: ResolvedModelElement<Node>,
+    actual: ResolvedElement<Node>,
     definition: ResolvedRamenAnnotation,
   ): readonly AnnotationRelationAdvice[] {
     return this.relationAdvice(modelId, actual).flatMap((choice: AnnotationRelationAdvice): AnnotationRelationAdvice[] => {
-      const requirement: RamenAnnotationRelation | undefined = definition.annotation.relations.find(
-        (candidate: RamenAnnotationRelation): boolean =>
+      const requirement: AnnotationRelation | undefined = definition.annotation.relations.find(
+        (candidate: AnnotationRelation): boolean =>
           candidate.direction === choice.direction &&
           RamenAnnotations.relationRefs(candidate).some((ref: Ref): boolean =>
             this.graph.isRelationRefSameOrSubtype(choice.modelId, choice.relationId, definition.modelId, ref),
@@ -206,11 +203,8 @@ export class RamenAnnotationAdvisor {
     return new Set<Id>(annotation?.attributes.map((attribute: Attribute): Id => attribute.id) ?? []);
   }
 
-  private attributeOwner(
-    lineage: readonly ResolvedModelElement<Node>[],
-    attributeId: Id,
-  ): ResolvedModelElement<Node> | undefined {
-    return lineage.find((item: ResolvedModelElement<Node>): boolean =>
+  private attributeOwner(lineage: readonly ResolvedElement<Node>[], attributeId: Id): ResolvedElement<Node> | undefined {
+    return lineage.find((item: ResolvedElement<Node>): boolean =>
       item.element.attributes.some((attribute: Attribute): boolean => attribute.id === attributeId),
     );
   }
@@ -218,8 +212,8 @@ export class RamenAnnotationAdvisor {
   private compatibleTargets(modelId: Id, relationModelId: Id, targetRef: Ref): readonly Id[] {
     return this.graph
       .getAvailableNodes(modelId)
-      .filter((candidate: ResolvedModelElement<Node>): boolean => this.graph.acceptsNode(relationModelId, targetRef, candidate))
-      .map((candidate: ResolvedModelElement<Node>): Ref =>
+      .filter((candidate: ResolvedElement<Node>): boolean => this.graph.acceptsNode(relationModelId, targetRef, candidate))
+      .map((candidate: ResolvedElement<Node>): Ref =>
         candidate.modelId === modelId ? candidate.element.id : ModelRef.qualify(candidate.modelId, candidate.element.id),
       );
   }

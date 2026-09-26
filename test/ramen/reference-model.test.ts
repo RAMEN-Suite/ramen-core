@@ -21,7 +21,7 @@ import type {
   Classifier,
   Model,
   Node,
-  NodeRefinementSuggestion,
+  NodeSuggestion,
   RamenAdvisor,
   RamenChange,
   RamenModelDocument,
@@ -87,7 +87,7 @@ void test('exposes refinements and data types through the consumer API', (): voi
   assert.ok(advisor);
   const nodeNames: readonly string[] = advisor
     .suggestNodeRefinements('editorialModel01')
-    .map((item: NodeRefinementSuggestion): string => item.name);
+    .map((item: NodeSuggestion): string => item.name);
   const dataTypeNames: readonly string[] = advisor
     .suggestDataTypes('editorialModel01')
     .map((item: DataTypeSuggestion): string => item.name);

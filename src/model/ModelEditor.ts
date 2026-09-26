@@ -13,7 +13,7 @@ export type UpdateAttributeInput = Partial<Omit<Attribute, 'id'>>;
 export class ModelEditor {
   /** Returns a model with the classifier appended. */
   public static addClassifier(model: Model, classifier: Classifier): Model {
-    return { ...model, classifiers: [...(model.classifiers ?? []), classifier] };
+    return { ...model, classifiers: [...(model.classifiers ?? []), structuredClone(classifier)] };
   }
 
   /** Returns a model without the classifier, or throws when it does not exist. */
@@ -71,7 +71,7 @@ export class ModelEditor {
 
   /** Returns a model with the relation appended. */
   public static addRelation(model: Model, relation: Relation): Model {
-    return { ...model, relations: [...(model.relations ?? []), relation] };
+    return { ...model, relations: [...(model.relations ?? []), structuredClone(relation)] };
   }
 
   /** Applies a partial update to a relation without mutating the source model. */

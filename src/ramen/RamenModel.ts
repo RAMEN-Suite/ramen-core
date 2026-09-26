@@ -1,4 +1,4 @@
-import { ModelEditor, ModelFactory, ModelRef } from '../model/index';
+import { ModelConnections, ModelEditor, ModelFactory, ModelRef } from '../model/index';
 import type {
   Bounds,
   Classifier,
@@ -9,7 +9,8 @@ import type {
   Attribute,
   DataType,
   Model,
-  ProjectGraph,
+  RelationChoice,
+  Ref,
   Literal,
   Node,
   Relation,
@@ -224,8 +225,12 @@ export class RamenModel {
   }
 
   /** Lists relations that can connect two nodes in this model. */
-  public suggestRelations(fromNodeId: Id, toNodeId: Id): readonly RelationSuggestion[] {
-    return this.createAdvisor().suggestRelations(this.model.id, this.nodeReference(fromNodeId), this.nodeReference(toNodeId));
+  public suggestRelations(from: Node | Ref, to: Node | Ref): readonly RelationSuggestion[] {
+    return this.createAdvisor().suggestRelations(
+      this.model.id,
+      this.nodeReference(typeof from === 'string' ? from : from.id),
+      this.nodeReference(typeof to === 'string' ? to : to.id),
+    );
   }
 
   /** Lists annotation definitions available on a local or imported node. */
@@ -430,7 +435,7 @@ export class RamenModel {
   }
 
   /** Connects local nodes using a chosen suggestion, or infers the unique most specific relation. */
-  public connect(from: Node | Id, to: Node | Id, choice?: RelationSuggestion): RamenChange<Relation> {
+  public connect(from: Node | Id, to: Node | Id, choice?: RelationChoice): RamenChange<Relation> {
     return this.connectBy(from, to, choice);
   }
 
@@ -455,57 +460,33 @@ export class RamenModel {
   }
 
   private connectBy(
-    from: Node | Id,
-    to: Node | Id,
-    choice?: RelationSuggestion,
+    from: Node | Ref,
+    to: Node | Ref,
+    choice?: RelationChoice,
     family?: RamenRelationKind,
   ): RamenChange<Relation> {
-    const fromNodeId: Id = this.nodeReference(typeof from === 'string' ? from : from.id);
-    const toNodeId: Id = this.nodeReference(typeof to === 'string' ? to : to.id);
+    const fromRef: Ref = this.nodeReference(typeof from === 'string' ? from : from.id);
+    const toRef: Ref = this.nodeReference(typeof to === 'string' ? to : to.id);
     const validation: ProjectValidationResult = this.validate();
     if (!validation.valid) throw new Error('Cannot infer a relation from an invalid RAMEN model.');
-
-    const compatible: readonly RelationSuggestion[] = this.createAdvisor().suggestRelations(this.model.id, fromNodeId, toNodeId);
-    const suggestions: readonly RelationSuggestion[] = family
-      ? compatible.filter((candidate: RelationSuggestion): boolean =>
-          this.belongsToRamenFamily(candidate, family, validation.graph),
-        )
-      : compatible;
-    const mostSpecific: readonly RelationSuggestion[] = this.mostSpecificRelations(suggestions, validation.graph);
-
-    const selected: RelationSuggestion | undefined = choice
-      ? suggestions.find(
-          (item: RelationSuggestion): boolean => item.modelId === choice.modelId && item.relationId === choice.relationId,
-        )
-      : mostSpecific[0];
-
-    if (choice && !selected) throw new Error(`Selected relation '${choice.relationId}' does not connect these nodes.`);
-    if ((!choice && mostSpecific.length !== 1) || !selected) {
-      const names: string = mostSpecific.map((item: RelationSuggestion): string => item.name).join(', ');
-      throw new Error(
-        `Expected one relation for '${fromNodeId}' -> '${toNodeId}', found ${mostSpecific.length}${names ? `: ${names}` : ''}.`,
-      );
-    }
-    return this.createRelation({ refines: selected.relationId, fromNodeId: fromNodeId, toNodeId: toNodeId });
-  }
-
-  private belongsToRamenFamily(candidate: RelationSuggestion, family: RamenRelationKind, graph: ProjectGraph): boolean {
-    return RAMEN_MODEL.relations.some(
-      (base: Relation): boolean =>
-        base.name === family &&
-        graph.isRelationRefSameOrSubtype(candidate.modelId, candidate.relationId, RAMEN_MODEL.id, base.id),
+    const connections: ModelConnections = new ModelConnections(
+      validation,
+      RamenAnnotations.relationSelections(this.validationInputs()),
     );
-  }
-
-  private mostSpecificRelations(suggestions: readonly RelationSuggestion[], graph: ProjectGraph): readonly RelationSuggestion[] {
-    return suggestions.filter(
-      (candidate: RelationSuggestion): boolean =>
-        !suggestions.some(
-          (other: RelationSuggestion): boolean =>
-            other !== candidate &&
-            graph.isRelationRefSameOrSubtype(other.modelId, other.relationId, candidate.modelId, candidate.relationId),
-        ),
-    );
+    const suggestions: readonly RelationSuggestion[] = connections.suggest(fromRef, toRef);
+    const candidates: readonly RelationSuggestion[] = family
+      ? suggestions.filter((item: RelationSuggestion): boolean =>
+          RAMEN_MODEL.relations.some(
+            (base: Relation): boolean =>
+              base.name === family &&
+              validation.graph.isRelationRefSameOrSubtype(item.modelId, item.relationId, RAMEN_MODEL.id, base.id),
+          ),
+        )
+      : suggestions;
+    const selected: RelationSuggestion = connections.select(candidates, choice);
+    const relation: Relation = connections.connect(fromRef, toRef, selected.ref);
+    this.model = ModelEditor.addRelation(this.model, relation);
+    return this.change(relation);
   }
 
   /** Updates a local relation and validates the resulting project. */

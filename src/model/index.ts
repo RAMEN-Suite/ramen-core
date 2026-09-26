@@ -17,3 +17,4 @@ export * from './validation/Diagnostics';
 export * from './validation/Codes';
 export * from './graph/RelationScope';
 export * from './Advisor';
+export * from './Connections';

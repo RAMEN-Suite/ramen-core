@@ -120,3 +120,28 @@ void test('model edits refresh suggestions while previous advisors keep their or
     ['comment'],
   );
 });
+
+void test('connect preserves the model qualifier when consecutive levels reuse a relation identifier', (): void => {
+  const first: RamenModel = project();
+  const witness: Node = first.createNode({ name: 'Witness', refines: RAMEN_ELEMENT.COLLECTION }).element;
+  const letter: Node = first.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION }).element;
+  const original: Relation = first.partOf(witness, letter).element;
+  const document: RamenModelDocument = next(first, 'scopeSharedId0001').getModel();
+  document.relations = [
+    {
+      ...original,
+      superTypes: [`${first.getModel().id}:${original.id}`],
+      from: { ...original.from, nodeId: `${first.getModel().id}:${witness.id}` },
+      to: { ...original.to, nodeId: `${first.getModel().id}:${letter.id}` },
+    },
+  ];
+  const second: RamenModel = RamenModel.load(document, first.getModels());
+  assert.equal(second.validate().valid, true);
+  const third: RamenModel = next(second, 'scopeSharedId0002');
+  const selected: RelationSuggestion | undefined = third.suggestRelations(witness, letter)[0];
+  assert.ok(selected);
+  const link: Relation = third.connect(witness, letter, selected.ref).element;
+  assert.deepEqual(link.superTypes, [`${document.id}:${original.id}`]);
+  assert.deepEqual(third.partOf(witness, letter).element.superTypes, link.superTypes);
+  assert.equal(third.validate().valid, true);
+});

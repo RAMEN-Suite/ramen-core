@@ -26,7 +26,7 @@ function getNodeOptions(model: RamenModel): readonly NodeOption[] {
 
 // A UI can call this after the user selects two node types.
 function getConnectionOptions(model: RamenModel, from: Node, to: Node): readonly ConnectionOption[] {
-  const suggestions: readonly RelationSuggestion[] = model.suggestRelations(from.id, to.id);
+  const suggestions: readonly RelationSuggestion[] = model.suggestRelations(from, to);
 
   return suggestions.map((suggestion: RelationSuggestion): ConnectionOption => ({
     id: suggestion.ref,
@@ -37,13 +37,7 @@ function getConnectionOptions(model: RamenModel, from: Node, to: Node): readonly
 
 // The UI sends back the selected option ID; the server resolves it again before editing.
 function applyConnectionChoice(model: RamenModel, from: Node, to: Node, optionId: string): Relation {
-  const suggestions: readonly RelationSuggestion[] = model.suggestRelations(from.id, to.id);
-  const choice: RelationSuggestion | undefined = suggestions.find(
-    (suggestion: RelationSuggestion): boolean => suggestion.ref === optionId,
-  );
-
-  if (!choice) throw new Error(`Unknown connection option: ${optionId}`);
-  return model.connect(from, to, choice).element;
+  return model.connect(from, to, optionId).element;
 }
 
 const model: RamenModel = RamenModel.create({

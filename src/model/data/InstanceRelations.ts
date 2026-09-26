@@ -39,7 +39,7 @@ export class InstanceRelationValidator {
       if (resolved) result.push(resolved);
     });
     const counts: ReadonlyMap<string, number> = this.relationCounts(graph, result);
-    this.validateRelationCardinalities(graph, instance.modelId, nodesById, counts, diagnostics);
+    this.validateCardinalities(graph, instance.modelId, nodesById, counts, diagnostics);
     return result;
   }
 
@@ -52,17 +52,11 @@ export class InstanceRelationValidator {
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
     diagnostics: Diagnostic[],
   ): ResolvedInstanceRelation | undefined {
-    if (!this.registerRelationId(relation.id, path, ids, diagnostics)) return undefined;
-    const type: ResolvedElement<Relation> | undefined = this.resolveRelationType(
-      graph,
-      ownerModelId,
-      relation,
-      path,
-      diagnostics,
-    );
+    if (!this.registerId(relation.id, path, ids, diagnostics)) return undefined;
+    const type: ResolvedElement<Relation> | undefined = this.resolveType(graph, ownerModelId, relation, path, diagnostics);
 
     if (!type) return undefined;
-    const from: ResolvedInstanceNode | undefined = this.requireInstanceNode(
+    const from: ResolvedInstanceNode | undefined = this.requireNode(
       nodesById,
       relation.fromId,
       'FROM',
@@ -70,19 +64,13 @@ export class InstanceRelationValidator {
       relation.id,
       diagnostics,
     );
-    const to: ResolvedInstanceNode | undefined = this.requireInstanceNode(
-      nodesById,
-      relation.toId,
-      'TO',
-      path,
-      relation.id,
-      diagnostics,
-    );
+    const to: ResolvedInstanceNode | undefined = this.requireNode(nodesById, relation.toId, 'TO', path, relation.id, diagnostics);
 
     if (!from || !to) return undefined;
-    this.validateRelationEndpoint(graph, type, type.element.from.nodeId, from, path.property('fromId'), diagnostics);
-    this.validateRelationEndpoint(graph, type, type.element.to.nodeId, to, path.property('toId'), diagnostics);
-    this.validateConstraints(type, relation, from, to, path, diagnostics);
+    this.validateEndpoint(graph, type, type.element.from.nodeId, from, path.property('fromId'), diagnostics);
+    this.validateEndpoint(graph, type, type.element.to.nodeId, to, path.property('toId'), diagnostics);
+    const lineage: readonly ResolvedElement<Relation>[] = [type, ...graph.getRelationAncestors(type.modelId, type.element.id)];
+    for (const owner of lineage) this.validateConstraints(owner, relation, from, to, path, diagnostics);
     return { instance: relation, type: type };
   }
 
@@ -127,7 +115,7 @@ export class InstanceRelationValidator {
     }
   }
 
-  private registerRelationId(id: Id, path: DiagnosticPath, ids: Set<Id>, diagnostics: Diagnostic[]): boolean {
+  private registerId(id: Id, path: DiagnosticPath, ids: Set<Id>, diagnostics: Diagnostic[]): boolean {
     if (!ids.has(id)) {
       ids.add(id);
 
@@ -137,7 +125,7 @@ export class InstanceRelationValidator {
     return false;
   }
 
-  private resolveRelationType(
+  private resolveType(
     graph: ProjectGraph,
     ownerModelId: Id,
     relation: ModelInstanceRelation,
@@ -169,7 +157,7 @@ export class InstanceRelationValidator {
     return undefined;
   }
 
-  private requireInstanceNode(
+  private requireNode(
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
     nodeId: Id,
     end: 'FROM' | 'TO',
@@ -186,7 +174,7 @@ export class InstanceRelationValidator {
     return undefined;
   }
 
-  private validateRelationEndpoint(
+  private validateEndpoint(
     graph: ProjectGraph,
     relationType: ResolvedElement<Relation>,
     requiredRef: Ref,
@@ -207,7 +195,7 @@ export class InstanceRelationValidator {
     }
   }
 
-  private validateRelationCardinalities(
+  private validateCardinalities(
     graph: ProjectGraph,
     ownerModelId: Id,
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
@@ -222,10 +210,10 @@ export class InstanceRelationValidator {
           model.relations.map((element: Relation): ResolvedElement<Relation> => ({ modelId: model.id, element })),
         );
     for (const item of selected)
-      this.validateRelationTypeCardinalities(graph, ownerModelId, item.modelId, item.element, nodesById, counts, diagnostics);
+      this.validateTypeCounts(graph, ownerModelId, item.modelId, item.element, nodesById, counts, diagnostics);
   }
 
-  private validateRelationTypeCardinalities(
+  private validateTypeCounts(
     graph: ProjectGraph,
     ownerModelId: Id,
     relationModelId: Id,

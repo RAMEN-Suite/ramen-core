@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   InstanceValidator,
+  ModelConnections,
   ModelEditor,
   ModelFactory,
   ModelValidator,
@@ -13,6 +14,8 @@ import type {
   Model,
   ModelInstanceGraph,
   Node,
+  Relation,
+  RelationSuggestion,
   ProjectValidationResult,
   ValidationResult,
 } from '../dist/model/index.js';
@@ -32,7 +35,16 @@ const emptyTransport: Model = ModelFactory.createRootModel({
   name: 'Transport',
   version: '1.0.0',
 });
-const transport: Model = ModelEditor.addClassifier(emptyTransport, vehicle);
+const withVehicle: Model = ModelEditor.addClassifier(emptyTransport, vehicle);
+const towing: Relation = {
+  kind: 'Relation',
+  id: 'transportTowing01',
+  name: 'TOWS',
+  superTypes: [],
+  from: ModelFactory.createRelationEnd(vehicle.id, 'towingVehicle', { lowerBound: 0, upperBound: -1 }),
+  to: ModelFactory.createRelationEnd(vehicle.id, 'towedVehicle', { lowerBound: 0, upperBound: 1 }),
+};
+const transport: Model = ModelEditor.addRelation(withVehicle, towing);
 
 const emptyProject: Model = ModelFactory.createModel(transport, {
   id: 'bicycleProject001',
@@ -50,7 +62,18 @@ const gears: Attribute = ModelFactory.createAttribute({
   bounds: { lowerBound: 1, upperBound: 1 },
 });
 
-const project: Model = ModelEditor.addAttribute(withBicycle, bicycle.id, gears);
+const draft: Model = ModelEditor.addAttribute(withBicycle, bicycle.id, gears);
+const checked: ProjectValidationResult = new ModelValidator().validateProject(draft.id, [transport, draft]);
+if (!checked.valid) throw new Error(JSON.stringify(checked.diagnostics));
+
+// A generic consumer selects a relation, then adds it to the model.
+const connections: ModelConnections = new ModelConnections(checked);
+const choices: readonly RelationSuggestion[] = connections.suggest(bicycle, bicycle);
+const selected: RelationSuggestion | undefined = choices[0];
+assert.ok(selected);
+
+const link: Relation = connections.connect(bicycle, bicycle, selected.ref);
+const project: Model = ModelEditor.addRelation(draft, link);
 const validation: ProjectValidationResult = new ModelValidator().validateProject(project.id, [transport, project]);
 
 if (!validation.valid) throw new Error(JSON.stringify(validation.diagnostics));

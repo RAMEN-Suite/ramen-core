@@ -18,3 +18,15 @@ export * from './validation/Codes';
 export * from './graph/RelationScope';
 export * from './Advisor';
 export * from './Connections';
+export * from './Modeler';
+export type {
+  ModelInput,
+  ElementRef,
+  ElementInput,
+  NodeInput,
+  AttributeInput,
+  RelationInput,
+  LiteralInput,
+  LiteralUpdate,
+  ModelChange,
+} from './ModelDraft';

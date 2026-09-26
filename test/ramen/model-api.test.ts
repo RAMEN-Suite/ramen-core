@@ -223,7 +223,7 @@ void test('does not export a project with invalid RAMEN annotation semantics', (
 
   assert.equal(duplicate.validation.valid, false);
   assert.equal(exported.ok, false);
-  assert.throws((): RamenAdvisor => fixture.project.createAdvisor(), /Cannot advise an invalid RAMEN model/);
+  assert.throws((): RamenAdvisor => fixture.project.createAdvisor(), /Cannot advise an invalid model/);
   if (exported.ok) return;
   assert.ok(
     exported.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE'),

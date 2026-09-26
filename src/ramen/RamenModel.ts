@@ -1,66 +1,57 @@
-import { ModelConnections, ModelEditor, ModelFactory, ModelRef } from '../model/index';
+import { ModelDraft } from '../model/ModelDraft';
 import type {
-  Bounds,
-  Classifier,
+  ElementInput,
+  ElementRef,
+  ModelInput,
+  NodeInput,
+  RelationInput,
+  LiteralInput,
+  LiteralUpdate,
+  ModelChange,
+  Removal,
+} from '../model/ModelDraft';
+import { ModelFactory, ModelRef } from '../model/index';
+import type {
   ConstraintRegistry,
-  CreateAttributeInput,
-  CreateDataTypeInput,
-  CreateModelInput,
-  Attribute,
-  DataType,
-  Model,
-  RelationChoice,
-  Ref,
-  Literal,
-  Node,
-  Relation,
   Id,
+  Model,
+  Ref,
+  Relation,
+  RelationSelections,
   ProjectValidationResult,
-  UpdateAttributeInput,
-  UpdateDataTypeInput,
-  UpdateNodeInput,
-  UpdateRelationInput,
+  ValidProjectResult,
   ValidationResult,
 } from '../model/index';
 import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions';
-import { RamenModelFormat } from './model/Document';
-import type { RamenModelDocument } from './model/Document';
+import { RamenModelFormat, RamenModelDocument } from './model/Document';
 import { RAMEN_MODEL } from './model/ReferenceModel';
 import { RamenValidator } from './validation/ModelValidator';
 import { RamenInstanceValidator } from './validation/InstanceValidator';
 import type { AnnotationPropertyAdvice } from './annotations/Advisor';
-import { RamenAdvisor } from './Advisor';
-import type { AnnotationSuggestion, AttributeSuggestion, RelationSuggestion } from './Advisor';
-import { createRamenBundle, parseRamenBundle } from './exchange/Bundle';
-import type { CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
-import { RamenEvolution } from './exchange/Comparison';
-import type { RamenEvolutionReport } from './exchange/Comparison';
+import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
+import { createRamenBundle, parseRamenBundle, CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
+import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
 
-/** Reference to one node or relation in a specific model. */
-export interface RamenElementRef {
-  readonly modelId: Id;
-  readonly elementId: Id;
-}
+/** Model-qualified element identifier. */
+export type RamenElementRef = ElementRef;
 
-/** An element ID is enough when it is unique in the current model chain. */
-export type RamenRef = Id | RamenElementRef;
+/** An element, suggestion, local ID or qualified reference. */
+export type RamenRef = ElementInput;
 
-type RamenRelationKind = 'PART_OF' | 'HAS_ANNOTATION' | 'REFERS_TO';
+/** Values for a RAMEN node refinement. */
+export type CreateRamenNodeInput = NodeInput & { readonly refines: ElementInput };
 
-/** Values needed to create a project node refining an existing node. */
-export interface CreateRamenNodeInput {
-  readonly name: string;
-  readonly refines: RamenRef;
-}
+/** Values for a RAMEN relation refinement. */
+export type CreateRamenRelationInput = RelationInput & { readonly refines: ElementInput };
 
-/** Values needed to create a project relation refining an existing relation. */
-export interface CreateRamenRelationInput {
-  readonly refines: RamenRef;
-  readonly fromNodeId: Id;
-  readonly toNodeId: Id;
-  readonly fromBounds?: Bounds;
-  readonly toBounds?: Bounds;
-}
+/** Values for one data type literal. */
+export type CreateRamenLiteralInput = LiteralInput;
+
+/** Editable literal fields. */
+export type UpdateRamenLiteralInput = LiteralUpdate;
+
+/** Edited element and its project validation. */
+export type RamenChange<T> = ModelChange<T>;
 
 /** Values needed to declare one closed annotation variant on a local or imported Annotation node. */
 export interface CreateRamenAnnotationInput {
@@ -77,54 +68,47 @@ export interface UpdateRamenAnnotationInput {
   readonly relations?: readonly AnnotationRelation[];
 }
 
-/** Values of a named literal in a project-defined data type. */
-export interface CreateRamenLiteralInput {
-  readonly name: string;
-  readonly literal?: string;
-  readonly value?: number;
-}
-
-/** Editable fields of a locally declared data type literal. */
-export type UpdateRamenLiteralInput = Partial<Pick<Literal, 'name' | 'literal' | 'value' | 'constraints' | 'ext'>>;
-
-/** Result of a model change together with immediate whole-project validation. */
-export interface RamenChange<T> {
-  readonly element: T;
-  readonly validation: ProjectValidationResult;
-}
-
-/** Stateful convenience API for creating and validating one RAMEN project model. */
-export class RamenModel {
-  private model: Model;
-  private readonly dependencies: ReadonlyMap<Id, Model>;
-  private readonly validator: RamenValidator = new RamenValidator();
-
-  private validatedModel: Model | undefined;
-  private validation: ProjectValidationResult | undefined;
-  private advisor: RamenAdvisor | undefined;
-
+/** Adds the RAMEN vocabulary and annotation rules to shared generic editing. */
+export class RamenModel extends ModelDraft<RamenAdvisor> {
   private constructor(model: RamenModelDocument, dependencies: readonly Model[]) {
-    this.model = structuredClone(model);
-    this.dependencies = new Map<Id, Model>(dependencies.map((item: Model): [Id, Model] => [item.id, structuredClone(item)]));
+    super(model, dependencies);
+  }
+
+  protected check(): ProjectValidationResult {
+    return new RamenValidator().validateProject(this.model.id, this.validationInputs());
+  }
+
+  protected advise(result: ValidProjectResult): RamenAdvisor {
+    return new RamenAdvisor(result, this.validationInputs());
+  }
+
+  protected selections(): RelationSelections {
+    return RamenAnnotations.relationSelections(this.validationInputs());
+  }
+
+  private family(name: string): readonly Ref[] {
+    return RAMEN_MODEL.relations
+      .filter((relation: Relation): boolean => relation.name === name)
+      .map((relation: Relation): Ref => ModelRef.qualify(RAMEN_MODEL.id, relation.id));
   }
 
   /** Creates an empty project that imports the current RAMEN reference model. */
-  public static create(input: CreateModelInput): RamenModel {
+  public static create(input: ModelInput | string): RamenModel {
     return this.createLevel(RAMEN_MODEL, input);
   }
 
   /** Creates another model level that imports an existing RAMEN project model. */
-  public static createLevel(base: Model, input: CreateModelInput, dependencies: readonly Model[] = []): RamenModel {
+  public static createLevel(base: Model, input: ModelInput | string, dependencies: readonly Model[] = []): RamenModel {
     const models: Map<Id, Model> = new Map<Id, Model>([
       [RAMEN_MODEL.id, RAMEN_MODEL],
       ...dependencies.map((model: Model): [Id, Model] => [model.id, model]),
       [base.id, base],
     ]);
-    return new RamenModel(RamenModelFormat.create(ModelFactory.createModel(base, input)), [...models.values()]);
+    return new RamenModel(RamenModelFormat.create(ModelFactory.createModel(base, this.options(input))), [...models.values()]);
   }
 
   /** Creates the next model level while retaining the complete dependency chain. */
-  public createNextLevel(input: CreateModelInput): RamenModel {
+  public createNextLevel(input: ModelInput | string): RamenModel {
     return RamenModel.createLevel(this.model, input, [...this.dependencies.values()]);
   }
 
@@ -150,27 +134,9 @@ export class RamenModel {
     return structuredClone(this.model) as RamenModelDocument;
   }
 
-  /** Returns detached snapshots of the current model and every transitive dependency. */
-  public getModels(): readonly Model[] {
-    return this.validationInputs().map((model: Model): Model => structuredClone(model));
-  }
-
   /** Exports the current project and every reachable dependency as one portable bundle. */
   public exportBundle(): CreateRamenBundleResult {
     return createRamenBundle(this.model.id, this.validationInputs());
-  }
-
-  /** Validates the complete current project and returns its graph on success. */
-  public validate(): ProjectValidationResult {
-    if (this.validatedModel === this.model && this.validation) return this.validation;
-    const result: ProjectValidationResult = this.validator.validateProject(this.model.id, this.validationInputs());
-    this.validatedModel = this.model;
-    this.advisor = undefined;
-    this.validation = Object.freeze({
-      ...result,
-      diagnostics: Object.freeze(result.diagnostics.map((diagnostic): typeof diagnostic => Object.freeze(diagnostic))),
-    });
-    return this.validation;
   }
 
   /** Validates a complete data graph using this project's models and optional custom constraint languages. */
@@ -187,82 +153,22 @@ export class RamenModel {
     return RamenEvolution.compare(this.model.id, this.validationInputs(), next.model.id, next.validationInputs());
   }
 
-  /** Returns an advisor or explains why the current model cannot provide suggestions. */
-  public createAdvisor(): RamenAdvisor {
-    const result: ProjectValidationResult = this.validate();
-    if (!result.valid)
-      throw new Error(`Cannot advise an invalid RAMEN model: ${result.diagnostics[0]?.message ?? 'Unknown error.'}`);
-
-    this.advisor ??= new RamenAdvisor(result, this.validationInputs());
-    return this.advisor;
-  }
-
-  /** Lists attributes visible on a local or imported node. */
-  public suggestAttributes(nodeId: Id): readonly AttributeSuggestion[] {
-    const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
-    return this.createAdvisor().suggestAttributes(owner.modelId, owner.elementId);
-  }
-
   /** Lists the properties selected or declared by one annotation type. */
-  public suggestAttributesForAnnotation(nodeId: Id, type: string): readonly AnnotationPropertyAdvice[] {
+  public suggestAttributesForAnnotation(nodeId: ElementInput, type: string): readonly AnnotationPropertyAdvice[] {
     return this.createAdvisor().suggestAttributesForAnnotation(this.model.id, this.nodeReference(nodeId), type);
   }
 
-  /** Lists relations that can connect two nodes in this model. */
-  public suggestRelations(from: Node | Ref, to: Node | Ref): readonly RelationSuggestion[] {
-    return this.createAdvisor().suggestRelations(
-      this.model.id,
-      this.nodeReference(typeof from === 'string' ? from : from.id),
-      this.nodeReference(typeof to === 'string' ? to : to.id),
-    );
-  }
-
   /** Lists annotation definitions available on a local or imported node. */
-  public suggestAnnotations(nodeId: Id): readonly AnnotationSuggestion[] {
+  public suggestAnnotations(nodeId: ElementInput): readonly AnnotationSuggestion[] {
     const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
     const reference: Id = owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
     return this.createAdvisor().suggestAnnotations(this.model.id, reference);
   }
 
   /** Lists annotation types allowed on a carrier, optionally for one chosen Annotation node. */
-  public suggestAnnotationsForNode(nodeId: Id, annotationNodeId?: Id): readonly AnnotationSuggestion[] {
+  public suggestAnnotationsForNode(nodeId: ElementInput, annotationNodeId?: ElementInput): readonly AnnotationSuggestion[] {
     const target: Id | undefined = annotationNodeId ? this.nodeReference(annotationNodeId) : undefined;
     return this.createAdvisor().suggestAnnotationsForNode(this.model.id, this.nodeReference(nodeId), target);
-  }
-
-  /** Adds a node refinement and immediately validates the resulting project. */
-  public createNode(input: CreateRamenNodeInput): RamenChange<Node> {
-    const base: RamenElementRef = this.resolveRef(input.refines, 'node');
-    const node: Node = ModelFactory.createNode(base.modelId, {
-      name: input.name,
-      baseNodeId: base.elementId,
-    });
-
-    this.model = ModelEditor.addClassifier(this.model, node);
-    return this.change(node);
-  }
-
-  /** Updates a local node and immediately validates the resulting project. */
-  public updateNode(nodeId: Id, input: UpdateNodeInput): RamenChange<Node> {
-    this.requireNode(nodeId);
-    this.model = ModelEditor.updateNode(this.model, nodeId, input);
-
-    return this.change(this.requireNode(nodeId));
-  }
-
-  /** Removes a local node and its connected local relations. */
-  public removeNode(nodeId: Id): RamenChange<Node> {
-    const node: Node = this.requireNode(nodeId);
-    const relationIds: Set<Id> = new Set<Id>(
-      this.model.relations
-        .filter((relation: Relation): boolean => relation.from.nodeId === nodeId || relation.to.nodeId === nodeId)
-        .map((relation: Relation): Id => relation.id),
-    );
-
-    this.model = ModelEditor.removeNode(this.model, nodeId);
-    this.cleanAnnotationReferences({ nodeId: nodeId, relationIds: relationIds });
-
-    return this.change(node);
   }
 
   /** Returns the closed annotation variants declared directly by the project model. */
@@ -314,255 +220,19 @@ export class RamenModel {
     return this.change(current);
   }
 
-  /** Adds an attribute to a local node and immediately validates the resulting project. */
-  public createAttribute(nodeId: Id, input: CreateAttributeInput): RamenChange<Attribute> {
-    const attribute: Attribute = ModelFactory.createAttribute(input);
-    this.model = ModelEditor.addAttribute(this.model, nodeId, attribute);
-    return this.change(attribute);
-  }
-
-  /** Updates an attribute by stable identifier and validates the resulting project. */
-  public updateAttribute(nodeId: Id, attributeId: Id, input: UpdateAttributeInput): RamenChange<Attribute> {
-    this.requireAttribute(nodeId, attributeId);
-    this.model = ModelEditor.updateAttribute(this.model, nodeId, attributeId, input);
-
-    return this.change(this.requireAttribute(nodeId, attributeId));
-  }
-
-  /** Removes an attribute by stable identifier and validates the resulting project. */
-  public removeAttribute(nodeId: Id, attributeId: Id): RamenChange<Attribute> {
-    const attribute: Attribute = this.requireAttribute(nodeId, attributeId);
-
-    this.model = ModelEditor.removeAttribute(this.model, nodeId, attributeId);
-    this.cleanAnnotationReferences({ attributeId: attributeId });
-
-    return this.change(attribute);
-  }
-
-  /** Adds a scalar data type and immediately validates the resulting project. */
-  public createDataType(input: CreateDataTypeInput): RamenChange<DataType> {
-    const dataType: DataType = ModelFactory.createDataType(input);
-    this.model = ModelEditor.addClassifier(this.model, dataType);
-    return this.change(dataType);
-  }
-
-  /** Updates a local data type and validates the resulting project. */
-  public updateDataType(dataTypeId: Id, input: UpdateDataTypeInput): RamenChange<DataType> {
-    this.requireDataType(dataTypeId);
-    this.model = ModelEditor.updateDataType(this.model, dataTypeId, input);
-
-    return this.change(this.requireDataType(dataTypeId));
-  }
-
-  /** Removes a local data type and validates the resulting project. */
-  public removeDataType(dataTypeId: Id): RamenChange<DataType> {
-    const dataType: DataType = this.requireDataType(dataTypeId);
-
-    this.model = ModelEditor.removeClassifierById(this.model, dataTypeId);
-
-    return this.change(dataType);
-  }
-
-  /** Adds one named literal to a local data type. */
-  public createLiteral(dataTypeId: Id, input: CreateRamenLiteralInput): RamenChange<Literal> {
-    const dataType: DataType = this.requireDataType(dataTypeId);
-    const literal: Literal = ModelFactory.createLiteral(input.name, input.literal, input.value);
-    const literals: [Literal, ...Literal[]] = [literal, ...(dataType.literals ?? [])];
-
-    this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals: literals });
-    return this.change(literal);
-  }
-
-  /** Updates one literal by stable identifier. */
-  public updateLiteral(dataTypeId: Id, literalId: Id, input: UpdateRamenLiteralInput): RamenChange<Literal> {
-    const dataType: DataType = this.requireDataType(dataTypeId);
-    const current: Literal = this.requireLiteral(dataType, literalId);
-    const literal: Literal = { ...current, ...structuredClone(input) };
-    const literals: [Literal, ...Literal[]] = (dataType.literals ?? []).map((item: Literal): Literal =>
-      item.id === literalId ? literal : item,
-    ) as [Literal, ...Literal[]];
-
-    this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals: literals });
-    return this.change(literal);
-  }
-
-  /** Removes one literal; an empty data type becomes unrestricted again. */
-  public removeLiteral(dataTypeId: Id, literalId: Id): RamenChange<Literal> {
-    const dataType: DataType = this.requireDataType(dataTypeId);
-    const literal: Literal = this.requireLiteral(dataType, literalId);
-    const remaining: Literal[] = (dataType.literals ?? []).filter((item: Literal): boolean => item.id !== literalId);
-
-    this.model = ModelEditor.updateDataType(this.model, dataTypeId, {
-      literals: remaining.length > 0 ? (remaining as [Literal, ...Literal[]]) : undefined,
-    });
-    return this.change(literal);
-  }
-
-  /** Adds a relation refinement and immediately validates the resulting project. */
-  public createRelation(input: CreateRamenRelationInput): RamenChange<Relation> {
-    const reference: RamenElementRef = this.resolveRef(input.refines, 'relation');
-    const base: Model | undefined = this.findModel(reference.modelId);
-    if (!base) throw new Error(`Relation base model not found: '${reference.modelId}'.`);
-    const relation: Relation = ModelFactory.createRelation(base, reference.modelId, {
-      baseRelationId: reference.elementId,
-      fromNodeId: this.nodeReference(input.fromNodeId),
-      toNodeId: this.nodeReference(input.toNodeId),
-    });
-    const narrowed: Relation = {
-      ...relation,
-      from: { ...relation.from, bounds: input.fromBounds ?? relation.from.bounds },
-      to: { ...relation.to, bounds: input.toBounds ?? relation.to.bounds },
-    };
-
-    this.model = ModelEditor.addRelation(this.model, narrowed);
-    return this.change(narrowed);
-  }
-
-  /** Connects local nodes using a chosen suggestion, or infers the unique most specific relation. */
-  public connect(from: Node | Id, to: Node | Id, choice?: RelationChoice): RamenChange<Relation> {
-    return this.connectBy(from, to, choice);
-  }
-
   /** Creates a RAMEN PART_OF relation when the node types permit it. */
-  public partOf(part: Node | Id, whole: Node | Id): RamenChange<Relation> {
-    return this.connectBy(part, whole, undefined, 'PART_OF');
+  public partOf(part: ElementInput, whole: ElementInput): RamenChange<Relation> {
+    return this.connectBy(part, whole, undefined, this.family('PART_OF'));
   }
 
   /** Creates a RAMEN HAS_ANNOTATION relation when the node types permit it. */
-  public hasAnnotation(subject: Node | Id, annotation: Node | Id): RamenChange<Relation> {
-    return this.connectBy(subject, annotation, undefined, 'HAS_ANNOTATION');
+  public hasAnnotation(subject: ElementInput, annotation: ElementInput): RamenChange<Relation> {
+    return this.connectBy(subject, annotation, undefined, this.family('HAS_ANNOTATION'));
   }
 
   /** Creates a RAMEN REFERS_TO relation when the node types permit it. */
-  public refersTo(annotation: Node | Id, target: Node | Id): RamenChange<Relation> {
-    return this.connectBy(annotation, target, undefined, 'REFERS_TO');
-  }
-
-  private nodeReference(nodeId: Id): Id {
-    const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
-    return owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
-  }
-
-  private connectBy(
-    from: Node | Ref,
-    to: Node | Ref,
-    choice?: RelationChoice,
-    family?: RamenRelationKind,
-  ): RamenChange<Relation> {
-    const fromRef: Ref = this.nodeReference(typeof from === 'string' ? from : from.id);
-    const toRef: Ref = this.nodeReference(typeof to === 'string' ? to : to.id);
-    const validation: ProjectValidationResult = this.validate();
-    if (!validation.valid) throw new Error('Cannot infer a relation from an invalid RAMEN model.');
-    const connections: ModelConnections = new ModelConnections(
-      validation,
-      RamenAnnotations.relationSelections(this.validationInputs()),
-    );
-    const suggestions: readonly RelationSuggestion[] = connections.suggest(fromRef, toRef);
-    const candidates: readonly RelationSuggestion[] = family
-      ? suggestions.filter((item: RelationSuggestion): boolean =>
-          RAMEN_MODEL.relations.some(
-            (base: Relation): boolean =>
-              base.name === family &&
-              validation.graph.isRelationRefSameOrSubtype(item.modelId, item.relationId, RAMEN_MODEL.id, base.id),
-          ),
-        )
-      : suggestions;
-    const selected: RelationSuggestion = connections.select(candidates, choice);
-    const relation: Relation = connections.connect(fromRef, toRef, selected.ref);
-    this.model = ModelEditor.addRelation(this.model, relation);
-    return this.change(relation);
-  }
-
-  /** Updates a local relation and validates the resulting project. */
-  public updateRelation(relationId: Id, input: UpdateRelationInput): RamenChange<Relation> {
-    this.requireRelation(relationId);
-    this.model = ModelEditor.updateRelation(this.model, relationId, input);
-
-    return this.change(this.requireRelation(relationId));
-  }
-
-  /** Removes a local relation and validates the resulting project. */
-  public removeRelation(relationId: Id): RamenChange<Relation> {
-    const relation: Relation = this.requireRelation(relationId);
-
-    this.model = ModelEditor.removeRelationById(this.model, relationId);
-    this.cleanAnnotationReferences({ relationIds: new Set<Id>([relationId]) });
-
-    return this.change(relation);
-  }
-
-  private change<T>(element: T): RamenChange<T> {
-    return { element: structuredClone(element), validation: this.validate() };
-  }
-
-  private validationInputs(): readonly Model[] {
-    const models: Map<Id, Model> = new Map<Id, Model>(this.dependencies);
-    models.set(this.model.id, this.model);
-    return [...models.values()];
-  }
-
-  private findModel(modelId: Id): Model | undefined {
-    if (modelId === this.model.id) return this.model;
-    return this.dependencies.get(modelId);
-  }
-
-  private resolveRef(input: RamenRef, kind: 'node' | 'relation'): RamenElementRef {
-    if (typeof input !== 'string') return input;
-    if (ModelRef.isQualified(input)) {
-      const parts: { readonly modelId: Id; readonly refId: Id } = ModelRef.splitQualified(input);
-      return { modelId: parts.modelId, elementId: parts.refId };
-    }
-
-    const matches: RamenElementRef[] = this.validationInputs()
-      .filter((model: Model): boolean => {
-        if (kind === 'relation') return model.relations.some((relation: Relation): boolean => relation.id === input);
-        return model.classifiers.some((item: Classifier): boolean => item.kind === 'Node' && item.id === input);
-      })
-      .map((model: Model): RamenElementRef => ({ modelId: model.id, elementId: input }));
-
-    if (matches.length !== 1 || !matches[0]) throw new Error(`Expected one ${kind} with id '${input}', found ${matches.length}.`);
-    return matches[0];
-  }
-
-  private requireNode(nodeId: Id): Node {
-    const classifier: Classifier | undefined = this.model.classifiers.find((item: Classifier): boolean => item.id === nodeId);
-
-    if (classifier?.kind !== 'Node') throw new Error(`Node not found: '${nodeId}'.`);
-
-    return classifier;
-  }
-
-  private requireDataType(dataTypeId: Id): DataType {
-    const classifier: Classifier | undefined = this.model.classifiers.find((item: Classifier): boolean => item.id === dataTypeId);
-
-    if (classifier?.kind !== 'DataType') throw new Error(`Data type not found: '${dataTypeId}'.`);
-
-    return classifier;
-  }
-
-  private requireLiteral(dataType: DataType, literalId: Id): Literal {
-    const literal: Literal | undefined = dataType.literals?.find((item: Literal): boolean => item.id === literalId);
-    if (!literal) throw new Error(`Literal not found: '${literalId}'.`);
-
-    return literal;
-  }
-
-  private requireAttribute(nodeId: Id, attributeId: Id): Attribute {
-    const attribute: Attribute | undefined = this.requireNode(nodeId).attributes.find(
-      (item: Attribute): boolean => item.id === attributeId,
-    );
-
-    if (!attribute) throw new Error(`Attribute not found: '${attributeId}'.`);
-
-    return attribute;
-  }
-
-  private requireRelation(relationId: Id): Relation {
-    const relation: Relation | undefined = this.model.relations.find((item: Relation): boolean => item.id === relationId);
-
-    if (!relation) throw new Error(`Relation not found: '${relationId}'.`);
-
-    return relation;
+  public refersTo(annotation: ElementInput, target: ElementInput): RamenChange<Relation> {
+    return this.connectBy(annotation, target, undefined, this.family('REFERS_TO'));
   }
 
   private remainingRelations(relations: readonly AnnotationRelation[], removed?: ReadonlySet<Id>): readonly AnnotationRelation[] {
@@ -575,11 +245,7 @@ export class RamenModel {
     });
   }
 
-  private cleanAnnotationReferences(input: {
-    readonly nodeId?: Id;
-    readonly attributeId?: Id;
-    readonly relationIds?: ReadonlySet<Id>;
-  }): void {
+  protected onRemove(input: Removal): void {
     for (const annotation of this.getAnnotations()) {
       if (annotation.annotationId === input.nodeId) {
         this.model = RamenAnnotations.remove(this.model, annotation.id);

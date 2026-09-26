@@ -101,6 +101,7 @@
       }
     },
     "Constraint": {
+      "description": "A rule declared in the model and evaluated against captured data. Model well-formedness is checked separately by model validation.",
       "type": "object",
       "required": ["id", "name", "language", "expression"],
       "additionalProperties": false,

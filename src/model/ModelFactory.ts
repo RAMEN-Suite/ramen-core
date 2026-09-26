@@ -149,29 +149,18 @@ export class ModelFactory {
       id: this.createIdentifier(),
       superTypes: [ModelRef.qualify(baseId, input.baseRelationId)],
       name: baseRelation.name,
-      from: {
-        id: this.createIdentifier(),
-        nodeId: input.fromNodeId,
-        role: baseRelation.from.role,
-        isComposite: baseRelation.from.isComposite,
-        isNavigable: baseRelation.from.isNavigable,
-        bounds: { ...baseRelation.from.bounds },
-        constraints: [],
-        ext: {},
-      },
-      to: {
-        id: this.createIdentifier(),
-        nodeId: input.toNodeId,
-        role: baseRelation.to.role,
-        isComposite: baseRelation.to.isComposite,
-        isNavigable: baseRelation.to.isNavigable,
-        bounds: { ...baseRelation.to.bounds },
-        constraints: [],
-        ext: {},
-      },
+      from: this.refineEnd(baseRelation.from, input.fromNodeId),
+      to: this.refineEnd(baseRelation.to, input.toNodeId),
       constraints: [],
       ext: {},
     };
+  }
+
+  private static refineEnd(base: RelationEnd, nodeId: Id): RelationEnd {
+    const end: RelationEnd = this.createRelationEnd(nodeId, base.role, base.bounds);
+    if (base.isComposite !== undefined) end.isComposite = base.isComposite;
+    if (base.isNavigable !== undefined) end.isNavigable = base.isNavigable;
+    return end;
   }
 
   /** Deeply duplicates a node and assigns new identifiers to its owned elements. */

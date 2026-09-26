@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import type { Node, Relation } from '../dist/model/index.js';
-import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen/index.js';
+import { RamenModel } from '../dist/ramen/index.js';
 import type { NodeSuggestion, RelationSuggestion } from '../dist/ramen/index.js';
 
 interface NodeOption {
@@ -16,10 +16,10 @@ interface ConnectionOption {
 
 // The model ID stays inside this adapter; a form only needs labels and option IDs.
 function getNodeOptions(model: RamenModel): readonly NodeOption[] {
-  const suggestions: readonly NodeSuggestion[] = model.createAdvisor().suggestNodeRefinements(model.getModel().id);
+  const suggestions: readonly NodeSuggestion[] = model.suggestNodes();
 
   return suggestions.map((suggestion: NodeSuggestion): NodeOption => ({
-    id: suggestion.nodeId,
+    id: suggestion.ref,
     label: suggestion.name,
   }));
 }
@@ -48,9 +48,7 @@ const model: RamenModel = RamenModel.create({
 });
 
 const nodeOptions: readonly NodeOption[] = getNodeOptions(model);
-const selectedNode: NodeOption | undefined = nodeOptions.find(
-  (option: NodeOption): boolean => option.id === RAMEN_ELEMENT.ANNOTATION,
-);
+const selectedNode: NodeOption | undefined = nodeOptions.find((option: NodeOption): boolean => option.label === 'Annotation');
 assert.ok(selectedNode);
 
 const annotation: Node = model.createNode({ name: 'Annotation', refines: selectedNode.id }).element;

@@ -5,12 +5,7 @@ import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../dist/ramen/index.js';
 import type { CreateRamenBundleResult, RamenAnnotation, RamenModelBundle } from '../dist/ramen/index.js';
 
 // One complete project model: collections, entities, content, annotations, and their relations.
-const correspondence: RamenModel = RamenModel.create({
-  id: 'correspondenceModel01',
-  uri: 'https://example.org/models/correspondence',
-  name: 'Correspondence',
-  version: '1.0.0',
-});
+const correspondence: RamenModel = RamenModel.create('Correspondence');
 
 const letter: Node = correspondence.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION }).element;
 const witness: Node = correspondence.createNode({ name: 'Witness', refines: RAMEN_ELEMENT.COLLECTION }).element;

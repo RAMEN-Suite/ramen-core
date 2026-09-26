@@ -65,7 +65,7 @@ export interface Bounds {
   upperBound: number;
 }
 
-/** Portable constraint declaration interpreted by its named constraint language. */
+/** A rule declared in the model and evaluated against captured data by its named language. */
 export interface Constraint {
   id: Id;
   name: string;

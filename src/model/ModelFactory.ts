@@ -132,7 +132,6 @@ export class ModelFactory {
       id: this.createIdentifier(),
       name: input.name,
       baseType: input.baseType,
-      literals: undefined,
       constraints: [],
       ext: {},
     };

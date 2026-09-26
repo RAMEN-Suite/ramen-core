@@ -1,13 +1,13 @@
 {
   "$schema": "https://ramen-schema.org/draft/resolved.schema.json",
   "model": {
-    "id": "4LKkKHoLvr39ZOD5",
+    "id": "ZAkmzdjvfSvezp0N",
     "name": "Edition",
     "version": "1.0.0",
     "nodes": [
       {
         "kind": "Node",
-        "id": "6BKel971EiP89QI6",
+        "id": "MvMrw5DLMDwI7odw",
         "name": "EditionLetter",
         "attributes": [
           {
@@ -31,7 +31,7 @@
             "id": "8c3cef32d4648158"
           },
           {
-            "id": "WTMmB5d3saND3jpX",
+            "id": "W3VjQPMlKvbWIGuM",
             "name": "title",
             "typeId": "String",
             "bounds": {
@@ -48,11 +48,11 @@
         ],
         "constraints": [],
         "ext": {},
-        "ref": "4LKkKHoLvr39ZOD5:6BKel971EiP89QI6"
+        "ref": "ZAkmzdjvfSvezp0N:MvMrw5DLMDwI7odw"
       },
       {
         "kind": "Node",
-        "id": "Yt3NwBcYcxgEemi0",
+        "id": "2m96rE192GlP31MS",
         "name": "Manuscript",
         "attributes": [
           {
@@ -78,11 +78,11 @@
         ],
         "constraints": [],
         "ext": {},
-        "ref": "4LKkKHoLvr39ZOD5:Yt3NwBcYcxgEemi0"
+        "ref": "ZAkmzdjvfSvezp0N:2m96rE192GlP31MS"
       },
       {
         "kind": "Node",
-        "id": "1k8raB0e0mWIvWxH",
+        "id": "TJAAS7PmBnBRdN6h",
         "name": "Letter",
         "attributes": [
           {
@@ -106,7 +106,7 @@
             "id": "8c3cef32d4648158"
           },
           {
-            "id": "WTMmB5d3saND3jpX",
+            "id": "W3VjQPMlKvbWIGuM",
             "name": "title",
             "typeId": "String",
             "bounds": {
@@ -123,11 +123,11 @@
         ],
         "constraints": [],
         "ext": {},
-        "ref": "guP2KAfMtUYH7vh4:1k8raB0e0mWIvWxH"
+        "ref": "tZB4Opkp6g6UoBSd:TJAAS7PmBnBRdN6h"
       },
       {
         "kind": "Node",
-        "id": "4CiSnOrpmnvbqkVM",
+        "id": "lBVUR8L7Xhp9zVGq",
         "name": "Witness",
         "attributes": [
           {
@@ -153,11 +153,11 @@
         ],
         "constraints": [],
         "ext": {},
-        "ref": "guP2KAfMtUYH7vh4:4CiSnOrpmnvbqkVM"
+        "ref": "tZB4Opkp6g6UoBSd:lBVUR8L7Xhp9zVGq"
       },
       {
         "kind": "Node",
-        "id": "AVWaFfvFaCgtfCjp",
+        "id": "HcskxJZOAUfiFm8h",
         "name": "Text",
         "attributes": [
           {
@@ -174,7 +174,7 @@
         ],
         "constraints": [],
         "ext": {},
-        "ref": "guP2KAfMtUYH7vh4:AVWaFfvFaCgtfCjp"
+        "ref": "tZB4Opkp6g6UoBSd:HcskxJZOAUfiFm8h"
       },
       {
         "kind": "Node",
@@ -367,14 +367,15 @@
         "ref": "lW611f30a2ky4276g3l8N:DJRorIpghXJGAi41"
       }
     ],
+    "annotations": [],
     "relations": [
       {
         "kind": "Relation",
-        "id": "Gromu7BhgXcUNFre",
+        "id": "EYrlMJsEXQbwbcfh",
         "name": "PART_OF",
         "from": {
-          "id": "AaaJEy9iext208yh",
-          "nodeId": "4LKkKHoLvr39ZOD5:Yt3NwBcYcxgEemi0",
+          "id": "SKlOkWY8e3tZvEfB",
+          "nodeId": "ZAkmzdjvfSvezp0N:2m96rE192GlP31MS",
           "role": "_collections",
           "bounds": {
             "lowerBound": 0,
@@ -383,11 +384,11 @@
           "constraints": [],
           "ext": {},
           "isNavigable": true,
-          "accepts": ["4LKkKHoLvr39ZOD5:Yt3NwBcYcxgEemi0"]
+          "accepts": ["ZAkmzdjvfSvezp0N:2m96rE192GlP31MS"]
         },
         "to": {
-          "id": "4MiKWRtUjkHF45Kz",
-          "nodeId": "4LKkKHoLvr39ZOD5:6BKel971EiP89QI6",
+          "id": "duxk9HELuqRafYv8",
+          "nodeId": "ZAkmzdjvfSvezp0N:MvMrw5DLMDwI7odw",
           "role": "_collectionOf",
           "bounds": {
             "lowerBound": 0,
@@ -396,11 +397,11 @@
           "constraints": [],
           "ext": {},
           "isNavigable": true,
-          "accepts": ["4LKkKHoLvr39ZOD5:6BKel971EiP89QI6"]
+          "accepts": ["ZAkmzdjvfSvezp0N:MvMrw5DLMDwI7odw"]
         },
         "constraints": [],
         "ext": {},
-        "ref": "4LKkKHoLvr39ZOD5:Gromu7BhgXcUNFre"
+        "ref": "ZAkmzdjvfSvezp0N:EYrlMJsEXQbwbcfh"
       }
     ]
   },
@@ -418,8 +419,8 @@
       },
       {
         "$schema": "https://ramen-schema.org/ramen/1.0.0/project.schema.json",
-        "$id": "urn:rmf:model:guP2KAfMtUYH7vh4",
-        "id": "guP2KAfMtUYH7vh4",
+        "$id": "urn:rmf:model:tZB4Opkp6g6UoBSd",
+        "id": "tZB4Opkp6g6UoBSd",
         "version": "1.0.0",
         "kind": "Model",
         "name": "Correspondence",
@@ -431,26 +432,24 @@
             "name": "RAMEN"
           }
         ],
-        "ext": {},
-        "annotations": []
+        "ext": {}
       },
       {
         "$schema": "https://ramen-schema.org/ramen/1.0.0/project.schema.json",
-        "$id": "urn:rmf:model:4LKkKHoLvr39ZOD5",
-        "id": "4LKkKHoLvr39ZOD5",
+        "$id": "urn:rmf:model:ZAkmzdjvfSvezp0N",
+        "id": "ZAkmzdjvfSvezp0N",
         "version": "1.0.0",
         "kind": "Model",
         "name": "Edition",
         "imports": [
           {
-            "modelUri": "urn:rmf:model:guP2KAfMtUYH7vh4",
-            "modelId": "guP2KAfMtUYH7vh4",
+            "modelUri": "urn:rmf:model:tZB4Opkp6g6UoBSd",
+            "modelId": "tZB4Opkp6g6UoBSd",
             "version": "1.0.0",
             "name": "Correspondence"
           }
         ],
-        "ext": {},
-        "annotations": []
+        "ext": {}
       }
     ],
     "classifiers": [
@@ -661,15 +660,15 @@
         }
       },
       {
-        "modelId": "guP2KAfMtUYH7vh4",
+        "modelId": "tZB4Opkp6g6UoBSd",
         "value": {
           "kind": "Node",
-          "id": "1k8raB0e0mWIvWxH",
+          "id": "TJAAS7PmBnBRdN6h",
           "name": "Letter",
           "superTypes": ["lW611f30a2ky4276g3l8N:aP3xK8nV1qR6tY2uZ9wB"],
           "attributes": [
             {
-              "id": "WTMmB5d3saND3jpX",
+              "id": "W3VjQPMlKvbWIGuM",
               "name": "title",
               "typeId": "String",
               "bounds": {
@@ -689,10 +688,10 @@
         }
       },
       {
-        "modelId": "guP2KAfMtUYH7vh4",
+        "modelId": "tZB4Opkp6g6UoBSd",
         "value": {
           "kind": "Node",
-          "id": "4CiSnOrpmnvbqkVM",
+          "id": "lBVUR8L7Xhp9zVGq",
           "name": "Witness",
           "superTypes": ["lW611f30a2ky4276g3l8N:aP3xK8nV1qR6tY2uZ9wB"],
           "attributes": [],
@@ -701,10 +700,10 @@
         }
       },
       {
-        "modelId": "guP2KAfMtUYH7vh4",
+        "modelId": "tZB4Opkp6g6UoBSd",
         "value": {
           "kind": "Node",
-          "id": "AVWaFfvFaCgtfCjp",
+          "id": "HcskxJZOAUfiFm8h",
           "name": "Text",
           "superTypes": ["lW611f30a2ky4276g3l8N:Z4kq1M8sV0bN2xR7pT6u"],
           "attributes": [],
@@ -713,30 +712,31 @@
         }
       },
       {
-        "modelId": "4LKkKHoLvr39ZOD5",
+        "modelId": "ZAkmzdjvfSvezp0N",
         "value": {
           "kind": "Node",
-          "id": "6BKel971EiP89QI6",
+          "id": "MvMrw5DLMDwI7odw",
           "name": "EditionLetter",
-          "superTypes": ["guP2KAfMtUYH7vh4:1k8raB0e0mWIvWxH"],
+          "superTypes": ["tZB4Opkp6g6UoBSd:TJAAS7PmBnBRdN6h"],
           "attributes": [],
           "constraints": [],
           "ext": {}
         }
       },
       {
-        "modelId": "4LKkKHoLvr39ZOD5",
+        "modelId": "ZAkmzdjvfSvezp0N",
         "value": {
           "kind": "Node",
-          "id": "Yt3NwBcYcxgEemi0",
+          "id": "2m96rE192GlP31MS",
           "name": "Manuscript",
-          "superTypes": ["guP2KAfMtUYH7vh4:4CiSnOrpmnvbqkVM"],
+          "superTypes": ["tZB4Opkp6g6UoBSd:lBVUR8L7Xhp9zVGq"],
           "attributes": [],
           "constraints": [],
           "ext": {}
         }
       }
     ],
+    "annotations": [],
     "relations": [
       {
         "modelId": "lW611f30a2ky4276g3l8N",
@@ -1029,15 +1029,15 @@
         }
       },
       {
-        "modelId": "guP2KAfMtUYH7vh4",
+        "modelId": "tZB4Opkp6g6UoBSd",
         "value": {
           "kind": "Relation",
-          "id": "WBLBeF1uYEMllHqy",
+          "id": "6qsqWua7rhWWavLD",
           "superTypes": ["lW611f30a2ky4276g3l8N:V7pQ2xL9mR0sT6yK1nB3"],
           "name": "PART_OF",
           "from": {
-            "id": "XhEd9TkjxQLpNeZL",
-            "nodeId": "4CiSnOrpmnvbqkVM",
+            "id": "boN83mg26xKv4bIB",
+            "nodeId": "lBVUR8L7Xhp9zVGq",
             "role": "_collections",
             "bounds": {
               "lowerBound": 0,
@@ -1048,8 +1048,8 @@
             "isNavigable": true
           },
           "to": {
-            "id": "acecDmu8aVjQm5iU",
-            "nodeId": "1k8raB0e0mWIvWxH",
+            "id": "X7lDxifsHh0lMLwY",
+            "nodeId": "TJAAS7PmBnBRdN6h",
             "role": "_collectionOf",
             "bounds": {
               "lowerBound": 0,
@@ -1064,15 +1064,15 @@
         }
       },
       {
-        "modelId": "guP2KAfMtUYH7vh4",
+        "modelId": "tZB4Opkp6g6UoBSd",
         "value": {
           "kind": "Relation",
-          "id": "nLRl2gkGcYx4D1Wj",
+          "id": "CZiT8PRc5KueGL4B",
           "superTypes": ["lW611f30a2ky4276g3l8N:K0mT3aL7vQ9pX4sN1cDz"],
           "name": "PART_OF",
           "from": {
-            "id": "jS8isorx7cuz5vus",
-            "nodeId": "AVWaFfvFaCgtfCjp",
+            "id": "qe8icXZSjFBvspvK",
+            "nodeId": "HcskxJZOAUfiFm8h",
             "role": "_content",
             "bounds": {
               "lowerBound": 0,
@@ -1083,8 +1083,8 @@
             "isNavigable": true
           },
           "to": {
-            "id": "dSpAcNQrPPF8FSqG",
-            "nodeId": "4CiSnOrpmnvbqkVM",
+            "id": "lbCHMTrJ8OBhvBtP",
+            "nodeId": "lBVUR8L7Xhp9zVGq",
             "role": "_collections",
             "bounds": {
               "lowerBound": 0,
@@ -1099,15 +1099,15 @@
         }
       },
       {
-        "modelId": "4LKkKHoLvr39ZOD5",
+        "modelId": "ZAkmzdjvfSvezp0N",
         "value": {
           "kind": "Relation",
-          "id": "Gromu7BhgXcUNFre",
-          "superTypes": ["guP2KAfMtUYH7vh4:WBLBeF1uYEMllHqy"],
+          "id": "EYrlMJsEXQbwbcfh",
+          "superTypes": ["tZB4Opkp6g6UoBSd:6qsqWua7rhWWavLD"],
           "name": "PART_OF",
           "from": {
-            "id": "AaaJEy9iext208yh",
-            "nodeId": "Yt3NwBcYcxgEemi0",
+            "id": "SKlOkWY8e3tZvEfB",
+            "nodeId": "2m96rE192GlP31MS",
             "role": "_collections",
             "bounds": {
               "lowerBound": 0,
@@ -1118,8 +1118,8 @@
             "isNavigable": true
           },
           "to": {
-            "id": "4MiKWRtUjkHF45Kz",
-            "nodeId": "6BKel971EiP89QI6",
+            "id": "duxk9HELuqRafYv8",
+            "nodeId": "MvMrw5DLMDwI7odw",
             "role": "_collectionOf",
             "bounds": {
               "lowerBound": 0,

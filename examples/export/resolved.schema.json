@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ramen-schema.org/draft/resolved.schema.json",
-  "title": "Resolved model \u2014 experimental structural export",
+  "title": "Resolved model \u2014 experimental RAMEN export",
   "description": "One effective project model and the original declarations needed to reconstruct its source models. Not a published format. Import must regenerate and compare the effective model; JSON Schema alone cannot check semantic consistency.",
   "type": "object",
   "additionalProperties": false,
@@ -13,7 +13,7 @@
     "model": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "version", "nodes", "dataTypes", "relations"],
+      "required": ["id", "name", "version", "nodes", "dataTypes", "relations", "annotations"],
       "properties": {
         "id": {
           "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
@@ -41,6 +41,12 @@
           "items": {
             "$ref": "#/$defs/Relation"
           }
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Annotation"
+          }
         }
       },
       "description": "The exported project itself; no additional rootModelId. Relations contain only selections allowed at this project level."
@@ -48,7 +54,7 @@
     "origin": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["models", "classifiers", "relations"],
+      "required": ["models", "classifiers", "relations", "annotations"],
       "properties": {
         "models": {
           "type": "array",
@@ -84,6 +90,22 @@
               },
               "value": {
                 "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Relation"
+              }
+            }
+          }
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["modelId", "value"],
+            "properties": {
+              "modelId": {
+                "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Id"
+              },
+              "value": {
+                "$ref": "https://ramen-schema.org/ramen/1.0.0/annotations.schema.json#/$defs/Annotation"
               }
             }
           }
@@ -305,13 +327,59 @@
           "additionalProperties": true,
           "default": {},
           "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it."
-        },
-        "annotations": {
-          "type": "array",
-          "maxItems": 0,
-          "description": "This structural prototype rejects annotation variants until their resolved form is implemented."
         }
       }
+    },
+    "Annotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "nodeId", "type", "properties", "relations"],
+      "properties": {
+        "ref": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+        },
+        "nodeId": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Group"
+          }
+        }
+      },
+      "description": "One effective closed annotation type for one node. The same declaration ref can appear on several refined nodes. properties includes common RAMEN fields and resolved selected or type-owned properties; it is the complete property allowlist for this type."
+    },
+    "Group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relations", "direction", "bounds"],
+      "properties": {
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/QualifiedRef"
+          },
+          "uniqueItems": true
+        },
+        "direction": {
+          "enum": ["incoming", "outgoing"]
+        },
+        "bounds": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Bounds"
+        }
+      },
+      "description": "Current-level relations counted together under one cardinality interval, viewed from the annotation. An empty list preserves an inherited rule with no current relation selection; a positive minimum is then unsatisfiable. Omitted groups do not permit other relations."
     }
   }
 }

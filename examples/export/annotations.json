@@ -1,0 +1,1055 @@
+{
+  "$schema": "https://ramen-schema.org/draft/resolved.schema.json",
+  "model": {
+    "id": "leAqBm8ctePgymth",
+    "name": "Annotated media",
+    "version": "1.0.0",
+    "nodes": [
+      {
+        "kind": "Node",
+        "id": "rTkP2DQB0eW5AON6",
+        "name": "Text",
+        "attributes": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "0838eb93a8dcfd4f"
+          }
+        ],
+        "constraints": [],
+        "ext": {},
+        "ref": "leAqBm8ctePgymth:rTkP2DQB0eW5AON6"
+      },
+      {
+        "kind": "Node",
+        "id": "kAX8jCKwWOyV70KK",
+        "name": "Image",
+        "attributes": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "0838eb93a8dcfd4f"
+          }
+        ],
+        "constraints": [],
+        "ext": {},
+        "ref": "leAqBm8ctePgymth:kAX8jCKwWOyV70KK"
+      },
+      {
+        "kind": "Node",
+        "id": "aP3xK8nV1qR6tY2uZ9wB",
+        "name": "Collection",
+        "attributes": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "efe3cc0f99a3fd9a"
+          },
+          {
+            "name": "label",
+            "typeId": "String",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "id": "8c3cef32d4648158"
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:aP3xK8nV1qR6tY2uZ9wB",
+        "constraints": []
+      },
+      {
+        "kind": "Node",
+        "id": "n7Vb2Qx0Lm9P3sT6yK1h",
+        "name": "Entity",
+        "attributes": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "fb10d46599e686d5"
+          },
+          {
+            "name": "label",
+            "typeId": "String",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "id": "954699e0badc0d96"
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:n7Vb2Qx0Lm9P3sT6yK1h",
+        "constraints": []
+      },
+      {
+        "kind": "Node",
+        "id": "Z4kq1M8sV0bN2xR7pT6u",
+        "name": "Content",
+        "attributes": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "0838eb93a8dcfd4f"
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:Z4kq1M8sV0bN2xR7pT6u",
+        "constraints": []
+      },
+      {
+        "kind": "Node",
+        "id": "m2Xv8qL0sP6tN1yK7rB3",
+        "name": "Annotation",
+        "attributes": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "40dee5e6d8fb2dfb"
+          },
+          {
+            "name": "type",
+            "typeId": "String",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "constraints": [],
+            "id": "474ec2797fdb07af"
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+        "constraints": []
+      }
+    ],
+    "dataTypes": [
+      {
+        "kind": "DataType",
+        "id": "Q9mT2aL7vK0pX4sN1cDz",
+        "name": "UUID",
+        "baseType": "String",
+        "constraints": [
+          {
+            "id": "K8tKZTPud1b5JDZV",
+            "name": "Valid UUID",
+            "language": "format",
+            "expression": "uuid",
+            "message": "Value must be a UUID."
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz"
+      },
+      {
+        "kind": "DataType",
+        "id": "WdlVlvh7jqs6DEUC",
+        "name": "Date",
+        "baseType": "String",
+        "constraints": [
+          {
+            "id": "YdW8qnQHAtYBiAN8",
+            "name": "Valid date",
+            "language": "format",
+            "expression": "date",
+            "message": "Value must be an RFC 3339 full-date."
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:WdlVlvh7jqs6DEUC"
+      },
+      {
+        "kind": "DataType",
+        "id": "mXhHHuR4mQoDq31D",
+        "name": "DateTime",
+        "baseType": "String",
+        "constraints": [
+          {
+            "id": "VWUbg6WMufCNlIo4",
+            "name": "Valid date-time",
+            "language": "format",
+            "expression": "date-time",
+            "message": "Value must be an RFC 3339 date-time."
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:mXhHHuR4mQoDq31D"
+      },
+      {
+        "kind": "DataType",
+        "id": "T3YiJGOy7M7g1lTQ",
+        "name": "URI",
+        "baseType": "String",
+        "constraints": [
+          {
+            "id": "3UrCtNdlE5qh9RDe",
+            "name": "Valid URI",
+            "language": "format",
+            "expression": "uri",
+            "message": "Value must be an absolute URI."
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:T3YiJGOy7M7g1lTQ"
+      },
+      {
+        "kind": "DataType",
+        "id": "DJRorIpghXJGAi41",
+        "name": "Email",
+        "baseType": "String",
+        "constraints": [
+          {
+            "id": "L65BaGOJP4W9lUKQ",
+            "name": "Valid email",
+            "language": "format",
+            "expression": "email",
+            "message": "Value must be an email address."
+          }
+        ],
+        "ref": "lW611f30a2ky4276g3l8N:DJRorIpghXJGAi41"
+      }
+    ],
+    "annotations": [
+      {
+        "ref": "leAqBm8ctePgymth:nO343S85AmEbxAO4",
+        "nodeId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+        "type": "caption",
+        "properties": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "40dee5e6d8fb2dfb"
+          },
+          {
+            "name": "type",
+            "typeId": "String",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "constraints": [],
+            "id": "474ec2797fdb07af"
+          }
+        ],
+        "relations": [
+          {
+            "direction": "incoming",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "relations": ["leAqBm8ctePgymth:6jLvWgdv8kBKB8uD"]
+          }
+        ]
+      },
+      {
+        "ref": "leAqBm8ctePgymth:NCw2nNtT3rWr1cVj",
+        "nodeId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+        "type": "region",
+        "properties": [
+          {
+            "name": "uuid",
+            "typeId": "lW611f30a2ky4276g3l8N:Q9mT2aL7vK0pX4sN1cDz",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "isKey": true,
+            "isReadOnly": true,
+            "id": "40dee5e6d8fb2dfb"
+          },
+          {
+            "name": "type",
+            "typeId": "String",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "constraints": [],
+            "id": "474ec2797fdb07af"
+          }
+        ],
+        "relations": [
+          {
+            "direction": "incoming",
+            "bounds": {
+              "lowerBound": 1,
+              "upperBound": 1
+            },
+            "relations": ["leAqBm8ctePgymth:oYbqjv956XfghBll"]
+          }
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "kind": "Relation",
+        "id": "6jLvWgdv8kBKB8uD",
+        "name": "HAS_ANNOTATION",
+        "from": {
+          "id": "6VGLy50vOt6bgHbi",
+          "nodeId": "leAqBm8ctePgymth:rTkP2DQB0eW5AON6",
+          "role": "_annotatesContent",
+          "bounds": {
+            "lowerBound": 0,
+            "upperBound": -1
+          },
+          "constraints": [],
+          "ext": {},
+          "isNavigable": true,
+          "accepts": ["leAqBm8ctePgymth:rTkP2DQB0eW5AON6"]
+        },
+        "to": {
+          "id": "Uqutanh94fSdL9j2",
+          "nodeId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+          "role": "_annotations",
+          "bounds": {
+            "lowerBound": 0,
+            "upperBound": -1
+          },
+          "constraints": [],
+          "ext": {},
+          "isNavigable": true,
+          "accepts": ["lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3"]
+        },
+        "constraints": [],
+        "ext": {},
+        "ref": "leAqBm8ctePgymth:6jLvWgdv8kBKB8uD"
+      },
+      {
+        "kind": "Relation",
+        "id": "oYbqjv956XfghBll",
+        "name": "HAS_ANNOTATION",
+        "from": {
+          "id": "GMXjxQHF1QNnub58",
+          "nodeId": "leAqBm8ctePgymth:kAX8jCKwWOyV70KK",
+          "role": "_annotatesContent",
+          "bounds": {
+            "lowerBound": 0,
+            "upperBound": -1
+          },
+          "constraints": [],
+          "ext": {},
+          "isNavigable": true,
+          "accepts": ["leAqBm8ctePgymth:kAX8jCKwWOyV70KK"]
+        },
+        "to": {
+          "id": "5pNlraeW2EPQtciD",
+          "nodeId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+          "role": "_annotations",
+          "bounds": {
+            "lowerBound": 0,
+            "upperBound": -1
+          },
+          "constraints": [],
+          "ext": {},
+          "isNavigable": true,
+          "accepts": ["lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3"]
+        },
+        "constraints": [],
+        "ext": {},
+        "ref": "leAqBm8ctePgymth:oYbqjv956XfghBll"
+      }
+    ]
+  },
+  "origin": {
+    "models": [
+      {
+        "$schema": "https://ramen-schema.org/model/1.0.0/schema.json",
+        "$id": "https://ramen-schema.org/ramen/1.0.0/model.json",
+        "id": "lW611f30a2ky4276g3l8N",
+        "version": "1.0.0",
+        "kind": "Model",
+        "name": "RAMEN",
+        "imports": [],
+        "ext": {}
+      },
+      {
+        "$schema": "https://ramen-schema.org/ramen/1.0.0/project.schema.json",
+        "$id": "urn:rmf:model:leAqBm8ctePgymth",
+        "id": "leAqBm8ctePgymth",
+        "version": "1.0.0",
+        "kind": "Model",
+        "name": "Annotated media",
+        "imports": [
+          {
+            "modelUri": "https://ramen-schema.org/ramen/1.0.0/model.json",
+            "modelId": "lW611f30a2ky4276g3l8N",
+            "version": "1.0.0",
+            "name": "RAMEN"
+          }
+        ],
+        "ext": {}
+      }
+    ],
+    "classifiers": [
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "DataType",
+          "id": "Q9mT2aL7vK0pX4sN1cDz",
+          "name": "UUID",
+          "baseType": "String",
+          "constraints": [
+            {
+              "id": "K8tKZTPud1b5JDZV",
+              "name": "Valid UUID",
+              "language": "format",
+              "expression": "uuid",
+              "message": "Value must be a UUID."
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "DataType",
+          "id": "WdlVlvh7jqs6DEUC",
+          "name": "Date",
+          "baseType": "String",
+          "constraints": [
+            {
+              "id": "YdW8qnQHAtYBiAN8",
+              "name": "Valid date",
+              "language": "format",
+              "expression": "date",
+              "message": "Value must be an RFC 3339 full-date."
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "DataType",
+          "id": "mXhHHuR4mQoDq31D",
+          "name": "DateTime",
+          "baseType": "String",
+          "constraints": [
+            {
+              "id": "VWUbg6WMufCNlIo4",
+              "name": "Valid date-time",
+              "language": "format",
+              "expression": "date-time",
+              "message": "Value must be an RFC 3339 date-time."
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "DataType",
+          "id": "T3YiJGOy7M7g1lTQ",
+          "name": "URI",
+          "baseType": "String",
+          "constraints": [
+            {
+              "id": "3UrCtNdlE5qh9RDe",
+              "name": "Valid URI",
+              "language": "format",
+              "expression": "uri",
+              "message": "Value must be an absolute URI."
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "DataType",
+          "id": "DJRorIpghXJGAi41",
+          "name": "Email",
+          "baseType": "String",
+          "constraints": [
+            {
+              "id": "L65BaGOJP4W9lUKQ",
+              "name": "Valid email",
+              "language": "format",
+              "expression": "email",
+              "message": "Value must be an email address."
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Node",
+          "id": "aP3xK8nV1qR6tY2uZ9wB",
+          "name": "Collection",
+          "superTypes": [],
+          "attributes": [
+            {
+              "name": "uuid",
+              "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              },
+              "isKey": true,
+              "isReadOnly": true,
+              "id": "efe3cc0f99a3fd9a"
+            },
+            {
+              "name": "label",
+              "typeId": "String",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              },
+              "id": "8c3cef32d4648158"
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Node",
+          "id": "n7Vb2Qx0Lm9P3sT6yK1h",
+          "name": "Entity",
+          "superTypes": [],
+          "attributes": [
+            {
+              "name": "uuid",
+              "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              },
+              "isKey": true,
+              "isReadOnly": true,
+              "id": "fb10d46599e686d5"
+            },
+            {
+              "name": "label",
+              "typeId": "String",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              },
+              "id": "954699e0badc0d96"
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Node",
+          "id": "Z4kq1M8sV0bN2xR7pT6u",
+          "name": "Content",
+          "superTypes": [],
+          "attributes": [
+            {
+              "name": "uuid",
+              "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              },
+              "isKey": true,
+              "isReadOnly": true,
+              "id": "0838eb93a8dcfd4f"
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Node",
+          "id": "m2Xv8qL0sP6tN1yK7rB3",
+          "name": "Annotation",
+          "superTypes": [],
+          "attributes": [
+            {
+              "name": "uuid",
+              "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              },
+              "isKey": true,
+              "isReadOnly": true,
+              "id": "40dee5e6d8fb2dfb"
+            },
+            {
+              "name": "type",
+              "typeId": "String",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              },
+              "constraints": [],
+              "id": "474ec2797fdb07af"
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "leAqBm8ctePgymth",
+        "value": {
+          "kind": "Node",
+          "id": "rTkP2DQB0eW5AON6",
+          "name": "Text",
+          "superTypes": ["lW611f30a2ky4276g3l8N:Z4kq1M8sV0bN2xR7pT6u"],
+          "attributes": [],
+          "constraints": [],
+          "ext": {}
+        }
+      },
+      {
+        "modelId": "leAqBm8ctePgymth",
+        "value": {
+          "kind": "Node",
+          "id": "kAX8jCKwWOyV70KK",
+          "name": "Image",
+          "superTypes": ["lW611f30a2ky4276g3l8N:Z4kq1M8sV0bN2xR7pT6u"],
+          "attributes": [],
+          "constraints": [],
+          "ext": {}
+        }
+      }
+    ],
+    "annotations": [
+      {
+        "modelId": "leAqBm8ctePgymth",
+        "value": {
+          "id": "nO343S85AmEbxAO4",
+          "annotationId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+          "type": "caption",
+          "properties": [],
+          "relations": [
+            {
+              "relationId": "6jLvWgdv8kBKB8uD",
+              "direction": "incoming",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        "modelId": "leAqBm8ctePgymth",
+        "value": {
+          "id": "NCw2nNtT3rWr1cVj",
+          "annotationId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+          "type": "region",
+          "properties": [],
+          "relations": [
+            {
+              "relationId": "oYbqjv956XfghBll",
+              "direction": "incoming",
+              "bounds": {
+                "lowerBound": 1,
+                "upperBound": 1
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "relations": [
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "V7pQ2xL9mR0sT6yK1nB3",
+          "superTypes": [],
+          "name": "PART_OF",
+          "from": {
+            "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+            "role": "_collections",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "11882a4a1a1a92f0"
+          },
+          "to": {
+            "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+            "role": "_collectionOf",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "5296ec802aed7bb1"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "K0mT3aL7vQ9pX4sN1cDz",
+          "superTypes": [],
+          "name": "PART_OF",
+          "from": {
+            "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+            "role": "_content",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "ed2832e9484cc9ee"
+          },
+          "to": {
+            "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+            "role": "_collections",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "357d8ae975078df2"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "sT6yK1nB3xV7pQ2L9mR0",
+          "superTypes": [],
+          "name": "HAS_ANNOTATION",
+          "from": {
+            "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+            "role": "_annotatesCollections",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "f203ff8cc45e18d6"
+          },
+          "to": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_annotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "4a61755cb3d9a650"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "pX4sN1cDzK0mT3aL7vQ9",
+          "superTypes": [],
+          "name": "HAS_ANNOTATION",
+          "from": {
+            "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+            "role": "_annotatesContent",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "e8124ac0f6affeeb"
+          },
+          "to": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_annotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "9d1fb8a998d44055"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "Q2yT6vL9mR0sT6yK1nB3",
+          "superTypes": [],
+          "name": "HAS_ANNOTATION",
+          "from": {
+            "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
+            "role": "_annotatesEntities",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "01eff83f221ab3ff"
+          },
+          "to": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_annotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "09d895defd083d74"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "xL9mR0sT6yK1nB3xV7pQ",
+          "superTypes": [],
+          "name": "HAS_ANNOTATION",
+          "from": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_annotatesAnnotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "f782e8c214c6de2a"
+          },
+          "to": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_annotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "e8762d26b8de4a64"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "tN1yK7rB3m2Xv8qL0sP6",
+          "superTypes": [],
+          "name": "REFERS_TO",
+          "from": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_referredToBy",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "c7eb6cb19894f86b"
+          },
+          "to": {
+            "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+            "role": "_refersToCollections",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "5a3c92c63ec68015"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "vQ9pX4sN1cDzK0mT3aL7",
+          "superTypes": [],
+          "name": "REFERS_TO",
+          "from": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_referredToBy",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "c1ce93334b435f1a"
+          },
+          "to": {
+            "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+            "role": "_refersToContent",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "ec5e8fa8a5ccc88c"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "mR0sT6yK1nB3xV7pQ2xL9",
+          "superTypes": [],
+          "name": "REFERS_TO",
+          "from": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_referredToBy",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "828ed555908f66ce"
+          },
+          "to": {
+            "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
+            "role": "_refersToEntities",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "421b47ea683a1a02"
+          }
+        }
+      },
+      {
+        "modelId": "lW611f30a2ky4276g3l8N",
+        "value": {
+          "kind": "Relation",
+          "id": "K7rB3m2Xv8qL0sP6tN1y",
+          "superTypes": [],
+          "name": "REFERS_TO",
+          "from": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_referredToBy",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "c4f94b4b334e4c1e"
+          },
+          "to": {
+            "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_refersToAnnotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "isNavigable": true,
+            "id": "97e03b1a1f4fe685"
+          }
+        }
+      },
+      {
+        "modelId": "leAqBm8ctePgymth",
+        "value": {
+          "kind": "Relation",
+          "id": "6jLvWgdv8kBKB8uD",
+          "superTypes": ["lW611f30a2ky4276g3l8N:pX4sN1cDzK0mT3aL7vQ9"],
+          "name": "HAS_ANNOTATION",
+          "from": {
+            "id": "6VGLy50vOt6bgHbi",
+            "nodeId": "rTkP2DQB0eW5AON6",
+            "role": "_annotatesContent",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "constraints": [],
+            "ext": {},
+            "isNavigable": true
+          },
+          "to": {
+            "id": "Uqutanh94fSdL9j2",
+            "nodeId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_annotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "constraints": [],
+            "ext": {},
+            "isNavigable": true
+          },
+          "constraints": [],
+          "ext": {}
+        }
+      },
+      {
+        "modelId": "leAqBm8ctePgymth",
+        "value": {
+          "kind": "Relation",
+          "id": "oYbqjv956XfghBll",
+          "superTypes": ["lW611f30a2ky4276g3l8N:pX4sN1cDzK0mT3aL7vQ9"],
+          "name": "HAS_ANNOTATION",
+          "from": {
+            "id": "GMXjxQHF1QNnub58",
+            "nodeId": "kAX8jCKwWOyV70KK",
+            "role": "_annotatesContent",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "constraints": [],
+            "ext": {},
+            "isNavigable": true
+          },
+          "to": {
+            "id": "5pNlraeW2EPQtciD",
+            "nodeId": "lW611f30a2ky4276g3l8N:m2Xv8qL0sP6tN1yK7rB3",
+            "role": "_annotations",
+            "bounds": {
+              "lowerBound": 0,
+              "upperBound": -1
+            },
+            "constraints": [],
+            "ext": {},
+            "isNavigable": true
+          },
+          "constraints": [],
+          "ext": {}
+        }
+      }
+    ]
+  }
+}

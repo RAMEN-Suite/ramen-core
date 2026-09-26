@@ -1,4 +1,4 @@
-import { Constraint, Id } from '../Types';
+import { Attribute, Constraint, DataType, Id, Literal, Node, Relation, RelationEnd } from '../Types';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
 import { VALIDATION_ERROR } from './Codes';
@@ -21,16 +21,31 @@ export interface ConstraintGraph {
   readonly instances: ModelInstanceGraph;
 }
 
-/** Values supplied to a constraint evaluator for one model element instance. */
-export interface ConstraintContext {
+/** Identity and diagnostic location supplied to every constraint evaluator. */
+interface BaseContext {
   readonly modelId: Id;
   readonly ownerId: Id;
   readonly instanceId?: Id;
   readonly target: ConstraintTarget;
-  readonly value: unknown;
   readonly path: DiagnosticPath;
+}
+
+/** A declaration inspected by a model rule. Refinements remain explicit graph queries. */
+export interface ModelContext extends BaseContext {
+  readonly scope: 'model';
+  readonly value: Node | Attribute | DataType | Literal | Relation | RelationEnd;
+  readonly graph: { readonly project: ProjectGraph };
+}
+
+/** A captured value inspected by a data rule; omitted scope means data. */
+export interface DataContext extends BaseContext {
+  readonly scope?: 'data';
+  readonly value: unknown;
   readonly graph?: ConstraintGraph;
 }
+
+/** Narrow by scope to access either a model declaration or captured data. */
+export type ConstraintContext = ModelContext | DataContext;
 
 /** Extension point for one safe, explicitly named constraint language. */
 export interface ConstraintEvaluator {
@@ -61,8 +76,9 @@ export class ConstraintRegistry {
     this.evaluators.set(evaluator.language, evaluator);
   }
 
-  /** Evaluates a constraint or reports that its language is unsupported. */
+  /** Skips rules for another scope; otherwise evaluates or reports an unsupported language. */
   public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
+    if ((constraint.scope ?? 'data') !== (context.scope ?? 'data')) return [];
     const evaluator: ConstraintEvaluator | undefined = this.evaluators.get(constraint.language);
     if (evaluator) return evaluator.evaluate(constraint, context);
     return [

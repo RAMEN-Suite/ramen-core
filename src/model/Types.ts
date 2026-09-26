@@ -65,11 +65,16 @@ export interface Bounds {
   upperBound: number;
 }
 
+/** Selects whether a rule checks a model declaration or captured data. */
+export type ConstraintScope = 'model' | 'data';
+
 /** Portable constraint declaration interpreted by its named constraint language. */
 export interface Constraint {
   id: Id;
   name: string;
   language: string;
+  /** Defaults to data. Model rules inspect their declaration once and may query the project graph. */
+  scope?: ConstraintScope;
   expression: string | Record<string, unknown>;
   severity?: 'error' | 'warn' | 'info';
   message?: string;

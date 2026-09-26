@@ -55,7 +55,7 @@ export class RamenInstanceValidator {
 
   /** Creates a RAMEN validator with the standard and caller-registered constraint languages. */
   public static withConstraints(constraints: ConstraintRegistry): RamenInstanceValidator {
-    return new RamenInstanceValidator(new RamenValidator(), new InstanceValidator(constraints));
+    return new RamenInstanceValidator(new RamenValidator(constraints), new InstanceValidator(constraints));
   }
 
   /** Validates the project first and then validates a complete instance graph against it. */
@@ -69,7 +69,7 @@ export class RamenInstanceValidator {
         this.effectiveAttributes(project.graph, annotations, rootModelId, type, node),
     });
     if (!InstanceSchemaValidator.isValid(input)) return base;
-    const diagnostics: Diagnostic[] = [...base.diagnostics];
+    const diagnostics: Diagnostic[] = [...project.diagnostics, ...base.diagnostics];
     input.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       this.validateAnnotationNode(project.graph, annotations, input, node, index, diagnostics);
     });

@@ -1,3 +1,4 @@
+import type { ConstraintRegistry } from '../validation/Constraints';
 import type { Classifier, DataType, Id, Model } from '../Types';
 import type { Diagnostic } from '../validation/Diagnostics';
 import { ModelValidator } from '../validation/ModelValidator';
@@ -41,8 +42,9 @@ export class ModelEvolution {
     beforeModels: readonly Model[],
     afterRootModelId: Id,
     afterModels: readonly Model[],
+    constraints?: ConstraintRegistry,
   ): EvolutionReport {
-    const validator: ModelValidator = new ModelValidator();
+    const validator: ModelValidator = new ModelValidator(constraints);
     const beforeDiagnostics: readonly Diagnostic[] = validator.validateProject(beforeRootModelId, beforeModels).diagnostics;
     const afterDiagnostics: readonly Diagnostic[] = validator.validateProject(afterRootModelId, afterModels).diagnostics;
     return {

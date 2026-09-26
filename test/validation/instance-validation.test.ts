@@ -195,9 +195,11 @@ function registerPlaceLinkRule(registry: ConstraintRegistry, rule: Constraint): 
     language: rule.language,
     evaluate(_constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
       const linked: boolean =
-        context.graph?.instances.relations.some(
-          (item: ModelInstanceGraph['relations'][number]): boolean => item.fromId === context.instanceId,
-        ) ?? false;
+        (context.scope !== 'model' &&
+          context.graph?.instances.relations.some(
+            (item: ModelInstanceGraph['relations'][number]): boolean => item.fromId === context.instanceId,
+          )) ??
+        false;
 
       return linked ? [] : [Diagnostics.error({ code: 'PLACE_LINK_REQUIRED', message: 'Add a place link.', path: context.path })];
     },

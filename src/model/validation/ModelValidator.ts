@@ -1,3 +1,5 @@
+import { ConstraintRegistry } from './Constraints';
+import { ModelConstraints } from './ModelConstraints';
 import { RelationSelections } from '../graph/RelationScope';
 import { Model, Id } from '../Types';
 import { buildProjectGraph, ProjectGraphResult } from '../graph/BuildGraph';
@@ -35,6 +37,9 @@ export type ProjectValidationResult = ValidProjectResult | InvalidProjectResult;
 export class ModelValidator {
   private readonly semantics: ModelRules = new ModelRules();
 
+  /** Registers the languages used by model rules. Data rules run only during data validation. */
+  public constructor(private readonly constraints: ConstraintRegistry = ConstraintRegistry.createDefault()) {}
+
   /**
    * Validates all input models reachable from the root and returns their graph only when it is safe to interpret.
    * Inputs are unknown because schema validation is the trust boundary for JSON documents.
@@ -66,7 +71,11 @@ export class ModelValidator {
   public validateModels(rootModelId: Id, models: readonly Model[], selections?: RelationSelections): ProjectValidationResult {
     const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
     if (!graphResult.ok) return { valid: false, diagnostics: graphResult.diagnostics, hasErrors: true };
-    const semanticDiagnostics: readonly Diagnostic[] = this.semantics.validate(graphResult.graph, selections);
+    const semanticDiagnostics: Diagnostic[] = [...this.semantics.validate(graphResult.graph, selections)];
+    if (semanticDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error')) {
+      return { valid: false, diagnostics: semanticDiagnostics, hasErrors: true };
+    }
+    semanticDiagnostics.push(...new ModelConstraints(this.constraints).validate(graphResult.graph));
     if (semanticDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error')) {
       return { valid: false, diagnostics: semanticDiagnostics, hasErrors: true };
     }

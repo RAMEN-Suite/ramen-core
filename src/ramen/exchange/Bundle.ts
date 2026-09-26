@@ -1,3 +1,4 @@
+import type { ConstraintRegistry } from '../../model/validation/Constraints';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import type { Diagnostic, Id, Model, ProjectGraph, ProjectValidationResult } from '../../model/index';
 import { RamenValidator } from '../validation/ModelValidator';
@@ -24,8 +25,12 @@ export type CreateRamenBundleResult =
 const BUNDLE_SCHEMA: SchemaNode = compileSchema(bundleSchema);
 
 /** Packs a valid RAMEN project and its dependencies into one file. */
-export function createRamenBundle(rootModelId: Id, models: readonly Model[]): CreateRamenBundleResult {
-  const validation: ProjectValidationResult = new RamenValidator().validateProject(rootModelId, models);
+export function createRamenBundle(
+  rootModelId: Id,
+  models: readonly Model[],
+  constraints?: ConstraintRegistry,
+): CreateRamenBundleResult {
+  const validation: ProjectValidationResult = new RamenValidator(constraints).validateProject(rootModelId, models);
   if (!validation.valid) return { ok: false, diagnostics: validation.diagnostics };
   return {
     ok: true,
@@ -40,19 +45,19 @@ export function createRamenBundle(rootModelId: Id, models: readonly Model[]): Cr
 }
 
 /** Validates a RAMEN bundle and returns its separate, detached models. */
-export function splitRamenBundle(input: unknown): readonly Model[] {
-  return parseRamenBundle(input).models;
+export function splitRamenBundle(input: unknown, constraints?: ConstraintRegistry): readonly Model[] {
+  return parseRamenBundle(input, constraints).models;
 }
 
 /** Validates a RAMEN bundle before exposing its model documents. */
-export function parseRamenBundle(input: unknown): RamenModelBundle {
+export function parseRamenBundle(input: unknown, constraints?: ConstraintRegistry): RamenModelBundle {
   const envelope: { readonly valid: boolean } = BUNDLE_SCHEMA.validate(input);
   if (!envelope.valid || !isRecord(input) || !Array.isArray(input.models) || typeof input.rootModelId !== 'string') {
     throw new Error('Invalid RAMEN project bundle envelope.');
   }
 
   const models: readonly unknown[] = input.models;
-  const validation: ProjectValidationResult = new RamenValidator().validateProject(input.rootModelId, models);
+  const validation: ProjectValidationResult = new RamenValidator(constraints).validateProject(input.rootModelId, models);
   if (!validation.valid) {
     const messages: string = validation.diagnostics.map((item: Diagnostic): string => item.message).join('\n');
     throw new Error(`Invalid RAMEN project bundle:\n${messages}`);

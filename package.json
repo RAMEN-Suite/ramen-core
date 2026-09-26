@@ -33,7 +33,7 @@
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
     "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run typecheck && npm run examples:check && npm test",
-    "examples:check": "tsc -p tsconfig.examples.json --noEmit && node --experimental-strip-types examples/ramen-programmatic.ts && node --experimental-strip-types examples/ramen-interface.ts && node --experimental-strip-types examples/generic-model.ts",
+    "examples:check": "tsc -p tsconfig.examples.json --noEmit && node --experimental-strip-types examples/ramen-programmatic.ts && node --experimental-strip-types examples/ramen-interface.ts && node --experimental-strip-types examples/generic-model.ts && node --experimental-strip-types examples/model-constraints.ts",
     "test:watch": "node --experimental-strip-types --test --watch test/**/*.test.ts",
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
     "prepare": "husky",

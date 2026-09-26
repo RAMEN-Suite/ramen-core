@@ -118,6 +118,12 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this constraint; it has no RMF validation semantics.",
           "default": {}
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["model", "data"],
+          "default": "data",
+          "description": "Execution scope. data (default) checks captured values. model checks the owning declaration once in its declaring model, with access to the complete project graph. It does not automatically apply the expression to refinements; the evaluator can query them explicitly."
         }
       }
     },

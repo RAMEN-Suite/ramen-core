@@ -96,52 +96,62 @@ export interface RamenChange<T> {
 export class RamenModel {
   private model: Model;
   private readonly dependencies: ReadonlyMap<Id, Model>;
-  private readonly validator: RamenValidator = new RamenValidator();
+  private readonly validator: RamenValidator;
 
   private validatedModel: Model | undefined;
   private validation: ProjectValidationResult | undefined;
   private advisor: RamenAdvisor | undefined;
 
-  private constructor(model: RamenModelDocument, dependencies: readonly Model[]) {
+  private constructor(
+    model: RamenModelDocument,
+    dependencies: readonly Model[],
+    private readonly constraints?: ConstraintRegistry,
+  ) {
+    this.validator = new RamenValidator(constraints);
     this.model = structuredClone(model);
     this.dependencies = new Map<Id, Model>(dependencies.map((item: Model): [Id, Model] => [item.id, structuredClone(item)]));
   }
 
-  /** Creates an empty project that imports the current RAMEN reference model. */
-  public static create(input: CreateModelInput): RamenModel {
-    return this.createLevel(RAMEN_MODEL, input);
+  /** Creates an empty project. Optional constraint languages are reused for modeling, data checks and exchange. */
+  public static create(input: CreateModelInput, constraints?: ConstraintRegistry): RamenModel {
+    return this.createLevel(RAMEN_MODEL, input, [], constraints);
   }
 
   /** Creates another model level that imports an existing RAMEN project model. */
-  public static createLevel(base: Model, input: CreateModelInput, dependencies: readonly Model[] = []): RamenModel {
+  public static createLevel(
+    base: Model,
+    input: CreateModelInput,
+    dependencies: readonly Model[] = [],
+    constraints?: ConstraintRegistry,
+  ): RamenModel {
     const models: Map<Id, Model> = new Map<Id, Model>([
       [RAMEN_MODEL.id, RAMEN_MODEL],
       ...dependencies.map((model: Model): [Id, Model] => [model.id, model]),
       [base.id, base],
     ]);
-    return new RamenModel(RamenModelFormat.create(ModelFactory.createModel(base, input)), [...models.values()]);
+    return new RamenModel(RamenModelFormat.create(ModelFactory.createModel(base, input)), [...models.values()], constraints);
   }
 
-  /** Creates the next model level while retaining the complete dependency chain. */
+  /** Creates the next model level while retaining its dependencies and registered constraint languages. */
   public createNextLevel(input: CreateModelInput): RamenModel {
-    return RamenModel.createLevel(this.model, input, [...this.dependencies.values()]);
+    return RamenModel.createLevel(this.model, input, [...this.dependencies.values()], this.constraints);
   }
 
   /** Loads a project with all models needed to resolve its imports. */
-  public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL]): RamenModel {
+  public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL], constraints?: ConstraintRegistry): RamenModel {
     if (!RamenModelFormat.isDocument(model)) throw new Error('Expected a RAMEN project model.');
-    return new RamenModel(model, dependencies);
+    return new RamenModel(model, dependencies, constraints);
   }
 
   /** Imports a validated single-file bundle and restores its editable root project. */
-  public static importBundle(input: unknown): RamenModel {
-    const bundle: RamenModelBundle = parseRamenBundle(input);
+  public static importBundle(input: unknown, constraints?: ConstraintRegistry): RamenModel {
+    const bundle: RamenModelBundle = parseRamenBundle(input, constraints);
     const root: Model | undefined = bundle.models.find((model: Model): boolean => model.id === bundle.rootModelId);
 
     if (!RamenModelFormat.isDocument(root)) throw new Error(`RAMEN project model not found: '${bundle.rootModelId}'.`);
     const dependencies: readonly Model[] = bundle.models.filter((model: Model): boolean => model.id !== root.id);
 
-    return new RamenModel(root, dependencies);
+    return new RamenModel(root, dependencies, constraints);
   }
 
   /** Returns a detached snapshot of the current project model. */
@@ -156,12 +166,12 @@ export class RamenModel {
 
   /** Exports the current project and every reachable dependency as one portable bundle. */
   public exportBundle(): CreateRamenBundleResult {
-    return createRamenBundle(this.model.id, this.validationInputs());
+    return createRamenBundle(this.model.id, this.validationInputs(), this.constraints);
   }
 
-  /** Validates the complete current project and returns its graph on success. */
+  /** Validates the complete project. Custom languages are re-evaluated on each call; successful results expose the graph. */
   public validate(): ProjectValidationResult {
-    if (this.validatedModel === this.model && this.validation) return this.validation;
+    if (!this.constraints && this.validatedModel === this.model && this.validation) return this.validation;
     const result: ProjectValidationResult = this.validator.validateProject(this.model.id, this.validationInputs());
     this.validatedModel = this.model;
     this.advisor = undefined;
@@ -173,7 +183,7 @@ export class RamenModel {
   }
 
   /** Validates a complete data graph using this project's models and optional custom constraint languages. */
-  public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
+  public validateInstances(input: unknown, constraints: ConstraintRegistry | undefined = this.constraints): ValidationResult {
     const validator: RamenInstanceValidator = constraints
       ? RamenInstanceValidator.withConstraints(constraints)
       : new RamenInstanceValidator();
@@ -183,7 +193,13 @@ export class RamenModel {
 
   /** Compares this project with a later state and includes RAMEN validation findings from both states. */
   public compareTo(next: RamenModel): RamenEvolutionReport {
-    return RamenEvolution.compare(this.model.id, this.validationInputs(), next.model.id, next.validationInputs());
+    return RamenEvolution.compare(
+      this.model.id,
+      this.validationInputs(),
+      next.model.id,
+      next.validationInputs(),
+      this.constraints,
+    );
   }
 
   /** Returns an advisor or explains why the current model cannot provide suggestions. */

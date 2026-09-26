@@ -44,6 +44,12 @@ The example checks that `title` is inherited without declaring it again.
 These are two project levels above RAMEN. Every level can only select relations
 permitted by its predecessor.
 
+## 5. One file for the complete model
+
+Run the [edition export](../examples/export/edition.ts).
+It combines RAMEN, Correspondence and Edition without copying inherited properties.
+Read [model levels and responsibilities](model-levels.md) for the format and scientific boundaries.
+
 ## Later topics
 
 After these four examples: custom properties and data types, interface suggestions,

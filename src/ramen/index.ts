@@ -10,3 +10,5 @@ export * from './annotations/Schema';
 export * from './validation/ProjectSchema';
 export * from './validation/ModelValidator';
 export * from './validation/InstanceValidator';
+
+export * from './exchange/File';

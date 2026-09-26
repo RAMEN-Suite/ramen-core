@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { ModelFactory } from '../dist/model/index.js';
 import type { Attribute, Node, Relation } from '../dist/model/index.js';
 import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../dist/ramen/index.js';
-import type { CreateRamenBundleResult, RamenAnnotation, RamenModelBundle } from '../dist/ramen/index.js';
+import type { RamenAnnotation, RamenFile } from '../dist/ramen/index.js';
 
 // One complete project model: collections, entities, content, annotations, and their relations.
 const correspondence: RamenModel = RamenModel.create('Correspondence');
@@ -66,13 +66,7 @@ const annotations: readonly RamenAnnotation[] = [
 assert.equal(correspondence.validate().valid, true);
 assert.equal(annotations.length, 5);
 
-const exported: CreateRamenBundleResult = correspondence.exportBundle();
-assert.equal(exported.ok, true);
-if (!exported.ok) throw new Error('The project could not be exported.');
-
-const bundle: RamenModelBundle = exported.bundle;
-const parsed: unknown = JSON.parse(JSON.stringify(bundle));
-const restored: RamenModel = RamenModel.importBundle(parsed);
+const exported: RamenFile = correspondence.export();
+const restored: RamenModel = RamenModel.import(JSON.parse(JSON.stringify(exported)) as unknown);
 assert.equal(restored.getAnnotations().length, 5);
-
 console.log(`Created ${restored.getModel().name} with ${restored.getModel().classifiers.length} node types.`);

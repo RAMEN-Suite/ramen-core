@@ -5,6 +5,7 @@ import { ModelValidator, ProjectValidationResult, ValidProjectResult, Validation
 import { InstanceValidator } from './data/InstanceValidator';
 import type { ConstraintRegistry } from './validation/Constraints';
 import { createModelBundle, parseModelBundle, CreateBundleResult } from './exchange/Bundle';
+import { ModelFiles, ModelFile } from './exchange/File';
 import { ModelEvolution, EvolutionReport } from './exchange/Comparison';
 import type { Id, Model, ModelBundle } from './Types';
 
@@ -38,7 +39,24 @@ export class Modeler extends ModelDraft<ModelAdvisor> {
     return new Modeler(model, dependencies);
   }
 
-  /** Imports a validated bundle and restores its root as an editable model. */
+  /** Exports one graph with retained inheritance, original IDs and declaration ownership. */
+  public export(): ModelFile {
+    return ModelFiles.write(this.model.id, this.validationInputs());
+  }
+
+  /** Loads a shared graph and restores its project context without a consumer-side model selection. */
+  public static import(input: unknown): Modeler {
+    const models: readonly Model[] = ModelFiles.read(input);
+    const id: Id = (input as ModelFile).id;
+    const model: Model | undefined = models.find((item: Model): boolean => item.id === id);
+    if (!model) throw new Error('Exported model not found.');
+    return Modeler.load(
+      model,
+      models.filter((item: Model): boolean => item.id !== id),
+    );
+  }
+
+  /** Reads legacy bundles. New consumers should use import() for the shared graph format. */
   public static importBundle(input: unknown): Modeler {
     const bundle: ModelBundle = parseModelBundle(input);
     const root: Model | undefined = bundle.models.find((model: Model): boolean => model.id === bundle.rootModelId);
@@ -49,7 +67,7 @@ export class Modeler extends ModelDraft<ModelAdvisor> {
     );
   }
 
-  /** Exports this model and its reachable dependencies in one file. */
+  /** Writes legacy bundles. New consumers should use export() for one shared graph. */
   public exportBundle(): CreateBundleResult {
     return createModelBundle(this.model.id, this.validationInputs());
   }

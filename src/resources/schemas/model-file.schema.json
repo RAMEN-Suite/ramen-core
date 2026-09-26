@@ -1,0 +1,364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ramen-schema.org/model/1.0.0/file.schema.json",
+  "title": "RMF shared model graph",
+  "description": "One graph retaining inheritance and original declarations. Model headers and declaration ownership allow lossless splitting. References resolve relative to the declaring model; inherited features are computed by the library, not copied into this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "id", "models", "classifiers", "relations"],
+  "properties": {
+    "$schema": { "const": "https://ramen-schema.org/model/1.0.0/file.schema.json" },
+    "id": {
+      "$ref": "#/$defs/Id",
+      "description": "Identity of the exported project, matching one model header. Its context preserves relation restrictions."
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Header" },
+      "description": "Original metadata and imports only; declarations live in the shared arrays."
+    },
+    "classifiers": {
+      "type": "array",
+      "items": { "oneOf": [{ "$ref": "#/$defs/OwnedNode" }, { "$ref": "#/$defs/OwnedDataType" }] }
+    },
+    "relations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/OwnedRelation" },
+      "description": "All original relation declarations. Presence does not automatically permit use at every model level."
+    }
+  },
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 16,
+      "$comment": "Stable local identifier (minimum length 16)."
+    },
+    "Version": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "$comment": "Semantic version string (MAJOR.MINOR.PATCH)."
+    },
+    "BuiltinType": {
+      "type": "string",
+      "enum": ["String", "Boolean", "Integer", "Float"],
+      "$comment": "Built-in scalar datatypes."
+    },
+    "LocalRef": { "$ref": "#/$defs/Id" },
+    "QualifiedRef": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,}$",
+      "$comment": "Qualified reference into an imported model: 'modelId:id'."
+    },
+    "Ref": {
+      "oneOf": [{ "$ref": "#/$defs/LocalRef" }, { "$ref": "#/$defs/QualifiedRef" }],
+      "$comment": "Reference to a local or imported element."
+    },
+    "TypeRef": {
+      "oneOf": [{ "$ref": "#/$defs/BuiltinType" }, { "$ref": "#/$defs/Ref" }],
+      "$comment": "Reference to a builtin or user-defined datatype."
+    },
+    "Import": {
+      "type": "object",
+      "required": ["modelUri", "modelId", "version"],
+      "additionalProperties": false,
+      "$comment": "Import declaration for another model.",
+      "properties": {
+        "modelUri": { "type": "string", "format": "uri" },
+        "modelId": { "$ref": "#/$defs/Id" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional display label for the import; model identity and resolution use modelId, modelUri, and version."
+        },
+        "version": { "$ref": "#/$defs/Version", "$comment": "Exact imported model version required for reproducible resolution." }
+      }
+    },
+    "Bounds": {
+      "type": "object",
+      "required": ["lowerBound", "upperBound"],
+      "additionalProperties": false,
+      "$comment": "Multiplicity bounds.",
+      "properties": {
+        "lowerBound": { "type": "integer", "minimum": 0, "$comment": "Minimum cardinality." },
+        "upperBound": { "type": "integer", "minimum": -1, "$comment": "Maximum cardinality (-1 means unbounded)." }
+      }
+    },
+    "Constraint": {
+      "description": "A rule declared in the model and evaluated against captured data. Model well-formedness is checked separately by model validation.",
+      "type": "object",
+      "required": ["id", "name", "language", "expression"],
+      "additionalProperties": false,
+      "$comment": "Declarative semantic constraint evaluated by tools.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "language": { "type": "string" },
+        "expression": { "oneOf": [{ "type": "string" }, { "type": "object" }] },
+        "severity": { "type": "string", "enum": ["error", "warn", "info"], "default": "error" },
+        "message": { "type": "string" },
+        "code": { "type": "string" },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this constraint; it has no RMF validation semantics.",
+          "default": {}
+        }
+      }
+    },
+    "Classifier": { "oneOf": [{ "$ref": "#/$defs/Node" }, { "$ref": "#/$defs/DataType" }] },
+    "Node": {
+      "type": "object",
+      "required": ["kind", "id", "name", "superTypes", "attributes"],
+      "additionalProperties": false,
+      "$comment": "Node type (class) declaration.",
+      "properties": {
+        "kind": { "const": "Node" },
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "attributes": { "type": "array", "items": { "$ref": "#/$defs/Attribute" }, "default": [] },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
+          "default": {}
+        }
+      }
+    },
+    "DataType": {
+      "type": "object",
+      "required": ["kind", "id", "name", "baseType"],
+      "additionalProperties": false,
+      "$comment": "User-defined scalar datatype with a JSON-compatible primitive representation; literals make the value domain an enumeration.",
+      "properties": {
+        "kind": { "const": "DataType" },
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "baseType": {
+          "$ref": "#/$defs/BuiltinType",
+          "$comment": "Primitive representation validated before datatype literals and constraints."
+        },
+        "literals": { "type": "array", "items": { "$ref": "#/$defs/Literal" }, "minItems": 1 },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
+          "default": {}
+        }
+      }
+    },
+    "Literal": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "$comment": "Enumeration literal.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "value": {
+          "type": "integer",
+          "description": "Numeric value represented by this literal, when the data type uses an integer value domain."
+        },
+        "literal": {
+          "type": "string",
+          "description": "String value represented by this literal; name remains its display label."
+        },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this literal; it has no RMF model semantics.",
+          "default": {}
+        }
+      }
+    },
+    "Attribute": {
+      "type": "object",
+      "required": ["id", "name", "typeId", "bounds"],
+      "additionalProperties": false,
+      "$comment": "Structural attribute (property) of a node type.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "typeId": { "$ref": "#/$defs/TypeRef" },
+        "bounds": { "$ref": "#/$defs/Bounds" },
+        "isKey": {
+          "type": "boolean",
+          "default": false,
+          "description": "Marks a required single-valued attribute as identifying data of this node type. The model validator enforces cardinality 1..1; uniqueness across data records is not currently checked."
+        },
+        "isReadOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Tells data-entry tools that a value may be set on creation but should not be changed afterward. This rule concerns edits over time, not one data snapshot."
+        },
+        "isOrdered": {
+          "type": "boolean",
+          "default": true,
+          "description": "For a multi-valued attribute, array position carries domain meaning when true. The current validator does not impose a canonical order."
+        },
+        "isUnique": {
+          "type": "boolean",
+          "default": true,
+          "description": "For one data record, a multi-valued attribute must not contain duplicate values when true. This is distinct from key uniqueness across records."
+        },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this attribute; it has no RMF model semantics.",
+          "default": {}
+        }
+      }
+    },
+    "Relation": {
+      "type": "object",
+      "required": ["kind", "id", "superTypes", "name", "from", "to"],
+      "additionalProperties": false,
+      "$comment": "Relation type connecting node types.",
+      "properties": {
+        "kind": { "const": "Relation" },
+        "id": { "$ref": "#/$defs/Id" },
+        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "name": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "from": { "$ref": "#/$defs/RelationEnd" },
+        "to": { "$ref": "#/$defs/RelationEnd" },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
+          "default": {}
+        }
+      }
+    },
+    "RelationEnd": {
+      "type": "object",
+      "required": ["id", "nodeId", "role", "bounds"],
+      "additionalProperties": false,
+      "$comment": "Association end with role name and multiplicity.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "nodeId": { "$ref": "#/$defs/Ref" },
+        "role": { "type": "string" },
+        "bounds": { "$ref": "#/$defs/Bounds" },
+        "isComposite": {
+          "type": "boolean",
+          "default": false,
+          "description": "Marks this end as the conceptual whole or owner. At most one end may be composite; automatic deletion and acyclicity are not implied."
+        },
+        "isNavigable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Tells tools whether a node at the opposite end can navigate this relation toward nodes at this end. It does not restrict which relations may be stored."
+        },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation end; it has no RMF model semantics.",
+          "default": {}
+        }
+      }
+    },
+    "Header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$schema", "$id", "id", "version", "kind", "name", "imports"],
+      "properties": {
+        "$schema": { "enum": ["https://ramen-schema.org/model/1.0.0/schema.json"] },
+        "$id": { "type": "string", "format": "uri" },
+        "id": {
+          "$ref": "#/$defs/Id",
+          "$comment": "Stable model identifier used for imports and versioning (independent of JSON Schema $id)."
+        },
+        "version": { "$ref": "#/$defs/Version" },
+        "kind": { "const": "Model" },
+        "name": { "type": "string", "minLength": 1, "$comment": "Human-readable name of the model." },
+        "imports": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Import" },
+          "default": [],
+          "$comment": "Imported models whose elements may be referenced via qualified ids."
+        },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "default": {},
+          "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it."
+        }
+      }
+    },
+    "OwnedNode": {
+      "type": "object",
+      "required": ["kind", "id", "name", "superTypes", "attributes", "modelId"],
+      "additionalProperties": false,
+      "$comment": "Node type (class) declaration.",
+      "properties": {
+        "kind": { "const": "Node" },
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "attributes": { "type": "array", "items": { "$ref": "#/$defs/Attribute" }, "default": [] },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
+          "default": {}
+        },
+        "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
+      }
+    },
+    "OwnedDataType": {
+      "type": "object",
+      "required": ["kind", "id", "name", "baseType", "modelId"],
+      "additionalProperties": false,
+      "$comment": "User-defined scalar datatype with a JSON-compatible primitive representation; literals make the value domain an enumeration.",
+      "properties": {
+        "kind": { "const": "DataType" },
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "baseType": {
+          "$ref": "#/$defs/BuiltinType",
+          "$comment": "Primitive representation validated before datatype literals and constraints."
+        },
+        "literals": { "type": "array", "items": { "$ref": "#/$defs/Literal" }, "minItems": 1 },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
+          "default": {}
+        },
+        "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
+      }
+    },
+    "OwnedRelation": {
+      "type": "object",
+      "required": ["kind", "id", "superTypes", "name", "from", "to", "modelId"],
+      "additionalProperties": false,
+      "$comment": "Relation type connecting node types.",
+      "properties": {
+        "kind": { "const": "Relation" },
+        "id": { "$ref": "#/$defs/Id" },
+        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "name": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "from": { "$ref": "#/$defs/RelationEnd" },
+        "to": { "$ref": "#/$defs/RelationEnd" },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
+          "default": {}
+        },
+        "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
+      }
+    }
+  }
+}

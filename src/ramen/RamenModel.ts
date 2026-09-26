@@ -30,6 +30,7 @@ import { RamenInstanceValidator } from './validation/InstanceValidator';
 import type { AnnotationAdvice, PropertyAdvice, RelationAdvice } from './annotations/Advisor';
 import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
 import { createRamenBundle, parseRamenBundle, CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
+import { RamenFiles, RamenFile } from './exchange/File';
 import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
 
 /** Model-qualified element identifier. */
@@ -118,7 +119,24 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return new RamenModel(model, dependencies);
   }
 
-  /** Imports a validated single-file bundle and restores its editable root project. */
+  /** Exports a single RAMEN graph. Annotation types and inherited declarations are stored once. */
+  public export(): RamenFile {
+    return RamenFiles.write(this.model.id, this.validationInputs());
+  }
+
+  /** Restores an editable project from a shared graph and validates every model level. */
+  public static import(input: unknown): RamenModel {
+    const models: readonly Model[] = RamenFiles.read(input);
+    const id: Id = (input as RamenFile).id;
+    const model: Model | undefined = models.find((item: Model): boolean => item.id === id);
+    if (!model) throw new Error('Exported RAMEN model not found.');
+    return RamenModel.load(
+      model,
+      models.filter((item: Model): boolean => item.id !== id),
+    );
+  }
+
+  /** Reads legacy bundles. New consumers should use import() for the shared graph format. */
   public static importBundle(input: unknown): RamenModel {
     const bundle: RamenModelBundle = parseRamenBundle(input);
     const root: Model | undefined = bundle.models.find((model: Model): boolean => model.id === bundle.rootModelId);
@@ -134,7 +152,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return structuredClone(this.model) as RamenModelDocument;
   }
 
-  /** Exports the current project and every reachable dependency as one portable bundle. */
+  /** Writes legacy bundles. New consumers should use export() for one shared graph. */
   public exportBundle(): CreateRamenBundleResult {
     return createRamenBundle(this.model.id, this.validationInputs());
   }
@@ -256,15 +274,21 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   protected onRemove(input: Removal): void {
+    const removed: ReadonlySet<Id> = new Set<Id>(
+      [...(input.relationIds ?? [])].flatMap((id: Id): Id[] => [id, ModelRef.qualify(this.model.id, id)]),
+    );
     for (const annotation of this.getAnnotations()) {
-      if (annotation.annotationId === input.nodeId) {
+      if (input.nodeId !== undefined && ModelRef.matches(annotation.annotationId, this.model.id, input.nodeId)) {
         this.model = RamenAnnotations.remove(this.model, annotation.id);
         continue;
       }
       const properties: readonly AnnotationProperty[] = annotation.properties.filter(
-        (property: AnnotationProperty): boolean => !('attributeId' in property) || property.attributeId !== input.attributeId,
+        (property: AnnotationProperty): boolean =>
+          !('attributeId' in property) ||
+          input.attributeId === undefined ||
+          !ModelRef.matches(property.attributeId, this.model.id, input.attributeId),
       );
-      const relations: readonly AnnotationRelation[] = this.remainingRelations(annotation.relations, input.relationIds);
+      const relations: readonly AnnotationRelation[] = this.remainingRelations(annotation.relations, removed);
 
       if (
         properties.length === annotation.properties.length &&

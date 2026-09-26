@@ -30,3 +30,6 @@ export type {
   LiteralUpdate,
   ModelChange,
 } from './ModelDraft';
+
+export { ModelFiles } from './exchange/File';
+export type { ModelFile, ModelHeader, Owned } from './exchange/File';

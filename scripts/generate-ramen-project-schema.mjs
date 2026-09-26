@@ -43,3 +43,85 @@ if (process.argv.includes('--check')) {
 } else {
   writeFileSync(path, output);
 }
+
+function owned(definition) {
+  return {
+    ...definition,
+    required: [...definition.required, 'modelId'],
+    properties: {
+      ...definition.properties,
+      modelId: { $ref: '#/$defs/Id', description: 'Model that declares this element. Nested elements share this owner.' },
+    },
+  };
+}
+
+function graphSchema(source, fileUri, ramen) {
+  const metadata = Object.fromEntries(
+    Object.entries(source.properties).filter(([key]) => !['classifiers', 'relations', 'annotations'].includes(key)),
+  );
+  const definitions = JSON.parse(JSON.stringify(source.$defs).replaceAll(`${generic.$id}#/$defs/`, '#/$defs/'));
+  const header = {
+    type: 'object',
+    additionalProperties: false,
+    required: generic.required.filter((key) => !['classifiers', 'relations'].includes(key)),
+    properties: { ...metadata, $schema: { enum: ramen ? [generic.$id, uri] : [generic.$id] } },
+  };
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: fileUri,
+    title: ramen ? 'RAMEN shared model graph' : 'RMF shared model graph',
+    description:
+      'One graph retaining inheritance and original declarations. Model headers and declaration ownership allow lossless splitting. References resolve relative to the declaring model; inherited features are computed by the library, not copied into this file.',
+    type: 'object',
+    additionalProperties: false,
+    required: ['$schema', 'id', 'models', 'classifiers', 'relations', ...(ramen ? ['annotations'] : [])],
+    properties: {
+      $schema: { const: fileUri },
+      id: {
+        $ref: '#/$defs/Id',
+        description: 'Identity of the exported project, matching one model header. Its context preserves relation restrictions.',
+      },
+      models: {
+        type: 'array',
+        minItems: 1,
+        items: { $ref: '#/$defs/Header' },
+        description: 'Original metadata and imports only; declarations live in the shared arrays.',
+      },
+      classifiers: { type: 'array', items: { oneOf: [{ $ref: '#/$defs/OwnedNode' }, { $ref: '#/$defs/OwnedDataType' }] } },
+      relations: {
+        type: 'array',
+        items: { $ref: '#/$defs/OwnedRelation' },
+        description: 'All original relation declarations. Presence does not automatically permit use at every model level.',
+      },
+      ...(ramen
+        ? {
+            annotations: {
+              type: 'array',
+              items: { $ref: '#/$defs/OwnedAnnotation' },
+              description:
+                'Each annotation type is declared once. It can belong to a project while referring to the unchanged RAMEN Annotation node.',
+            },
+          }
+        : {}),
+    },
+    $defs: {
+      ...definitions,
+      Header: header,
+      OwnedNode: owned(definitions.Node),
+      OwnedDataType: owned(definitions.DataType),
+      OwnedRelation: owned(definitions.Relation),
+      ...(ramen ? { OwnedAnnotation: owned(definitions.RamenAnnotation) } : {}),
+    },
+  };
+}
+
+for (const [name, source, fileUri, ramen] of [
+  ['model-file.schema.json', generic, 'https://ramen-schema.org/model/1.0.0/file.schema.json', false],
+  ['ramen-file.schema.json', schema, 'https://ramen-schema.org/ramen/1.0.0/file.schema.json', true],
+]) {
+  const destination = resource(name);
+  const generated = await prettier.format(JSON.stringify(graphSchema(source, fileUri, ramen)), { ...options, parser: 'json' });
+  if (process.argv.includes('--check')) {
+    if (readFileSync(destination, 'utf8') !== generated) throw new Error(`Outdated ${name}. Run npm run schema:generate.`);
+  } else writeFileSync(destination, generated);
+}

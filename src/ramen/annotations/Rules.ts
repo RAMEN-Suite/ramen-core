@@ -32,6 +32,11 @@ export const RAMEN_VALIDATION_ERROR: Readonly<{
   PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED',
 } as const;
 
+interface RelationIndex {
+  readonly selected: Set<string>;
+  readonly ancestors: Set<string>;
+}
+
 /** Applies only the additional rules of RAMEN annotation definitions. */
 export class RamenAnnotationRules {
   public validate(graph: ProjectGraph, models: readonly Model[]): readonly Diagnostic[] {
@@ -128,7 +133,7 @@ export class RamenAnnotationRules {
     owner: ResolvedElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
-    const seen: Set<string> = new Set<string>();
+    const seen: RelationIndex = { selected: new Set<string>(), ancestors: new Set<string>() };
 
     for (const requirement of resolved.annotation.relations) {
       this.validateRelation(graph, resolved, owner, requirement, seen, diagnostics);
@@ -140,7 +145,7 @@ export class RamenAnnotationRules {
     resolved: ResolvedRamenAnnotation,
     owner: ResolvedElement<Node>,
     requirement: AnnotationRelation,
-    seen: Set<string>,
+    seen: RelationIndex,
     diagnostics: Diagnostic[],
   ): void {
     const refs: readonly Ref[] = RamenAnnotations.relationRefs(requirement);
@@ -166,21 +171,24 @@ export class RamenAnnotationRules {
     this.validateRelationShape(resolved, requirement, relations[0], modeledBounds, validEndpoint, duplicate, path, diagnostics);
   }
 
-  private overlaps(graph: ProjectGraph, modelId: Id, requirement: AnnotationRelation, seen: Set<string>): boolean {
+  private overlaps(graph: ProjectGraph, modelId: Id, requirement: AnnotationRelation, seen: RelationIndex): boolean {
     let overlap: boolean = false;
     const prefix: string = `${requirement.direction}:`;
     for (const ref of RamenAnnotations.relationRefs(requirement)) {
-      const qualified: Ref = ModelRef.isQualified(ref) ? ref : ModelRef.qualify(modelId, ref);
-      for (const previous of seen) {
-        if (!previous.startsWith(prefix)) continue;
-        const other: Ref = previous.slice(prefix.length);
-        if (
-          graph.isRelationRefSameOrSubtype(modelId, qualified, modelId, other) ||
-          graph.isRelationRefSameOrSubtype(modelId, other, modelId, qualified)
-        )
-          overlap = true;
-      }
-      seen.add(`${prefix}${qualified}`);
+      const relation: ResolvedElement<Relation> | undefined = graph.resolveRelation(modelId, ref);
+      if (!relation) continue;
+      const key: string = `${prefix}${ModelRef.qualify(relation.modelId, relation.element.id)}`;
+      const ancestors: readonly string[] = graph
+        .getRelationAncestors(relation.modelId, relation.element.id)
+        .map((item: ResolvedElement<Relation>): string => `${prefix}${ModelRef.qualify(item.modelId, item.element.id)}`);
+      if (
+        seen.selected.has(key) ||
+        seen.ancestors.has(key) ||
+        ancestors.some((ancestor: string): boolean => seen.selected.has(ancestor))
+      )
+        overlap = true;
+      seen.selected.add(key);
+      for (const ancestor of ancestors) seen.ancestors.add(ancestor);
     }
     return overlap;
   }

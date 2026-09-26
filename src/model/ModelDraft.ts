@@ -178,7 +178,11 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const node: Node = this.requireNode(nodeId);
     const relationIds: Set<Id> = new Set<Id>(
       this.model.relations
-        .filter((relation: Relation): boolean => relation.from.nodeId === nodeId || relation.to.nodeId === nodeId)
+        .filter(
+          (relation: Relation): boolean =>
+            ModelRef.matches(relation.from.nodeId, this.model.id, nodeId) ||
+            ModelRef.matches(relation.to.nodeId, this.model.id, nodeId),
+        )
         .map((relation: Relation): Id => relation.id),
     );
 

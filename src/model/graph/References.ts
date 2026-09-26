@@ -29,6 +29,11 @@ export class ModelRef {
     return `${baseId}:${nodeId}`;
   }
 
+  /** Matches a local declaration through either its local ID or its qualified reference. */
+  public static matches(reference: Ref, modelId: Id, elementId: Id): boolean {
+    return reference === elementId || reference === this.qualify(modelId, elementId);
+  }
+
   /** Returns the local element identifier from a local or qualified reference. */
   public static localId(ref: Ref): Id {
     return ModelRef.isQualified(ref) ? ModelRef.splitQualified(ref).refId : ref;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Modeler } from '../dist/model/index.js';
-import type { CreateBundleResult, Node, Relation, RelationSuggestion } from '../dist/model/index.js';
+import type { ModelFile, Node, Relation, RelationSuggestion } from '../dist/model/index.js';
 
 // Define which node types and connections the language permits.
 const language: Modeler = Modeler.create('Documents');
@@ -28,8 +28,7 @@ assert.equal(connection.from.nodeId, letter.id);
 assert.equal(connection.to.nodeId, archive.id);
 assert.equal(project.validate().valid, true);
 
-const exported: CreateBundleResult = project.exportBundle();
-assert.ok(exported.ok);
-const restored: Modeler = Modeler.importBundle(JSON.parse(JSON.stringify(exported.bundle)) as unknown);
+const exported: ModelFile = project.export();
+const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(exported)) as unknown);
 assert.deepEqual(restored.compareTo(project).changes, []);
 console.log(`Created ${restored.getModel().name}.`);

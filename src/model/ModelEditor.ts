@@ -1,3 +1,4 @@
+import { ModelRef } from './graph/References';
 import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from './Types';
 
 /** Editable node fields. */
@@ -47,7 +48,7 @@ export class ModelEditor {
     const remainingRelations: Relation[] = relations.filter((relation: Relation): boolean => {
       const fromId: Id = relation.from.nodeId;
       const toId: Id = relation.to.nodeId;
-      return fromId !== nodeId && toId !== nodeId;
+      return !ModelRef.matches(fromId, model.id, nodeId) && !ModelRef.matches(toId, model.id, nodeId);
     });
     if (remainingRelations.length !== relations.length) newModel = { ...newModel, relations: remainingRelations };
     return newModel;

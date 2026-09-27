@@ -122,12 +122,3 @@ export interface RelationEnd {
   constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }
-
-/** Portable envelope that keeps multiple RAMEN models and their boundaries in one file. */
-export interface ModelBundle {
-  $schema: string;
-  kind: 'ModelBundle';
-  version: string;
-  rootModelId: Id;
-  models: Model[];
-}

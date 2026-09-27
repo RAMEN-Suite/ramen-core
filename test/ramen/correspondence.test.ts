@@ -4,7 +4,7 @@ import { RamenModel } from '../../dist/index.js';
 import type {
   RelationAdvice,
   AnnotationSuggestion,
-  CreateRamenBundleResult,
+  RamenFile,
   Diagnostic,
   Import,
   ModelInstanceGraph,
@@ -141,7 +141,7 @@ void test('retains annotation semantics through an arbitrary third project level
   assert.equal(edition.getModels().length, 4);
 });
 
-void test('serializes three model levels and validates data after importing the bundle', (): void => {
+void test('serializes three model levels and validates data after importing the file', (): void => {
   const base: CorrespondenceFixture = createCorrespondenceFixture();
   const scholarly: ScholarlyFixture = createScholarlyFixture(base);
   const edition: RamenModel = scholarly.project.createNextLevel({
@@ -154,14 +154,11 @@ void test('serializes three model levels and validates data after importing the 
     name: 'EditionAnnotation',
     refines: { modelId: scholarly.model.id, elementId: scholarly.nodes.annotation.id },
   }).element;
-  const exported: CreateRamenBundleResult = edition.exportBundle();
+  const exported: RamenFile = edition.export();
 
-  assert.equal(exported.ok, true);
-  if (!exported.ok) return;
-
-  const serialized: string = JSON.stringify(exported.bundle);
+  const serialized: string = JSON.stringify(exported);
   const parsed: unknown = JSON.parse(serialized);
-  const restored: RamenModel = RamenModel.importBundle(parsed);
+  const restored: RamenModel = RamenModel.import(parsed);
   const data: ModelInstanceGraph = editionAnnotationData(restored.getModel().id, annotation.id);
   const valid: ValidationResult = restored.validateInstances(data);
   const invalid: ValidationResult = restored.validateInstances({

@@ -15,6 +15,7 @@ export interface ResolvedElement<T> {
 
 /** Read-only resolved view of all models in one RMF project. */
 export class ProjectGraph {
+  private readonly visibleModels: Map<Id, ReadonlySet<Id>> = new Map<Id, ReadonlySet<Id>>();
   private readonly importCache: Map<Id, readonly Model[]> = new Map<Id, readonly Model[]>();
   private readonly nodeAncestorCache: Map<Ref, readonly ResolvedElement<Node>[]> = new Map<
     Ref,
@@ -217,7 +218,12 @@ export class ProjectGraph {
   private isVisible(ownerId: Id, targetId: Id): boolean {
     if (!this.hasModel(ownerId)) return false;
     if (ownerId === targetId) return true;
-    return this.getTransitiveImports(ownerId).some((model: Model): boolean => model.id === targetId);
+    let visible: ReadonlySet<Id> | undefined = this.visibleModels.get(ownerId);
+    if (!visible) {
+      visible = new Set<Id>(this.getTransitiveImports(ownerId).map((model: Model): Id => model.id));
+      this.visibleModels.set(ownerId, visible);
+    }
+    return visible.has(targetId);
   }
 
   private resolveModelRef(ownerModelId: Id, reference: Ref): ResolvedRef {

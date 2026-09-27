@@ -8,12 +8,18 @@ import type { ConstraintGraph } from '../validation/Constraints';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {
+  private readonly selectedRefs: ReadonlySet<Ref> | undefined;
+
   /** Creates a relation validator with the supplied constraint languages. */
   public constructor(
     private readonly constraints: ConstraintRegistry,
     private readonly graphContext: ConstraintGraph,
     private readonly selected?: readonly ResolvedElement<Relation>[],
-  ) {}
+  ) {
+    this.selectedRefs = selected
+      ? new Set<Ref>(selected.map((item: ResolvedElement<Relation>): Ref => `${item.modelId}:${item.element.id}`))
+      : undefined;
+  }
 
   /** Resolves and validates every relation in an instance graph. */
   public validate(
@@ -133,13 +139,7 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedElement<Relation> | undefined {
     const type: ResolvedElement<Relation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
-    if (
-      type &&
-      this.selected &&
-      !this.selected.some(
-        (item: ResolvedElement<Relation>): boolean => item.modelId === type.modelId && item.element.id === type.element.id,
-      )
-    ) {
+    if (type && this.selectedRefs && !this.selectedRefs.has(`${type.modelId}:${type.element.id}`)) {
       diagnostics.push(
         this.error('INSTANCE_RELATION_TYPE_NOT_ALLOWED', 'Relation type is not selected by this model level.', path, relation.id),
       );
@@ -209,47 +209,50 @@ export class InstanceRelationValidator {
         .flatMap((model): ResolvedElement<Relation>[] =>
           model.relations.map((element: Relation): ResolvedElement<Relation> => ({ modelId: model.id, element })),
         );
-    for (const item of selected)
-      this.validateTypeCounts(graph, ownerModelId, item.modelId, item.element, nodesById, counts, diagnostics);
+    const nodes: ReadonlyMap<Ref, readonly ResolvedInstanceNode[]> = this.indexNodeTypes(graph, nodesById);
+    for (const item of selected) this.validateTypeCounts(graph, ownerModelId, item, nodes, counts, diagnostics);
+  }
+
+  private indexNodeTypes(
+    graph: ProjectGraph,
+    nodes: ReadonlyMap<Id, ResolvedInstanceNode>,
+  ): ReadonlyMap<Ref, readonly ResolvedInstanceNode[]> {
+    const indexed: Map<Ref, ResolvedInstanceNode[]> = new Map<Ref, ResolvedInstanceNode[]>();
+    for (const node of nodes.values()) {
+      const lineage: readonly ResolvedElement<Node>[] = [
+        node.type,
+        ...graph.getNodeAncestors(node.type.modelId, node.type.element.id),
+      ];
+      for (const type of lineage) {
+        const key: Ref = `${type.modelId}:${type.element.id}`;
+        const group: ResolvedInstanceNode[] = indexed.get(key) ?? [];
+        group.push(node);
+        indexed.set(key, group);
+      }
+    }
+    return indexed;
   }
 
   private validateTypeCounts(
     graph: ProjectGraph,
     ownerModelId: Id,
-    relationModelId: Id,
-    relation: Relation,
-    nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
+    type: ResolvedElement<Relation>,
+    nodes: ReadonlyMap<Ref, readonly ResolvedInstanceNode[]>,
     counts: ReadonlyMap<string, number>,
     diagnostics: Diagnostic[],
   ): void {
-    const relationRef: Ref = relationModelId === ownerModelId ? relation.id : `${relationModelId}:${relation.id}`;
-    for (const node of nodesById.values()) {
-      const acceptsFrom: boolean = graph.acceptsNode(relationModelId, relation.from.nodeId, node.type);
-      const acceptsTo: boolean = graph.acceptsNode(relationModelId, relation.to.nodeId, node.type);
-
-      if (acceptsFrom) {
-        const count: number = counts.get(`${relationModelId}:${relation.id}:from:${node.instance.id}`) ?? 0;
-
-        this.validateCount(
-          relation.to.role,
-          relation.to.bounds,
-          count,
-          DiagnosticPath.root().property('relations'),
-          relationRef,
-          diagnostics,
-        );
-      }
-      if (acceptsTo) {
-        const count: number = counts.get(`${relationModelId}:${relation.id}:to:${node.instance.id}`) ?? 0;
-
-        this.validateCount(
-          relation.from.role,
-          relation.from.bounds,
-          count,
-          DiagnosticPath.root().property('relations'),
-          relationRef,
-          diagnostics,
-        );
+    const relation: Relation = type.element;
+    const ref: Ref = type.modelId === ownerModelId ? relation.id : `${type.modelId}:${relation.id}`;
+    for (const direction of ['from', 'to'] as const) {
+      const endpoint: ResolvedElement<Node> | undefined = graph.resolveNode(type.modelId, relation[direction].nodeId);
+      if (!endpoint) continue;
+      const key: Ref = `${endpoint.modelId}:${endpoint.element.id}`;
+      const opposite: 'from' | 'to' = direction === 'from' ? 'to' : 'from';
+      const bounds: Bounds = relation[opposite].bounds;
+      const role: string = relation[opposite].role;
+      for (const node of nodes.get(key) ?? []) {
+        const count: number = counts.get(`${type.modelId}:${relation.id}:${direction}:${node.instance.id}`) ?? 0;
+        this.validateCount(role, bounds, count, DiagnosticPath.root().property('relations'), ref, diagnostics);
       }
     }
   }

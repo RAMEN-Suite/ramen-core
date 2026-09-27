@@ -117,7 +117,13 @@
         "kind": { "const": "Node" },
         "id": { "$ref": "#/$defs/Id" },
         "name": { "type": "string" },
-        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "superTypes": {
+          "description": "The node refined by this declaration. Models with imports must declare exactly one base node; only models without imports may declare nodes without a base. Existing imported nodes can be reused without a local declaration. The model validator checks this contextual rule.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/Ref" },
+          "default": [],
+          "maxItems": 1
+        },
         "attributes": { "type": "array", "items": { "$ref": "#/$defs/Attribute" }, "default": [] },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
         "ext": {
@@ -141,7 +147,12 @@
           "$ref": "#/$defs/BuiltinType",
           "$comment": "Primitive representation validated before datatype literals and constraints."
         },
-        "literals": { "type": "array", "items": { "$ref": "#/$defs/Literal" }, "minItems": 1 },
+        "literals": {
+          "description": "A non-empty enumeration. String literals use literal exactly as written, or name when literal is absent. Numeric literals require value. Boolean enumerations are not supported; use the Boolean primitive instead.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/Literal" },
+          "minItems": 1
+        },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
         "ext": {
           "type": "object",
@@ -189,7 +200,7 @@
         "isKey": {
           "type": "boolean",
           "default": false,
-          "description": "Marks a required single-valued attribute as identifying data of this node type. The model validator enforces cardinality 1..1; uniqueness across data records is not currently checked."
+          "description": "Marks the sole key of this node type, including inherited attributes. Requires cardinality 1..1. Values must be unique across records of the declaring node and all its refinements in the complete validated data graph. Independent key declarations have separate uniqueness scopes."
         },
         "isReadOnly": {
           "type": "boolean",
@@ -302,7 +313,13 @@
         "kind": { "const": "Node" },
         "id": { "$ref": "#/$defs/Id" },
         "name": { "type": "string" },
-        "superTypes": { "type": "array", "items": { "$ref": "#/$defs/Ref" }, "default": [], "maxItems": 1 },
+        "superTypes": {
+          "description": "The node refined by this declaration. Models with imports must declare exactly one base node; only models without imports may declare nodes without a base. Existing imported nodes can be reused without a local declaration. The model validator checks this contextual rule.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/Ref" },
+          "default": [],
+          "maxItems": 1
+        },
         "attributes": { "type": "array", "items": { "$ref": "#/$defs/Attribute" }, "default": [] },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
         "ext": {
@@ -327,7 +344,12 @@
           "$ref": "#/$defs/BuiltinType",
           "$comment": "Primitive representation validated before datatype literals and constraints."
         },
-        "literals": { "type": "array", "items": { "$ref": "#/$defs/Literal" }, "minItems": 1 },
+        "literals": {
+          "description": "A non-empty enumeration. String literals use literal exactly as written, or name when literal is absent. Numeric literals require value. Boolean enumerations are not supported; use the Boolean primitive instead.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/Literal" },
+          "minItems": 1
+        },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
         "ext": {
           "type": "object",

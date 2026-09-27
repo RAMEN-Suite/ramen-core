@@ -29,7 +29,6 @@ import { RamenValidator } from './validation/ModelValidator';
 import { RamenInstanceValidator } from './data/InstanceValidator';
 import type { AnnotationAdvice, PropertyAdvice, RelationAdvice } from './annotations/Advisor';
 import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
-import { createRamenBundle, parseRamenBundle, CreateRamenBundleResult, RamenModelBundle } from './exchange/Bundle';
 import { RamenFiles, RamenFile } from './exchange/File';
 import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
 
@@ -136,25 +135,9 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     );
   }
 
-  /** Reads legacy bundles. New consumers should use import() for the shared graph format. */
-  public static importBundle(input: unknown): RamenModel {
-    const bundle: RamenModelBundle = parseRamenBundle(input);
-    const root: Model | undefined = bundle.models.find((model: Model): boolean => model.id === bundle.rootModelId);
-
-    if (!RamenModelFormat.isDocument(root)) throw new Error(`RAMEN project model not found: '${bundle.rootModelId}'.`);
-    const dependencies: readonly Model[] = bundle.models.filter((model: Model): boolean => model.id !== root.id);
-
-    return new RamenModel(root, dependencies);
-  }
-
   /** Returns a detached snapshot of the current project model. */
   public getModel(): RamenModelDocument {
     return structuredClone(this.model) as RamenModelDocument;
-  }
-
-  /** Writes legacy bundles. New consumers should use export() for one shared graph. */
-  public exportBundle(): CreateRamenBundleResult {
-    return createRamenBundle(this.model.id, this.validationInputs());
   }
 
   /** Validates a complete data graph using this project's models and optional custom constraint languages. */

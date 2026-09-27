@@ -3,7 +3,6 @@ export type { RamenAnnotation, AnnotationProperty, AttributeReference, Annotatio
 export * from './Document';
 export type { AnnotationAdvice, PropertyAdvice, RelationAdvice } from './annotations/Advisor';
 export * from './RamenModel';
-export * from './exchange/Bundle';
 export * from './exchange/Comparison';
 export * from './Advisor';
 export * from './annotations/Schema';

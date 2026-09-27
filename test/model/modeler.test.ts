@@ -5,7 +5,7 @@ import type {
   Attribute,
   Constraint,
   ConstraintContext,
-  CreateBundleResult,
+  ModelFile,
   DataType,
   DataTypeSuggestion,
   Diagnostic,
@@ -83,16 +83,15 @@ void test('suggestions can be passed directly into node, attribute and connectio
   assert.equal(fixture.project.validate().valid, true);
 });
 
-void test('levels retain their dependencies and bundle round-trips restore editable models', (): void => {
+void test('levels retain their dependencies and file round-trips restore editable models', (): void => {
   const fixture: Transport = transport();
   fixture.project.connect(fixture.bicycle, fixture.bicycle);
   const next: Modeler = fixture.project.createNextLevel('Edition');
   const special: Node = next.createNode({ name: 'SpecialBike', refines: fixture.bicycle }).element;
   next.connect(special, special);
-  const exported: CreateBundleResult = next.exportBundle();
-  assert.ok(exported.ok);
-  assert.equal(exported.bundle.models.length, 3);
-  const restored: Modeler = Modeler.importBundle(JSON.parse(JSON.stringify(exported.bundle)) as unknown);
+  const exported: ModelFile = next.export();
+  assert.equal(exported.models.length, 3);
+  const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(exported)) as unknown);
   assert.deepEqual(snapshot(restored), snapshot(next));
   assert.deepEqual(next.compareTo(restored).changes, []);
   assert.equal(restored.createAttribute(special, { name: 'label', typeId: 'String' }).validation.valid, true);

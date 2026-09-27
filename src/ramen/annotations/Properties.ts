@@ -41,6 +41,15 @@ export class AnnotationProperties {
           this.error(definition, 'RAMEN_ANNOTATION_PROPERTY_INVALID', 'Property names and identifiers must be unique.'),
         );
       }
+      if (
+        !('attributeId' in property) &&
+        attribute.isKey &&
+        nodeAttributes.some((item: Attribute): boolean => item.isKey === true)
+      ) {
+        diagnostics.push(
+          this.error(definition, 'ATTRIBUTE_MULTIPLE_KEYS', 'An annotation property cannot add a second node key.'),
+        );
+      }
       diagnostics.push(...this.validateBounds(definition, attribute, property));
       names.add(attribute.name);
       ids.add(attribute.id);

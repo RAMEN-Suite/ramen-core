@@ -67,7 +67,9 @@ void test('a direct RAMEN import cannot restore an excluded project relation', (
   assert.ok(
     result.diagnostics.some((item: Diagnostic): boolean => item.code === 'RELATION_SCOPE_INVALID' && item.ref === invalid.id),
   );
-  assert.equal(second.exportBundle().ok, false);
+  assert.throws((): void => {
+    second.export();
+  }, /Invalid model file/);
 });
 
 void test('data cannot use an ancestor relation without selecting it at the current level', (): void => {

@@ -12,6 +12,8 @@ import type {
   Node,
   ProjectValidationResult,
   Relation,
+  ValidationResult,
+  Ref,
 } from '../../dist/model/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
@@ -22,13 +24,13 @@ function id(prefix: string, index: number): string {
 function broadModel(size: number): Model {
   const result: Model = model('largeGraphModel01');
   for (let index: number = 0; index < size; index += 1) {
-    result.classifiers.push(node(id('node', index), `Document${index}`));
-    result.relations.push(
-      relation(id('relation', index), 'NEXT', id('node', index), id('node', (index + 1) % size), {
-        lowerBound: 1,
-        upperBound: 1,
-      }),
-    );
+    const from: string = id('node', index);
+    const to: string = id('node', (index + 1) % size);
+    const bounds: Bounds = { lowerBound: 1, upperBound: 1 };
+    const link: Relation = relation(id('relation', index), 'NEXT', from, to, bounds);
+
+    result.classifiers.push(node(from, `Document${index}`));
+    result.relations.push(link);
   }
   return result;
 }
@@ -70,7 +72,8 @@ function modelChain(depth: number): readonly Model[] {
   let previous: Model | undefined;
   for (let level: number = 0; level < depth; level += 1) {
     const current: Model = model(id('level', level), previous ? [previous] : []);
-    const owner: Node = node(id('type', level), `Document${level}`, previous ? [`${previous.id}:${id('type', level - 1)}`] : []);
+    const superTypes: Ref[] = previous ? [`${previous.id}:${id('type', level - 1)}`] : [];
+    const owner: Node = node(id('type', level), `Document${level}`, superTypes);
     const link: Relation = relation(id('link', level), 'RELATED', owner.id, owner.id);
     if (previous) link.superTypes = [`${previous.id}:${id('link', level - 1)}`];
     else owner.attributes.push(attribute('inheritedTitle01', 'title', 'String'));
@@ -94,10 +97,8 @@ void test('120 model levels preserve ancestry, inherited attributes and exchange
 
   const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(project.export())) as unknown);
   const properties: readonly AttributeSuggestion[] = restored.suggestAttributes(id('type', 119));
-  assert.deepEqual(
-    properties.map((item: AttributeSuggestion): string => item.name),
-    ['title'],
-  );
+  const names: string[] = properties.map((item: AttributeSuggestion): string => item.name);
+  assert.deepEqual(names, ['title']);
   assert.equal(properties[0]?.inherited, true);
   assert.deepEqual(restored.export(), project.export());
   assert.equal(project.getModel().classifiers[0]?.kind, 'Node');
@@ -133,3 +134,32 @@ function checkCombination(bounds: Bounds, refineFrom: boolean, refineTo: boolean
   if (allowed) assert.equal(Modeler.import(child.export()).validate().valid, true);
   else assert.ok(result.diagnostics.some((item: Diagnostic): boolean => item.code === 'RELATION_BOUNDS_WIDENED'));
 }
+
+void test('indexed cardinalities include sibling refinements, count self-relations once and ignore unrelated types', (): void => {
+  const base: Modeler = Modeler.create('People and places');
+  const person: Node = base.createNode('Person').element;
+  const place: Node = base.createNode('Place').element;
+  base.createRelation({ name: 'NEXT', fromNodeId: person, toNodeId: person, toBounds: { lowerBound: 1, upperBound: 1 } });
+  const project: Modeler = base.createNextLevel('Edition');
+  const author: Node = project.createNode({ name: 'Author', refines: person }).element;
+  const editor: Node = project.createNode({ name: 'Editor', refines: person }).element;
+  const selected: Relation = project.connect(person, person).element;
+  const input: ModelInstanceGraph = {
+    modelId: project.getModel().id,
+    nodes: [
+      { id: 'authorRecord0001', typeId: author.id, properties: {} },
+      { id: 'editorRecord0001', typeId: editor.id, properties: {} },
+      { id: 'placeRecord00001', typeId: `${base.getModel().id}:${place.id}`, properties: {} },
+    ],
+    relations: [
+      { id: 'authorLoop000001', typeId: selected.id, fromId: 'authorRecord0001', toId: 'authorRecord0001' },
+      { id: 'editorLoop000001', typeId: selected.id, fromId: 'editorRecord0001', toId: 'editorRecord0001' },
+    ],
+  };
+  assert.equal(project.validateInstances(input).hasErrors, false);
+  const missing: ModelInstanceGraph = { ...input, relations: input.relations.slice(0, 1) };
+  const result: ValidationResult = project.validateInstances(missing);
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0]?.code, 'INSTANCE_CARDINALITY_INVALID');
+  assert.equal(result.diagnostics[0]?.ref, selected.id);
+});

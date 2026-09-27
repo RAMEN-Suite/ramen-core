@@ -11,6 +11,9 @@ import { ValidationCode } from '../validation/Codes';
 
 /** Validates instance properties against effective node attributes and constraints. */
 export class InstanceValueValidator {
+  private readonly nodes: Map<string, EffectiveNode> = new Map<string, EffectiveNode>();
+  private readonly keys: Map<string, Map<unknown, Id>> = new Map<string, Map<unknown, Id>>();
+
   /** Creates a value validator with the supplied constraint languages. */
   public constructor(
     private readonly constraints: ConstraintRegistry,
@@ -20,6 +23,8 @@ export class InstanceValueValidator {
 
   /** Resolves instance node types and validates their modeled properties. */
   public validate(graph: ProjectGraph, instance: ModelInstanceGraph, diagnostics: Diagnostic[]): Map<Id, ResolvedInstanceNode> {
+    this.keys.clear();
+    this.nodes.clear();
     const nodesById: Map<Id, ResolvedInstanceNode> = new Map<Id, ResolvedInstanceNode>();
     instance.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
@@ -54,8 +59,11 @@ export class InstanceValueValidator {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, type.modelId, type.element.id);
+    const reference: string = ModelRef.qualify(type.modelId, type.element.id);
+    const effective: EffectiveNode | undefined =
+      this.nodes.get(reference) ?? EffectiveModel.resolveNode(graph, type.modelId, type.element.id);
     if (!effective) return;
+    this.nodes.set(reference, effective);
     const attributes: readonly Attribute[] = this.attributes?.(type, instance) ?? effective.attributes;
     const attributesByName: Map<string, Attribute> = new Map<string, Attribute>(
       attributes.map((attribute: Attribute): [string, Attribute] => [attribute.name, attribute]),
@@ -66,9 +74,37 @@ export class InstanceValueValidator {
       const value: unknown = Object.hasOwn(instance.properties, attribute.name) ? instance.properties[attribute.name] : undefined;
       const attributePath: DiagnosticPath = path.property('properties').property(attribute.name);
 
+      const start: number = diagnostics.length;
       this.validateAttributeValue(graph, type.modelId, instance.id, attribute, value, attributePath, diagnostics);
+      const invalid: boolean = diagnostics.slice(start).some((item: Diagnostic): boolean => item.severity === 'error');
+      if (attribute.isKey && !invalid) this.validateKey(effective, attribute, value, instance.id, attributePath, diagnostics);
     }
     this.validateNodeConstraints(type, instance, effective.constraints, path, diagnostics);
+  }
+
+  private validateKey(
+    effective: EffectiveNode,
+    attribute: Attribute,
+    value: unknown,
+    instanceId: Id,
+    path: DiagnosticPath,
+    diagnostics: Diagnostic[],
+  ): void {
+    const owner: ResolvedElement<Node> | undefined = effective.lineage.find((item: ResolvedElement<Node>): boolean =>
+      item.element.attributes.some(
+        (candidate: Attribute): boolean => candidate.id === attribute.id && candidate.name === attribute.name,
+      ),
+    );
+    const key: string = ModelRef.qualify(owner?.modelId ?? effective.modelId, attribute.id);
+    const values: Map<unknown, Id> = this.keys.get(key) ?? new Map<unknown, Id>();
+    const previous: Id | undefined = values.get(value);
+    if (previous !== undefined) {
+      const message: string = `Key '${attribute.name}' duplicates the value on instance '${previous}'.`;
+      diagnostics.push(this.error('INSTANCE_KEY_DUPLICATE', message, path, instanceId));
+      return;
+    }
+    values.set(value, instanceId);
+    this.keys.set(key, values);
   }
 
   private validateUnknownProperties(
@@ -316,9 +352,8 @@ export class InstanceValueValidator {
   }
 
   private matchesLiteral(literal: Literal, value: unknown): boolean {
-    if (literal.literal !== undefined && value === literal.literal) return true;
-    if (literal.value !== undefined && value === literal.value) return true;
-    return value === literal.name;
+    if (typeof value === 'number') return value === literal.value;
+    return value === (literal.literal ?? literal.name);
   }
 
   private error(code: ValidationCode, message: string, path: DiagnosticPath, ref?: string): Diagnostic {

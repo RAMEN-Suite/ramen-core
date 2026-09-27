@@ -4,7 +4,6 @@ export * from './editing/Editor';
 export * from './Names';
 export * from './graph/ProjectGraph';
 export * from './graph/BuildGraph';
-export * from './exchange/Bundle';
 export * from './graph/References';
 export * from './graph/EffectiveModel';
 export * from './exchange/Comparison';

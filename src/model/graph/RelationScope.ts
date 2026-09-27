@@ -1,17 +1,16 @@
 import type { Id, Ref, Model, Relation } from '../Types';
 import type { ProjectGraph, ResolvedElement } from './ProjectGraph';
 import { ModelRef } from './References';
+import { walkGraph } from './Traversal';
 
 /** Extra explicit relation selections supplied by a language extension, grouped by model. */
 export type RelationSelections = ReadonlyMap<Id, readonly Ref[]>;
+type Relations = ReadonlyMap<Ref, ResolvedElement<Relation>>;
 
 /** Resolves relation choices and enforces selection at every model level. */
 export class ModelRelationScope {
-  private readonly availableCache: Map<Id, readonly ResolvedElement<Relation>[]> = new Map<
-    Id,
-    readonly ResolvedElement<Relation>[]
-  >();
-  private readonly baseCache: Map<Id, readonly ResolvedElement<Relation>[]> = new Map<Id, readonly ResolvedElement<Relation>[]>();
+  private readonly availableCache: Map<Id, Relations> = new Map<Id, Relations>();
+  private readonly baseCache: Map<Id, Relations> = new Map<Id, Relations>();
 
   /** Uses local relation declarations and any explicit extension selections. */
   public constructor(
@@ -21,55 +20,68 @@ export class ModelRelationScope {
 
   /** Lists relation definitions selected by the preceding model level. */
   public bases(modelId: Id): readonly ResolvedElement<Relation>[] {
-    const cached: readonly ResolvedElement<Relation>[] | undefined = this.baseCache.get(modelId);
-    if (cached) return cached;
-    const parents: readonly Model[] = this.graph.getImportedModels(modelId);
-    const ancestors: ReadonlySet<Id> = new Set<Id>(
-      parents.flatMap((parent: Model): Id[] => this.graph.getTransitiveImports(parent.id).map((model: Model): Id => model.id)),
-    );
-    const nearest: readonly Model[] = parents.filter((parent: Model): boolean => !ancestors.has(parent.id));
-    const bases: readonly ResolvedElement<Relation>[] = this.unique(
-      nearest.flatMap((parent: Model): readonly ResolvedElement<Relation>[] => this.available(parent.id)),
-    );
-    this.baseCache.set(modelId, bases);
-    return bases;
+    this.prepare(modelId);
+    return Object.freeze([...(this.baseCache.get(modelId)?.values() ?? [])]);
   }
 
   /** Lists relations explicitly selected in the current level; nothing is inherited implicitly. */
   public available(modelId: Id): readonly ResolvedElement<Relation>[] {
-    const cached: readonly ResolvedElement<Relation>[] | undefined = this.availableCache.get(modelId);
-    if (cached) return cached;
-    const declared: readonly ResolvedElement<Relation>[] =
-      this.graph.getModel(modelId)?.relations.map((element: Relation): ResolvedElement<Relation> => ({ modelId, element })) ?? [];
-    const reused: readonly ResolvedElement<Relation>[] = (this.selections.get(modelId) ?? []).flatMap(
-      (ref: Ref): ResolvedElement<Relation>[] => {
-        const relation: ResolvedElement<Relation> | undefined = this.graph.resolveRelation(modelId, ref);
-        return relation && this.allowsBase(modelId, ref) ? [relation] : [];
-      },
-    );
-    const available: readonly ResolvedElement<Relation>[] = this.unique([...declared, ...reused]);
-    this.availableCache.set(modelId, available);
-    return available;
+    this.prepare(modelId);
+    return Object.freeze([...(this.availableCache.get(modelId)?.values() ?? [])]);
   }
 
   /** Reports whether a selection names a local declaration or a permitted predecessor relation. */
   public allowsBase(modelId: Id, reference: Ref): boolean {
-    const target: ResolvedElement<Relation> | undefined = this.graph.resolveRelation(modelId, reference);
-    if (!target) return false;
-    if (target.modelId === modelId) return true;
-    const key: Ref = ModelRef.qualify(target.modelId, target.element.id);
-    return this.bases(modelId).some(
-      (base: ResolvedElement<Relation>): boolean => ModelRef.qualify(base.modelId, base.element.id) === key,
+    this.prepare(modelId);
+    const key: Ref = ModelRef.isQualified(reference) ? reference : ModelRef.qualify(modelId, reference);
+    if (this.baseCache.get(modelId)?.has(key)) return true;
+    const target: { readonly modelId: Id; readonly refId: Id } = ModelRef.splitQualified(key);
+    return target.modelId === modelId && this.graph.getRelation(modelId, target.refId) !== undefined;
+  }
+
+  private prepare(modelId: Id): void {
+    if (this.availableCache.has(modelId)) return;
+    const children: (id: Id) => readonly Id[] = (id: Id): readonly Id[] => {
+      if (this.availableCache.has(id) || !this.graph.hasModel(id)) return [];
+      return this.graph.getImportedModels(id).map((model: Model): Id => model.id);
+    };
+    walkGraph(
+      [modelId],
+      children,
+      (): void => {
+        throw new Error('Relation scope requires an acyclic project graph.');
+      },
+      (id: Id): void => this.indexLevel(id),
     );
   }
 
-  private unique(relations: readonly ResolvedElement<Relation>[]): readonly ResolvedElement<Relation>[] {
-    const indexed: ReadonlyMap<Ref, ResolvedElement<Relation>> = new Map<Ref, ResolvedElement<Relation>>(
-      relations.map((item: ResolvedElement<Relation>): [Ref, ResolvedElement<Relation>] => [
-        ModelRef.qualify(item.modelId, item.element.id),
-        item,
-      ]),
-    );
-    return Object.freeze([...indexed.values()]);
+  private indexLevel(modelId: Id): void {
+    if (this.availableCache.has(modelId)) return;
+    const bases: Map<Ref, ResolvedElement<Relation>> = new Map<Ref, ResolvedElement<Relation>>();
+    for (const parent of this.nearestParents(modelId)) {
+      for (const [key, item] of this.availableCache.get(parent.id) ?? []) bases.set(key, item);
+    }
+    const available: Map<Ref, ResolvedElement<Relation>> = new Map<Ref, ResolvedElement<Relation>>();
+    for (const element of this.graph.getModel(modelId)?.relations ?? []) {
+      available.set(ModelRef.qualify(modelId, element.id), Object.freeze({ modelId, element }));
+    }
+    for (const reference of this.selections.get(modelId) ?? []) {
+      const key: Ref = ModelRef.isQualified(reference) ? reference : ModelRef.qualify(modelId, reference);
+      const item: ResolvedElement<Relation> | undefined = bases.get(key);
+      if (item) available.set(key, item);
+    }
+    this.baseCache.set(modelId, bases);
+    this.availableCache.set(modelId, available);
+  }
+
+  private nearestParents(modelId: Id): readonly Model[] {
+    if (!this.graph.hasModel(modelId)) return [];
+    const parents: readonly Model[] = this.graph.getImportedModels(modelId);
+    if (parents.length < 2) return parents;
+    const ancestors: Set<Id> = new Set<Id>();
+    for (const parent of parents) {
+      for (const ancestor of this.graph.getTransitiveImports(parent.id)) ancestors.add(ancestor.id);
+    }
+    return parents.filter((parent: Model): boolean => !ancestors.has(parent.id));
   }
 }

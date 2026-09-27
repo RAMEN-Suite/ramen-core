@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   RAMEN_ANNOTATION_SCHEMA_URI,
-  RAMEN_BUNDLE_SCHEMA_URI,
   RAMEN_ELEMENT,
   RAMEN_MODEL,
   RAMEN_MODEL_URI,
@@ -11,11 +10,10 @@ import {
   RamenAnnotationSchemaValidator,
   RamenModel,
   RamenProjectSchemaValidator,
-  createRamenBundle,
-  splitRamenBundle,
+  RamenFiles,
 } from '../../dist/index.js';
 import type {
-  CreateRamenBundleResult,
+  RamenFile,
   DataTypeSuggestion,
   Attribute,
   Classifier,
@@ -97,7 +95,7 @@ void test('exposes refinements and data types through the consumer API', (): voi
   assert.ok(dataTypeNames.includes('DateTime'));
 });
 
-void test('keeps first-class annotations when a project is bundled and split', (): void => {
+void test('keeps first-class annotations when a project is exported and split', (): void => {
   const project: RamenModel = createProject();
   const annotation: Node = project.createNode({
     name: 'TextAnnotation',
@@ -106,15 +104,10 @@ void test('keeps first-class annotations when a project is bundled and split', (
 
   project.createAnnotation({ annotationId: annotation.id, type: 'date' });
   const model: RamenModelDocument = project.getModel();
-  const result: CreateRamenBundleResult = createRamenBundle(model.id, [model, RAMEN_MODEL]);
+  const result: RamenFile = RamenFiles.write(model.id, [model, RAMEN_MODEL]);
 
-  assert.equal(result.ok, true);
-  if (!result.ok) return;
-  assert.equal(result.bundle.$schema, RAMEN_BUNDLE_SCHEMA_URI);
-  assert.equal(result.bundle.kind, 'RamenModelBundle');
-  assert.equal(result.bundle.models.length, 2);
-
-  const restored: readonly Model[] = splitRamenBundle(result.bundle);
+  assert.equal(result.models.length, 2);
+  const restored: readonly Model[] = RamenFiles.read(result);
   const restoredProject: Model | undefined = restored.find((item: Model): boolean => item.id === model.id);
   assert.deepEqual((restoredProject as RamenModelDocument | undefined)?.annotations, model.annotations);
   assert.equal(restoredProject?.ext?.ramen, undefined);
@@ -135,6 +128,6 @@ void test('standalone RAMEN schema assertions accept complete documents and expl
     RamenAnnotationSchemaValidator.assertValid({ annotations: [{}] });
   }, /RAMEN schema validation failed/);
   assert.throws((): void => {
-    RamenModel.importBundle({});
-  }, /Invalid RAMEN project bundle envelope/);
+    RamenModel.import({});
+  }, /Invalid model file/);
 });

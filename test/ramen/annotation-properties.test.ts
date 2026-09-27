@@ -92,9 +92,8 @@ void test('type-owned properties remain separate from the shared Annotation node
   for (const properties of [{ type: 'imageRegion' }, { type: 'imageRegion', width: 'wide' }, { type: 'emphasis', width: 3 }]) {
     assert.equal(fixture.project.validateInstances(annotationData(fixture.project, properties)).hasErrors, true);
   }
-  const exported: ReturnType<RamenModel['exportBundle']> = fixture.project.exportBundle();
-  assert.ok(exported.ok);
-  const restored: RamenModel = RamenModel.importBundle(JSON.parse(JSON.stringify(exported.bundle)) as unknown);
+  const exported: ReturnType<RamenModel['export']> = fixture.project.export();
+  const restored: RamenModel = RamenModel.import(JSON.parse(JSON.stringify(exported)) as unknown);
   assert.deepEqual(restored.getAnnotations(), fixture.project.getAnnotations());
 });
 
@@ -358,7 +357,7 @@ function manyAnnotations(fixture: MediaModel, count: number): ModelInstanceGraph
     nodes.push({
       id,
       typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
-      properties: { uuid: 'abac88bd-b3e3-418a-8afe-6ac14409b9a1', type: 'region', width: 20 },
+      properties: { uuid: `abac88bd-b3e3-418a-8afe-${String(index).padStart(12, '0')}`, type: 'region', width: 20 },
     });
     relations.push({
       id: `link${String(index).padStart(16, '0')}`,

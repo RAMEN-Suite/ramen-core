@@ -206,21 +206,24 @@ export class ModelAdvisor {
     lineage: readonly ResolvedElement<Node>[],
     actual: ResolvedElement<Node>,
   ): readonly AttributeSuggestion[] {
-    return lineage.flatMap((owner: ResolvedElement<Node>): AttributeSuggestion[] =>
-      owner.element.attributes.map((attribute: Attribute): AttributeSuggestion => ({
-        attributeId: attribute.id,
-        name: attribute.name,
-        typeId:
-          owner.modelId === actual.modelId ||
-          BuiltinDataTypes.isBuiltin(attribute.typeId) ||
-          ModelRef.isQualified(attribute.typeId)
-            ? attribute.typeId
-            : ModelRef.qualify(owner.modelId, attribute.typeId),
-        bounds: { ...attribute.bounds },
-        declaredBy: this.lineageItem(owner, actual.modelId),
-        inherited: owner.modelId !== actual.modelId || owner.element.id !== actual.element.id,
-      })),
-    );
+    return lineage.flatMap((owner: ResolvedElement<Node>): AttributeSuggestion[] => {
+      const declaredBy: NodeLineageItem = this.lineageItem(owner, actual.modelId);
+      const inherited: boolean = owner.modelId !== actual.modelId || owner.element.id !== actual.element.id;
+      return owner.element.attributes.map((attribute: Attribute): AttributeSuggestion => {
+        const localType: boolean = owner.modelId === actual.modelId || BuiltinDataTypes.isBuiltin(attribute.typeId);
+        const qualified: boolean = ModelRef.isQualified(attribute.typeId);
+        const typeId: Ref = localType || qualified ? attribute.typeId : ModelRef.qualify(owner.modelId, attribute.typeId);
+
+        return {
+          attributeId: attribute.id,
+          name: attribute.name,
+          typeId,
+          bounds: { ...attribute.bounds },
+          declaredBy: { ...declaredBy },
+          inherited,
+        };
+      });
+    });
   }
 
   protected nodeRelationSuggestions(modelId: Id, actual: ResolvedElement<Node>): readonly NodeRelationSuggestion[] {

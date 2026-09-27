@@ -1,3 +1,4 @@
+import { walkGraph } from './Traversal';
 import { BuiltinDataTypes } from '../Builtins';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { Classifier, Constraint, Model, Node, Relation, Id, Import, Ref } from '../Types';
@@ -94,37 +95,18 @@ function deepFreeze<T>(value: T): T {
 }
 
 function resolveImports(rootModelId: Id, state: GraphBuildState): void {
-  const completed: Set<Id> = new Set<Id>();
-  const active: Id[] = [];
-  const reportedCycles: Set<string> = new Set<string>();
-
-  const visit: (modelId: Id) => void = (modelId: Id): void => {
-    if (completed.has(modelId)) return;
-    const cycleStart: number = active.indexOf(modelId);
-    if (cycleStart >= 0) {
-      const cycle: Id[] = [...active.slice(cycleStart), modelId];
-      const key: string = cycle.join('>');
-
-      if (!reportedCycles.has(key)) {
-        reportedCycles.add(key);
-        state.diagnostics.push(error('IMPORT_CYCLE', `Import cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
-      }
-
-      return;
-    }
-    const model: Model | undefined = state.modelsById.get(modelId);
-    if (!model) return;
-    state.reachableModelIds.add(modelId);
-    active.push(modelId);
-
-    model.imports.forEach((modelImport, index) => {
-      resolveImportedModel(modelId, modelImport, index, state, visit);
+  const children: (id: Id) => readonly Id[] = (id: Id): readonly Id[] => {
+    const model: Model | undefined = state.modelsById.get(id);
+    if (!model) return [];
+    state.reachableModelIds.add(id);
+    return model.imports.flatMap((item: Import, index: number): Id[] => {
+      const target: Id | undefined = resolveImportedModel(id, item, index, state);
+      return target === undefined ? [] : [target];
     });
-
-    active.pop();
-    completed.add(modelId);
   };
-  visit(rootModelId);
+  walkGraph([rootModelId], children, (cycle: readonly string[]): void => {
+    state.diagnostics.push(error('IMPORT_CYCLE', `Import cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
+  });
 }
 
 function resolveImportedModel(
@@ -132,8 +114,7 @@ function resolveImportedModel(
   modelImport: Import,
   importIndex: number,
   state: GraphBuildState,
-  visit: (modelId: Id) => void,
-): void {
+): Id | undefined {
   const importPath: DiagnosticPath = DiagnosticPath.root()
     .property('models')
     .property(ownerModelId)
@@ -164,7 +145,7 @@ function resolveImportedModel(
       ),
     );
   }
-  visit(modelImport.modelId);
+  return modelImport.modelId;
 }
 
 function buildElementIndexes(state: GraphBuildState): void {
@@ -337,54 +318,35 @@ function visibleModels(modelId: Id, state: GraphBuildState): ReadonlySet<Id> {
 }
 
 function validateInheritanceCycles(state: GraphBuildState): void {
-  const completed: Set<string> = new Set<string>();
-  const active: string[] = [];
-
-  const visit: (kind: 'node' | 'relation', modelId: Id, elementId: Id) => void = (
-    kind: 'node' | 'relation',
-    modelId: Id,
-    elementId: Id,
-  ): void => {
-    const key: string = `${kind}:${modelId}:${elementId}`;
-    if (completed.has(key)) return;
-    const cycleStart: number = active.indexOf(key);
-    if (cycleStart >= 0) {
-      const cycle: string[] = [...active.slice(cycleStart), key];
-
-      state.diagnostics.push(error('INHERITANCE_CYCLE', `Inheritance cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
-      return;
-    }
-    const element: Node | Relation | undefined = getInheritableElement(state, kind, modelId, elementId);
-    if (!element) return;
-    active.push(key);
-    for (const superType of element.superTypes) {
-      const target: ResolvedRef = ModelRef.isQualified(superType)
-        ? ModelRef.splitQualified(superType)
-        : { modelId, refId: superType };
-
-      visit(kind, target.modelId, target.refId);
-    }
-    active.pop();
-    completed.add(key);
-  };
-
+  const edges: Map<string, readonly string[]> = new Map<string, readonly string[]>();
   for (const modelId of state.reachableModelIds) {
     const index: ModelElementIndex | undefined = state.indexesByModelId.get(modelId);
-
     if (!index) continue;
-    for (const nodeId of index.nodesById.keys()) visit('node', modelId, nodeId);
-    for (const relationId of index.relationsById.keys()) visit('relation', modelId, relationId);
+    addInheritanceEdges(edges, modelId, 'node', [...index.nodesById.values()]);
+    addInheritanceEdges(edges, modelId, 'relation', [...index.relationsById.values()]);
   }
+  walkGraph(
+    [...edges.keys()],
+    (key: string): readonly string[] => edges.get(key) ?? [],
+    (cycle: readonly string[]): void => {
+      state.diagnostics.push(error('INHERITANCE_CYCLE', `Inheritance cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
+    },
+  );
 }
 
-function getInheritableElement(
-  state: GraphBuildState,
-  kind: 'node' | 'relation',
+function addInheritanceEdges(
+  edges: Map<string, readonly string[]>,
   modelId: Id,
-  elementId: Id,
-): Node | Relation | undefined {
-  const index: ModelElementIndex | undefined = state.indexesByModelId.get(modelId);
-  return kind === 'node' ? index?.nodesById.get(elementId) : index?.relationsById.get(elementId);
+  kind: 'node' | 'relation',
+  elements: readonly (Node | Relation)[],
+): void {
+  for (const element of elements) {
+    const targets: string[] = element.superTypes.map((ref: Ref): string => {
+      const target: ResolvedRef = ModelRef.isQualified(ref) ? ModelRef.splitQualified(ref) : { modelId, refId: ref };
+      return `${kind}:${target.modelId}:${target.refId}`;
+    });
+    edges.set(`${kind}:${modelId}:${element.id}`, targets);
+  }
 }
 
 function findElementKind(index: ModelElementIndex, elementId: Id): ExpectedElementKind | undefined {

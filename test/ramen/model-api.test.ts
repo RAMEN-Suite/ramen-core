@@ -5,14 +5,12 @@ import type {
   Attribute,
   AttributeCreationAdvice,
   AttributeSuggestion,
-  CreateRamenBundleResult,
+  RamenFile,
   Classifier,
   DataType,
   Diagnostic,
   Literal,
   Model,
-  RamenModelBundle,
-  RamenModelDocument,
   Node,
   NodeSuggestion,
   NodeRelationSuggestion,
@@ -197,15 +195,13 @@ void test('updates and removes local annotation definitions', (): void => {
   assert.equal(removed.validation.valid, true);
 });
 
-void test('exports and imports a complete editable RAMEN project bundle', (): void => {
+void test('exports and imports a complete editable RAMEN project file', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const exported: CreateRamenBundleResult = fixture.project.exportBundle();
+  const exported: RamenFile = fixture.project.export();
 
-  assert.equal(exported.ok, true);
-  if (!exported.ok) return;
-  const serialized: string = JSON.stringify(exported.bundle);
+  const serialized: string = JSON.stringify(exported);
   const parsed: unknown = JSON.parse(serialized);
-  const imported: RamenModel = RamenModel.importBundle(parsed);
+  const imported: RamenModel = RamenModel.import(parsed);
 
   assert.equal(imported.validate().valid, true);
   assert.equal(imported.getModel().id, fixture.model.id);
@@ -219,33 +215,24 @@ void test('does not export a project with invalid RAMEN annotation semantics', (
     annotationId: fixture.nodes.annotation.id,
     type: 'persName',
   });
-  const exported: CreateRamenBundleResult = fixture.project.exportBundle();
-
   assert.equal(duplicate.validation.valid, false);
-  assert.equal(exported.ok, false);
+  assert.throws((): RamenFile => fixture.project.export(), /Invalid model file/);
   assert.throws((): RamenAdvisor => fixture.project.createAdvisor(), /Cannot advise an invalid model/);
-  if (exported.ok) return;
   assert.ok(
-    exported.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE'),
+    duplicate.validation.diagnostics.some(
+      (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
+    ),
   );
 });
 
-void test('rejects a structurally valid bundle with invalid RAMEN semantics on import', (): void => {
+void test('rejects a file with invalid RAMEN semantics on import', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const exported: CreateRamenBundleResult = fixture.project.exportBundle();
-
-  assert.equal(exported.ok, true);
-  if (!exported.ok) return;
-  const malformed: RamenModelDocument = {
-    ...fixture.model,
-    annotations: [{ id: 'incomplete' }],
-  } as unknown as RamenModelDocument;
-  const bundle: RamenModelBundle = {
-    ...exported.bundle,
-    models: exported.bundle.models.map((model: Model): Model => (model.id === malformed.id ? malformed : model)),
-  };
-
-  assert.throws((): RamenModel => RamenModel.importBundle(bundle), /Invalid RAMEN project bundle/);
+  const exported: RamenFile = fixture.project.export();
+  const first: RamenFile['annotations'][number] | undefined = exported.annotations[0];
+  assert.ok(first);
+  const duplicate: RamenFile['annotations'][number] = { ...first, id: 'duplicateType001' };
+  const invalid: RamenFile = { ...exported, annotations: [...exported.annotations, duplicate] };
+  assert.throws((): RamenModel => RamenModel.import(invalid), /Invalid model file/);
 });
 
 void test('compares two project states and reports RAMEN errors in the later state', (): void => {

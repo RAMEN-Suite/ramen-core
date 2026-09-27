@@ -4,10 +4,9 @@ import { ModelFactory } from './editing/Factory';
 import { ModelValidator, ProjectValidationResult, ValidProjectResult, ValidationResult } from './validation/ModelValidator';
 import { InstanceValidator } from './data/InstanceValidator';
 import type { ConstraintRegistry } from './validation/Constraints';
-import { createModelBundle, parseModelBundle, CreateBundleResult } from './exchange/Bundle';
 import { ModelFiles, ModelFile } from './exchange/File';
 import { ModelEvolution, EvolutionReport } from './exchange/Comparison';
-import type { Id, Model, ModelBundle } from './Types';
+import type { Id, Model } from './Types';
 
 /** Creates and refines generic models while retaining dependencies, validation and suggestions. */
 export class Modeler extends ModelDraft<ModelAdvisor> {
@@ -54,22 +53,6 @@ export class Modeler extends ModelDraft<ModelAdvisor> {
       model,
       models.filter((item: Model): boolean => item.id !== id),
     );
-  }
-
-  /** Reads legacy bundles. New consumers should use import() for the shared graph format. */
-  public static importBundle(input: unknown): Modeler {
-    const bundle: ModelBundle = parseModelBundle(input);
-    const root: Model | undefined = bundle.models.find((model: Model): boolean => model.id === bundle.rootModelId);
-    if (!root) throw new Error('The bundle has no root model.');
-    return new Modeler(
-      root,
-      bundle.models.filter((model: Model): boolean => model.id !== root.id),
-    );
-  }
-
-  /** Writes legacy bundles. New consumers should use export() for one shared graph. */
-  public exportBundle(): CreateBundleResult {
-    return createModelBundle(this.model.id, this.validationInputs());
   }
 
   /** Validates captured data against this model; custom languages apply only to data. */

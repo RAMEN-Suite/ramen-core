@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelValidator } from '../../dist/index.js';
+import { ModelValidator, Modeler } from '../../dist/index.js';
 import type { Diagnostic, Model, Node, Relation, Import, ProjectValidationResult } from '../../dist/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
@@ -79,4 +79,55 @@ void test('validates duplicate imports and data type literals across the project
   assert.ok(
     result.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'DATATYPE_LITERAL_SERIALIZED_DUPLICATE'),
   );
+});
+
+void test('only models without imports may introduce nodes without a base', (): void => {
+  const base: Model = model('baseClosedModel1');
+  base.classifiers.push(node('baseClosedNode01', 'Document'));
+  const child: Model = model('childClosedModel', [base]);
+  child.classifiers.push(node('unrefinedNode001', 'Unrelated'));
+  const validator: ModelValidator = new ModelValidator();
+  assert.equal(validator.validateProject(base.id, [base]).valid, true);
+
+  const result: ProjectValidationResult = validator.validateProject(child.id, [child, base]);
+  const diagnostic: Diagnostic | undefined = result.diagnostics[0];
+  assert.equal(result.valid, false);
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(diagnostic?.code, 'NODE_REFINEMENT_REQUIRED');
+  assert.equal(diagnostic?.severity, 'error');
+  assert.equal(diagnostic?.path, `/models/${child.id}/classifiers/0/superTypes`);
+  assert.equal(diagnostic?.ref, 'unrefinedNode001');
+  const draft: Modeler = Modeler.load(base).createNextLevel('Edition');
+  assert.throws((): void => {
+    draft.createNode('Unrelated');
+  }, /Select a node to refine/);
+});
+
+void test('every imported level rejects unrelated nodes even when a local node refines them', (): void => {
+  const base: Model = model('closedBaseModel1');
+  base.classifiers.push(node('closedBaseNode01', 'Document'));
+  const middle: Model = model('closedMiddleMod1', [base]);
+  middle.classifiers.push(node('unrelatedNode001', 'Unrelated'), node('localChildNode01', 'Local', ['unrelatedNode001']));
+  const child: Model = model('closedChildMod01', [middle]);
+  child.classifiers.push(node('validChildNode01', 'Letter', [`${base.id}:closedBaseNode01`]));
+
+  const result: ProjectValidationResult = new ModelValidator().validateProject(child.id, [child, middle, base]);
+  const missing: readonly Diagnostic[] = result.diagnostics.filter(
+    (item: Diagnostic): boolean => item.code === 'NODE_REFINEMENT_REQUIRED',
+  );
+  assert.equal(result.valid, false);
+  assert.equal(missing.length, 1);
+  assert.equal(missing[0]?.ref, 'unrelatedNode001');
+});
+
+void test('derived levels can reuse imported nodes and refine existing nodes without introducing unrelated types', (): void => {
+  const base: Modeler = Modeler.create('Documents');
+  const document: Node = base.createNode('Document').element;
+  const child: Modeler = base.createNextLevel('Edition');
+  assert.equal(child.validate().valid, true);
+  const letter: Node = child.createNode({ name: 'Letter', refines: document }).element;
+  const next: Modeler = child.createNextLevel('Archive');
+  next.createNode({ name: 'ArchivedLetter', refines: letter });
+  assert.equal(next.validate().valid, true);
+  assert.equal(Modeler.import(next.export()).validate().valid, true);
 });

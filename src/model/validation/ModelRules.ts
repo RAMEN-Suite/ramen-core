@@ -53,7 +53,7 @@ export class ModelRules {
     this.validateImports(model, diagnostics);
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
-      if (classifier.kind === 'Node') this.validateNode(graph, model.id, classifier, path, diagnostics);
+      if (classifier.kind === 'Node') this.validateNode(graph, model, classifier, path, diagnostics);
       else this.validateDataType(classifier, path, diagnostics);
     });
     model.relations.forEach((relation: Relation, index: number): void => {
@@ -96,17 +96,14 @@ export class ModelRules {
     if (!literals) return;
     this.validateLiteralUniqueness(literals, path, diagnostics);
 
-    const withValue: number = literals.filter((literal: Literal): boolean => literal.value !== undefined).length;
-    if (withValue > 0 && withValue < literals.length) {
-      diagnostics.push(
-        Diagnostics.warn({
-          code: 'DATATYPE_LITERAL_VALUE_INCONSISTENT',
-          message: `Data type '${dataType.name}' mixes explicit and implicit numeric literal values.`,
-          path: path.property('literals'),
-          ref: dataType.id,
-        }),
-      );
-    }
+    literals.forEach((literal: Literal, index: number): void => {
+      const numeric: boolean = dataType.baseType === 'Integer' || dataType.baseType === 'Float';
+      const valid: boolean = dataType.baseType === 'String' || (numeric && literal.value !== undefined);
+      if (valid) return;
+      const literalPath: DiagnosticPath = path.property('literals').index(index);
+      const message: string = `Literal '${literal.name}' has no value for base type '${dataType.baseType}'.`;
+      diagnostics.push(this.error('DATATYPE_LITERAL_TYPE_INVALID', message, literalPath, literal.id));
+    });
   }
 
   private validateLiteralUniqueness(literals: readonly Literal[], path: DiagnosticPath, diagnostics: Diagnostic[]): void {
@@ -124,10 +121,8 @@ export class ModelRules {
         diagnostics,
       );
 
-      const explicitLiteral: string | undefined = literal.literal?.trim();
-      const hasExplicitLiteral: boolean = explicitLiteral !== undefined && explicitLiteral.length > 0;
-      const serializedValue: string =
-        explicitLiteral === undefined || explicitLiteral.length === 0 ? literal.name : explicitLiteral;
+      const hasExplicitLiteral: boolean = literal.literal !== undefined;
+      const serializedValue: string = literal.literal ?? literal.name;
 
       this.registerLiteralValue(
         serialized,
@@ -159,7 +154,7 @@ export class ModelRules {
     values.add(value);
   }
 
-  private validateNode(graph: ProjectGraph, modelId: Id, node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+  private validateNode(graph: ProjectGraph, model: Model, node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     if (node.superTypes.length > 1) {
       diagnostics.push(
         this.error(
@@ -172,8 +167,24 @@ export class ModelRules {
 
       return;
     }
+    if (model.imports.length > 0 && node.superTypes.length === 0) {
+      const referencePath: DiagnosticPath = path.property('superTypes');
+      const message: string = `Node '${node.id}' must refine an existing node in a model with imports.`;
+      diagnostics.push(this.error('NODE_REFINEMENT_REQUIRED', message, referencePath, node.id));
+    }
+    this.validateKeys(graph, model.id, node, path, diagnostics);
     this.validateLocalAttributes(node, path, diagnostics);
-    this.validateInheritedAttributeNames(graph, modelId, node, path, diagnostics);
+    this.validateInheritedAttributeNames(graph, model.id, node, path, diagnostics);
+  }
+
+  private validateKeys(graph: ProjectGraph, modelId: Id, node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+    const lineage: readonly ResolvedElement<Node>[] = [{ modelId, element: node }, ...graph.getNodeAncestors(modelId, node.id)];
+    const keys: Attribute[] = lineage.flatMap((item: ResolvedElement<Node>): Attribute[] =>
+      item.element.attributes.filter((attribute: Attribute): boolean => attribute.isKey === true),
+    );
+    if (keys.length <= 1) return;
+    const message: string = `Node '${node.name}' has multiple key attributes, including inherited keys.`;
+    diagnostics.push(this.error('ATTRIBUTE_MULTIPLE_KEYS', message, path.property('attributes'), node.id));
   }
 
   private validateLocalAttributes(node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {

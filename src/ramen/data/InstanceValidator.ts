@@ -70,14 +70,29 @@ export class RamenInstanceValidator {
     });
     if (!InstanceSchemaValidator.isValid(input) || input.modelId !== rootModelId) return base;
     const diagnostics: Diagnostic[] = [...base.diagnostics];
+    const connections: ReadonlyMap<Id, readonly ModelInstanceRelation[]> = this.indexRelations(input.relations);
     input.nodes.forEach((node: ModelInstanceNode, index: number): void => {
-      this.validateAnnotationNode(project.graph, annotations, input, node, index, diagnostics);
+      const connected: readonly ModelInstanceRelation[] = connections.get(node.id) ?? [];
+      this.validateAnnotationNode(project.graph, annotations, input, node, index, connected, diagnostics);
     });
 
     return {
       diagnostics: diagnostics,
       hasErrors: diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error'),
     };
+  }
+
+  private indexRelations(relations: readonly ModelInstanceRelation[]): ReadonlyMap<Id, readonly ModelInstanceRelation[]> {
+    const indexed: Map<Id, ModelInstanceRelation[]> = new Map<Id, ModelInstanceRelation[]>();
+    for (const relation of relations) {
+      const endpoints: readonly Id[] = relation.fromId === relation.toId ? [relation.fromId] : [relation.fromId, relation.toId];
+      for (const id of endpoints) {
+        const connected: ModelInstanceRelation[] = indexed.get(id) ?? [];
+        connected.push(relation);
+        indexed.set(id, connected);
+      }
+    }
+    return indexed;
   }
 
   private effectiveAttributes(
@@ -104,6 +119,7 @@ export class RamenInstanceValidator {
     instance: ModelInstanceGraph,
     node: ModelInstanceNode,
     index: number,
+    connected: readonly ModelInstanceRelation[],
     diagnostics: Diagnostic[],
   ): void {
     const resolved: ResolvedElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
@@ -135,7 +151,7 @@ export class RamenInstanceValidator {
       return;
     }
     this.validateProperties(graph, resolved, selected, node, path, diagnostics);
-    this.validateRelations(graph, selected, instance, node, path, diagnostics);
+    this.validateRelations(graph, selected, instance.modelId, node, path, connected, diagnostics);
   }
 
   private validateProperties(
@@ -177,26 +193,24 @@ export class RamenInstanceValidator {
   private validateRelations(
     graph: ProjectGraph,
     selected: ResolvedAnnotation,
-    instance: ModelInstanceGraph,
+    modelId: Id,
     node: ModelInstanceNode,
     path: DiagnosticPath,
+    connected: readonly ModelInstanceRelation[],
     diagnostics: Diagnostic[],
   ): void {
     const requirements: readonly AnnotationRelation[] = selected.annotation.relations;
-    const connected: readonly ModelInstanceRelation[] = instance.relations.filter(
-      (relation: ModelInstanceRelation): boolean => relation.fromId === node.id || relation.toId === node.id,
+    const counts: ReadonlyMap<AnnotationRelation, number> = this.countRelations(
+      graph,
+      selected,
+      modelId,
+      node,
+      connected,
+      path,
+      diagnostics,
     );
-
-    this.validateAllowedRelations(graph, selected, instance.modelId, node, path, requirements, connected, diagnostics);
     for (const requirement of requirements) {
-      const count: number = connected.filter(
-        (relation: ModelInstanceRelation): boolean =>
-          this.hasDirection(requirement, relation, node.id) &&
-          RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
-            graph.isRelationRefSameOrSubtype(instance.modelId, relation.typeId, selected.modelId, ref),
-          ),
-      ).length;
-
+      const count: number = counts.get(requirement) ?? 0;
       if (!this.within(count, requirement.bounds))
         this.error(
           diagnostics,
@@ -208,34 +222,32 @@ export class RamenInstanceValidator {
     }
   }
 
-  private validateAllowedRelations(
+  private countRelations(
     graph: ProjectGraph,
     selected: ResolvedAnnotation,
-    instanceModelId: Id,
+    modelId: Id,
     node: ModelInstanceNode,
-    path: DiagnosticPath,
-    requirements: readonly AnnotationRelation[],
     connected: readonly ModelInstanceRelation[],
+    path: DiagnosticPath,
     diagnostics: Diagnostic[],
-  ): void {
+  ): ReadonlyMap<AnnotationRelation, number> {
+    const counts: Map<AnnotationRelation, number> = new Map<AnnotationRelation, number>();
     for (const relation of connected) {
-      const allowed: boolean = requirements.some(
-        (requirement: AnnotationRelation): boolean =>
-          this.hasDirection(requirement, relation, node.id) &&
-          RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
-            graph.isRelationRefSameOrSubtype(instanceModelId, relation.typeId, selected.modelId, ref),
-          ),
-      );
-
+      let allowed: boolean = false;
+      for (const requirement of selected.annotation.relations) {
+        if (!this.hasDirection(requirement, relation, node.id)) continue;
+        const matches: boolean = RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
+          graph.isRelationRefSameOrSubtype(modelId, relation.typeId, selected.modelId, ref),
+        );
+        if (!matches) continue;
+        allowed = true;
+        counts.set(requirement, (counts.get(requirement) ?? 0) + 1);
+      }
       if (allowed) continue;
-      this.error(
-        diagnostics,
-        RAMEN_INSTANCE_ERROR.ANNOTATION_RELATION_NOT_ALLOWED,
-        `Relation '${relation.id}' is not allowed for annotation '${selected.annotation.type}'.`,
-        path,
-        node.id,
-      );
+      const message: string = `Relation '${relation.id}' is not allowed for annotation '${selected.annotation.type}'.`;
+      this.error(diagnostics, RAMEN_INSTANCE_ERROR.ANNOTATION_RELATION_NOT_ALLOWED, message, path, node.id);
     }
+    return counts;
   }
 
   private hasDirection(requirement: AnnotationRelation, relation: ModelInstanceRelation, nodeId: Id): boolean {

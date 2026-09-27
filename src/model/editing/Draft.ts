@@ -369,7 +369,8 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const suggestions: readonly RelationSuggestion[] = connections.suggest(fromRef, toRef);
     const candidates: readonly RelationSuggestion[] = this.selectFamily(result, suggestions, family);
     const selected: RelationSuggestion = connections.select(candidates, choice);
-    const relation: Relation = connections.connect(fromRef, toRef, selected.ref);
+    const input: RelationInput = { refines: selected.ref, fromNodeId: fromRef, toNodeId: toRef };
+    const relation: Relation = this.newRelation(input);
     this.model = ModelEditor.addRelation(this.model, relation);
     return this.change(relation);
   }
@@ -393,9 +394,8 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   }
 
   private requireAttribute(nodeId: Id, attributeId: Id): Attribute {
-    const attribute: Attribute | undefined = this.requireNode(nodeId).attributes.find(
-      (item: Attribute): boolean => item.id === attributeId,
-    );
+    const node: Node = this.requireNode(nodeId);
+    const attribute: Attribute | undefined = node.attributes.find((item: Attribute): boolean => item.id === attributeId);
     if (!attribute) throw new Error(`Attribute not found: '${attributeId}'.`);
     return attribute;
   }
@@ -433,18 +433,17 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     }
     if (this.model.imports.length > 0) throw new Error('Select a relation permitted by the preceding model level.');
     if (!input.name) throw new Error('A root relation needs a name.');
+    const fromBounds: Bounds = input.fromBounds ?? { lowerBound: 0, upperBound: -1 };
+    const toBounds: Bounds = input.toBounds ?? { lowerBound: 0, upperBound: -1 };
+
     return {
       kind: 'Relation',
       id: ModelFactory.createIdentifier(),
       name: input.name,
       superTypes: [],
       constraints: [],
-      from: ModelFactory.createRelationEnd(
-        from,
-        input.fromRole ?? 'source',
-        input.fromBounds ?? { lowerBound: 0, upperBound: -1 },
-      ),
-      to: ModelFactory.createRelationEnd(to, input.toRole ?? 'target', input.toBounds ?? { lowerBound: 0, upperBound: -1 }),
+      from: ModelFactory.createRelationEnd(from, input.fromRole ?? 'source', fromBounds),
+      to: ModelFactory.createRelationEnd(to, input.toRole ?? 'target', toBounds),
     };
   }
 

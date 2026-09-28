@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConstraintRegistry, Diagnostics, InstanceValidator, ModelValidator } from '../../dist/model/index.js';
+import { ConstraintRegistry, Diagnostics, InstanceValidator, ModelValidator } from '../../dist/ramen-core/model/index.js';
 import type {
   Constraint,
   ConstraintContext,
@@ -10,7 +10,7 @@ import type {
   ProjectValidationResult,
   Relation,
   ValidationResult,
-} from '../../dist/model/index.js';
+} from '../../dist/ramen-core/model/index.js';
 import { model, node, relation } from '../models.ts';
 
 function rule(id: string): Constraint {

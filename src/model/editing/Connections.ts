@@ -1,4 +1,4 @@
-import { ModelAdvisor, RelationSuggestion } from '../Advisor';
+import { ModelAdvisor, RelationSuggestion, RelationSelection } from '../Advisor';
 import { ModelFactory } from './Factory';
 import { ModelRef } from '../graph/References';
 import type { RelationSelections } from '../graph/RelationScope';
@@ -7,6 +7,8 @@ import type { Model, Node, Ref, Relation } from '../Types';
 
 /** A selected relation reference or an unchanged suggestion returned by the advisor. */
 export type RelationChoice = Ref | Pick<RelationSuggestion, 'ref'>;
+
+export type { RelationSelection } from '../Advisor';
 
 /** Creates relation refinements from a validated model snapshot without changing that snapshot. */
 export class ModelConnections {
@@ -23,8 +25,13 @@ export class ModelConnections {
   }
 
   /** Lists relations that the preceding model level permits between these node types. */
-  public suggest(from: Node | Ref, to: Node | Ref): readonly RelationSuggestion[] {
+  public suggestRelations(from: Node | Ref, to: Node | Ref): readonly RelationSuggestion[] {
     return this.advisor.suggestRelations(this.model.id, this.nodeRef(from), this.nodeRef(to));
+  }
+
+  /** Lists exact endpoint matches; no matches produce an empty list and parallel relationships remain separate. */
+  public getRelations(from: Node | Ref, to: Node | Ref): readonly RelationSelection[] {
+    return this.advisor.getRelations(this.model.id, this.nodeRef(from), this.nodeRef(to));
   }
 
   /**
@@ -33,7 +40,7 @@ export class ModelConnections {
    * Throws if the selection is unavailable, incompatible or ambiguous.
    */
   public connect(from: Node | Ref, to: Node | Ref, choice?: RelationChoice): Relation {
-    const suggestions: readonly RelationSuggestion[] = this.suggest(from, to);
+    const suggestions: readonly RelationSuggestion[] = this.suggestRelations(from, to);
     const selected: RelationSuggestion = this.select(suggestions, choice);
     const base: Model | undefined = this.project.graph.getModel(selected.modelId);
     if (!base) throw new Error(`Relation model not found: '${selected.modelId}'.`);

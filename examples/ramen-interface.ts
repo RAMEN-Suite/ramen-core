@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import type { Node, Relation } from '../dist/model/index.js';
-import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen/index.js';
-import type { NodeSuggestion, RelationSuggestion } from '../dist/ramen/index.js';
+import type { Node, Relation } from '../dist/ramen-core/model/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen-core/ramen/index.js';
+import type { NodeSuggestion, RelationSuggestion } from '../dist/ramen-core/ramen/index.js';
 
 interface NodeOption {
   readonly id: string;
@@ -15,7 +15,7 @@ interface ConnectionOption {
 }
 
 // The model ID stays inside this adapter; a form only needs labels and option IDs.
-function getNodeOptions(model: RamenModel): readonly NodeOption[] {
+function suggestNodeOptions(model: RamenModel): readonly NodeOption[] {
   const suggestions: readonly NodeSuggestion[] = model.suggestNodes();
 
   return suggestions.map((suggestion: NodeSuggestion): NodeOption => ({
@@ -25,7 +25,7 @@ function getNodeOptions(model: RamenModel): readonly NodeOption[] {
 }
 
 // A UI can call this after the user selects two node types.
-function getConnectionOptions(model: RamenModel, from: Node, to: Node): readonly ConnectionOption[] {
+function suggestConnectionOptions(model: RamenModel, from: Node, to: Node): readonly ConnectionOption[] {
   const suggestions: readonly RelationSuggestion[] = model.suggestRelations(from, to);
 
   return suggestions.map((suggestion: RelationSuggestion): ConnectionOption => ({
@@ -47,13 +47,13 @@ const model: RamenModel = RamenModel.create({
   version: '1.0.0',
 });
 
-const nodeOptions: readonly NodeOption[] = getNodeOptions(model);
+const nodeOptions: readonly NodeOption[] = suggestNodeOptions(model);
 const selectedNode: NodeOption | undefined = nodeOptions.find((option: NodeOption): boolean => option.label === 'Annotation');
 assert.ok(selectedNode);
 
 const annotation: Node = model.createNode({ name: 'Annotation', refines: selectedNode.id }).element;
 const person: Node = model.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
-const options: readonly ConnectionOption[] = getConnectionOptions(model, annotation, person);
+const options: readonly ConnectionOption[] = suggestConnectionOptions(model, annotation, person);
 console.log('Choices for Annotation → Person:', JSON.stringify(options, null, 2));
 
 const selectedOption: ConnectionOption | undefined = options.find(

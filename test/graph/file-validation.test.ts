@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelFiles } from '../../dist/index.js';
-import type { ModelFile, Model } from '../../dist/index.js';
+import { ModelFiles } from '../../dist/ramen-core/index.js';
+import type { ModelFile, Model } from '../../dist/ramen-core/index.js';
 
 const BASE_ID: string = 'bundleBase000001';
 const ROOT_ID: string = 'bundleRoot000001';

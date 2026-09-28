@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelFactory } from '../../dist/model/index.js';
+import { ModelFactory } from '../../dist/ramen-core/model/index.js';
 import type {
   Attribute,
   Classifier,
@@ -10,9 +10,9 @@ import type {
   Node,
   Owned,
   Relation,
-} from '../../dist/model/index.js';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenFiles, RamenModel } from '../../dist/ramen/index.js';
-import type { AnnotationRelation, AnnotationSuggestion, RamenAnnotation, RamenFile } from '../../dist/ramen/index.js';
+} from '../../dist/ramen-core/model/index.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL, RamenFiles, RamenModel } from '../../dist/ramen-core/ramen/index.js';
+import type { AnnotationRelation, AnnotationSuggestion, RamenAnnotation, RamenFile } from '../../dist/ramen-core/ramen/index.js';
 
 interface Media {
   readonly project: RamenModel;
@@ -101,7 +101,7 @@ void test('refined Annotation keeps inheritance without copying properties or ty
   assert.deepEqual(declaration.attributes, []);
   assert.deepEqual(declaration.superTypes, owner.superTypes);
   assert.equal(next.export().annotations.length, 2);
-  assert.deepEqual(restored.suggestAttributesForAnnotation(owner, 'caption')[0]?.suggestedBounds, {
+  assert.deepEqual(restored.getAttributesForAnnotation(owner, 'caption')[0]?.suggestedBounds, {
     lowerBound: 1,
     upperBound: 1,
   });
@@ -230,7 +230,7 @@ void test('overlapping alternative relations are rejected in either ancestor ord
   const fixture: Media = media(false);
   const narrower: Relation = fixture.project.createRelation({
     refines: fixture.textLink,
-    fromNodeId: fixture.text,
+    fromNode: fixture.text,
     toNodeId: fixture.owner,
   }).element;
   const original: RamenAnnotation | undefined = fixture.project

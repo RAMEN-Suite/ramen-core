@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RAMEN_ELEMENT, RamenModel } from '../../dist/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/index.js';
 import type {
   Attribute,
-  AttributeCreationAdvice,
-  AttributeSuggestion,
+  AttributeNameResult,
+  AttributeInfo,
   RamenFile,
   Classifier,
   DataType,
@@ -21,7 +21,7 @@ import type {
   RamenEvolutionReport,
   Relation,
   RelationSuggestion,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
 
@@ -85,8 +85,8 @@ void test('suggests only actual imports when advising an intermediate model leve
   });
   const descendant: Node = third.createNode({ name: 'Descendant', refines: person.id }).element;
   const options: readonly string[] = third
-    .createAdvisor()
-    .suggestNodeRefinements(second.getModel().id)
+    .getAdvisor()
+    .suggestNodes(second.getModel().id)
     .map((item: NodeSuggestion): string => item.nodeId);
 
   assert.ok(options.includes(person.id));
@@ -217,7 +217,7 @@ void test('does not export a project with invalid RAMEN annotation semantics', (
   });
   assert.equal(duplicate.validation.valid, false);
   assert.throws((): RamenFile => fixture.project.export(), /Invalid model file/);
-  assert.throws((): RamenAdvisor => fixture.project.createAdvisor(), /Cannot advise an invalid model/);
+  assert.throws((): RamenAdvisor => fixture.project.getAdvisor(), /Cannot query an invalid model/);
   assert.ok(
     duplicate.validation.diagnostics.some(
       (diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
@@ -332,36 +332,30 @@ void test('suggests inherited attributes and rejects conflicting attribute names
     typeId: 'String',
     bounds: { lowerBound: 0, upperBound: 1 },
   });
-  const advisor: RamenAdvisor = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.getAdvisor();
 
   assert.ok(advisor);
-  const attributes: readonly AttributeSuggestion[] = advisor.suggestAttributes(fixture.model.id, fixture.nodes.person.id);
+  const attributes: readonly AttributeInfo[] = advisor.getAttributes(fixture.model.id, fixture.nodes.person.id);
   const relation: NodeRelationSuggestion | undefined = advisor.suggestConnections(fixture.model.id, fixture.nodes.person.id)[0];
-  const inherited: AttributeSuggestion | undefined = attributes.find(
-    (attribute: AttributeSuggestion): boolean => attribute.name === 'label',
-  );
-  const declared: AttributeSuggestion | undefined = attributes.find(
-    (attribute: AttributeSuggestion): boolean => attribute.attributeId === local.element.id,
+  const inherited: AttributeInfo | undefined = attributes.find((attribute: AttributeInfo): boolean => attribute.name === 'label');
+  const declared: AttributeInfo | undefined = attributes.find(
+    (attribute: AttributeInfo): boolean => attribute.attributeId === local.element.id,
   );
 
   assert.ok(relation);
   assert.equal(inherited?.inherited, true);
   assert.equal(declared?.inherited, false);
-  const attributeConflict: AttributeCreationAdvice = advisor.adviseAttributeCreation(
+  const attributeConflict: AttributeNameResult = advisor.validateAttributeName(
     fixture.model.id,
     fixture.nodes.person.id,
     'label',
   );
-  const roleConflict: AttributeCreationAdvice = advisor.adviseAttributeCreation(
+  const roleConflict: AttributeNameResult = advisor.validateAttributeName(
     fixture.model.id,
     fixture.nodes.person.id,
     relation.role,
   );
-  const available: AttributeCreationAdvice = advisor.adviseAttributeCreation(
-    fixture.model.id,
-    fixture.nodes.person.id,
-    'occupation',
-  );
+  const available: AttributeNameResult = advisor.validateAttributeName(fixture.model.id, fixture.nodes.person.id, 'occupation');
 
   assert.deepEqual(attributeConflict, { allowed: false, conflicts: ['attribute'] });
   assert.deepEqual(roleConflict, { allowed: false, conflicts: ['relationRole'] });
@@ -378,4 +372,22 @@ void test('rejects edits of unknown local elements with stable messages', (): vo
     /Attribute not found/,
   );
   assert.throws((): RamenChange<Relation> => fixture.project.removeRelation('unknownRelation1'), /Relation not found/);
+});
+
+void test('RAMEN uses the generic relation object fields and their precedence over IDs', (): void => {
+  const model: RamenModel = RamenModel.create('Annotations');
+  const annotation: Node = model.createNode({ name: 'Annotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const person: Node = model.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+  const choice: RelationSuggestion | undefined = model.suggestRelations(annotation, person)[0];
+  assert.ok(choice);
+  const relation: Relation = model.createRelation({
+    refines: choice,
+    fromNode: annotation,
+    fromNodeId: person.id,
+    toNode: person,
+    toNodeId: annotation.id,
+  }).element;
+  assert.equal(relation.from.nodeId, annotation.id);
+  assert.equal(relation.to.nodeId, person.id);
+  assert.equal(model.validate().valid, true);
 });

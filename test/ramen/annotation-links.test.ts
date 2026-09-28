@@ -1,25 +1,30 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RAMEN_ELEMENT, RamenModel } from '../../dist/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/index.js';
 import type {
-  AnnotationLink,
+  AnnotationConnection,
   AnnotationRelation,
   Bounds,
   ModelInstanceGraph,
   ModelInstanceNode,
   Node,
   RamenAnnotation,
+  RamenAdvisor,
   RamenChange,
   RamenModelDocument,
   Relation,
-} from '../../dist/index.js';
+  RelationSelection,
+} from '../../dist/ramen-core/index.js';
 
 const ONE: Bounds = { lowerBound: 1, upperBound: 1 };
 
-function links(text: Node, target: Node | string): readonly AnnotationLink[] {
+function links(project: RamenModel, owner: Node | string, text: Node, target: Node | string): readonly AnnotationConnection[] {
+  const [incoming]: readonly RelationSelection[] = project.getRelations(text, owner);
+  const [outgoing]: readonly RelationSelection[] = project.getRelations(owner, target);
+  assert.ok(incoming && outgoing, 'Expected existing annotation relationships.');
   return [
-    { relation: 'HAS_ANNOTATION', from: text, bounds: ONE },
-    { relation: 'REFERS_TO', to: target, bounds: ONE },
+    { connection: incoming, bounds: { lowerBound: 1, upperBound: 1 } },
+    { connection: outgoing, bounds: { lowerBound: 1, upperBound: 1 } },
   ];
 }
 
@@ -56,13 +61,20 @@ function records(project: RamenModel, text: Node, target: Node, definition: Rame
 void test('broad Entity selection reuses RAMEN and accepts entities added after the annotation definition', (): void => {
   const project: RamenModel = RamenModel.create('Edition');
   const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
     annotationId: RAMEN_ELEMENT.ANNOTATION,
     type: 'entity',
-    relations: links(text, RAMEN_ELEMENT.ENTITY),
+    relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, RAMEN_ELEMENT.ENTITY),
   });
   assert.equal(created.validation.valid, true);
   assert.equal(project.getModel().relations.length, 1);
+  const beforeQuery: RamenModelDocument = project.getModel();
+  const matches: readonly RelationSelection[] = project.getRelations(RAMEN_ELEMENT.ANNOTATION, RAMEN_ELEMENT.ENTITY);
+  assert.equal(matches.length, 1, 'An explicitly reused predecessor relationship appears only once.');
+  assert.equal(Object.isFrozen(matches), true);
+  assert.equal(Object.isFrozen(matches[0]), true);
+  assert.deepEqual(project.getModel(), beforeQuery);
   const organization: Node = project.createNode({ name: 'Organization', refines: RAMEN_ELEMENT.ENTITY }).element;
   const input: ModelInstanceGraph = records(project, text, organization, created.element);
   assert.equal(project.validateInstances(input).hasErrors, false);
@@ -77,21 +89,23 @@ void test('Person and Place selections remain narrow and reuse existing endpoint
   const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
   const person: Node = project.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
   const place: Node = project.createNode({ name: 'Place', refines: RAMEN_ELEMENT.ENTITY }).element;
+  project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
   const reference: Relation = project.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
     annotationId: RAMEN_ELEMENT.ANNOTATION,
     type: 'person',
-    relations: links(text, person),
+    relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, person),
   });
   assert.equal(created.validation.valid, true);
   assert.equal(created.element.relations[1]?.relationId, reference.id);
   assert.equal(project.getModel().relations.length, 2);
   assert.equal(project.validateInstances(records(project, text, person, created.element)).hasErrors, false);
   assert.equal(project.validateInstances(records(project, text, place, created.element)).hasErrors, true);
+  project.refersTo(RAMEN_ELEMENT.ANNOTATION, place);
   const placeType: RamenChange<RamenAnnotation> = project.createAnnotation({
     annotationId: RAMEN_ELEMENT.ANNOTATION,
     type: 'place',
-    relations: links(text, place),
+    relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, place),
   });
   assert.equal(placeType.validation.valid, true);
   assert.equal(project.getModel().relations.length, 3);
@@ -104,13 +118,16 @@ void test('refined Annotation nodes support broad targets and annotation updates
   const annotation: Node = project.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const person: Node = project.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
   const place: Node = project.createNode({ name: 'Place', refines: RAMEN_ELEMENT.ENTITY }).element;
+  project.hasAnnotation(text, annotation);
+  project.refersTo(annotation, person);
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
     annotationId: annotation,
     type: 'entity',
-    relations: links(text, person),
+    relations: links(project, annotation, text, person),
   });
+  project.refersTo(annotation, RAMEN_ELEMENT.ENTITY);
   const updated: RamenChange<RamenAnnotation> = project.updateAnnotation(created.element.id, {
-    relations: links(text, RAMEN_ELEMENT.ENTITY),
+    relations: links(project, annotation, text, RAMEN_ELEMENT.ENTITY),
   });
   assert.equal(updated.validation.valid, true);
   assert.equal(project.validateInstances(records(project, text, place, updated.element)).hasErrors, false);
@@ -124,12 +141,13 @@ void test('endpoint selection cannot reopen broad Entity relationships excluded 
   project.refersTo(RAMEN_ELEMENT.ANNOTATION, person);
   const next: RamenModel = project.createNextLevel('Letters');
   const refinedText: Node = next.createNode({ name: 'LetterText', refines: text }).element;
+  next.hasAnnotation(refinedText, RAMEN_ELEMENT.ANNOTATION);
   const before: RamenModelDocument = next.getModel();
   assert.throws((): void => {
     next.createAnnotation({
       annotationId: RAMEN_ELEMENT.ANNOTATION,
       type: 'entity',
-      relations: links(refinedText, RAMEN_ELEMENT.ENTITY),
+      relations: [{ to: RAMEN_ELEMENT.ENTITY, bounds: { lowerBound: 1, upperBound: 1 } }],
     });
   }, /found 0/);
   assert.deepEqual(next.getModel(), before);
@@ -137,28 +155,29 @@ void test('endpoint selection cannot reopen broad Entity relationships excluded 
   const narrowed: RamenChange<RamenAnnotation> = next.createAnnotation({
     annotationId: RAMEN_ELEMENT.ANNOTATION,
     type: 'person',
-    relations: links(refinedText, person),
+    relations: links(next, RAMEN_ELEMENT.ANNOTATION, refinedText, person),
   });
   assert.equal(narrowed.validation.valid, true);
 });
 
-void test('unknown relationship names and malformed bounds leave the model unchanged', (): void => {
+void test('unknown endpoints and malformed bounds leave the model unchanged', (): void => {
   const project: RamenModel = RamenModel.create('Edition');
   const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
   const before: RamenModelDocument = project.getModel();
   assert.throws((): void => {
     project.createAnnotation({
       annotationId: RAMEN_ELEMENT.ANNOTATION,
       type: 'note',
-      relations: [{ relation: 'UNKNOWN', from: text, bounds: ONE }],
+      relations: [{ to: 'unknownNode00001', bounds: ONE }],
     });
-  }, /Unknown RAMEN relationship/);
+  }, /Expected one node/);
   assert.deepEqual(project.getModel(), before);
   assert.throws((): void => {
     project.createAnnotation({
       annotationId: RAMEN_ELEMENT.ANNOTATION,
       type: 'note',
-      relations: [{ relation: 'HAS_ANNOTATION', from: text, bounds: { lowerBound: -1, upperBound: 1 } }],
+      relations: [{ from: text, bounds: { lowerBound: -1, upperBound: 1 } }],
     });
   }, /Invalid annotation definitions/);
   assert.deepEqual(project.getModel(), before);
@@ -167,10 +186,11 @@ void test('unknown relationship names and malformed bounds leave the model uncha
 void test('an inherited broad annotation accepts future entities when each next level explicitly selects its relationships', (): void => {
   const project: RamenModel = RamenModel.create('Edition');
   const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
     annotationId: RAMEN_ELEMENT.ANNOTATION,
     type: 'entity',
-    relations: links(text, RAMEN_ELEMENT.ENTITY),
+    relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, RAMEN_ELEMENT.ENTITY),
   });
   const next: RamenModel = project.createNextLevel('Organizations');
   const organization: Node = next.createNode({ name: 'Organization', refines: RAMEN_ELEMENT.ENTITY }).element;
@@ -204,8 +224,66 @@ void test('ambiguous endpoint selections require an explicit reference rather th
     project.createAnnotation({
       annotationId: RAMEN_ELEMENT.ANNOTATION,
       type: 'entity',
-      relations: [{ relation: 'REFERS_TO', to: RAMEN_ELEMENT.ENTITY, bounds: ONE }],
+      relations: [{ to: RAMEN_ELEMENT.ENTITY, bounds: ONE }],
     });
-  }, /Multiple 'REFERS_TO'/);
+  }, /found 3/);
   assert.deepEqual(project.getModel(), before);
+});
+
+void test('stored connection selections are rechecked after edits and cannot be applied to a different Annotation node', (): void => {
+  const project: RamenModel = RamenModel.create('Edition');
+  const person: Node = project.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+  const other: Node = project.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const relation: Relation = project.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
+  const [connection]: readonly RelationSelection[] = project.getRelations(RAMEN_ELEMENT.ANNOTATION, person);
+  assert.ok(connection);
+  const before: RamenModelDocument = project.getModel();
+  assert.throws((): void => {
+    project.createAnnotation({
+      annotationId: other,
+      type: 'person',
+      relations: [{ connection, bounds: { lowerBound: 1, upperBound: 1 } }],
+    });
+  }, /does not involve this Annotation/);
+  assert.deepEqual(project.getModel(), before);
+  project.removeRelation(relation.id);
+  const removed: RamenModelDocument = project.getModel();
+  assert.throws((): void => {
+    project.createAnnotation({
+      annotationId: RAMEN_ELEMENT.ANNOTATION,
+      type: 'person',
+      relations: [{ connection, bounds: { lowerBound: 1, upperBound: 1 } }],
+    });
+  }, /found 0/);
+  assert.deepEqual(project.getModel(), removed);
+});
+
+void test('RAMEN uses the generic relationship query in both its facade and advisor', (): void => {
+  const project: RamenModel = RamenModel.create('Edition');
+  const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const annotation: Node = project.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  assert.deepEqual(project.getRelations(text, annotation), []);
+  project.hasAnnotation(text, annotation);
+  const advisor: RamenAdvisor = project.getAdvisor();
+  const matches: readonly RelationSelection[] = project.getRelations(text, annotation);
+  assert.equal(matches.length, 1);
+  assert.deepEqual(advisor.getRelations(project.getModel().id, text.id, annotation.id), matches);
+  project.hasAnnotation(text, annotation);
+  assert.equal(project.getRelations(text, annotation).length, 2);
+  assert.equal(advisor.getRelations(project.getModel().id, text.id, annotation.id).length, 1);
+  assert.deepEqual(project.getRelations(annotation, text), []);
+});
+
+void test('RAMEN options returns empty collections or absent options for inapplicable annotations', (): void => {
+  const project: RamenModel = RamenModel.create('Edition');
+  const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const advisor: RamenAdvisor = project.getAdvisor();
+  const context: string = project.getModel().id;
+  assert.deepEqual(project.getAnnotations(), []);
+  assert.deepEqual(project.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION), []);
+  assert.deepEqual(project.suggestAnnotationsForNode(text), []);
+  assert.deepEqual(project.getRelationsForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'missing'), []);
+  assert.deepEqual(project.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'missing'), []);
+  assert.equal(project.suggestAnnotationOptions(text), undefined);
+  assert.equal(advisor.suggestAnnotationOptions(context, 'missingNode00001'), undefined);
 });

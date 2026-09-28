@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeler, ModelFactory, RAMEN_ELEMENT, RamenModel } from '../../dist/index.js';
+import { Modeler, ModelFactory, RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/index.js';
 import type {
   Attribute,
   Diagnostic,
@@ -9,7 +9,7 @@ import type {
   Node,
   ProjectValidationResult,
   ValidationResult,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 
 function addKey(project: Modeler, owner: Node, name: string): ProjectValidationResult {
   return project.createAttribute(owner, { name, typeId: 'String', bounds: { lowerBound: 1, upperBound: 1 }, isKey: true })

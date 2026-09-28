@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProjectGraph, ModelRelationScope } from '../../dist/model/index.js';
-import type { Model, Node, Relation, ProjectGraphResult, Id, Ref } from '../../dist/model/index.js';
+import { buildProjectGraph, ModelRelationScope } from '../../dist/ramen-core/model/index.js';
+import type { Model, Node, Relation, ProjectGraphResult, Id, Ref } from '../../dist/ramen-core/model/index.js';
 import { model, node, relation } from '../models.ts';
 
 function identifier(index: number): string {

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
-import type { Attribute, Classifier, Node, Owned, Relation } from '../../dist/model/index.js';
-import { RAMEN_ELEMENT, RamenModel } from '../../dist/ramen/index.js';
-import type { AnnotationSuggestion, RamenFile } from '../../dist/ramen/index.js';
+import type { Attribute, Classifier, Node, Owned, Relation } from '../../dist/ramen-core/model/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/ramen/index.js';
+import type { AnnotationSuggestion, RamenFile } from '../../dist/ramen-core/ramen/index.js';
 
 // The first project level declares vocabulary, properties and annotation types.
 const base: RamenModel = RamenModel.create('Correspondence');
@@ -45,7 +45,7 @@ const declaration: Owned<Classifier> | undefined = file.classifiers.find(
 );
 assert.ok(declaration?.kind === 'Node');
 assert.deepEqual(declaration.attributes, []);
-assert.ok(restored.suggestAttributes(editionLetter).some((item): boolean => item.attributeId === title.id));
+assert.ok(restored.getAttributes(editionLetter).some((item): boolean => item.attributeId === title.id));
 assert.deepEqual(
   restored.suggestAnnotationsForNode(text).map((item: AnnotationSuggestion): string => item.type),
   ['caption'],

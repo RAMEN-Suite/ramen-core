@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel, RamenValidator } from '../../dist/index.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel, RamenValidator } from '../../dist/ramen-core/index.js';
 import type {
   Diagnostic,
   RamenAdvisor,
@@ -11,7 +11,7 @@ import type {
   RamenModelDocument,
   Relation,
   RelationSuggestion,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 
 function project(): RamenModel {
   return RamenModel.create({ id: 'scopeProject010000', uri: 'https://example.org/scope', name: 'Scope', version: '1.0.0' });
@@ -29,10 +29,7 @@ void test('each level explicitly selects relations and cannot skip an empty inte
   const second: RamenModel = next(first, 'scopeSecond0100000');
 
   assert.equal(second.suggestRelations(witness.id, letter.id).length, 1);
-  assert.deepEqual(
-    second.createAdvisor().adviseNode(second.getModel().id, `${first.getModel().id}:${witness.id}`)?.relations,
-    [],
-  );
+  assert.deepEqual(second.getAdvisor().getNodeInfo(second.getModel().id, `${first.getModel().id}:${witness.id}`)?.relations, []);
   const third: RamenModel = next(second, 'scopeThird01000000');
   assert.deepEqual(third.suggestRelations(witness.id, letter.id), []);
   assert.throws((): void => {
@@ -102,13 +99,13 @@ void test('model edits refresh suggestions while previous advisors keep their or
   const first: RamenModel = project();
   const text: Node = first.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
   const link: Relation = first.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
-  const before: RamenAdvisor = first.createAdvisor();
+  const before: RamenAdvisor = first.getAdvisor();
   first.createAnnotation({
     annotationId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
     relations: [{ relationId: link.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
-  const after: RamenAdvisor = first.createAdvisor();
+  const after: RamenAdvisor = first.getAdvisor();
 
   assert.deepEqual(before.suggestAnnotationsForNode(first.getModel().id, text.id), []);
   assert.deepEqual(
@@ -116,7 +113,7 @@ void test('model edits refresh suggestions while previous advisors keep their or
     ['comment'],
   );
   first.removeRelation(link.id);
-  assert.deepEqual(first.createAdvisor().suggestAnnotationsForNode(first.getModel().id, text.id), []);
+  assert.deepEqual(first.getAdvisor().suggestAnnotationsForNode(first.getModel().id, text.id), []);
   assert.deepEqual(
     after.suggestAnnotationsForNode(first.getModel().id, text.id).map((item: AnnotationSuggestion): string => item.type),
     ['comment'],

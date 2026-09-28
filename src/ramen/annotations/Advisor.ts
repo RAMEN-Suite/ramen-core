@@ -8,7 +8,7 @@ import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
 import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
 
 /** Property that can be selected for an annotation definition. */
-export interface PropertyAdvice {
+export interface PropertyOption {
   readonly modelId: Id;
   readonly attributeId: Id;
   readonly ref: Ref;
@@ -20,7 +20,7 @@ export interface PropertyAdvice {
 }
 
 /** Relation that can be selected for an annotation definition. */
-export interface RelationAdvice {
+export interface RelationOption {
   readonly modelId: Id;
   readonly relationId: Id;
   readonly ref: Ref;
@@ -38,50 +38,50 @@ export interface RelationAdvice {
   readonly alternatives?: readonly Ref[];
 }
 
-/** Complete creation advice for an annotation definition. */
-export interface AnnotationAdvice {
-  readonly properties: readonly PropertyAdvice[];
-  readonly relations: readonly RelationAdvice[];
+/** Complete creation options for an annotation definition. */
+export interface AnnotationOptions {
+  readonly properties: readonly PropertyOption[];
+  readonly relations: readonly RelationOption[];
 }
 
 /** Computes valid annotation properties, relations, targets, and cardinality choices. */
 export class AnnotationAdvisor {
-  /** Creates annotation advice over an already validated project graph. */
+  /** Creates annotation options over an already validated project graph. */
   public constructor(
     private readonly graph: ProjectGraph,
     private readonly relations: ModelRelationScope,
     private readonly annotations: AnnotationIndex,
   ) {}
 
-  /** Advises properties and relations available for a new annotation type. */
-  public advise(modelId: Id, annotationNodeId: Id): AnnotationAdvice | undefined {
+  /** Lists property choices and relations available for a new annotation type. */
+  public suggestOptions(modelId: Id, annotationNodeId: Id): AnnotationOptions | undefined {
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual || !this.annotations.isAnnotationNode(actual.modelId, actual.element.id)) return undefined;
     return {
-      properties: this.propertyAdvice(modelId, actual),
-      relations: this.relationAdvice(modelId, actual),
+      properties: this.propertyOptions(modelId, actual),
+      relations: this.relationOptions(modelId, actual),
     };
   }
 
   /** Returns the effective properties and relations selected by one annotation type. */
-  public adviseEffective(modelId: Id, annotationNodeId: Id, type: string): AnnotationAdvice | undefined {
+  public getTypeInfo(modelId: Id, annotationNodeId: Id, type: string): AnnotationOptions | undefined {
     const definition: ResolvedAnnotation | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
     if (!definition) return undefined;
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual) return undefined;
     return {
-      properties: this.selectedPropertyAdvice(modelId, actual, definition),
-      relations: this.selectedRelationAdvice(modelId, actual, definition),
+      properties: this.selectedPropertyOptions(modelId, actual, definition),
+      relations: this.selectedRelationOptions(modelId, actual, definition),
     };
   }
 
-  private selectedPropertyAdvice(
+  private selectedPropertyOptions(
     contextModelId: Id,
     actual: ResolvedElement<Node>,
     definition: ResolvedAnnotation,
-  ): readonly PropertyAdvice[] {
+  ): readonly PropertyOption[] {
     const lineage: readonly ResolvedElement<Node>[] = [actual, ...this.graph.getNodeAncestors(actual.modelId, actual.element.id)];
-    return AnnotationProperties.resolve(this.graph, definition, actual).map((attribute: Attribute): PropertyAdvice => {
+    return AnnotationProperties.resolve(this.graph, definition, actual).map((attribute: Attribute): PropertyOption => {
       const modelId: Id = this.attributeOwner(lineage, attribute.id)?.modelId ?? definition.modelId;
       return {
         modelId,
@@ -95,14 +95,14 @@ export class AnnotationAdvisor {
     });
   }
 
-  private propertyAdvice(contextModelId: Id, actual: ResolvedElement<Node>): readonly PropertyAdvice[] {
+  private propertyOptions(contextModelId: Id, actual: ResolvedElement<Node>): readonly PropertyOption[] {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(this.graph, actual.modelId, actual.element.id);
     if (!effective) return [];
     const commonIds: ReadonlySet<Id> = this.commonAnnotationAttributeIds();
 
     return effective.attributes
       .filter((attribute: Attribute): boolean => !commonIds.has(attribute.id))
-      .map((attribute: Attribute): PropertyAdvice => {
+      .map((attribute: Attribute): PropertyOption => {
         const owner: ResolvedElement<Node> = this.attributeOwner(effective.lineage, attribute.id) ?? actual;
         return {
           modelId: owner.modelId,
@@ -114,27 +114,27 @@ export class AnnotationAdvisor {
           cardinalityOptions: this.cardinalityOptions(attribute.bounds),
         };
       })
-      .sort((left: PropertyAdvice, right: PropertyAdvice): number => left.name.localeCompare(right.name));
+      .sort((left: PropertyOption, right: PropertyOption): number => left.name.localeCompare(right.name));
   }
 
-  private relationAdvice(contextModelId: Id, actual: ResolvedElement<Node>): readonly RelationAdvice[] {
-    const result: RelationAdvice[] = [];
+  private relationOptions(contextModelId: Id, actual: ResolvedElement<Node>): readonly RelationOption[] {
+    const result: RelationOption[] = [];
 
     for (const item of this.relations.available(contextModelId)) {
       const owner: Model | undefined = this.graph.getModel(item.modelId);
       if (!owner) continue;
-      this.addRelationAdvice(result, contextModelId, actual, owner, item.element, 'outgoing');
-      this.addRelationAdvice(result, contextModelId, actual, owner, item.element, 'incoming');
+      this.addRelationOption(result, contextModelId, actual, owner, item.element, 'outgoing');
+      this.addRelationOption(result, contextModelId, actual, owner, item.element, 'incoming');
     }
 
-    return result.sort((left: RelationAdvice, right: RelationAdvice): number => {
+    return result.sort((left: RelationOption, right: RelationOption): number => {
       const byName: number = left.name.localeCompare(right.name);
       return byName === 0 ? left.direction.localeCompare(right.direction) : byName;
     });
   }
 
-  private addRelationAdvice(
-    result: RelationAdvice[],
+  private addRelationOption(
+    result: RelationOption[],
     contextModelId: Id,
     actual: ResolvedElement<Node>,
     owner: Model,
@@ -164,13 +164,13 @@ export class AnnotationAdvisor {
     });
   }
 
-  private selectedRelationAdvice(
+  private selectedRelationOptions(
     modelId: Id,
     actual: ResolvedElement<Node>,
     definition: ResolvedAnnotation,
-  ): readonly RelationAdvice[] {
-    const selected: RelationAdvice[] = [];
-    for (const choice of this.relationAdvice(modelId, actual)) {
+  ): readonly RelationOption[] {
+    const selected: RelationOption[] = [];
+    for (const choice of this.relationOptions(modelId, actual)) {
       const requirement: AnnotationRelation | undefined = this.findRequirement(choice, definition);
       if (!requirement) continue;
       selected.push(this.applyRequirement(choice, requirement, definition.modelId));
@@ -178,7 +178,7 @@ export class AnnotationAdvisor {
     return selected;
   }
 
-  private findRequirement(choice: RelationAdvice, definition: ResolvedAnnotation): AnnotationRelation | undefined {
+  private findRequirement(choice: RelationOption, definition: ResolvedAnnotation): AnnotationRelation | undefined {
     for (const requirement of definition.annotation.relations) {
       if (requirement.direction !== choice.direction) continue;
       const matches: boolean = RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
@@ -189,8 +189,8 @@ export class AnnotationAdvisor {
     return undefined;
   }
 
-  private applyRequirement(choice: RelationAdvice, requirement: AnnotationRelation, modelId: Id): RelationAdvice {
-    const selected: RelationAdvice = {
+  private applyRequirement(choice: RelationOption, requirement: AnnotationRelation, modelId: Id): RelationOption {
+    const selected: RelationOption = {
       ...choice,
       suggestedBounds: { ...requirement.bounds },
       cardinalityOptions: this.cardinalityOptions(requirement.bounds),

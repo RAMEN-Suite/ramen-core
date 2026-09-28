@@ -7,11 +7,11 @@ import {
   RAMEN_MODEL,
   RamenInstanceValidator,
   RamenModel,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import type {
-  AnnotationAdvice,
+  AnnotationOptions,
   AnnotationSuggestion,
-  PropertyAdvice,
+  PropertyOption,
   Classifier,
   Constraint,
   ConstraintContext,
@@ -24,7 +24,7 @@ import type {
   Node,
   Relation,
   ValidationResult,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
 
@@ -45,7 +45,7 @@ void test('declares and reuses annotation types without refining the imported An
   );
   assert.deepEqual(
     first
-      .createAdvisor()
+      .getAdvisor()
       .suggestAnnotationsForNode(first.getModel().id, text.id)
       .map((item: AnnotationSuggestion): string => item.type),
     [],
@@ -190,7 +190,7 @@ function assertSelectedTargets(project: RamenModel, text: Node, image: Node, tex
 
 function annotationTypesForNode(model: RamenModel, node: Node): readonly string[] {
   return model
-    .createAdvisor()
+    .getAdvisor()
     .suggestAnnotationsForNode(model.getModel().id, node.id)
     .map((item: AnnotationSuggestion): string => item.type);
 }
@@ -311,15 +311,15 @@ void test('stores five closed annotation definitions outside the model node list
   assert.deepEqual(fixture.model.annotations, annotations);
 });
 
-void test('advises selectable annotation properties and their cardinalities', (): void => {
+void test('suggests selectable annotation properties and their cardinalities', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const advice: AnnotationAdvice | undefined = fixture.project
-    .createAdvisor()
-    .adviseAnnotation(fixture.model.id, fixture.nodes.annotation.id);
+  const options: AnnotationOptions | undefined = fixture.project
+    .getAdvisor()
+    .suggestAnnotationOptions(fixture.model.id, fixture.nodes.annotation.id);
 
-  assert.ok(advice);
-  const url: PropertyAdvice | undefined = advice.properties.find(
-    (property: PropertyAdvice): boolean => property.attributeId === fixture.url.id,
+  assert.ok(options);
+  const url: PropertyOption | undefined = options.properties.find(
+    (property: PropertyOption): boolean => property.attributeId === fixture.url.id,
   );
 
   assert.ok(url);

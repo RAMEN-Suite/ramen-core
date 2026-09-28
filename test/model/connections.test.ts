@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelConnections, ModelEditor, ModelValidator } from '../../dist/model/index.js';
-import type { Model, Node, Relation, RelationSuggestion, ProjectValidationResult } from '../../dist/model/index.js';
+import { ModelConnections, ModelEditor, ModelValidator, Modeler } from '../../dist/ramen-core/model/index.js';
+import type {
+  Model,
+  ModelAdvisor,
+  Node,
+  Relation,
+  RelationSelection,
+  RelationSuggestion,
+  ProjectValidationResult,
+} from '../../dist/ramen-core/model/index.js';
 import { model, node, relation } from '../models.ts';
 
 interface Fixture {
@@ -37,7 +45,7 @@ function connections(project: Model, dependencies: readonly Model[]): ModelConne
 void test('generic connection uses a suggestion or infers a unique relation without changing its snapshot', (): void => {
   const input: Fixture = fixture();
   const api: ModelConnections = connections(input.project, [input.base]);
-  const choices: readonly RelationSuggestion[] = api.suggest('connectionLetter1', 'connectionArchive');
+  const choices: readonly RelationSuggestion[] = api.suggestRelations('connectionLetter1', 'connectionArchive');
   const choice: RelationSuggestion | undefined = choices[0];
   assert.ok(choice);
   const selected: Relation = api.connect('connectionLetter1', 'connectionArchive', choice);
@@ -66,7 +74,7 @@ void test('generic connections cannot skip a level that did not select a relatio
   const api: ModelConnections = connections(child, [input.project, input.base]);
   const from: string = `${input.base.id}:${input.document.id}`;
   const to: string = `${input.base.id}:${input.folder.id}`;
-  assert.deepEqual(api.suggest(from, to), []);
+  assert.deepEqual(api.suggestRelations(from, to), []);
   assert.throws((): Relation => api.connect(from, to), /found 0/);
 });
 
@@ -93,4 +101,98 @@ void test('adding a relation detaches its nested values from the caller', (): vo
   link.to.bounds.lowerBound = 9;
   assert.equal(edited.relations[0]?.to.bounds.lowerBound, 0);
   assert.equal(input.project.relations.length, 0);
+});
+
+void test('getRelations is read-only, retains endpoint identities and does not create missing refinements', (): void => {
+  const base: Modeler = Modeler.create('Documents');
+  const document: Node = base.createNode('Document').element;
+  const folder: Node = base.createNode('Folder').element;
+  const relation: Relation = base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder }).element;
+  const child: Modeler = base.createNextLevel('Edition');
+  const letter: Node = child.createNode({ name: 'Letter', refines: document }).element;
+  const before: Model = child.getModel();
+  const matches: readonly RelationSelection[] = child.getRelations(document, folder);
+  const selected: RelationSelection | undefined = matches[0];
+  assert.ok(selected);
+  assert.equal(matches.length, 1);
+  assert.equal(selected.ref, `${base.getModel().id}:${relation.id}`);
+  assert.equal(selected.from, `${base.getModel().id}:${document.id}`);
+  assert.equal(selected.to, `${base.getModel().id}:${folder.id}`);
+  assert.deepEqual(child.getModel(), before);
+
+  assert.deepEqual(child.getRelations(letter, folder), []);
+  assert.deepEqual(child.getModel(), before);
+  const refined: Relation = child.connect(letter, folder).element;
+  assert.equal(child.getRelations(letter, folder)[0]?.ref, `${child.getModel().id}:${refined.id}`);
+});
+
+void test('getRelations returns all parallel relationships and an empty list for reversed endpoints', (): void => {
+  const project: Modeler = Modeler.create('Documents');
+  const document: Node = project.createNode('Document').element;
+  const folder: Node = project.createNode('Folder').element;
+  const first: Relation = project.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder }).element;
+  const second: Relation = project.createRelation({ name: 'ARCHIVED_IN', fromNode: document, toNode: folder }).element;
+  const before: Model = project.getModel();
+  const matches: readonly RelationSelection[] = project.getRelations(document, folder);
+  const refs: readonly string[] = matches.map((item: RelationSelection): string => item.ref);
+  assert.deepEqual(refs, [`${before.id}:${first.id}`, `${before.id}:${second.id}`]);
+  assert.deepEqual(project.getRelations(folder, document), []);
+  assert.deepEqual(project.getModel(), before);
+});
+
+void test('getRelations cannot recover a relation omitted by an intermediate level', (): void => {
+  const base: Modeler = Modeler.create('Documents');
+  const document: Node = base.createNode('Document').element;
+  const folder: Node = base.createNode('Folder').element;
+  base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder });
+  const intermediate: Modeler = base.createNextLevel('Edition');
+  const next: Modeler = intermediate.createNextLevel('Letters');
+  assert.deepEqual(next.getRelations(document, folder), []);
+  assert.equal(next.getModel().relations.length, 0);
+});
+
+void test('getRelations includes both predecessor and local definitions and rejects unknown nodes', (): void => {
+  const base: Modeler = Modeler.create('Documents');
+  const document: Node = base.createNode('Document').element;
+  const folder: Node = base.createNode('Folder').element;
+  const original: Relation = base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder }).element;
+  const child: Modeler = base.createNextLevel('Edition');
+  const refined: Relation = child.connect(document, folder).element;
+  const matches: readonly RelationSelection[] = child.getRelations(document, folder);
+  const refs: readonly string[] = matches.map((item: RelationSelection): string => item.ref);
+  assert.deepEqual(refs, [`${child.getModel().id}:${refined.id}`, `${base.getModel().id}:${original.id}`]);
+  assert.throws((): readonly RelationSelection[] => child.getRelations('unknownNode00001', folder), /Expected one node/);
+});
+
+void test('getRelations rejects an invalid model instead of presenting it as an empty valid graph', (): void => {
+  const project: Modeler = Modeler.create('Documents');
+  const document: Node = project.createNode('Document').element;
+  const folder: Node = project.createNode('Folder').element;
+  project.createRelation({
+    name: 'IN_FOLDER',
+    fromNode: document,
+    toNode: folder,
+    toBounds: { lowerBound: 2, upperBound: 1 },
+  });
+  const before: Model = project.getModel();
+  assert.equal(project.validate().valid, false);
+  assert.throws((): readonly RelationSelection[] => project.getRelations(document, folder), /invalid model/);
+  assert.deepEqual(project.getModel(), before);
+});
+
+void test('generic query entry points return the same empty, single and parallel results', (): void => {
+  const project: Modeler = Modeler.create('Documents');
+  const document: Node = project.createNode('Document').element;
+  const folder: Node = project.createNode('Folder').element;
+  for (let count: number = 0; count < 3; count += 1) {
+    const advisor: ModelAdvisor = project.getAdvisor();
+    const api: ModelConnections = connections(project.getModel(), []);
+    const expected: readonly RelationSelection[] = project.getRelations(document, folder);
+    assert.equal(expected.length, count);
+    assert.deepEqual(advisor.getRelations(project.getModel().id, document.id, folder.id), expected);
+    assert.deepEqual(api.getRelations(document.id, folder.id), expected);
+    assert.deepEqual(api.getRelations(document, folder), expected);
+    assert.deepEqual(api.getRelations(folder.id, document.id), []);
+    project.createRelation({ name: `FILED_IN_${count}`, fromNode: document, toNode: folder });
+  }
 });

@@ -43,6 +43,7 @@ export class ModelEditor {
 
   /** Removes a node and every local relation connected to it. */
   public static removeNode(model: Model, nodeId: string): Model {
+    this.requireNode(model, nodeId);
     let newModel: Model = ModelEditor.removeClassifierById(model, nodeId);
     const relations: Relation[] = newModel.relations;
     const remainingRelations: Relation[] = relations.filter((relation: Relation): boolean => {

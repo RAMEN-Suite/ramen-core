@@ -6,5 +6,5 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["test/**/*.ts", "dist/**/*.d.ts"]
+  "include": ["test/**/*.ts", "dist/ramen-core/**/*.d.ts"]
 }

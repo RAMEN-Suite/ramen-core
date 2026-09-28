@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelEvolution } from '../../dist/index.js';
-import type { Attribute, Diagnostic, EvolutionChange, EvolutionReport, Model, Node } from '../../dist/index.js';
+import { ModelEvolution } from '../../dist/ramen-core/index.js';
+import type { Attribute, Diagnostic, EvolutionChange, EvolutionReport, Model, Node } from '../../dist/ramen-core/index.js';
 import { attribute, model, node } from '../models.ts';
 
 void test('reports model evolution at stable element identities without mutating either state', (): void => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelValidator, Modeler } from '../../dist/index.js';
-import type { Diagnostic, Model, Node, Relation, Import, ProjectValidationResult } from '../../dist/index.js';
+import { ModelValidator, Modeler } from '../../dist/ramen-core/index.js';
+import type { Diagnostic, Model, Node, Relation, Import, ProjectValidationResult } from '../../dist/ramen-core/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
 void test('validates all reachable levels instead of one base-derived pair', (): void => {

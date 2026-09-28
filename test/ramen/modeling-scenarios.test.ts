@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { Diagnostic, EvolutionChange, Model, Node, Relation } from '../../dist/model/index.js';
-import { RamenModel } from '../../dist/ramen/index.js';
-import type { AnnotationSuggestion, RamenChange, RamenEvolutionReport, RelationSuggestion } from '../../dist/ramen/index.js';
+import type { Diagnostic, EvolutionChange, Model, Node, Relation } from '../../dist/ramen-core/model/index.js';
+import { RamenModel } from '../../dist/ramen-core/ramen/index.js';
+import type {
+  AnnotationSuggestion,
+  RamenChange,
+  RamenEvolutionReport,
+  RelationSuggestion,
+} from '../../dist/ramen-core/ramen/index.js';
 import { createCorrespondenceFixture } from './fixtures.ts';
 import type { CorrespondenceFixture } from './fixtures.ts';
 
@@ -73,7 +78,7 @@ function nextEdition(base: RamenModel): RamenModel {
 
 function suggestedTypes(project: RamenModel, carrier: Node): readonly string[] {
   return project
-    .createAdvisor()
+    .getAdvisor()
     .suggestAnnotationsForNode(project.getModel().id, carrier.id)
     .map((suggestion: AnnotationSuggestion): string => suggestion.type)
     .sort();

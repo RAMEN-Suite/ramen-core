@@ -7,8 +7,8 @@ import {
   ModelValidator,
   RamenModelFormat,
   RamenValidator,
-} from '../../dist/index.js';
-import type { Diagnostic, Model, ProjectValidationResult } from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
+import type { Diagnostic, Model, ProjectValidationResult } from '../../dist/ramen-core/index.js';
 
 function derivedModel(): Model {
   return {

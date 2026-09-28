@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeler, ModelValidator, InstanceValidator } from '../../dist/model/index.js';
+import { Modeler, ModelValidator, InstanceValidator } from '../../dist/ramen-core/model/index.js';
 import type {
-  AttributeSuggestion,
+  AttributeInfo,
   Bounds,
   Diagnostic,
   Model,
@@ -14,7 +14,7 @@ import type {
   Relation,
   ValidationResult,
   Ref,
-} from '../../dist/model/index.js';
+} from '../../dist/ramen-core/model/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
 function id(prefix: string, index: number): string {
@@ -96,8 +96,8 @@ void test('120 model levels preserve ancestry, inherited attributes and exchange
   assert.equal(result.graph.getTransitiveImports(root.id).length, 119);
 
   const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(project.export())) as unknown);
-  const properties: readonly AttributeSuggestion[] = restored.suggestAttributes(id('type', 119));
-  const names: string[] = properties.map((item: AttributeSuggestion): string => item.name);
+  const properties: readonly AttributeInfo[] = restored.getAttributes(id('type', 119));
+  const names: string[] = properties.map((item: AttributeInfo): string => item.name);
   assert.deepEqual(names, ['title']);
   assert.equal(properties[0]?.inherited, true);
   assert.deepEqual(restored.export(), project.export());
@@ -122,7 +122,7 @@ function checkCombination(bounds: Bounds, refineFrom: boolean, refineTo: boolean
   const base: Modeler = Modeler.create('Documents');
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
-  base.createRelation({ name: 'IN_FOLDER', fromNodeId: document, toNodeId: folder, toBounds: { lowerBound: 0, upperBound: 1 } });
+  base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder, toBounds: { lowerBound: 0, upperBound: 1 } });
   const child: Modeler = base.createNextLevel('Edition');
   const from: Node = refineFrom ? child.createNode({ name: 'Letter', refines: document }).element : document;
   const to: Node = refineTo ? child.createNode({ name: 'Archive', refines: folder }).element : folder;
@@ -139,7 +139,7 @@ void test('indexed cardinalities include sibling refinements, count self-relatio
   const base: Modeler = Modeler.create('People and places');
   const person: Node = base.createNode('Person').element;
   const place: Node = base.createNode('Place').element;
-  base.createRelation({ name: 'NEXT', fromNodeId: person, toNodeId: person, toBounds: { lowerBound: 1, upperBound: 1 } });
+  base.createRelation({ name: 'NEXT', fromNode: person, toNode: person, toBounds: { lowerBound: 1, upperBound: 1 } });
   const project: Modeler = base.createNextLevel('Edition');
   const author: Node = project.createNode({ name: 'Author', refines: person }).element;
   const editor: Node = project.createNode({ name: 'Editor', refines: person }).element;

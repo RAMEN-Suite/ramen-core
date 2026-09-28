@@ -5,5 +5,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["examples/**/*.ts", "dist/**/*.d.ts"]
+  "include": ["examples/**/*.ts", "dist/ramen-core/**/*.d.ts"]
 }

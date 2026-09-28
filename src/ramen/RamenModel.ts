@@ -10,12 +10,10 @@ import type {
   ModelChange,
   Removal,
 } from '../model/editing/Draft';
-import { ModelFactory, ModelRef, ModelRelationScope } from '../model/index';
+import { ModelFactory, ModelRef } from '../model/index';
 import type {
   Bounds,
-  Node,
-  ResolvedElement,
-  ProjectGraph,
+  RelationSelection,
   ConstraintRegistry,
   Id,
   Model,
@@ -31,7 +29,7 @@ import { RamenModelFormat, RamenModelDocument } from './Document';
 import { RAMEN_MODEL } from './ReferenceModel';
 import { RamenValidator } from './validation/ModelValidator';
 import { RamenInstanceValidator } from './data/InstanceValidator';
-import type { AnnotationAdvice, PropertyAdvice, RelationAdvice } from './annotations/Advisor';
+import type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor';
 import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
 import { RamenFiles, RamenFile } from './exchange/File';
 import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
@@ -57,14 +55,19 @@ export type UpdateRamenLiteralInput = LiteralUpdate;
 /** Edited element and its project validation. */
 export type RamenChange<T> = ModelChange<T>;
 
-/** Select a RAMEN relationship by its name, other endpoint and annotation-side cardinality. */
+/** Select a permitted relationship by its other endpoint and annotation-side cardinality. */
 export type AnnotationLink = {
-  readonly relation: string;
   readonly bounds: Bounds;
 } & ({ readonly from: RamenRef; readonly to?: never } | { readonly to: RamenRef; readonly from?: never });
 
+/** Apply a selected relationship to an annotation type with its own cardinality. */
+export interface AnnotationConnection {
+  readonly connection: RelationSelection;
+  readonly bounds: Bounds;
+}
+
 /** Use a stored relation reference or select a relationship by its endpoints. */
-export type AnnotationRelationInput = AnnotationRelation | AnnotationLink;
+export type AnnotationRelationInput = AnnotationRelation | AnnotationLink | AnnotationConnection;
 
 /** Values needed to declare one closed annotation variant on a local or imported Annotation node. */
 export interface AnnotationInput {
@@ -91,7 +94,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return new RamenValidator().validateProject(this.model.id, this.validationInputs());
   }
 
-  protected advise(result: ValidProjectResult): RamenAdvisor {
+  protected buildAdvisor(result: ValidProjectResult): RamenAdvisor {
     return new RamenAdvisor(result, this.validationInputs());
   }
 
@@ -168,31 +171,31 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /** Lists properties and selected model relations available when declaring an annotation type. */
-  public adviseAnnotation(node: ElementInput): AnnotationAdvice | undefined {
-    return this.createAdvisor().adviseAnnotation(this.model.id, this.nodeReference(node));
+  public suggestAnnotationOptions(node: ElementInput): AnnotationOptions | undefined {
+    return this.getAdvisor().suggestAnnotationOptions(this.model.id, this.nodeReference(node));
   }
 
   /** Lists current-level relations allowed by one annotation type, including its cardinality rules. */
-  public suggestRelationsForAnnotation(node: ElementInput, type: string): readonly RelationAdvice[] {
-    return this.createAdvisor().suggestRelationsForAnnotation(this.model.id, this.nodeReference(node), type);
+  public getRelationsForAnnotation(node: ElementInput, type: string): readonly RelationOption[] {
+    return this.getAdvisor().getRelationsForAnnotation(this.model.id, this.nodeReference(node), type);
   }
 
   /** Lists the properties selected or declared by one annotation type. */
-  public suggestAttributesForAnnotation(nodeId: ElementInput, type: string): readonly PropertyAdvice[] {
-    return this.createAdvisor().suggestAttributesForAnnotation(this.model.id, this.nodeReference(nodeId), type);
+  public getAttributesForAnnotation(nodeId: ElementInput, type: string): readonly PropertyOption[] {
+    return this.getAdvisor().getAttributesForAnnotation(this.model.id, this.nodeReference(nodeId), type);
   }
 
   /** Lists annotation definitions available on a local or imported node. */
   public suggestAnnotations(nodeId: ElementInput): readonly AnnotationSuggestion[] {
     const owner: RamenElementRef = this.resolveRef(nodeId, 'node');
     const reference: Id = owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
-    return this.createAdvisor().suggestAnnotations(this.model.id, reference);
+    return this.getAdvisor().suggestAnnotations(this.model.id, reference);
   }
 
   /** Lists annotation types allowed on a carrier, optionally for one chosen Annotation node. */
   public suggestAnnotationsForNode(nodeId: ElementInput, annotationNodeId?: ElementInput): readonly AnnotationSuggestion[] {
     const target: Id | undefined = annotationNodeId ? this.nodeReference(annotationNodeId) : undefined;
-    return this.createAdvisor().suggestAnnotationsForNode(this.model.id, this.nodeReference(nodeId), target);
+    return this.getAdvisor().suggestAnnotationsForNode(this.model.id, this.nodeReference(nodeId), target);
   }
 
   /** Returns the closed annotation variants declared directly by the project model. */
@@ -201,7 +204,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /**
-   * Declares an annotation variant. Endpoint selections reuse allowed relations or refine them for narrower endpoints.
+   * Declares an annotation variant. Relationship selections refer to existing allowed definitions; declaring an annotation never creates relations.
    * Throws on unavailable or ambiguous selections without changing the model. Stored definitions retain relation references.
    */
   public createAnnotation(input: AnnotationInput): RamenChange<RamenAnnotation> {
@@ -277,59 +280,40 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   private annotationRelations(owner: RamenRef, inputs: readonly AnnotationRelationInput[]): readonly AnnotationRelation[] {
     return inputs.map((input: AnnotationRelationInput): AnnotationRelation => {
       if ('relationId' in input) return structuredClone(input);
-      const direction: 'incoming' | 'outgoing' = input.from !== undefined ? 'incoming' : 'outgoing';
+      if ('connection' in input) return this.connectionRule(owner, input);
       const from: RamenRef = input.from ?? owner;
       const to: RamenRef = input.to ?? owner;
-      const reference: Ref = this.annotationRelation(input.relation, from, to);
-      return { relationId: reference, direction, bounds: { ...input.bounds } };
+      const connection: RelationSelection = this.requireConnection(from, to);
+      return this.connectionRule(owner, { connection, bounds: input.bounds });
     });
   }
 
-  private annotationRelation(name: string, from: RamenRef, to: RamenRef): Ref {
-    const result: ProjectValidationResult = this.validate();
-    if (!result.valid) throw new Error('Cannot select a relationship from an invalid model.');
-    const family: readonly Ref[] = this.family(name);
-    if (family.length === 0) throw new Error(`Unknown RAMEN relationship '${name}'.`);
-    const scope: ModelRelationScope = new ModelRelationScope(result.graph, this.selections());
-    const source: ElementRef = this.resolveRef(from, 'node');
-    const target: ElementRef = this.resolveRef(to, 'node');
-    const local: readonly ResolvedElement<Relation>[] = scope.available(this.model.id);
-    const bases: readonly ResolvedElement<Relation>[] = scope.bases(this.model.id);
-    const matches: (item: ResolvedElement<Relation>) => boolean = (item: ResolvedElement<Relation>): boolean =>
-      this.matchesAnnotationRelation(result.graph, item, family, source, target);
-    const current: readonly ResolvedElement<Relation>[] = local.filter(matches);
-    const candidates: readonly ResolvedElement<Relation>[] = current.length > 0 ? current : bases.filter(matches);
-    if (candidates.length > 1)
-      throw new Error(`Multiple '${name}' relationships match these endpoints. Select a relation reference.`);
-    const selected: ResolvedElement<Relation> | undefined = candidates[0];
-    if (selected)
-      return selected.modelId === this.model.id ? selected.element.id : ModelRef.qualify(selected.modelId, selected.element.id);
-    return this.connectBy(from, to, undefined, family).element.id;
+  private requireConnection(from: RamenRef, to: RamenRef, ref?: Ref): RelationSelection {
+    const matches: readonly RelationSelection[] = this.getRelations(from, to).filter(
+      (item: RelationSelection): boolean => ref === undefined || item.ref === ref,
+    );
+    const selected: RelationSelection | undefined = matches[0];
+    if (matches.length !== 1 || !selected) {
+      throw new Error(`Annotation rule requires one selected relationship, found ${matches.length}.`);
+    }
+    return selected;
   }
 
-  private matchesAnnotationRelation(
-    graph: ProjectGraph,
-    item: ResolvedElement<Relation>,
-    family: readonly Ref[],
-    source: ElementRef,
-    target: ElementRef,
-  ): boolean {
-    const reference: Ref = ModelRef.qualify(item.modelId, item.element.id);
-    const ancestors: readonly ResolvedElement<Relation>[] = graph.getRelationAncestors(item.modelId, item.element.id);
-    const belongs: boolean =
-      family.includes(reference) ||
-      ancestors.some((base: ResolvedElement<Relation>): boolean =>
-        family.includes(ModelRef.qualify(base.modelId, base.element.id)),
-      );
-    if (!belongs) return false;
-    const from: ResolvedElement<Node> | undefined = graph.resolveNode(item.modelId, item.element.from.nodeId);
-    const to: ResolvedElement<Node> | undefined = graph.resolveNode(item.modelId, item.element.to.nodeId);
-    return (
-      from?.modelId === source.modelId &&
-      from.element.id === source.elementId &&
-      to?.modelId === target.modelId &&
-      to.element.id === target.elementId
-    );
+  private connectionRule(owner: RamenRef, input: AnnotationConnection): AnnotationRelation {
+    const reference: ElementRef = this.resolveRef(owner, 'node');
+    const node: Ref = ModelRef.qualify(reference.modelId, reference.elementId);
+    const connection: RelationSelection = input.connection;
+    if (connection.from !== node && connection.to !== node)
+      throw new Error('Selected relationship does not involve this Annotation node.');
+    if (connection.from === node && connection.to === node)
+      throw new Error('Select an explicit direction for a self-relationship.');
+    const selected: RelationSelection = this.requireConnection(connection.from, connection.to, connection.ref);
+    const direction: 'incoming' | 'outgoing' = selected.to === node ? 'incoming' : 'outgoing';
+    const relationId: Ref =
+      ModelRef.isQualified(selected.ref) && ModelRef.splitQualified(selected.ref).modelId === this.model.id
+        ? ModelRef.localId(selected.ref)
+        : selected.ref;
+    return { relationId, direction, bounds: { ...input.bounds } };
   }
 
   private remainingRelations(relations: readonly AnnotationRelation[], removed?: ReadonlySet<Id>): readonly AnnotationRelation[] {

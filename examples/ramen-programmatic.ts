@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { ModelFactory } from '../dist/model/index.js';
-import type { Attribute, Node, Relation } from '../dist/model/index.js';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../dist/ramen/index.js';
-import type { RamenAnnotation, RamenFile } from '../dist/ramen/index.js';
+import { ModelFactory } from '../dist/ramen-core/model/index.js';
+import type { Attribute, Node, Relation } from '../dist/ramen-core/model/index.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../dist/ramen-core/ramen/index.js';
+import type { RamenAnnotation, RamenFile } from '../dist/ramen-core/ramen/index.js';
 
 // One complete project model: collections, entities, content, annotations, and their relations.
 const correspondence: RamenModel = RamenModel.create('Correspondence');

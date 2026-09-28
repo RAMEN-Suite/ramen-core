@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeler, ModelFiles } from '../../dist/model/index.js';
-import type { Attribute, Classifier, Model, ModelFile, Node, Owned } from '../../dist/model/index.js';
+import { Modeler, ModelFiles } from '../../dist/ramen-core/model/index.js';
+import type { Attribute, Classifier, Model, ModelFile, Node, Owned } from '../../dist/ramen-core/model/index.js';
 import { model, node } from '../models.ts';
 
 void test('generic graph export stores inherited declarations once and resolves them after import', (): void => {
@@ -18,7 +18,7 @@ void test('generic graph export stores inherited declarations once and resolves 
   assert.ok(declaration?.kind === 'Node');
   assert.deepEqual(declaration.attributes, []);
   assert.deepEqual(declaration.superTypes, letter.superTypes);
-  assert.equal(restored.suggestAttributes(letter)[0]?.attributeId, title.id);
+  assert.equal(restored.getAttributes(letter)[0]?.attributeId, title.id);
   assert.deepEqual(restored.export(), file);
 });
 

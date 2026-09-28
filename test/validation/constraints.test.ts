@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConstraintRegistry, DiagnosticPath, RegexEvaluator } from '../../dist/index.js';
-import type { ConstraintContext, Diagnostic, Constraint } from '../../dist/index.js';
+import { ConstraintRegistry, DiagnosticPath, RegexEvaluator } from '../../dist/ramen-core/index.js';
+import type { ConstraintContext, Diagnostic, Constraint } from '../../dist/ramen-core/index.js';
 
 function constraint(expression: Constraint['expression'], language: string = 'regex'): Constraint {
   return {

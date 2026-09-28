@@ -1,4 +1,4 @@
-import type { Bounds, Attribute, Import, Model, Node, Relation, Id, Ref, TypeRef } from '../dist/index.js';
+import type { Bounds, Attribute, Import, Model, Node, Relation, Id, Ref, TypeRef } from '../dist/ramen-core/index.js';
 
 export const TEST_SCHEMA: string = 'https://ramen-schema.org/model/1.0.0/schema.json';
 

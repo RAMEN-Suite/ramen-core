@@ -71,7 +71,7 @@ export class Modeler extends ModelDraft<ModelAdvisor> {
     return new ModelValidator().validateProject(this.model.id, this.validationInputs());
   }
 
-  protected advise(result: ValidProjectResult): ModelAdvisor {
+  protected buildAdvisor(result: ValidProjectResult): ModelAdvisor {
     return new ModelAdvisor(result);
   }
 }

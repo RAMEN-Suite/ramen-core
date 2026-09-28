@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProjectGraph } from '../../dist/index.js';
-import type { Diagnostic, Model, Node, Import, ProjectGraphResult, ResolvedElement } from '../../dist/index.js';
+import { buildProjectGraph } from '../../dist/ramen-core/index.js';
+import type { Diagnostic, Model, Node, Import, ProjectGraphResult, ResolvedElement } from '../../dist/ramen-core/index.js';
 
 const SCHEMA: string = 'https://ramen-schema.org/model/1.0.0/schema.json';
 const ROOT_ID: string = 'rootModel0000001';

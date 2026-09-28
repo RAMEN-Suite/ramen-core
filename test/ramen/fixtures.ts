@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/index.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/ramen-core/index.js';
 import type {
   Attribute,
   Node,
@@ -8,7 +8,7 @@ import type {
   AnnotationRelation,
   RamenChange,
   RamenModelDocument,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 
 export const CORRESPONDENCE_MODEL_ID: string = 'correspondence01';
 export const SCHOLARLY_MODEL_ID: string = 'scholarlyCorrespondence01';

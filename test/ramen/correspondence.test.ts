@@ -1,21 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RamenModel } from '../../dist/index.js';
+import { RamenModel } from '../../dist/ramen-core/index.js';
 import type {
-  RelationAdvice,
+  RelationOption,
   AnnotationSuggestion,
   RamenFile,
   Diagnostic,
   Import,
   ModelInstanceGraph,
   Node,
-  NodeAdvice,
+  NodeInfo,
   NodeLineageItem,
   NodeRelationSuggestion,
   RamenAnnotation,
   RamenAdvisor,
   ValidationResult,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import { CORRESPONDENCE_MODEL_ID, SCHOLARLY_MODEL_ID, createCorrespondenceFixture, createScholarlyFixture } from './fixtures.ts';
 import type { CorrespondenceFixture, ScholarlyFixture } from './fixtures.ts';
 
@@ -30,7 +30,7 @@ void test('creates and validates a Correspondence model with Letter, Witness, an
 
 void test('suggests all attachable annotations for Text and Person', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const advisor: RamenAdvisor = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.getAdvisor();
 
   assert.ok(advisor);
   const text: readonly string[] = annotationTypes(
@@ -47,18 +47,18 @@ void test('suggests all attachable annotations for Text and Person', (): void =>
 
 void test('suggests the modeled attachment and target relations of persName', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const advisor: RamenAdvisor = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.getAdvisor();
 
   assert.ok(advisor);
-  const relations: readonly RelationAdvice[] = advisor.suggestRelationsForAnnotation(
+  const relations: readonly RelationOption[] = advisor.getRelationsForAnnotation(
     CORRESPONDENCE_MODEL_ID,
     fixture.nodes.annotation.id,
     'persName',
   );
 
   assert.equal(relations.length, 3);
-  const target: RelationAdvice | undefined = relations.find(
-    (relation: RelationAdvice): boolean => relation.direction === 'outgoing',
+  const target: RelationOption | undefined = relations.find(
+    (relation: RelationOption): boolean => relation.direction === 'outgoing',
   );
 
   assert.equal(target?.name, 'REFERS_TO');
@@ -68,7 +68,7 @@ void test('suggests the modeled attachment and target relations of persName', ()
 
 void test('suggests Letter above Witness and Text below Witness', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
-  const advisor: RamenAdvisor = fixture.project.createAdvisor();
+  const advisor: RamenAdvisor = fixture.project.getAdvisor();
 
   assert.ok(advisor);
   const connections: readonly NodeRelationSuggestion[] = advisor.suggestConnections(
@@ -93,7 +93,7 @@ void test('suggests Letter above Witness and Text below Witness', (): void => {
 void test('refines the complete Correspondence model at another level', (): void => {
   const base: CorrespondenceFixture = createCorrespondenceFixture();
   const scholarly: ScholarlyFixture = createScholarlyFixture(base);
-  const advisor: RamenAdvisor = scholarly.project.createAdvisor();
+  const advisor: RamenAdvisor = scholarly.project.getAdvisor();
 
   assert.ok(advisor);
   assert.deepEqual(
@@ -105,7 +105,7 @@ void test('refines the complete Correspondence model at another level', (): void
   const annotations: readonly string[] = annotationTypes(
     advisor.suggestAnnotations(SCHOLARLY_MODEL_ID, scholarly.nodes.annotation.id),
   );
-  const witness: NodeAdvice | undefined = advisor.adviseNode(SCHOLARLY_MODEL_ID, scholarly.nodes.witness.id);
+  const witness: NodeInfo | undefined = advisor.getNodeInfo(SCHOLARLY_MODEL_ID, scholarly.nodes.witness.id);
 
   assert.deepEqual(annotations, ['comment', 'date', 'externalReference', 'persName', 'placeName']);
   assert.deepEqual(
@@ -133,7 +133,7 @@ void test('retains annotation semantics through an arbitrary third project level
     name: 'EditionAnnotation',
     refines: { modelId: scholarly.model.id, elementId: scholarly.nodes.annotation.id },
   }).element;
-  const advisor: RamenAdvisor = edition.createAdvisor();
+  const advisor: RamenAdvisor = edition.getAdvisor();
 
   assert.ok(advisor);
   const types: readonly string[] = annotationTypes(advisor.suggestAnnotations(edition.getModel().id, annotation.id));
@@ -167,7 +167,7 @@ void test('serializes three model levels and validates data after importing the 
   });
 
   assert.equal(restored.getModels().length, 4);
-  assert.equal(restored.createAdvisor().suggestAnnotations(restored.getModel().id, annotation.id).length, 5);
+  assert.equal(restored.getAdvisor().suggestAnnotations(restored.getModel().id, annotation.id).length, 5);
   assert.deepEqual(valid.diagnostics, []);
   assert.ok(
     invalid.diagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN'),

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelAdvisor, ModelRelationScope, ModelValidator, Modeler } from '../../dist/model/index.js';
+import { ModelAdvisor, ModelRelationScope, ModelValidator, Modeler } from '../../dist/ramen-core/model/index.js';
 import type {
   Attribute,
-  AttributeSuggestion,
+  AttributeInfo,
   Node,
   Diagnostic,
   RelationSuggestion,
@@ -11,7 +11,7 @@ import type {
   ProjectValidationResult,
   Relation,
   ResolvedElement,
-} from '../../dist/model/index.js';
+} from '../../dist/ramen-core/model/index.js';
 import { model, node, relation } from '../models.ts';
 
 function baseModel(): Model {
@@ -87,7 +87,7 @@ void test('five refinement levels retain attributes and relation limits after sh
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const title: Attribute = base.createAttribute(document, { name: 'title', typeId: 'String' }).element;
-  base.createRelation({ name: 'IN_FOLDER', fromNodeId: document, toNodeId: folder, toBounds: { lowerBound: 0, upperBound: 1 } });
+  base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder, toBounds: { lowerBound: 0, upperBound: 1 } });
 
   let current: Modeler = base;
   let refined: Node = document;
@@ -103,7 +103,7 @@ void test('five refinement levels retain attributes and relation limits after sh
   const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(current.export())) as unknown);
   assert.equal(restored.getModels().length, 6);
   assert.equal(
-    restored.suggestAttributes(refined).some((item: AttributeSuggestion): boolean => item.attributeId === title.id),
+    restored.getAttributes(refined).some((item: AttributeInfo): boolean => item.attributeId === title.id),
     true,
   );
   assert.deepEqual(restored.export(), current.export());

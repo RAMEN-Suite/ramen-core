@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { InstanceValidator, ModelFactory, ModelValidator } from '../../dist/index.js';
+import { InstanceValidator, ModelFactory, ModelValidator } from '../../dist/ramen-core/index.js';
 import type {
   Attribute,
   Diagnostic,
@@ -10,7 +10,7 @@ import type {
   ProjectValidationResult,
   Relation,
   ValidationResult,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import { model, node, relation } from '../models.ts';
 
 function document(property: Attribute): Model {

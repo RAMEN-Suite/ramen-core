@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProjectGraph, EffectiveModel, ModelValidator, ModelAdvisor, InstanceValidator } from '../../dist/index.js';
+import {
+  buildProjectGraph,
+  EffectiveModel,
+  ModelValidator,
+  ModelAdvisor,
+  InstanceValidator,
+} from '../../dist/ramen-core/index.js';
 import type {
   ApplicableRelation,
   ModelInstanceGraph,
@@ -13,7 +19,7 @@ import type {
   Relation,
   ProjectGraphResult,
   ResolvedElement,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
 const BASE_ID: string = 'baseModelForView';
@@ -91,7 +97,7 @@ void test('resolves relation refinement ancestors across model boundaries', (): 
   );
 });
 
-void test('inherited custom datatypes keep their declaring model in advice and data validation', (): void => {
+void test('inherited custom datatypes keep their declaring model in options and data validation', (): void => {
   const base: Model = model('datatypeBase00001');
   const owner: Node = node('datatypeOwner0001', 'Record');
   owner.attributes.push(attribute('datatypeField0001', 'count', 'datatypeInteger01', { lowerBound: 1, upperBound: 1 }));
@@ -107,7 +113,7 @@ void test('inherited custom datatypes keep their declaring model in advice and d
     relations: [],
   };
 
-  assert.equal(advisor.suggestAttributes(child.id, 'datatypeRefined01')[0]?.typeId, `${base.id}:datatypeInteger01`);
+  assert.equal(advisor.getAttributes(child.id, 'datatypeRefined01')[0]?.typeId, `${base.id}:datatypeInteger01`);
   assert.ok(
     new InstanceValidator()
       .validate(result.graph, data)

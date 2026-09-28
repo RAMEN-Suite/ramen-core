@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelFactory, RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/index.js';
+import { ModelFactory, RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '../../dist/ramen-core/index.js';
 import type {
-  AnnotationAdvice,
-  RelationAdvice,
-  PropertyAdvice,
+  AnnotationOptions,
+  RelationOption,
+  PropertyOption,
   AnnotationSuggestion,
   Attribute,
   DataType,
   AnnotationRelation,
-  AttributeSuggestion,
+  AttributeInfo,
   Diagnostic,
   ModelInstanceGraph,
   ModelInstanceNode,
@@ -18,7 +18,7 @@ import type {
   RamenAnnotation,
   RamenChange,
   Relation,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 
 interface MediaModel {
   readonly project: RamenModel;
@@ -73,15 +73,13 @@ void test('type-owned properties remain separate from the shared Annotation node
   assert.equal(created.validation.valid, true, JSON.stringify(created.validation.diagnostics));
   assert.deepEqual(
     fixture.project
-      .suggestAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'imageRegion')
-      .map((item: PropertyAdvice): string => item.name),
+      .getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'imageRegion')
+      .map((item: PropertyOption): string => item.name),
     ['width'],
   );
-  assert.deepEqual(fixture.project.suggestAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'emphasis'), []);
+  assert.deepEqual(fixture.project.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'emphasis'), []);
   assert.equal(
-    fixture.project
-      .suggestAttributes(RAMEN_ELEMENT.ANNOTATION)
-      .some((item: AttributeSuggestion): boolean => item.name === 'width'),
+    fixture.project.getAttributes(RAMEN_ELEMENT.ANNOTATION).some((item: AttributeInfo): boolean => item.name === 'width'),
     false,
   );
   assert.equal(
@@ -113,7 +111,7 @@ void test('own properties coexist with selected attributes and reject unresolved
 
   assert.equal(valid.validation.valid, true);
   assert.deepEqual(
-    fixture.project.suggestAttributesForAnnotation(owner.id, 'region').map((item: PropertyAdvice): string => item.name),
+    fixture.project.getAttributesForAnnotation(owner.id, 'region').map((item: PropertyOption): string => item.name),
     ['label', 'width'],
   );
   const invalid: RamenChange<RamenAnnotation> = fixture.project.updateAnnotation(valid.element.id, {
@@ -162,7 +160,7 @@ void test('alternative carriers count together: exactly one Text or Image attach
 
   for (const carrier of [fixture.text, fixture.image]) {
     const types: readonly string[] = fixture.project
-      .createAdvisor()
+      .getAdvisor()
       .suggestAnnotationsForNode(fixture.project.getModel().id, carrier.id)
       .map((item: AnnotationSuggestion): string => item.type);
     assert.deepEqual(types, ['comment']);
@@ -180,7 +178,7 @@ void test('alternative carriers count together: exactly one Text or Image attach
   assert.equal(fixture.project.validate().valid, true);
 });
 
-void test('properties keep their datatype and advice through a refined Annotation node and another level', (): void => {
+void test('properties keep their datatype and options through a refined Annotation node and another level', (): void => {
   const fixture: MediaModel = mediaModel();
   const dataType: DataType = fixture.project.createDataType({ name: 'Caption', baseType: 'String' }).element;
   const property: Attribute = ModelFactory.createAttribute({
@@ -196,10 +194,10 @@ void test('properties keep their datatype and advice through a refined Annotatio
     version: '1.0.0',
   });
   const owner: Node = next.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
-  const advice: readonly PropertyAdvice[] = next.suggestAttributesForAnnotation(owner.id, 'caption');
+  const options: readonly PropertyOption[] = next.getAttributesForAnnotation(owner.id, 'caption');
 
   assert.equal(next.validate().valid, true);
-  assert.equal(advice[0]?.ref, `${fixture.project.getModel().id}:${property.id}`);
+  assert.equal(options[0]?.ref, `${fixture.project.getModel().id}:${property.id}`);
   const base: ModelInstanceGraph = annotationData(next, { type: 'caption', caption: 'Heading' });
   const original: ModelInstanceNode | undefined = base.nodes[0];
   assert.ok(original);
@@ -274,17 +272,17 @@ void test('alternative groups reject duplicate relations, invalid endpoints and 
   }
 });
 
-void test('annotation advice exposes selected properties, carrier relations and cardinality presets through the model API', (): void => {
+void test('annotation options exposes selected properties, carrier relations and cardinality presets through the model API', (): void => {
   const fixture: MediaModel = mediaModel();
   const owner: Node = fixture.project.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const label: Attribute = fixture.project.createAttribute(owner, { name: 'label', typeId: 'String' }).element;
-  const advice: AnnotationAdvice | undefined = fixture.project.adviseAnnotation(owner);
-  assert.ok(advice);
+  const options: AnnotationOptions | undefined = fixture.project.suggestAnnotationOptions(owner);
+  assert.ok(options);
   assert.deepEqual(
-    advice.properties.map((item: PropertyAdvice): string => item.name),
+    options.properties.map((item: PropertyOption): string => item.name),
     ['label'],
   );
-  assert.equal(fixture.project.adviseAnnotation(fixture.text), undefined);
+  assert.equal(fixture.project.suggestAnnotationOptions(fixture.text), undefined);
 
   fixture.project.createAnnotation({
     annotationId: owner,
@@ -292,30 +290,30 @@ void test('annotation advice exposes selected properties, carrier relations and 
     properties: [{ attributeId: label.id, bounds: { lowerBound: 1, upperBound: 1 } }],
     relations: [{ relationId: fixture.textLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
-  const properties: readonly PropertyAdvice[] = fixture.project.suggestAttributesForAnnotation(owner, 'caption');
-  const relations: readonly RelationAdvice[] = fixture.project.suggestRelationsForAnnotation(owner, 'caption');
+  const properties: readonly PropertyOption[] = fixture.project.getAttributesForAnnotation(owner, 'caption');
+  const relations: readonly RelationOption[] = fixture.project.getRelationsForAnnotation(owner, 'caption');
   assert.deepEqual(properties[0]?.suggestedBounds, { lowerBound: 1, upperBound: 1 });
   assert.deepEqual(properties[0]?.cardinalityOptions, [{ lowerBound: 1, upperBound: 1 }]);
   assert.deepEqual(
-    relations.map((item: RelationAdvice): string => item.targetName),
+    relations.map((item: RelationOption): string => item.targetName),
     ['Text'],
   );
   assert.deepEqual(relations[0]?.cardinalityOptions, [{ lowerBound: 1, upperBound: 1 }]);
-  assert.deepEqual(fixture.project.suggestRelationsForAnnotation(owner, 'unknown'), []);
+  assert.deepEqual(fixture.project.getRelationsForAnnotation(owner, 'unknown'), []);
 
   const next: RamenModel = fixture.project.createNextLevel('Edition');
   const refined: Node = next.createNode({ name: 'EditionAnnotation', refines: owner }).element;
-  assert.deepEqual(next.suggestRelationsForAnnotation(refined, 'caption'), []);
+  assert.deepEqual(next.getRelationsForAnnotation(refined, 'caption'), []);
   next.hasAnnotation(fixture.text, refined);
   assert.deepEqual(
-    next.suggestRelationsForAnnotation(refined, 'caption').map((item: RelationAdvice): string => item.targetName),
+    next.getRelationsForAnnotation(refined, 'caption').map((item: RelationOption): string => item.targetName),
     ['Text'],
   );
   assert.deepEqual(next.suggestAnnotationsForNode(fixture.image, refined), []);
   assert.equal(next.validate().valid, true);
 });
 
-void test('changing returned annotation advice cannot change later advice or validation', (): void => {
+void test('changing returned annotation options cannot change later options or validation', (): void => {
   const fixture: MediaModel = mediaModel();
   fixture.project.createAnnotation({
     annotationId: RAMEN_ELEMENT.ANNOTATION,
@@ -323,27 +321,15 @@ void test('changing returned annotation advice cannot change later advice or val
     properties: [width()],
     relations: [{ relationId: fixture.imageLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
-  const property: PropertyAdvice | undefined = fixture.project.suggestAttributesForAnnotation(
-    RAMEN_ELEMENT.ANNOTATION,
-    'region',
-  )[0];
-  const relation: RelationAdvice | undefined = fixture.project.suggestRelationsForAnnotation(
-    RAMEN_ELEMENT.ANNOTATION,
-    'region',
-  )[0];
+  const property: PropertyOption | undefined = fixture.project.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0];
+  const relation: RelationOption | undefined = fixture.project.getRelationsForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0];
   assert.ok(property);
   assert.ok(relation);
   property.suggestedBounds.lowerBound = 99;
   relation.suggestedBounds.lowerBound = 99;
 
-  assert.equal(
-    fixture.project.suggestAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0]?.suggestedBounds.lowerBound,
-    1,
-  );
-  assert.equal(
-    fixture.project.suggestRelationsForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0]?.suggestedBounds.lowerBound,
-    1,
-  );
+  assert.equal(fixture.project.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0]?.suggestedBounds.lowerBound, 1);
+  assert.equal(fixture.project.getRelationsForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0]?.suggestedBounds.lowerBound, 1);
   assert.equal(fixture.project.validate().valid, true);
 });
 

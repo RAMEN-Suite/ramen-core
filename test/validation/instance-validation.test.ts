@@ -11,7 +11,7 @@ import {
   InstanceSchemaValidator,
   InstanceValidator,
   buildProjectGraph,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import type {
   Attribute,
   Constraint,
@@ -23,7 +23,7 @@ import type {
   ProjectGraph,
   ProjectGraphResult,
   ValidationResult,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import { attribute, boundsOf, model, node, relation } from '../models.ts';
 
 const MODEL_ID: string = 'instanceModel001';

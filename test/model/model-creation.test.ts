@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelFactory, RAMEN_MODEL, ModelRef, ModelSchemaValidator, ModelNames } from '../../dist/index.js';
+import {
+  ModelFactory,
+  ModelEditor,
+  RAMEN_MODEL,
+  ModelRef,
+  ModelSchemaValidator,
+  ModelNames,
+} from '../../dist/ramen-core/index.js';
 import type {
   Bounds,
   Constraint,
@@ -12,7 +19,7 @@ import type {
   Node,
   Relation,
   RelationEnd,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 
 const projectInput: { uri: string; id: string; name: string; version: string } = {
   uri: 'https://example.org/project',
@@ -166,4 +173,14 @@ void test('node duplication renews identifiers of attributes and all owned const
   assert.notEqual(copy.constraints?.[0]?.id, 'nodeRule00000001');
   assert.equal(copiedRule.expression, rule.expression);
   assert.equal(source.attributes[0]?.id, field.id);
+});
+
+void test('removeNode rejects data types and absent nodes without changing the source model', (): void => {
+  const model: Model = ModelFactory.createRootModel({ ...projectInput, id: 'editorModel00001' });
+  const type: DataType = ModelFactory.createDataType({ name: 'Status', baseType: 'String' });
+  model.classifiers.push(type);
+  const before: Model = structuredClone(model);
+  assert.throws((): Model => ModelEditor.removeNode(model, type.id), /Node not found/);
+  assert.throws((): Model => ModelEditor.removeNode(model, 'missingNode00001'), /Node not found/);
+  assert.deepEqual(model, before);
 });

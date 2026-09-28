@@ -7,39 +7,43 @@
   "description": "JSON model format and modeling kernel for the RAMEN suite",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist/ramen-core"
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/ramen-core/index.d.ts",
+      "default": "./dist/ramen-core/index.js"
     },
     "./model": {
-      "types": "./dist/model/index.d.ts",
-      "default": "./dist/model/index.js"
+      "types": "./dist/ramen-core/model/index.d.ts",
+      "default": "./dist/ramen-core/model/index.js"
     },
     "./ramen": {
-      "types": "./dist/ramen/index.d.ts",
-      "default": "./dist/ramen/index.js"
+      "types": "./dist/ramen-core/ramen/index.d.ts",
+      "default": "./dist/ramen-core/ramen/index.js"
     }
   },
   "scripts": {
-    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && tsc -p tsconfig.json && esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist --outbase=src --external:json-schema-library --external:short-unique-id",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
-    "lint": "eslint src test examples scripts",
-    "lint:fix": "eslint src test examples scripts --fix",
+    "build": "npm run clean:core && npm run build:types && npm run build:bundle",
+    "build:bundle": "esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --external:json-schema-library --external:short-unique-id",
+    "build:types": "tsc -p tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "clean:core": "node scripts/clean.mjs core",
+    "examples:check": "tsc -p tsconfig.examples.json --noEmit && node scripts/check-examples.mjs",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
-    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run typecheck && npm run examples:check && npm test",
-    "examples:check": "tsc -p tsconfig.examples.json --noEmit && node --experimental-strip-types examples/ramen-programmatic.ts && node --experimental-strip-types examples/ramen-interface.ts && node --experimental-strip-types examples/generic-model.ts && node --experimental-strip-types examples/ramen-annotations.ts && node --experimental-strip-types examples/ramen-basic.ts && node --experimental-strip-types examples/ramen-levels.ts && node --experimental-strip-types examples/export/edition.ts",
-    "test:watch": "node --experimental-strip-types --test --watch test/**/*.test.ts",
-    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
+    "lint": "eslint src test examples scripts",
+    "lint:fix": "eslint src test examples scripts --fix",
+    "package:check": "npm pack --dry-run --ignore-scripts",
     "prepare": "husky",
-    "schema:generate": "node scripts/generate-ramen-project-schema.mjs",
     "schema:check": "node scripts/generate-ramen-project-schema.mjs --check",
-    "test:coverage": "npm run build && npm run typecheck:tests && node --experimental-strip-types --experimental-test-coverage --test-coverage-include='dist/**/*.js' --test test/**/*.test.ts"
+    "schema:generate": "node scripts/generate-ramen-project-schema.mjs",
+    "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
+    "test:coverage": "npm run build && npm run typecheck:tests && node --experimental-strip-types --experimental-test-coverage --test-coverage-include='dist/ramen-core/**/*.js' --test test/**/*.test.ts",
+    "test:watch": "npm run typecheck:tests && node --experimental-strip-types --test --watch test/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
+    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run examples:check && npm test && npm run package:check"
   },
   "dependencies": {
     "json-schema-library": "^11.0.4",

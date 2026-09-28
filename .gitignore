@@ -1,3 +1,8 @@
 node_modules/
 dist/
 *.tsbuildinfo
+.idea/
+coverage/
+GUIDELINES.md
+SCHEMA-PATHS.md
+examples/export/edition.json

@@ -1,7 +1,16 @@
-import { ModelConnections, RelationChoice } from './Connections';
+import { ModelConnections, RelationChoice, RelationSelection } from './Connections';
 import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './Editor';
 import { ModelFactory, CreateModelInput, CreateAttributeInput, CreateDataTypeInput } from './Factory';
-import { ModelAdvisor, AttributeSuggestion, DataTypeSuggestion, NodeSuggestion, RelationSuggestion } from '../Advisor';
+import {
+  ModelAdvisor,
+  AttributeInfo,
+  DataTypeSuggestion,
+  NodeSuggestion,
+  RelationSuggestion,
+  NodeInfo,
+  NodeRelationSuggestion,
+  AttributeNameResult,
+} from '../Advisor';
 import { ModelRef } from '../graph/References';
 import type { RelationSelections } from '../graph/RelationScope';
 import type { ResolvedElement } from '../graph/ProjectGraph';
@@ -39,17 +48,25 @@ export type AttributeInput = Omit<CreateAttributeInput, 'typeId' | 'bounds'> & {
   readonly bounds?: Bounds;
 };
 
-/** Select a base relation, or declare a named root relation. Unspecified root bounds are 0..*. */
-export interface RelationInput {
+/**
+ * Select a base relation, or declare a named root relation. Unspecified root bounds are 0..*.
+ * Supply a node object or an ID for each endpoint. When both are present, the object takes precedence.
+ */
+export type RelationInput = {
   readonly refines?: ElementInput;
   readonly name?: string;
-  readonly fromNodeId: ElementInput;
-  readonly toNodeId: ElementInput;
   readonly fromBounds?: Bounds;
   readonly toBounds?: Bounds;
   readonly fromRole?: string;
   readonly toRole?: string;
-}
+} & (
+  | { readonly fromNode: Exclude<ElementInput, Ref>; readonly fromNodeId?: Ref }
+  | { readonly fromNode?: Exclude<ElementInput, Ref>; readonly fromNodeId: Ref }
+) &
+  (
+    | { readonly toNode: Exclude<ElementInput, Ref>; readonly toNodeId?: Ref }
+    | { readonly toNode?: Exclude<ElementInput, Ref>; readonly toNodeId: Ref }
+  );
 
 /** Values of one data type literal. */
 export interface LiteralInput {
@@ -89,12 +106,12 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
   /** Lists imported node types that this level can refine. */
   public suggestNodes(): readonly NodeSuggestion[] {
-    return this.createAdvisor().suggestNodeRefinements(this.model.id);
+    return this.getAdvisor().suggestNodes(this.model.id);
   }
 
   /** Lists primitive and project-defined data types. */
   public suggestDataTypes(): readonly DataTypeSuggestion[] {
-    return this.createAdvisor().suggestDataTypes(this.model.id);
+    return this.getAdvisor().suggestDataTypes(this.model.id);
   }
 
   /** Returns a detached snapshot of the current project model. */
@@ -107,7 +124,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.validationInputs().map((model: Model): Model => structuredClone(model));
   }
 
-  /** Validates the complete current project and returns its graph on success. */
+  /**
+   * Validates the complete current project and returns its graph on success.
+   * Findings are returned in `diagnostics`; see [Diagnostics](../../../docs/diagnostics.md).
+   */
   public validate(): ProjectValidationResult {
     if (this.validatedModel === this.model && this.validation) return this.validation;
     const result: ProjectValidationResult = this.check();
@@ -121,23 +141,47 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   }
 
   /** Returns an advisor or explains why the current model cannot provide suggestions. */
-  public createAdvisor(): A {
+  public getAdvisor(): A {
     const result: ProjectValidationResult = this.validate();
-    if (!result.valid) throw new Error(`Cannot advise an invalid model: ${result.diagnostics[0]?.message ?? 'Unknown error.'}`);
+    if (!result.valid) throw new Error(`Cannot query an invalid model: ${result.diagnostics[0]?.message ?? 'Unknown error.'}`);
 
-    this.advisor ??= this.advise(result);
+    this.advisor ??= this.buildAdvisor(result);
     return this.advisor;
   }
 
   /** Lists attributes visible on a local or imported node. */
-  public suggestAttributes(nodeId: ElementInput): readonly AttributeSuggestion[] {
+  public getAttributes(nodeId: ElementInput): readonly AttributeInfo[] {
     const owner: ElementRef = this.resolveRef(nodeId, 'node');
-    return this.createAdvisor().suggestAttributes(owner.modelId, owner.elementId);
+    return this.getAdvisor().getAttributes(owner.modelId, owner.elementId);
+  }
+
+  /** Returns the node's lineage, existing attributes and available connection options. */
+  public getNodeInfo(node: ElementInput): NodeInfo | undefined {
+    return this.getAdvisor().getNodeInfo(this.model.id, this.nodeReference(node));
+  }
+
+  /** Lists possible connection roles and their compatible targets for one node. */
+  public suggestConnections(node: ElementInput): readonly NodeRelationSuggestion[] {
+    return this.getAdvisor().suggestConnections(this.model.id, this.nodeReference(node));
+  }
+
+  /** Checks whether a new attribute name conflicts with visible attributes or relation roles. */
+  public validateAttributeName(node: ElementInput, name: string): AttributeNameResult {
+    return this.getAdvisor().validateAttributeName(this.model.id, this.nodeReference(node), name);
   }
 
   /** Lists relations that can connect two nodes in this model. */
   public suggestRelations(from: ElementInput, to: ElementInput): readonly RelationSuggestion[] {
-    return this.createAdvisor().suggestRelations(this.model.id, this.nodeReference(from), this.nodeReference(to));
+    return this.getAdvisor().suggestRelations(this.model.id, this.nodeReference(from), this.nodeReference(to));
+  }
+
+  /**
+   * Lists existing relationships with exact endpoints, including permitted predecessor definitions.
+   * Returns an empty list for no matches and all matches for parallel relationships; never edits the model.
+   * Requires valid node references and a valid model snapshot.
+   */
+  public getRelations(from: ElementInput, to: ElementInput): readonly RelationSelection[] {
+    return this.getAdvisor().getRelations(this.model.id, this.nodeReference(from), this.nodeReference(to));
   }
 
   /** Creates a root node or a refinement and validates the resulting model. */
@@ -303,7 +347,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
   protected abstract check(): ProjectValidationResult;
 
-  protected abstract advise(result: ValidProjectResult): A;
+  protected abstract buildAdvisor(result: ValidProjectResult): A;
 
   protected selections(): RelationSelections | undefined {
     return undefined;
@@ -366,7 +410,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) throw new Error('Cannot infer a relation from an invalid model.');
     const connections: ModelConnections = new ModelConnections(result, this.selections());
-    const suggestions: readonly RelationSuggestion[] = connections.suggest(fromRef, toRef);
+    const suggestions: readonly RelationSuggestion[] = connections.suggestRelations(fromRef, toRef);
     const candidates: readonly RelationSuggestion[] = this.selectFamily(result, suggestions, family);
     const selected: RelationSuggestion = connections.select(candidates, choice);
     const input: RelationInput = { refines: selected.ref, fromNodeId: fromRef, toNodeId: toRef };
@@ -422,9 +466,15 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     };
   }
 
+  private relationNodes(input: RelationInput): readonly [from: Ref, to: Ref] {
+    const from: ElementInput | undefined = input.fromNode ?? input.fromNodeId;
+    const to: ElementInput | undefined = input.toNode ?? input.toNodeId;
+    if (from === undefined || to === undefined) throw new Error('A relation requires source and target nodes or IDs.');
+    return [this.nodeReference(from), this.nodeReference(to)];
+  }
+
   private newRelation(input: RelationInput): Relation {
-    const from: Ref = this.nodeReference(input.fromNodeId);
-    const to: Ref = this.nodeReference(input.toNodeId);
+    const [from, to]: readonly [Ref, Ref] = this.relationNodes(input);
     if (input.refines !== undefined) {
       const reference: ElementRef = this.resolveRef(input.refines, 'relation');
       const base: Model | undefined = this.findModel(reference.modelId);

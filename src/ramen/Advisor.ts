@@ -5,16 +5,17 @@ import type { ResolvedElement } from '../model/graph/ProjectGraph';
 import type { ValidProjectResult } from '../model/validation/ModelValidator';
 import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions';
 import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex';
-import { AnnotationAdvice, PropertyAdvice, RelationAdvice, AnnotationAdvisor } from './annotations/Advisor';
+import { AnnotationOptions, PropertyOption, RelationOption, AnnotationAdvisor } from './annotations/Advisor';
 export type {
   NodeSuggestion,
   DataTypeSuggestion,
   RelationSuggestion,
+  RelationSelection,
   NodeLineageItem,
-  AttributeSuggestion,
+  AttributeInfo,
   NodeRelationSuggestion,
-  NodeAdvice,
-  AttributeCreationAdvice,
+  NodeInfo,
+  AttributeNameResult,
 } from '../model/Advisor';
 
 /** One closed annotation variant declared by a reachable RAMEN model. */
@@ -111,18 +112,18 @@ export class RamenAdvisor extends ModelAdvisor {
     });
   }
 
-  /** Suggests valid properties, relations, targets, and cardinalities for an annotation definition. */
-  public adviseAnnotation(modelId: Id, annotationNodeId: Id): AnnotationAdvice | undefined {
-    return this.annotationAdvisor.advise(modelId, annotationNodeId);
+  /** Lists valid property, relation, target and cardinality options for a new annotation definition. */
+  public suggestAnnotationOptions(modelId: Id, annotationNodeId: Id): AnnotationOptions | undefined {
+    return this.annotationAdvisor.suggestOptions(modelId, annotationNodeId);
   }
 
   /** Lists the modeled relations permitted by one effective annotation type. */
-  public suggestRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly RelationAdvice[] {
-    return this.annotationAdvisor.adviseEffective(modelId, annotationNodeId, type)?.relations ?? [];
+  public getRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly RelationOption[] {
+    return this.annotationAdvisor.getTypeInfo(modelId, annotationNodeId, type)?.relations ?? [];
   }
 
   /** Lists properties available for one annotation type, including its own declarations. */
-  public suggestAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly PropertyAdvice[] {
-    return this.annotationAdvisor.adviseEffective(modelId, nodeId, type)?.properties ?? [];
+  public getAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly PropertyOption[] {
+    return this.annotationAdvisor.getTypeInfo(modelId, nodeId, type)?.properties ?? [];
   }
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeler, ModelValidator } from '../../dist/model/index.js';
-import type { DataType, Diagnostic, Literal, Model, Node, ProjectValidationResult } from '../../dist/model/index.js';
+import { Modeler, ModelValidator } from '../../dist/ramen-core/model/index.js';
+import type { DataType, Diagnostic, Literal, Model, Node, ProjectValidationResult } from '../../dist/ramen-core/model/index.js';
 import { model } from '../models.ts';
 
 function accepts(project: Modeler, owner: Node, value: unknown): boolean {

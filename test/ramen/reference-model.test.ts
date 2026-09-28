@@ -11,7 +11,7 @@ import {
   RamenModel,
   RamenProjectSchemaValidator,
   RamenFiles,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 import type {
   RamenFile,
   DataTypeSuggestion,
@@ -23,7 +23,7 @@ import type {
   RamenAdvisor,
   RamenChange,
   RamenModelDocument,
-} from '../../dist/index.js';
+} from '../../dist/ramen-core/index.js';
 
 function createProject(): RamenModel {
   return RamenModel.create({
@@ -81,11 +81,9 @@ void test('creates nodes and attributes while validating every change', (): void
 });
 
 void test('exposes refinements and data types through the consumer API', (): void => {
-  const advisor: RamenAdvisor = createProject().createAdvisor();
+  const advisor: RamenAdvisor = createProject().getAdvisor();
   assert.ok(advisor);
-  const nodeNames: readonly string[] = advisor
-    .suggestNodeRefinements('editorialModel01')
-    .map((item: NodeSuggestion): string => item.name);
+  const nodeNames: readonly string[] = advisor.suggestNodes('editorialModel01').map((item: NodeSuggestion): string => item.name);
   const dataTypeNames: readonly string[] = advisor
     .suggestDataTypes('editorialModel01')
     .map((item: DataTypeSuggestion): string => item.name);

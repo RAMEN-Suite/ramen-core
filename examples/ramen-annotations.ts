@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import type { Node } from '../dist/model/index.js';
-import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen/index.js';
-import type { AnnotationLink, AnnotationSuggestion } from '../dist/ramen/index.js';
+import type { Node, RelationSelection } from '../dist/ramen-core/model/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen-core/ramen/index.js';
+import type { AnnotationConnection, AnnotationSuggestion } from '../dist/ramen-core/ramen/index.js';
 
 // Reuse RAMEN's Annotation node. Its uuid and type properties already exist.
 const project: RamenModel = RamenModel.create('Text annotations');
@@ -9,10 +9,16 @@ const annotation: string = RAMEN_ELEMENT.ANNOTATION;
 const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
 const person: Node = project.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
 const place: Node = project.createNode({ name: 'Place', refines: RAMEN_ELEMENT.ENTITY }).element;
-// The API resolves HAS_ANNOTATION and selects its permitted relationship for Text.
-const onText: AnnotationLink = {
-  relation: 'HAS_ANNOTATION',
-  from: text,
+// Define relationships first. Selecting them afterward does not change the model.
+project.hasAnnotation(text, annotation);
+project.refersTo(annotation, person);
+project.refersTo(annotation, place);
+const [textToAnnotation]: readonly RelationSelection[] = project.getRelations(text, annotation);
+const [annotationToPerson]: readonly RelationSelection[] = project.getRelations(annotation, person);
+const [annotationToPlace]: readonly RelationSelection[] = project.getRelations(annotation, place);
+assert.ok(textToAnnotation && annotationToPerson && annotationToPlace);
+const onText: AnnotationConnection = {
+  connection: textToAnnotation,
   bounds: { lowerBound: 1, upperBound: 1 },
 };
 
@@ -26,12 +32,12 @@ for (const type of textTypes) {
 project.createAnnotation({
   annotationId: annotation,
   type: 'person',
-  relations: [onText, { relation: 'REFERS_TO', to: person, bounds: { lowerBound: 1, upperBound: 1 } }],
+  relations: [onText, { connection: annotationToPerson, bounds: { lowerBound: 1, upperBound: 1 } }],
 });
 project.createAnnotation({
   annotationId: annotation,
   type: 'place',
-  relations: [onText, { relation: 'REFERS_TO', to: place, bounds: { lowerBound: 1, upperBound: 1 } }],
+  relations: [onText, { connection: annotationToPlace, bounds: { lowerBound: 1, upperBound: 1 } }],
 });
 
 // Result for a type picker: ["add", "del", "hi", "person", "place"].

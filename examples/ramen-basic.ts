@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import type { Node } from '../dist/model/index.js';
-import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen/index.js';
+import type { Node } from '../dist/ramen-core/model/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen-core/ramen/index.js';
 
 // One project level: Letter contains Witness, and Witness contains Text.
 const project: RamenModel = RamenModel.create('Correspondence');

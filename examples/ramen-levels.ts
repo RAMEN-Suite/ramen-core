@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import type { Attribute, Node } from '../dist/model/index.js';
-import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen/index.js';
-import type { AttributeSuggestion } from '../dist/ramen/index.js';
+import type { Attribute, Node } from '../dist/ramen-core/model/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../dist/ramen-core/ramen/index.js';
+import type { AttributeInfo } from '../dist/ramen-core/ramen/index.js';
 
 // First project level: a reusable correspondence model.
 const base: RamenModel = RamenModel.create('Correspondence');
@@ -21,8 +21,8 @@ edition.partOf(manuscript, editionLetter);
 edition.partOf(text, manuscript);
 
 // Title is inherited. Do not create it again on EditionLetter.
-const properties: readonly AttributeSuggestion[] = edition.suggestAttributes(editionLetter);
-assert.ok(properties.some((property: AttributeSuggestion): boolean => property.attributeId === title.id));
+const properties: readonly AttributeInfo[] = edition.getAttributes(editionLetter);
+assert.ok(properties.some((property: AttributeInfo): boolean => property.attributeId === title.id));
 assert.equal(editionLetter.attributes.length, 0);
 assert.equal(edition.validate().valid, true);
 console.log('EditionLetter inherits title; Text is reused; each relation is selected again.');

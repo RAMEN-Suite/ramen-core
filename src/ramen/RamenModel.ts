@@ -10,8 +10,12 @@ import type {
   ModelChange,
   Removal,
 } from '../model/editing/Draft';
-import { ModelFactory, ModelRef } from '../model/index';
+import { ModelFactory, ModelRef, ModelRelationScope } from '../model/index';
 import type {
+  Bounds,
+  Node,
+  ResolvedElement,
+  ProjectGraph,
   ConstraintRegistry,
   Id,
   Model,
@@ -53,19 +57,28 @@ export type UpdateRamenLiteralInput = LiteralUpdate;
 /** Edited element and its project validation. */
 export type RamenChange<T> = ModelChange<T>;
 
+/** Select a RAMEN relationship by its name, other endpoint and annotation-side cardinality. */
+export type AnnotationLink = {
+  readonly relation: string;
+  readonly bounds: Bounds;
+} & ({ readonly from: RamenRef; readonly to?: never } | { readonly to: RamenRef; readonly from?: never });
+
+/** Use a stored relation reference or select a relationship by its endpoints. */
+export type AnnotationRelationInput = AnnotationRelation | AnnotationLink;
+
 /** Values needed to declare one closed annotation variant on a local or imported Annotation node. */
 export interface AnnotationInput {
   readonly annotationId: RamenRef;
   readonly type: string;
   readonly properties?: readonly AnnotationProperty[];
-  readonly relations?: readonly AnnotationRelation[];
+  readonly relations?: readonly AnnotationRelationInput[];
 }
 
 /** Editable fields of a locally declared annotation definition. */
 export interface AnnotationUpdate {
   readonly type?: string;
   readonly properties?: readonly AnnotationProperty[];
-  readonly relations?: readonly AnnotationRelation[];
+  readonly relations?: readonly AnnotationRelationInput[];
 }
 
 /** Adds the RAMEN vocabulary and annotation rules to shared generic editing. */
@@ -187,37 +200,52 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return RamenAnnotations.get(this.model);
   }
 
-  /** Declares a new annotation variant without creating another model node. */
+  /**
+   * Declares an annotation variant. Endpoint selections reuse allowed relations or refine them for narrower endpoints.
+   * Throws on unavailable or ambiguous selections without changing the model. Stored definitions retain relation references.
+   */
   public createAnnotation(input: AnnotationInput): RamenChange<RamenAnnotation> {
-    const owner: RamenElementRef = this.resolveRef(input.annotationId, 'node');
-    const annotation: RamenAnnotation = {
-      id: ModelFactory.createIdentifier(),
-      annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
-      type: input.type,
-      properties: structuredClone(input.properties ?? []),
-      relations: structuredClone(input.relations ?? []),
-    };
+    const before: Model = this.model;
+    try {
+      const owner: RamenElementRef = this.resolveRef(input.annotationId, 'node');
+      const annotation: RamenAnnotation = {
+        id: ModelFactory.createIdentifier(),
+        annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
+        type: input.type,
+        properties: structuredClone(input.properties ?? []),
+        relations: this.annotationRelations(input.annotationId, input.relations ?? []),
+      };
 
-    this.model = RamenAnnotations.add(this.model, annotation);
-    return this.change(annotation);
+      this.model = RamenAnnotations.add(this.model, annotation);
+      return this.change(annotation);
+    } catch (error: unknown) {
+      this.model = before;
+      throw error;
+    }
   }
 
-  /** Updates a locally declared annotation and validates the complete project. */
+  /** Updates a local annotation, resolving endpoint selections or preserving supplied references, then validates the project. */
   public updateAnnotation(annotationId: Id, input: AnnotationUpdate): RamenChange<RamenAnnotation> {
-    const current: RamenAnnotation | undefined = this.getAnnotations().find(
-      (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
-    );
+    const before: Model = this.model;
+    try {
+      const current: RamenAnnotation | undefined = this.getAnnotations().find(
+        (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
+      );
 
-    if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
-    const annotation: RamenAnnotation = {
-      ...current,
-      type: input.type ?? current.type,
-      properties: structuredClone(input.properties ?? current.properties),
-      relations: structuredClone(input.relations ?? current.relations),
-    };
+      if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
+      const annotation: RamenAnnotation = {
+        ...current,
+        type: input.type ?? current.type,
+        properties: structuredClone(input.properties ?? current.properties),
+        relations: this.annotationRelations(current.annotationId, input.relations ?? current.relations),
+      };
 
-    this.model = RamenAnnotations.update(this.model, annotationId, annotation);
-    return this.change(annotation);
+      this.model = RamenAnnotations.update(this.model, annotationId, annotation);
+      return this.change(annotation);
+    } catch (error: unknown) {
+      this.model = before;
+      throw error;
+    }
   }
 
   /** Removes a locally declared annotation and validates the complete project. */
@@ -244,6 +272,64 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   /** Creates a RAMEN REFERS_TO relation when the node types permit it. */
   public refersTo(annotation: ElementInput, target: ElementInput): RamenChange<Relation> {
     return this.connectBy(annotation, target, undefined, this.family('REFERS_TO'));
+  }
+
+  private annotationRelations(owner: RamenRef, inputs: readonly AnnotationRelationInput[]): readonly AnnotationRelation[] {
+    return inputs.map((input: AnnotationRelationInput): AnnotationRelation => {
+      if ('relationId' in input) return structuredClone(input);
+      const direction: 'incoming' | 'outgoing' = input.from !== undefined ? 'incoming' : 'outgoing';
+      const from: RamenRef = input.from ?? owner;
+      const to: RamenRef = input.to ?? owner;
+      const reference: Ref = this.annotationRelation(input.relation, from, to);
+      return { relationId: reference, direction, bounds: { ...input.bounds } };
+    });
+  }
+
+  private annotationRelation(name: string, from: RamenRef, to: RamenRef): Ref {
+    const result: ProjectValidationResult = this.validate();
+    if (!result.valid) throw new Error('Cannot select a relationship from an invalid model.');
+    const family: readonly Ref[] = this.family(name);
+    if (family.length === 0) throw new Error(`Unknown RAMEN relationship '${name}'.`);
+    const scope: ModelRelationScope = new ModelRelationScope(result.graph, this.selections());
+    const source: ElementRef = this.resolveRef(from, 'node');
+    const target: ElementRef = this.resolveRef(to, 'node');
+    const local: readonly ResolvedElement<Relation>[] = scope.available(this.model.id);
+    const bases: readonly ResolvedElement<Relation>[] = scope.bases(this.model.id);
+    const matches: (item: ResolvedElement<Relation>) => boolean = (item: ResolvedElement<Relation>): boolean =>
+      this.matchesAnnotationRelation(result.graph, item, family, source, target);
+    const current: readonly ResolvedElement<Relation>[] = local.filter(matches);
+    const candidates: readonly ResolvedElement<Relation>[] = current.length > 0 ? current : bases.filter(matches);
+    if (candidates.length > 1)
+      throw new Error(`Multiple '${name}' relationships match these endpoints. Select a relation reference.`);
+    const selected: ResolvedElement<Relation> | undefined = candidates[0];
+    if (selected)
+      return selected.modelId === this.model.id ? selected.element.id : ModelRef.qualify(selected.modelId, selected.element.id);
+    return this.connectBy(from, to, undefined, family).element.id;
+  }
+
+  private matchesAnnotationRelation(
+    graph: ProjectGraph,
+    item: ResolvedElement<Relation>,
+    family: readonly Ref[],
+    source: ElementRef,
+    target: ElementRef,
+  ): boolean {
+    const reference: Ref = ModelRef.qualify(item.modelId, item.element.id);
+    const ancestors: readonly ResolvedElement<Relation>[] = graph.getRelationAncestors(item.modelId, item.element.id);
+    const belongs: boolean =
+      family.includes(reference) ||
+      ancestors.some((base: ResolvedElement<Relation>): boolean =>
+        family.includes(ModelRef.qualify(base.modelId, base.element.id)),
+      );
+    if (!belongs) return false;
+    const from: ResolvedElement<Node> | undefined = graph.resolveNode(item.modelId, item.element.from.nodeId);
+    const to: ResolvedElement<Node> | undefined = graph.resolveNode(item.modelId, item.element.to.nodeId);
+    return (
+      from?.modelId === source.modelId &&
+      from.element.id === source.elementId &&
+      to?.modelId === target.modelId &&
+      to.element.id === target.elementId
+    );
   }
 
   private remainingRelations(relations: readonly AnnotationRelation[], removed?: ReadonlySet<Id>): readonly AnnotationRelation[] {

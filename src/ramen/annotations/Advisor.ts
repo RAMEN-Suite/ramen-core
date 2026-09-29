@@ -13,7 +13,7 @@ export interface PropertyOption {
   readonly attributeId: Id;
   readonly ref: Ref;
   readonly name: string;
-  readonly modeledBounds: Bounds;
+  readonly modelledBounds: Bounds;
   readonly suggestedBounds: Bounds;
   /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
   readonly cardinalityOptions: readonly Bounds[];
@@ -30,7 +30,7 @@ export interface RelationOption {
   readonly targetName: string;
   /** Local IDs or qualified references for imported target nodes. */
   readonly compatibleTargetNodeIds: readonly Ref[];
-  readonly modeledBounds: Bounds;
+  readonly modelledBounds: Bounds;
   readonly suggestedBounds: Bounds;
   /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
   readonly cardinalityOptions: readonly Bounds[];
@@ -88,7 +88,7 @@ export class AnnotationAdvisor {
         attributeId: attribute.id,
         ref: modelId === contextModelId ? attribute.id : ModelRef.qualify(modelId, attribute.id),
         name: attribute.name,
-        modeledBounds: { ...attribute.bounds },
+        modelledBounds: { ...attribute.bounds },
         suggestedBounds: { ...attribute.bounds },
         cardinalityOptions: this.cardinalityOptions(attribute.bounds),
       };
@@ -109,7 +109,7 @@ export class AnnotationAdvisor {
           attributeId: attribute.id,
           ref: owner.modelId === contextModelId ? attribute.id : ModelRef.qualify(owner.modelId, attribute.id),
           name: attribute.name,
-          modeledBounds: { ...attribute.bounds },
+          modelledBounds: { ...attribute.bounds },
           suggestedBounds: { ...attribute.bounds },
           cardinalityOptions: this.cardinalityOptions(attribute.bounds),
         };
@@ -147,7 +147,7 @@ export class AnnotationAdvisor {
     const target: ResolvedElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
 
     if (!target) return;
-    const modeled: Bounds = direction === 'outgoing' ? relation.to.bounds : relation.from.bounds;
+    const modelled: Bounds = direction === 'outgoing' ? relation.to.bounds : relation.from.bounds;
 
     result.push({
       modelId: owner.id,
@@ -158,9 +158,9 @@ export class AnnotationAdvisor {
       targetNodeId: target.element.id,
       targetName: target.element.name,
       compatibleTargetNodeIds: this.compatibleTargets(contextModelId, owner.id, targetRef),
-      modeledBounds: { ...modeled },
-      suggestedBounds: { ...modeled },
-      cardinalityOptions: this.cardinalityOptions(modeled),
+      modelledBounds: { ...modelled },
+      suggestedBounds: { ...modelled },
+      cardinalityOptions: this.cardinalityOptions(modelled),
     });
   }
 

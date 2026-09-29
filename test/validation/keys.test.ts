@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeler, ModelFactory, RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/index.js';
+import { Modeller, ModelFactory, RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/index.js';
 import type {
   Attribute,
   Diagnostic,
@@ -11,17 +11,17 @@ import type {
   ValidationResult,
 } from '../../dist/ramen-core/index.js';
 
-function addKey(project: Modeler, owner: Node, name: string): ProjectValidationResult {
+function addKey(project: Modeller, owner: Node, name: string): ProjectValidationResult {
   return project.createAttribute(owner, { name, typeId: 'String', bounds: { lowerBound: 1, upperBound: 1 }, isKey: true })
     .validation;
 }
 
-function data(project: Modeler, nodes: readonly ModelInstanceNode[]): ModelInstanceGraph {
+function data(project: Modeller, nodes: readonly ModelInstanceNode[]): ModelInstanceGraph {
   return { modelId: project.getModel().id, nodes, relations: [] };
 }
 
 void test('nodes may have zero or one key but cannot declare two keys', (): void => {
-  const project: Modeler = Modeler.create('People');
+  const project: Modeller = Modeller.create('People');
   const person: Node = project.createNode('Person').element;
   assert.equal(project.validate().valid, true);
   assert.equal(addKey(project, person, 'identifier').valid, true);
@@ -32,12 +32,12 @@ void test('nodes may have zero or one key but cannot declare two keys', (): void
 });
 
 void test('an inherited key prevents a second key even several levels below its declaration', (): void => {
-  const base: Modeler = Modeler.create('People');
+  const base: Modeller = Modeller.create('People');
   const person: Node = base.createNode('Person').element;
   addKey(base, person, 'identifier');
-  const project: Modeler = base.createNextLevel('Edition');
+  const project: Modeller = base.createNextLevel('Edition');
   const author: Node = project.createNode({ name: 'Author', refines: person }).element;
-  const next: Modeler = project.createNextLevel('Letters');
+  const next: Modeller = project.createNextLevel('Letters');
   const writer: Node = next.createNode({ name: 'Writer', refines: author }).element;
   assert.equal(next.validate().valid, true);
 
@@ -48,10 +48,10 @@ void test('an inherited key prevents a second key even several levels below its 
 });
 
 void test('key duplicates are checked across the declaring node and sibling refinements after exchange', (): void => {
-  const base: Modeler = Modeler.create('People');
+  const base: Modeller = Modeller.create('People');
   const person: Node = base.createNode('Person').element;
   addKey(base, person, 'identifier');
-  const project: Modeler = base.createNextLevel('Edition');
+  const project: Modeller = base.createNextLevel('Edition');
   const author: Node = project.createNode({ name: 'Author', refines: person }).element;
   const editor: Node = project.createNode({ name: 'Editor', refines: person }).element;
   const nodes: ModelInstanceNode[] = [
@@ -59,7 +59,7 @@ void test('key duplicates are checked across the declaring node and sibling refi
     { id: 'authorRecord0001', typeId: author.id, properties: { identifier: 'P001' } },
     { id: 'editorRecord0001', typeId: editor.id, properties: { identifier: 'P001' } },
   ];
-  const restored: Modeler = Modeler.import(project.export());
+  const restored: Modeller = Modeller.import(project.export());
   const result: ValidationResult = restored.validateInstances(data(restored, nodes));
   const duplicates: readonly Diagnostic[] = result.diagnostics;
   assert.equal(result.hasErrors, true);
@@ -77,7 +77,7 @@ void test('key duplicates are checked across the declaring node and sibling refi
 });
 
 void test('independent keys have separate scopes and each validation starts with an empty value index', (): void => {
-  const project: Modeler = Modeler.create('People and places');
+  const project: Modeller = Modeller.create('People and places');
   const person: Node = project.createNode('Person').element;
   const place: Node = project.createNode('Place').element;
   addKey(project, person, 'identifier');
@@ -89,11 +89,11 @@ void test('independent keys have separate scopes and each validation starts with
   const input: ModelInstanceGraph = data(project, nodes);
   assert.equal(project.validateInstances(input).hasErrors, false);
   assert.equal(project.validateInstances(input).hasErrors, false);
-  assert.equal(Modeler.import(project.export()).validateInstances(input).hasErrors, false);
+  assert.equal(Modeller.import(project.export()).validateInstances(input).hasErrors, false);
 });
 
 void test('missing and wrongly typed keys report value errors rather than duplicate key errors', (): void => {
-  const project: Modeler = Modeler.create('People');
+  const project: Modeller = Modeller.create('People');
   const person: Node = project.createNode('Person').element;
   addKey(project, person, 'identifier');
   const nodes: ModelInstanceNode[] = [

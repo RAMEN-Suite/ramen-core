@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { DataTypes, Modeler } from '../dist/ramen-core/model/index.js';
+import { DataTypes, Modeller } from '../dist/ramen-core/model/index.js';
 import type {
   AttributeInfo,
   AttributeNameResult,
@@ -11,13 +11,13 @@ import type {
   RelationSuggestion,
 } from '../dist/ramen-core/model/index.js';
 
-const model: Modeler = Modeler.create('Filing');
+const model: Modeller = Modeller.create('Filing');
 const document: Node = model.createNode('Document').element;
 const folder: Node = model.createNode('Folder').element;
 model.createAttribute(document, { name: 'title', typeId: DataTypes.String });
 model.createRelation({ name: 'FILED_IN', fromNode: document, toNode: folder });
 
-const project: Modeler = model.createNextLevel('Website');
+const project: Modeller = model.createNextLevel('Website');
 const page: Node = project.createNode({ name: 'Page', refines: document }).element;
 const section: Node = project.createNode({ name: 'Section', refines: folder }).element;
 const before: readonly Model[] = project.getModels();

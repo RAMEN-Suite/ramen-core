@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelConnections, ModelEditor, ModelValidator, Modeler } from '../../dist/ramen-core/model/index.js';
+import { ModelConnections, ModelEditor, ModelValidator, Modeller } from '../../dist/ramen-core/model/index.js';
 import type {
   Model,
   ModelAdvisor,
@@ -104,11 +104,11 @@ void test('adding a relation detaches its nested values from the caller', (): vo
 });
 
 void test('getRelations is read-only, retains endpoint identities and does not create missing refinements', (): void => {
-  const base: Modeler = Modeler.create('Documents');
+  const base: Modeller = Modeller.create('Documents');
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const relation: Relation = base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder }).element;
-  const child: Modeler = base.createNextLevel('Edition');
+  const child: Modeller = base.createNextLevel('Edition');
   const letter: Node = child.createNode({ name: 'Letter', refines: document }).element;
   const before: Model = child.getModel();
   const matches: readonly RelationSelection[] = child.getRelations(document, folder);
@@ -127,7 +127,7 @@ void test('getRelations is read-only, retains endpoint identities and does not c
 });
 
 void test('getRelations returns all parallel relationships and an empty list for reversed endpoints', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const document: Node = project.createNode('Document').element;
   const folder: Node = project.createNode('Folder').element;
   const first: Relation = project.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder }).element;
@@ -141,22 +141,22 @@ void test('getRelations returns all parallel relationships and an empty list for
 });
 
 void test('getRelations cannot recover a relation omitted by an intermediate level', (): void => {
-  const base: Modeler = Modeler.create('Documents');
+  const base: Modeller = Modeller.create('Documents');
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder });
-  const intermediate: Modeler = base.createNextLevel('Edition');
-  const next: Modeler = intermediate.createNextLevel('Letters');
+  const intermediate: Modeller = base.createNextLevel('Edition');
+  const next: Modeller = intermediate.createNextLevel('Letters');
   assert.deepEqual(next.getRelations(document, folder), []);
   assert.equal(next.getModel().relations.length, 0);
 });
 
 void test('getRelations includes both predecessor and local definitions and rejects unknown nodes', (): void => {
-  const base: Modeler = Modeler.create('Documents');
+  const base: Modeller = Modeller.create('Documents');
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const original: Relation = base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder }).element;
-  const child: Modeler = base.createNextLevel('Edition');
+  const child: Modeller = base.createNextLevel('Edition');
   const refined: Relation = child.connect(document, folder).element;
   const matches: readonly RelationSelection[] = child.getRelations(document, folder);
   const refs: readonly string[] = matches.map((item: RelationSelection): string => item.ref);
@@ -165,7 +165,7 @@ void test('getRelations includes both predecessor and local definitions and reje
 });
 
 void test('getRelations rejects an invalid model instead of presenting it as an empty valid graph', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const document: Node = project.createNode('Document').element;
   const folder: Node = project.createNode('Folder').element;
   project.createRelation({
@@ -181,7 +181,7 @@ void test('getRelations rejects an invalid model instead of presenting it as an 
 });
 
 void test('generic query entry points return the same empty, single and parallel results', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const document: Node = project.createNode('Document').element;
   const folder: Node = project.createNode('Folder').element;
   for (let count: number = 0; count < 3; count += 1) {

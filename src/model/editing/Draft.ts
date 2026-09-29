@@ -91,7 +91,7 @@ export interface Removal {
   readonly relationIds?: ReadonlySet<Id>;
 }
 
-/** Shared editing state for generic and domain-specific modeling facades. */
+/** Shared editing state for generic and domain-specific modelling facades. */
 export abstract class ModelDraft<A extends ModelAdvisor> {
   protected model: Model;
   protected readonly dependencies: ReadonlyMap<Id, Model>;

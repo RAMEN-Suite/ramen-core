@@ -215,7 +215,7 @@ export class ModelFactory {
     return { node: clonedNode, relations: related };
   }
 
-  /** Creates a named data type literal with optional serialized and numeric values. */
+  /** Creates a named data type literal with optional serialised and numeric values. */
   public static createLiteral(name: string, literal?: string, value?: number): Literal {
     return {
       id: this.createIdentifier(),

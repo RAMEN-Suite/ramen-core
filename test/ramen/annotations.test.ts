@@ -138,7 +138,7 @@ function assertInheritedTextSuggestion(project: RamenModel, text: Node): void {
     name: 'Shared Annotation Next',
     version: '1.0.0',
   });
-  const refinedText: Node = next.createNode({ name: 'NormalizedText', refines: text.id }).element;
+  const refinedText: Node = next.createNode({ name: 'NormalisedText', refines: text.id }).element;
 
   assert.deepEqual(annotationTypesForNode(next, refinedText), []);
   next.hasAnnotation(refinedText, RAMEN_ELEMENT.ANNOTATION);
@@ -377,7 +377,7 @@ void test('evaluates a registered project constraint language on annotation data
   assert.deepEqual(accepted.diagnostics, []);
 });
 
-void test('requires the modeled person relation for a persName annotation', (): void => {
+void test('requires the modelled person relation for a persName annotation', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const validator: RamenInstanceValidator = new RamenInstanceValidator();
   const missing: ModelInstanceGraph = annotationGraph(fixture, 'persName', {});
@@ -391,7 +391,7 @@ void test('requires the modeled person relation for a persName annotation', (): 
   );
 });
 
-void test('accepts one modeled person relation and rejects another annotation relation', (): void => {
+void test('accepts one modelled person relation and rejects another annotation relation', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const validator: RamenInstanceValidator = new RamenInstanceValidator();
   const valid: ModelInstanceGraph = personAnnotationGraph(fixture);

@@ -83,7 +83,7 @@ export class AnnotationIndex {
     return [...result.values()];
   }
 
-  /** Finds one effective annotation variant by its serialized `type` value. */
+  /** Finds one effective annotation variant by its serialised `type` value. */
   public findEffective(modelId: Id, nodeRef: Ref, type: string): ResolvedAnnotation | undefined {
     return this.getEffective(modelId, nodeRef).find(
       (candidate: ResolvedAnnotation): boolean => candidate.annotation.type === type,

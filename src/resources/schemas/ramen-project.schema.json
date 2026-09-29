@@ -42,7 +42,7 @@
     },
     "annotations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotation" }, "default": [] }
   },
-  "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modeling rather than full behavioral or reflective semantics.",
+  "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modelling rather than full behavioural or reflective semantics.",
   "$defs": {
     "Id": {
       "type": "string",
@@ -308,13 +308,13 @@
     },
     "RamenAnnotationRelation": {
       "type": "object",
-      "description": "Allows one modeled relation for this annotation type, including its direction from the annotation and a type-specific cardinality.",
+      "description": "Allows one modelled relation for this annotation type, including its direction from the annotation and a type-specific cardinality.",
       "required": ["relationId", "direction", "bounds"],
       "additionalProperties": false,
       "properties": {
         "relationId": {
           "$ref": "#/$defs/RamenRef",
-          "description": "Reference to a modeled relation. Its endpoint types determine which nodes can be connected."
+          "description": "Reference to a modelled relation. Its endpoint types determine which nodes can be connected."
         },
         "direction": {
           "enum": ["outgoing", "incoming"],
@@ -322,7 +322,7 @@
         },
         "bounds": {
           "$ref": "#/$defs/RamenBounds",
-          "description": "Number of matching relations allowed for one annotation; it must not widen the modeled relation cardinality."
+          "description": "Number of matching relations allowed for one annotation; it must not widen the modelled relation cardinality."
         },
         "alternatives": {
           "type": "array",
@@ -341,7 +341,7 @@
       "properties": {
         "id": {
           "$ref": "#/$defs/RamenId",
-          "description": "Stable identifier of this type declaration, separate from its serialized type value."
+          "description": "Stable identifier of this type declaration, separate from its serialised type value."
         },
         "annotationId": {
           "$ref": "#/$defs/RamenRef",
@@ -378,7 +378,7 @@
         },
         "bounds": {
           "$ref": "#/$defs/RamenBounds",
-          "description": "Optional type-specific cardinality; the attribute's modeled cardinality applies when omitted."
+          "description": "Optional type-specific cardinality; the attribute's modelled cardinality applies when omitted."
         }
       }
     }

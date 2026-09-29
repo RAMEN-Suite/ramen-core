@@ -34,7 +34,7 @@ export interface Import {
   name?: string;
 }
 
-/** Node classifier whose attributes and supertypes describe modeled objects. */
+/** Node classifier whose attributes and supertypes describe modelled objects. */
 export interface Node {
   kind: 'Node';
   id: Id;

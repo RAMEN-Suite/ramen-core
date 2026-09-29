@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConstraintRegistry, DataTypes, Diagnostics, Modeler } from '../../dist/ramen-core/model/index.js';
+import { ConstraintRegistry, DataTypes, Diagnostics, Modeller } from '../../dist/ramen-core/model/index.js';
 import type {
   Attribute,
   AttributeInfo,
@@ -34,31 +34,31 @@ interface TypeCase {
 }
 
 interface Transport {
-  readonly language: Modeler;
+  readonly language: Modeller;
   readonly vehicle: Node;
-  readonly project: Modeler;
+  readonly project: Modeller;
   readonly bicycle: Node;
 }
 
 function transport(): Transport {
-  const language: Modeler = Modeler.create('Transport');
+  const language: Modeller = Modeller.create('Transport');
   const vehicle: Node = language.createNode('Vehicle').element;
   language.createRelation({ name: 'TOWS', fromNode: vehicle, toNode: vehicle });
-  const project: Modeler = language.createNextLevel('Bicycles');
+  const project: Modeller = language.createNextLevel('Bicycles');
   const bicycle: Node = project.createNode({ name: 'Bicycle', refines: vehicle }).element;
   return { language, vehicle, project, bicycle };
 }
 
-function data(project: Modeler, node: Node, properties: Record<string, unknown>): ModelInstanceGraph {
-  return { modelId: project.getModel().id, nodes: [{ id: 'modelerData000001', typeId: node.id, properties }], relations: [] };
+function data(project: Modeller, node: Node, properties: Record<string, unknown>): ModelInstanceGraph {
+  return { modelId: project.getModel().id, nodes: [{ id: 'modellerData000001', typeId: node.id, properties }], relations: [] };
 }
 
-function snapshot(project: Modeler): readonly Model[] {
+function snapshot(project: Modeller): readonly Model[] {
   return [...project.getModels()].sort((left: Model, right: Model): number => left.id.localeCompare(right.id));
 }
 
 void test('a name is enough to create valid root models and identifiable elements', (): void => {
-  const language: Modeler = Modeler.create('Transport');
+  const language: Modeller = Modeller.create('Transport');
   const vehicle: Node = language.createNode('Vehicle').element;
   const model: Model = language.getModel();
   assert.equal(language.validate().valid, true);
@@ -67,7 +67,7 @@ void test('a name is enough to create valid root models and identifiable element
   assert.equal(model.id.length, 16);
   assert.equal(vehicle.id.length, 16);
   assert.notEqual(vehicle.id, model.id);
-  const explicit: Modeler = Modeler.create({
+  const explicit: Modeller = Modeller.create({
     name: 'Transport',
     id: 'explicitModel0001',
     uri: 'https://example.org/transport',
@@ -79,7 +79,7 @@ void test('a name is enough to create valid root models and identifiable element
 });
 
 void test('built-in constants create attributes with validated values and survive export', (): void => {
-  const model: Modeler = Modeler.create('Filing');
+  const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const cases: readonly TypeCase[] = [
     { type: DataTypes.String, value: 'Title', invalid: 42 },
@@ -99,7 +99,7 @@ void test('built-in constants create attributes with validated values and surviv
     assert.equal(model.validateInstances(data(model, document, { [entry.type]: entry.invalid })).hasErrors, true);
   }
 
-  const restored: Modeler = Modeler.import(model.export());
+  const restored: Modeller = Modeller.import(model.export());
   const attributes: readonly AttributeInfo[] = restored.getAttributes(document);
   assert.deepEqual(
     attributes.map((attribute: AttributeInfo): string => attribute.typeId),
@@ -129,12 +129,12 @@ void test('suggestions can be passed directly into node, attribute and connectio
 void test('levels retain their dependencies and file round-trips restore editable models', (): void => {
   const fixture: Transport = transport();
   fixture.project.connect(fixture.bicycle, fixture.bicycle);
-  const next: Modeler = fixture.project.createNextLevel('Edition');
+  const next: Modeller = fixture.project.createNextLevel('Edition');
   const special: Node = next.createNode({ name: 'SpecialBike', refines: fixture.bicycle }).element;
   next.connect(special, special);
   const exported: ModelFile = next.export();
   assert.equal(exported.models.length, 3);
-  const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(exported)) as unknown);
+  const restored: Modeller = Modeller.import(JSON.parse(JSON.stringify(exported)) as unknown);
   assert.deepEqual(snapshot(restored), snapshot(next));
   assert.deepEqual(next.compareTo(restored).changes, []);
   assert.equal(restored.createAttribute(special, { name: 'label', typeId: 'String' }).validation.valid, true);
@@ -143,7 +143,7 @@ void test('levels retain their dependencies and file round-trips restore editabl
 
 void test('an empty intermediate level cannot restore ancestor relations', (): void => {
   const fixture: Transport = transport();
-  const next: Modeler = fixture.project.createNextLevel('Edition');
+  const next: Modeller = fixture.project.createNextLevel('Edition');
   assert.deepEqual(next.suggestRelations(fixture.bicycle, fixture.bicycle), []);
   assert.throws((): ModelChange<Relation> => next.connect(fixture.bicycle, fixture.bicycle), /found 0/);
   assert.throws(
@@ -155,7 +155,7 @@ void test('an empty intermediate level cannot restore ancestor relations', (): v
 });
 
 void test('shared element editing includes attributes, data types and literals', (): void => {
-  const project: Modeler = Modeler.create('Records');
+  const project: Modeller = Modeller.create('Records');
   const record: Node = project.createNode('Record').element;
   const status: DataType = project.createDataType({ name: 'Status', baseType: 'String' }).element;
   const draft: Literal = project.createLiteral(status.id, { name: 'Draft', literal: 'draft' }).element;
@@ -177,9 +177,9 @@ void test('custom data types can be selected across levels without qualifying th
   const fixture: Transport = transport();
   const date: DataType = fixture.language.createDataType({ name: 'Date', baseType: 'String' }).element;
   fixture.language.updateDataType(date.id, {
-    constraints: [{ id: 'modelerDateRule01', name: 'Calendar date', language: 'format', expression: 'date' }],
+    constraints: [{ id: 'modellerDateRule01', name: 'Calendar date', language: 'format', expression: 'date' }],
   });
-  const project: Modeler = fixture.language.createNextLevel('Dated Vehicles');
+  const project: Modeller = fixture.language.createNextLevel('Dated Vehicles');
   const record: Node = project.createNode({ name: 'Record', refines: fixture.vehicle }).element;
   const choice: DataTypeSuggestion | undefined = project
     .suggestDataTypes()
@@ -209,10 +209,10 @@ void test('generic edits refresh options while dependencies and returned snapsho
 });
 
 void test('constraints are accepted in models and evaluated only against data', (): void => {
-  const project: Modeler = Modeler.create('Records');
+  const project: Modeller = Modeller.create('Records');
   const record: Node = project.createNode('Record').element;
   project.updateNode(record.id, {
-    constraints: [{ id: 'modelerDataRule01', name: 'Check data', language: 'custom', expression: 'check' }],
+    constraints: [{ id: 'modellerDataRule01', name: 'Check data', language: 'custom', expression: 'check' }],
   });
   assert.equal(project.validate().valid, true);
   const calls: ConstraintContext[] = [];
@@ -221,18 +221,18 @@ void test('constraints are accepted in models and evaluated only against data', 
       language: 'custom',
       evaluate(_rule: Constraint, context: ConstraintContext): readonly Diagnostic[] {
         calls.push(context);
-        return [Diagnostics.error({ code: 'DATA_RULE_FAILED', message: 'Data violates the modeled rule.', path: context.path })];
+        return [Diagnostics.error({ code: 'DATA_RULE_FAILED', message: 'Data violates the modelled rule.', path: context.path })];
       },
     },
   ]);
   assert.equal(project.validateInstances(data(project, record, {}), registry).diagnostics[0]?.code, 'DATA_RULE_FAILED');
   assert.equal(calls.length, 1);
-  assert.equal(calls[0]?.instanceId, 'modelerData000001');
+  assert.equal(calls[0]?.instanceId, 'modellerData000001');
   assert.equal(project.validateInstances(data(project, record, {})).diagnostics[0]?.code, 'CONSTRAINT_LANGUAGE_UNSUPPORTED');
 });
 
 void test('generic editing rejects absent targets before changing the draft', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const document: Node = project.createNode('Document').element;
   const type: DataType = project.createDataType({ name: 'Status', baseType: 'String' }).element;
   const missing: string = 'missingElement01';
@@ -258,12 +258,12 @@ void test('generic editing rejects absent targets before changing the draft', ()
 });
 
 void test('generic reads distinguish empty collections from absent individual results', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const document: Node = project.createNode('Document').element;
   const folder: Node = project.createNode('Folder').element;
   const advisor: ModelAdvisor = project.getAdvisor();
   const context: string = project.getModel().id;
-  const validation: ReturnType<Modeler['validate']> = project.validate();
+  const validation: ReturnType<Modeller['validate']> = project.validate();
   assert.ok(validation.valid);
   assert.deepEqual(project.suggestNodes(), []);
   assert.deepEqual(project.getAttributes(document), []);
@@ -278,13 +278,13 @@ void test('generic reads distinguish empty collections from absent individual re
 });
 
 void test('model queries read inherited definitions, suggest connections and validate names without editing', (): void => {
-  const model: Modeler = Modeler.create('Filing');
+  const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const folder: Node = model.createNode('Folder').element;
   model.createAttribute(document, { name: 'title', typeId: DataTypes.String });
   model.createRelation({ name: 'FILED_IN', fromNode: document, toNode: folder });
 
-  const project: Modeler = model.createNextLevel('Correspondence');
+  const project: Modeller = model.createNextLevel('Correspondence');
   const letter: Node = project.createNode({ name: 'Letter', refines: document }).element;
   const archive: Node = project.createNode({ name: 'Archive', refines: folder }).element;
   project.connect(letter, archive);
@@ -317,7 +317,7 @@ void test('model queries read inherited definitions, suggest connections and val
 });
 
 void test('relation endpoints accept objects, IDs and mixed inputs with object precedence', (): void => {
-  const model: Modeler = Modeler.create('Filing');
+  const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const folder: Node = model.createNode('Folder').element;
   const other: Node = model.createNode('Other').element;
@@ -336,13 +336,13 @@ void test('relation endpoints accept objects, IDs and mixed inputs with object p
     assert.equal(result.validation.valid, true);
   }
 
-  const restored: Modeler = Modeler.import(model.export());
+  const restored: Modeller = Modeller.import(model.export());
   assert.equal(restored.getRelations(document, folder).length, cases.length);
   assert.equal(restored.validate().valid, true);
 });
 
 void test('missing endpoints and unknown object selections reject the edit without falling back to IDs', (): void => {
-  const model: Modeler = Modeler.create('Filing');
+  const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const folder: Node = model.createNode('Folder').element;
   const before: readonly Model[] = model.getModels();
@@ -367,11 +367,11 @@ void test('missing endpoints and unknown object selections reject the edit witho
 });
 
 void test('object endpoints take precedence over qualified ancestor IDs during relation refinement', (): void => {
-  const model: Modeler = Modeler.create('Filing');
+  const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const folder: Node = model.createNode('Folder').element;
   const base: Relation = model.createRelation({ name: 'FILED_IN', fromNode: document, toNode: folder }).element;
-  const project: Modeler = model.createNextLevel('Website');
+  const project: Modeller = model.createNextLevel('Website');
   const page: Node = project.createNode({ name: 'Page', refines: document }).element;
   const section: Node = project.createNode({ name: 'Section', refines: folder }).element;
   const result: ModelChange<Relation> = project.createRelation({

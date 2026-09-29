@@ -10,7 +10,7 @@ import { BuiltinType, TypeRef } from './Types';
  * | `DataTypes.Integer` | A whole number |
  * | `DataTypes.Float` | A finite number, including fractions |
  *
- * Use these references with {@link Modeler.createAttribute} or {@link Modeler.createDataType}.
+ * Use these references with {@link Modeller.createAttribute} or {@link Modeller.createDataType}.
  * For attributes using declared types, pass a {@link DataType} or a {@link DataTypeSuggestion} instead.
  *
  * @example
@@ -19,13 +19,13 @@ import { BuiltinType, TypeRef } from './Types';
  * ```
  */
 export const DataTypes: {
-  /** Text values, serialized as the built-in reference `String`. */
+  /** Text values, serialised as the built-in reference `String`. */
   readonly String: 'String';
-  /** Boolean values, serialized as the built-in reference `Boolean`. */
+  /** Boolean values, serialised as the built-in reference `Boolean`. */
   readonly Boolean: 'Boolean';
-  /** Whole numbers, serialized as the built-in reference `Integer`. */
+  /** Whole numbers, serialised as the built-in reference `Integer`. */
   readonly Integer: 'Integer';
-  /** Finite numbers, serialized as the built-in reference `Float`. */
+  /** Finite numbers, serialised as the built-in reference `Float`. */
   readonly Float: 'Float';
 } = {
   String: 'String',

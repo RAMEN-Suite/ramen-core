@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelValidator, Modeler } from '../../dist/ramen-core/index.js';
+import { ModelValidator, Modeller } from '../../dist/ramen-core/index.js';
 import type { Diagnostic, Model, Node, Relation, Import, ProjectValidationResult } from '../../dist/ramen-core/index.js';
 import { attribute, model, node, relation } from '../models.ts';
 
@@ -97,7 +97,7 @@ void test('only models without imports may introduce nodes without a base', (): 
   assert.equal(diagnostic?.severity, 'error');
   assert.equal(diagnostic?.path, `/models/${child.id}/classifiers/0/superTypes`);
   assert.equal(diagnostic?.ref, 'unrefinedNode001');
-  const draft: Modeler = Modeler.load(base).createNextLevel('Edition');
+  const draft: Modeller = Modeller.load(base).createNextLevel('Edition');
   assert.throws((): void => {
     draft.createNode('Unrelated');
   }, /Select a node to refine/);
@@ -121,13 +121,13 @@ void test('every imported level rejects unrelated nodes even when a local node r
 });
 
 void test('derived levels can reuse imported nodes and refine existing nodes without introducing unrelated types', (): void => {
-  const base: Modeler = Modeler.create('Documents');
+  const base: Modeller = Modeller.create('Documents');
   const document: Node = base.createNode('Document').element;
-  const child: Modeler = base.createNextLevel('Edition');
+  const child: Modeller = base.createNextLevel('Edition');
   assert.equal(child.validate().valid, true);
   const letter: Node = child.createNode({ name: 'Letter', refines: document }).element;
-  const next: Modeler = child.createNextLevel('Archive');
+  const next: Modeller = child.createNextLevel('Archive');
   next.createNode({ name: 'ArchivedLetter', refines: letter });
   assert.equal(next.validate().valid, true);
-  assert.equal(Modeler.import(next.export()).validate().valid, true);
+  assert.equal(Modeller.import(next.export()).validate().valid, true);
 });

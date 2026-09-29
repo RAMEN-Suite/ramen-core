@@ -57,7 +57,7 @@ export class RamenAnnotations {
       : [];
   }
 
-  /** Reports whether the model's annotation definitions have the complete serialized shape. */
+  /** Reports whether the model's annotation definitions have the complete serialised shape. */
   public static hasValidSection(model: Model): boolean {
     if (model.ext?.ramen !== undefined) return false;
     if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) return true;

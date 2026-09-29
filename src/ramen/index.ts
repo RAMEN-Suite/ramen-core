@@ -1,5 +1,5 @@
 /**
- * RAMEN modeling on top of the generic model API.
+ * RAMEN modelling on top of the generic model API.
  * Import from `@ramen-suite/core/ramen`.
  *
  * {@link RAMEN_MODEL} defines Collection, Entity, Content, Annotation and their relations.

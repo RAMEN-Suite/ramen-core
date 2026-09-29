@@ -84,7 +84,7 @@ export interface AttributeNameResult {
   readonly conflicts: readonly ('attribute' | 'relationRole')[];
 }
 
-/** Provides generic modeling suggestions from the same graph used by validation. */
+/** Provides generic modelling suggestions from the same graph used by validation. */
 export class ModelAdvisor {
   protected readonly graph: ProjectGraph;
   protected readonly relations: ModelRelationScope;

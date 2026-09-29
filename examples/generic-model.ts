@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { DataTypes, Modeler } from '../dist/ramen-core/model/index.js';
+import { DataTypes, Modeller } from '../dist/ramen-core/model/index.js';
 import type { AttributeInfo, DataType, ModelFile, Node, Relation, RelationSelection } from '../dist/ramen-core/model/index.js';
 
 // Create the model and its node types.
-const model: Modeler = Modeler.create('Filing');
+const model: Modeller = Modeller.create('Filing');
 const document: Node = model.createNode('Document').element;
 const folder: Node = model.createNode('Folder').element;
 model.createAttribute(document, { name: 'title', typeId: DataTypes.String, bounds: { lowerBound: 1, upperBound: 1 } });
@@ -25,7 +25,7 @@ model.createRelation({
 assert.equal(model.validate().valid, true);
 
 // Refine the vocabulary. Page inherits title; do not declare it again.
-const project: Modeler = model.createNextLevel('Website');
+const project: Modeller = model.createNextLevel('Website');
 const page: Node = project.createNode({ name: 'Page', refines: document }).element;
 const section: Node = project.createNode({ name: 'Section', refines: folder }).element;
 const attributes: readonly AttributeInfo[] = project.getAttributes(page);
@@ -52,7 +52,7 @@ assert.equal(project.validate().valid, true);
 assert.throws((): unknown => project.connect(section, page), /found 0/);
 
 const exported: ModelFile = project.export();
-const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(exported)) as unknown);
+const restored: Modeller = Modeller.import(JSON.parse(JSON.stringify(exported)) as unknown);
 assert.deepEqual(restored.compareTo(project).changes, []);
 assert.equal(restored.getRelations(page, section).length, 1);
 assert.equal(restored.getAttributes(page)[0]?.inherited, true);

@@ -199,8 +199,8 @@ void test('exports and imports a complete editable RAMEN project file', (): void
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const exported: RamenFile = fixture.project.export();
 
-  const serialized: string = JSON.stringify(exported);
-  const parsed: unknown = JSON.parse(serialized);
+  const serialised: string = JSON.stringify(exported);
+  const parsed: unknown = JSON.parse(serialised);
   const imported: RamenModel = RamenModel.import(parsed);
 
   assert.equal(imported.validate().valid, true);

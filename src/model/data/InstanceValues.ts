@@ -21,7 +21,7 @@ export class InstanceValueValidator {
     private readonly attributes?: InstanceValidationOptions['attributes'],
   ) {}
 
-  /** Resolves instance node types and validates their modeled properties. */
+  /** Resolves instance node types and validates their modelled properties. */
   public validate(graph: ProjectGraph, instance: ModelInstanceGraph, diagnostics: Diagnostic[]): Map<Id, ResolvedInstanceNode> {
     this.keys.clear();
     this.nodes.clear();

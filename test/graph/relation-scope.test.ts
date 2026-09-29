@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelAdvisor, ModelRelationScope, ModelValidator, Modeler } from '../../dist/ramen-core/model/index.js';
+import { ModelAdvisor, ModelRelationScope, ModelValidator, Modeller } from '../../dist/ramen-core/model/index.js';
 import type {
   Attribute,
   AttributeInfo,
@@ -83,16 +83,16 @@ void test('generic validation rejects an invented relation and a skipped interme
 });
 
 void test('five refinement levels retain attributes and relation limits after shared graph exchange', (): void => {
-  const base: Modeler = Modeler.create('Documents');
+  const base: Modeller = Modeller.create('Documents');
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const title: Attribute = base.createAttribute(document, { name: 'title', typeId: 'String' }).element;
   base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder, toBounds: { lowerBound: 0, upperBound: 1 } });
 
-  let current: Modeler = base;
+  let current: Modeller = base;
   let refined: Node = document;
   for (let level: number = 1; level <= 5; level += 1) {
-    const next: Modeler = current.createNextLevel(`Edition${level}`);
+    const next: Modeller = current.createNextLevel(`Edition${level}`);
     refined = next.createNode({ name: `Letter${level}`, refines: refined }).element;
     const connected: Relation = next.connect(refined, folder).element;
     assert.deepEqual(connected.to.bounds, { lowerBound: 0, upperBound: 1 });
@@ -100,7 +100,7 @@ void test('five refinement levels retain attributes and relation limits after sh
     current = next;
   }
 
-  const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(current.export())) as unknown);
+  const restored: Modeller = Modeller.import(JSON.parse(JSON.stringify(current.export())) as unknown);
   assert.equal(restored.getModels().length, 6);
   assert.equal(
     restored.getAttributes(refined).some((item: AttributeInfo): boolean => item.attributeId === title.id),
@@ -110,8 +110,8 @@ void test('five refinement levels retain attributes and relation limits after sh
   assert.deepEqual(refined.attributes, []);
   assert.equal(base.getModel().classifiers.length, 2);
 
-  const empty: Modeler = restored.createNextLevel('NoConnections');
-  const later: Modeler = empty.createNextLevel('Later');
+  const empty: Modeller = restored.createNextLevel('NoConnections');
+  const later: Modeller = empty.createNextLevel('Later');
   assert.deepEqual(later.suggestRelations(refined, folder), []);
   assert.throws((): void => {
     later.connect(refined, folder);

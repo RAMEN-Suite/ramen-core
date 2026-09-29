@@ -11,7 +11,7 @@ import type { ValidationResult } from '../validation/ModelValidator';
 
 export * from './InstanceTypes';
 
-/** Validates modeled objects and connections against effective RAMEN model format features. */
+/** Validates modelled objects and connections against effective RAMEN model format features. */
 export class InstanceValidator {
   /** Creates an instance validator with the standard safe constraint evaluators. */
   public constructor(private readonly constraints: ConstraintRegistry = ConstraintRegistry.createDefault()) {}

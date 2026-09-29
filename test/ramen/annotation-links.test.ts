@@ -75,8 +75,8 @@ void test('broad Entity selection reuses RAMEN and accepts entities added after 
   assert.equal(Object.isFrozen(matches), true);
   assert.equal(Object.isFrozen(matches[0]), true);
   assert.deepEqual(project.getModel(), beforeQuery);
-  const organization: Node = project.createNode({ name: 'Organization', refines: RAMEN_ELEMENT.ENTITY }).element;
-  const input: ModelInstanceGraph = records(project, text, organization, created.element);
+  const organisation: Node = project.createNode({ name: 'Organisation', refines: RAMEN_ELEMENT.ENTITY }).element;
+  const input: ModelInstanceGraph = records(project, text, organisation, created.element);
   assert.equal(project.validateInstances(input).hasErrors, false);
   const restored: RamenModel = RamenModel.import(project.export());
   assert.equal(restored.validateInstances(input).hasErrors, false);
@@ -192,8 +192,8 @@ void test('an inherited broad annotation accepts future entities when each next 
     type: 'entity',
     relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, RAMEN_ELEMENT.ENTITY),
   });
-  const next: RamenModel = project.createNextLevel('Organizations');
-  const organization: Node = next.createNode({ name: 'Organization', refines: RAMEN_ELEMENT.ENTITY }).element;
+  const next: RamenModel = project.createNextLevel('Organisations');
+  const organisation: Node = next.createNode({ name: 'Organisation', refines: RAMEN_ELEMENT.ENTITY }).element;
   const incoming: Relation = next.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
   const outgoing: Relation = next.refersTo(RAMEN_ELEMENT.ANNOTATION, RAMEN_ELEMENT.ENTITY).element;
   const inherited: RamenAnnotation = {
@@ -203,7 +203,7 @@ void test('an inherited broad annotation accepts future entities when each next 
       { relationId: outgoing.id, direction: 'outgoing', bounds: ONE },
     ],
   };
-  const data: ModelInstanceGraph = records(next, text, organization, inherited);
+  const data: ModelInstanceGraph = records(next, text, organisation, inherited);
   const textRecord: ModelInstanceNode | undefined = data.nodes[0];
   assert.ok(textRecord);
   const qualified: ModelInstanceGraph = {

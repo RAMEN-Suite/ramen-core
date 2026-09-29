@@ -26,8 +26,8 @@ void test('exports reachable models and restores their boundaries', (): void => 
   const root: Model = model(ROOT_ID, base);
   const result: ModelFile = ModelFiles.write(ROOT_ID, [root, base]);
 
-  const serialized: string = JSON.stringify(result);
-  const parsed: unknown = JSON.parse(serialized) as unknown;
+  const serialised: string = JSON.stringify(result);
+  const parsed: unknown = JSON.parse(serialised) as unknown;
   const models: readonly Model[] = ModelFiles.read(parsed);
 
   assert.deepEqual(models, [root, base]);

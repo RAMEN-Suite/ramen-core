@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeler, ModelValidator } from '../../dist/ramen-core/model/index.js';
+import { Modeller, ModelValidator } from '../../dist/ramen-core/model/index.js';
 import type { DataType, Diagnostic, Literal, Model, Node, ProjectValidationResult } from '../../dist/ramen-core/model/index.js';
 import { model } from '../models.ts';
 
-function accepts(project: Modeler, owner: Node, value: unknown): boolean {
+function accepts(project: Modeller, owner: Node, value: unknown): boolean {
   const data: unknown = {
     modelId: project.getModel().id,
     nodes: [{ id: 'enumRecord000001', typeId: owner.id, properties: { status: value } }],
@@ -14,7 +14,7 @@ function accepts(project: Modeler, owner: Node, value: unknown): boolean {
 }
 
 void test('string enums use exact stored values and only fall back to names when no literal is provided', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const owner: Node = project.createNode('Document').element;
   const status: DataType = project.createDataType({ name: 'Status', baseType: 'String' }).element;
   project.createLiteral(status.id, { name: 'Open', literal: 'open' });
@@ -28,13 +28,13 @@ void test('string enums use exact stored values and only fall back to names when
   for (const value of ['Open', 'Empty', 'Spaced', 'other', 1, true]) {
     assert.equal(accepts(project, owner, value), false, String(value));
   }
-  const restored: Modeler = Modeler.import(project.export());
+  const restored: Modeller = Modeller.import(project.export());
   assert.equal(accepts(restored, owner, 'open'), true);
   assert.equal(accepts(restored, owner, 'Open'), false);
 });
 
 void test('numeric enums require explicit numbers and reject display names or undeclared numbers', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const owner: Node = project.createNode('Document').element;
   const status: DataType = project.createDataType({ name: 'Status', baseType: 'Integer' }).element;
   project.createLiteral(status.id, { name: 'Open', value: 0 });
@@ -44,7 +44,7 @@ void test('numeric enums require explicit numbers and reject display names or un
 
   for (const value of [0, 1]) assert.equal(accepts(project, owner, value), true);
   for (const value of [2, 0.5, '0', 'Open']) assert.equal(accepts(project, owner, value), false);
-  const restored: Modeler = Modeler.import(project.export());
+  const restored: Modeller = Modeller.import(project.export());
   assert.equal(accepts(restored, owner, 0), true);
 });
 
@@ -72,7 +72,7 @@ void test('model validation rejects empty enums and literal definitions without 
 });
 
 void test('enum uniqueness compares exact stored strings including empty values', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const status: DataType = project.createDataType({ name: 'Status', baseType: 'String' }).element;
   project.createLiteral(status.id, { name: 'Empty', literal: '' });
   const result: ProjectValidationResult = project.createLiteral(status.id, { name: 'AlsoEmpty', literal: '' }).validation;

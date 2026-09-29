@@ -23,12 +23,12 @@ export class RamenValidator {
     const documentErrors: readonly Diagnostic[] = this.validateDocuments(inputs);
     if (documentErrors.length > 0) return { valid: false, hasErrors: true, diagnostics: documentErrors };
 
-    const normalized: readonly Model[] = (inputs as readonly Model[]).map((input: Model): Model =>
+    const normalised: readonly Model[] = (inputs as readonly Model[]).map((input: Model): Model =>
       RamenModelFormat.toGeneric(input),
     );
     const result: ProjectValidationResult = this.models.validateModels(
       rootModelId,
-      normalized,
+      normalised,
       RamenAnnotations.relationSelections(inputs),
     );
     if (!result.valid) return result;

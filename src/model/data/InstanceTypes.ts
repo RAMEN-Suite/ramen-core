@@ -1,14 +1,14 @@
 import type { Attribute, Node, Relation, Id, Ref } from '../Types';
 import type { ResolvedElement } from '../graph/ProjectGraph';
 
-/** One modeled object containing only properties declared by its RAMEN model format node type. */
+/** One modelled object containing only properties declared by its RAMEN model format node type. */
 export interface ModelInstanceNode {
   readonly id: Id;
   readonly typeId: Ref;
   readonly properties: Readonly<Record<string, unknown>>;
 }
 
-/** One modeled connection between two instance nodes. */
+/** One modelled connection between two instance nodes. */
 export interface ModelInstanceRelation {
   readonly id: Id;
   readonly typeId: Ref;

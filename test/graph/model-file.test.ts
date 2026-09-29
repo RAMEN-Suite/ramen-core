@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeler, ModelFiles } from '../../dist/ramen-core/model/index.js';
+import { Modeller, ModelFiles } from '../../dist/ramen-core/model/index.js';
 import type { Attribute, Classifier, Model, ModelFile, Node, Owned } from '../../dist/ramen-core/model/index.js';
 import { model, node } from '../models.ts';
 
 void test('generic graph export stores inherited declarations once and resolves them after import', (): void => {
-  const base: Modeler = Modeler.create('Documents');
+  const base: Modeller = Modeller.create('Documents');
   const document: Node = base.createNode('Document').element;
   const title: Attribute = base.createAttribute(document, { name: 'title', typeId: 'String' }).element;
-  const project: Modeler = base.createNextLevel('Letters');
+  const project: Modeller = base.createNextLevel('Letters');
   const letter: Node = project.createNode({ name: 'Letter', refines: document }).element;
   const file: ModelFile = project.export();
-  const restored: Modeler = Modeler.import(JSON.parse(JSON.stringify(file)) as unknown);
+  const restored: Modeller = Modeller.import(JSON.parse(JSON.stringify(file)) as unknown);
   const declaration: Owned<Classifier> | undefined = file.classifiers.find(
     (item: Owned<Classifier>): boolean => item.id === letter.id,
   );
@@ -41,7 +41,7 @@ void test('equal local identifiers in different models stay distinct during merg
 });
 
 void test('import rejects unknown owners, duplicate headers and identities, absent context and extra models', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   project.createNode('Document');
   const file: ModelFile = project.export();
   const first: Owned<Classifier> | undefined = file.classifiers[0];
@@ -56,13 +56,13 @@ void test('import rejects unknown owners, duplicate headers and identities, abse
     { ...file, origin: {} },
     { ...file, classifiers: [{ ...first, modelId: 1 }] },
   ];
-  for (const input of cases) assert.throws((): Modeler => Modeler.import(input));
+  for (const input of cases) assert.throws((): Modeller => Modeller.import(input));
 });
 
 void test('graph import checks inheritance cycles, dependency versions and detached snapshots', (): void => {
-  const base: Modeler = Modeler.create('Documents');
+  const base: Modeller = Modeller.create('Documents');
   const document: Node = base.createNode('Document').element;
-  const project: Modeler = base.createNextLevel('Letters');
+  const project: Modeller = base.createNextLevel('Letters');
   project.createNode({ name: 'Letter', refines: document });
   const file: ModelFile = project.export();
   const broken: ModelFile = {
@@ -71,15 +71,15 @@ void test('graph import checks inheritance cycles, dependency versions and detac
       item.kind === 'Node' ? { ...item, superTypes: [item.id] } : item,
     ),
   };
-  assert.throws((): Modeler => Modeler.import(broken), /Invalid model file/);
+  assert.throws((): Modeller => Modeller.import(broken), /Invalid model file/);
   const changed: ModelFile = {
     ...file,
     models: file.models.map((item: ModelFile['models'][number]): ModelFile['models'][number] =>
       item.id === base.getModel().id ? { ...item, version: '9.0.0' } : item,
     ),
   };
-  assert.throws((): Modeler => Modeler.import(changed), /Invalid model file/);
-  const restored: Modeler = Modeler.import(file);
+  assert.throws((): Modeller => Modeller.import(changed), /Invalid model file/);
+  const restored: Modeller = Modeller.import(file);
   assert.throws((): unknown => restored.createAttribute(document.id, { name: 'invalid', typeId: 'String' }));
   assert.deepEqual(project.export(), file);
 });

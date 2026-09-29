@@ -2,13 +2,13 @@
  * Generic model creation, refinement and validation.
  * Import from `@ramen-suite/core/model`.
  *
- * Start with {@link Modeler}. It keeps model dependencies and provides editing,
+ * Start with {@link Modeller}. It keeps model dependencies and provides editing,
  * suggestions, validation and exchange in one API.
  * {@link Model}, {@link Node}, {@link Attribute} and {@link Relation} describe the stored definitions.
  *
  * | Task | Entry point |
  * | --- | --- |
- * | Create and refine models | {@link Modeler} |
+ * | Create and refine models | {@link Modeller} |
  * | Choose a built-in data type | {@link DataTypes} |
  * | Request available nodes, properties and relations | {@link ModelAdvisor} |
  * | Validate existing model definitions | {@link ModelValidator} |
@@ -42,7 +42,7 @@ export * from './validation/Codes';
 export * from './graph/RelationScope';
 export * from './Advisor';
 export * from './editing/Connections';
-export * from './Modeler';
+export * from './Modeller';
 export type {
   ModelInput,
   ElementRef,

@@ -160,7 +160,7 @@ export class RamenAnnotationRules {
       const bound: Bounds | undefined = this.targetBounds(relation, requirement.direction);
       return bound ? [bound] : [];
     });
-    const modeledBounds: Bounds = {
+    const modelledBounds: Bounds = {
       lowerBound: bounds.reduce((sum: number, value: Bounds): number => sum + value.lowerBound, 0),
       upperBound: bounds.some((value: Bounds): boolean => value.upperBound === -1)
         ? -1
@@ -168,7 +168,7 @@ export class RamenAnnotationRules {
     };
     const duplicate: boolean = this.overlaps(graph, resolved.modelId, requirement, seen);
     const path: DiagnosticPath = this.path(resolved.modelId, resolved.annotation.id).property('relations');
-    this.validateRelationShape(resolved, requirement, relations[0], modeledBounds, validEndpoint, duplicate, path, diagnostics);
+    this.validateRelationShape(resolved, requirement, relations[0], modelledBounds, validEndpoint, duplicate, path, diagnostics);
   }
 
   private overlaps(graph: ProjectGraph, modelId: Id, requirement: AnnotationRelation, seen: RelationIndex): boolean {
@@ -197,7 +197,7 @@ export class RamenAnnotationRules {
     resolved: ResolvedAnnotation,
     requirement: AnnotationRelation,
     relation: ResolvedElement<Relation> | undefined,
-    modeledBounds: Bounds | undefined,
+    modelledBounds: Bounds | undefined,
     validEndpoint: boolean,
     duplicate: boolean,
     path: DiagnosticPath,
@@ -211,11 +211,11 @@ export class RamenAnnotationRules {
         path,
         resolved.annotation.id,
       );
-    } else if (!modeledBounds || !this.narrows(requirement.bounds, modeledBounds)) {
+    } else if (!modelledBounds || !this.narrows(requirement.bounds, modelledBounds)) {
       this.error(
         diagnostics,
         RAMEN_VALIDATION_ERROR.ANNOTATION_BOUNDS_INVALID,
-        `Annotation relation '${relation.element.name}' must narrow its modeled target bounds.`,
+        `Annotation relation '${relation.element.name}' must narrow its modelled target bounds.`,
         path,
         resolved.annotation.id,
       );
@@ -270,8 +270,8 @@ export class RamenAnnotationRules {
     return undefined;
   }
 
-  private narrows(actual: Bounds, modeled: Bounds): boolean {
-    return Cardinality.isModelBoundsCompatible(modeled, actual);
+  private narrows(actual: Bounds, modelled: Bounds): boolean {
+    return Cardinality.isModelBoundsCompatible(modelled, actual);
   }
 
   private path(modelId: Id, annotationId: Id): DiagnosticPath {

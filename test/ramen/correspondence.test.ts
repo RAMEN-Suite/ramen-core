@@ -45,7 +45,7 @@ void test('suggests all attachable annotations for Text and Person', (): void =>
   assert.deepEqual(person, expected);
 });
 
-void test('suggests the modeled attachment and target relations of persName', (): void => {
+void test('suggests the modelled attachment and target relations of persName', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const advisor: RamenAdvisor = fixture.project.getAdvisor();
 
@@ -141,7 +141,7 @@ void test('retains annotation semantics through an arbitrary third project level
   assert.equal(edition.getModels().length, 4);
 });
 
-void test('serializes three model levels and validates data after importing the file', (): void => {
+void test('serialises three model levels and validates data after importing the file', (): void => {
   const base: CorrespondenceFixture = createCorrespondenceFixture();
   const scholarly: ScholarlyFixture = createScholarlyFixture(base);
   const edition: RamenModel = scholarly.project.createNextLevel({
@@ -156,8 +156,8 @@ void test('serializes three model levels and validates data after importing the 
   }).element;
   const exported: RamenFile = edition.export();
 
-  const serialized: string = JSON.stringify(exported);
-  const parsed: unknown = JSON.parse(serialized);
+  const serialised: string = JSON.stringify(exported);
+  const parsed: unknown = JSON.parse(serialised);
   const restored: RamenModel = RamenModel.import(parsed);
   const data: ModelInstanceGraph = editionAnnotationData(restored.getModel().id, annotation.id);
   const valid: ValidationResult = restored.validateInstances(data);

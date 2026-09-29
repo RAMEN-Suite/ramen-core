@@ -109,7 +109,7 @@ function createRefinedNodes(project: RamenModel, base: CorrespondenceFixture): C
     witness: createNode(project, 'PhysicalWitness', base.nodes.witness.id),
     person: createNode(project, 'HistoricalPerson', base.nodes.person.id),
     place: createNode(project, 'HistoricalPlace', base.nodes.place.id),
-    text: createNode(project, 'NormalizedText', base.nodes.text.id),
+    text: createNode(project, 'NormalisedText', base.nodes.text.id),
     annotation: createNode(project, 'ScholarlyAnnotation', base.nodes.annotation.id),
   };
 }

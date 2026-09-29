@@ -27,7 +27,7 @@ export interface AnnotationSuggestion {
   readonly type: string;
 }
 
-/** Adds RAMEN annotation suggestions to the generic modeling advisor. */
+/** Adds RAMEN annotation suggestions to the generic modelling advisor. */
 export class RamenAdvisor extends ModelAdvisor {
   private readonly annotations: AnnotationIndex;
   private readonly annotationAdvisor: AnnotationAdvisor;
@@ -61,7 +61,7 @@ export class RamenAdvisor extends ModelAdvisor {
       .sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number => left.type.localeCompare(right.type));
   }
 
-  /** Lists effective annotation variants attachable to one local or imported node through modeled relations. */
+  /** Lists effective annotation variants attachable to one local or imported node through modelled relations. */
   public suggestAnnotationsForNode(modelId: Id, nodeId: Id, annotationNodeId?: Ref): readonly AnnotationSuggestion[] {
     const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
@@ -117,7 +117,7 @@ export class RamenAdvisor extends ModelAdvisor {
     return this.annotationAdvisor.suggestOptions(modelId, annotationNodeId);
   }
 
-  /** Lists the modeled relations permitted by one effective annotation type. */
+  /** Lists the modelled relations permitted by one effective annotation type. */
   public getRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly RelationOption[] {
     return this.annotationAdvisor.getTypeInfo(modelId, annotationNodeId, type)?.relations ?? [];
   }

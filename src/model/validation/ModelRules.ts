@@ -108,7 +108,7 @@ export class ModelRules {
 
   private validateLiteralUniqueness(literals: readonly Literal[], path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     const names: Set<string> = new Set<string>();
-    const serialized: Set<string> = new Set<string>();
+    const serialised: Set<string> = new Set<string>();
     const values: Set<number> = new Set<number>();
 
     literals.forEach((literal: Literal, index: number): void => {
@@ -122,11 +122,11 @@ export class ModelRules {
       );
 
       const hasExplicitLiteral: boolean = literal.literal !== undefined;
-      const serializedValue: string = literal.literal ?? literal.name;
+      const serialisedValue: string = literal.literal ?? literal.name;
 
       this.registerLiteralValue(
-        serialized,
-        serializedValue,
+        serialised,
+        serialisedValue,
         'DATATYPE_LITERAL_SERIALIZED_DUPLICATE',
         literalPath.property(hasExplicitLiteral ? 'literal' : 'name'),
         diagnostics,

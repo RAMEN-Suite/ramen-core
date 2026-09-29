@@ -59,7 +59,7 @@
       "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it."
     }
   },
-  "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modeling rather than full behavioral or reflective semantics.",
+  "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modelling rather than full behavioural or reflective semantics.",
   "$defs": {
     "Id": {
       "type": "string",

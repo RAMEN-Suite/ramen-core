@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  Modeler,
+  Modeller,
   RamenModel,
   RAMEN_MODEL,
   DiagnosticPath,
@@ -79,7 +79,7 @@ void test('validates closed properties, values, arrays, and constraints', (): vo
   assert.ok(codes.includes('CONSTRAINT_REGEX_MISMATCH'));
 });
 
-void test('rejects undeclared fields outside the modeled properties object', (): void => {
+void test('rejects undeclared fields outside the modelled properties object', (): void => {
   const input: unknown = {
     modelId: MODEL_ID,
     nodes: [
@@ -125,7 +125,7 @@ void test('validates relation endpoint types and required cardinalities', (): vo
   assert.ok(codes.includes('INSTANCE_CARDINALITY_INVALID'));
 });
 
-void test('validates a modeled Date datatype as a constrained String', (): void => {
+void test('validates a modelled Date datatype as a constrained String', (): void => {
   const schema: Model = model('dateModel0000001');
   schema.classifiers.push(
     {
@@ -209,10 +209,10 @@ function registerPlaceLinkRule(registry: ConstraintRegistry, rule: Constraint): 
 }
 
 void test('data cannot select an ancestor or unknown model to bypass the chosen context', (): void => {
-  const base: Modeler = Modeler.create('Documents');
-  const project: Modeler = base.createNextLevel('Edition');
+  const base: Modeller = Modeller.create('Documents');
+  const project: Modeller = base.createNextLevel('Edition');
   const ramen: RamenModel = RamenModel.create('Correspondence');
-  const cases: readonly [Modeler | RamenModel, string][] = [
+  const cases: readonly [Modeller | RamenModel, string][] = [
     [project, base.getModel().id],
     [project, 'missingModel0001'],
     [ramen, RAMEN_MODEL.id],
@@ -236,7 +236,7 @@ void test('diagnostic paths escape slashes and tildes in data property names', (
 });
 
 void test('optional properties named like Object members are absent unless declared in the data', (): void => {
-  const project: Modeler = Modeler.create('Documents');
+  const project: Modeller = Modeller.create('Documents');
   const document: Node = project.createNode('Document').element;
   project.createAttribute(document, { name: 'toString', typeId: 'String' });
   const input: ModelInstanceGraph = {

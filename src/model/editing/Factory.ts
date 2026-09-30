@@ -41,6 +41,7 @@ export interface CreateAttributeInput {
   readonly isReadOnly?: boolean;
   readonly isUnique?: boolean;
   readonly isOrdered?: boolean;
+  readonly constraints?: readonly Constraint[];
 }
 
 /** Values needed to create a relation that refines a base relation. */
@@ -120,7 +121,7 @@ export class ModelFactory {
       isReadOnly: input.isReadOnly ?? false,
       isUnique: input.isUnique ?? true,
       isOrdered: input.isOrdered ?? true,
-      constraints: [],
+      constraints: structuredClone([...(input.constraints ?? [])]),
       ext: {},
     };
   }

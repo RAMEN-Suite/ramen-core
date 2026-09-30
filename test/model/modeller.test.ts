@@ -385,3 +385,28 @@ void test('object endpoints take precedence over qualified ancestor IDs during r
   assert.equal(result.element.to.nodeId, section.id);
   assert.equal(result.validation.valid, true);
 });
+
+void test('createAttribute accepts value constraints and detaches caller input', (): void => {
+  const model: Modeller = Modeller.create('Documents');
+  const document: Node = model.createNode('Document').element;
+  const rule: Constraint = {
+    id: 'capitalTitleRule01',
+    name: 'Capitalised title',
+    language: 'regex',
+    expression: '^[A-Z]',
+  };
+  const attribute: Attribute = model.createAttribute(document, {
+    name: 'title',
+    typeId: DataTypes.String,
+    constraints: [rule],
+  }).element;
+  rule.expression = '.*';
+
+  const data: ModelInstanceGraph = {
+    modelId: model.getModel().id,
+    nodes: [{ id: 'documentRecord001', typeId: document.id, properties: { title: 'lowercase' } }],
+    relations: [],
+  };
+  assert.equal(attribute.constraints?.[0]?.expression, '^[A-Z]');
+  assert.equal(model.validateInstances(data).diagnostics[0]?.code, 'CONSTRAINT_REGEX_MISMATCH');
+});

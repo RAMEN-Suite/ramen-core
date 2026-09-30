@@ -29,6 +29,9 @@
     "build:types": "tsc -p tsconfig.json",
     "clean": "node scripts/clean.mjs",
     "clean:core": "node scripts/clean.mjs core",
+    "docs:build": "typedoc",
+    "docs:serve": "npm run docs:build && concurrently --kill-others --names docs,server \"npm run docs:watch\" \"http-server dist/api-doc -a 127.0.0.1 -p 5173 -c-1\"",
+    "docs:watch": "typedoc --watch --preserveWatchOutput",
     "examples:check": "tsc -p tsconfig.examples.json --noEmit && node scripts/check-examples.mjs",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
@@ -43,7 +46,7 @@
     "test:watch": "npm run typecheck:tests && node --experimental-strip-types --test --watch test/**/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
-    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run examples:check && npm test && npm run package:check"
+    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run examples:check && npm test && npm run docs:build && npm run package:check"
   },
   "dependencies": {
     "json-schema-library": "^11.0.4",
@@ -54,11 +57,14 @@
     "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.2",
+    "concurrently": "^10.0.5",
     "esbuild": "^0.25.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
+    "http-server": "^14.1.1",
     "husky": "^9.1.7",
     "prettier": "^3.9.6",
+    "typedoc": "^0.28.20",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.67.0"
   },

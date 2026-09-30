@@ -1,0 +1,19 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/model/index.ts", "src/ramen/index.ts"],
+  "tsconfig": "tsconfig.json",
+  "out": "dist/api-doc",
+  "name": "RAMEN Core",
+  "readme": "docs/rmf.md",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "disableSources": true,
+  "projectDocuments": ["docs/rmf.md", "docs/suggestions.md", "docs/constraints.md", "docs/validation.md", "docs/diagnostics.md"],
+  "sortEntryPoints": false,
+  "groupOrder": ["Guides", "Modules", "*"],
+  "navigation": {
+    "includeGroups": true
+  },
+  "customCss": "docs/style.css"
+}

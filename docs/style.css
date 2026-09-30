@@ -1,0 +1,216 @@
+:root {
+  --dim-toolbar-contents-height: 3.5rem;
+  --light-color-background: #fafafa;
+  --light-color-background-secondary: #f4f4f5;
+  --light-color-background-active: #f6ebec;
+  --light-color-active-menu-item: #f6ebec;
+  --light-color-accent: #e4e4e7;
+  --light-color-text: #18181b;
+  --light-color-text-aside: #71717a;
+  --light-color-link: #7a0712;
+  --light-color-focus-outline: #7a0712;
+  --dark-color-background: #21222c;
+  --dark-color-background-secondary: #282a36;
+  --dark-color-background-active: #38282f;
+  --dark-color-active-menu-item: #38282f;
+  --dark-color-accent: #44475a;
+  --dark-color-text: #f8f8f2;
+  --dark-color-text-aside: #b8b8c1;
+  --dark-color-link: #f09095;
+  --dark-color-focus-outline: #f09095;
+  --rmf-surface: #ffffff;
+  --rmf-shadow: 0 6px 24px rgb(0 0 0 / 5%);
+}
+
+:root[data-theme='dark'] {
+  --rmf-surface: #282a36;
+  --rmf-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --rmf-surface: #282a36;
+    --rmf-shadow: none;
+  }
+}
+
+.tsd-typography {
+  line-height: 1.75;
+}
+
+.tsd-typography a:not(.tsd-anchor-icon) {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.tsd-typography h1,
+.tsd-page-title h1 {
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+
+.tsd-typography h2 {
+  margin-top: 2.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--color-accent);
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.tsd-typography h1 + h2 {
+  margin-top: 2.5rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.tsd-typography h3 {
+  margin-top: 4rem;
+  margin-bottom: 0.5rem;
+}
+
+.tsd-typography h3 + p {
+  margin-top: 0;
+}
+
+.tsd-typography p,
+.tsd-typography ul,
+.tsd-typography ol {
+  margin-bottom: 1.25rem;
+}
+
+.tsd-typography li + li {
+  margin-top: 0.35rem;
+}
+
+.tsd-typography pre,
+.tsd-signature {
+  background: var(--color-background-secondary);
+  padding: 1.25rem;
+  border: 1px solid var(--color-accent);
+  border-radius: 12px;
+  line-height: 1.6;
+}
+
+.tsd-typography pre code {
+  background: transparent;
+}
+
+.tsd-typography table {
+  width: 100%;
+  margin: 1.25rem 0 1.75rem;
+  border: 1px solid var(--color-accent);
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 12px;
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.tsd-typography th,
+.tsd-typography td {
+  padding: 0.875rem 1rem;
+  border: 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tsd-typography th {
+  background: var(--color-background-secondary);
+  font-weight: 600;
+}
+
+.tsd-typography th:first-child {
+  border-top-left-radius: 11px;
+}
+
+.tsd-typography th:last-child {
+  border-top-right-radius: 11px;
+}
+
+.tsd-typography td {
+  border-top: 1px solid var(--color-accent);
+}
+
+.tsd-typography tr:nth-child(even) {
+  background: transparent;
+}
+
+.tsd-navigation a,
+.tsd-page-navigation a,
+.tsd-navigation summary > span {
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+}
+
+.tsd-navigation a.current,
+.tsd-page-navigation a.current {
+  font-weight: 600;
+}
+
+a:focus-visible,
+summary:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-focus-outline);
+  outline-offset: 3px;
+}
+
+.site-menu {
+  font-size: 0.9rem;
+}
+
+.col-sidebar .tsd-accordion-summary h3 {
+  font-size: 1.05rem;
+}
+
+@media (min-width: 770px) {
+  .container-main {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+    column-gap: 1.5rem;
+  }
+
+  .col-content {
+    padding: 1.75rem 2rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 20px;
+    background: var(--rmf-surface);
+    box-shadow: var(--rmf-shadow);
+  }
+}
+
+@media (max-width: 769px) {
+  .col-content {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container-main {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr) 15rem;
+  }
+}
+
+.page-menu {
+  font-size: 0.85rem;
+}
+
+.page-menu .tsd-accordion-summary h3 {
+  font-size: 1rem;
+}
+
+.tsd-page-toolbar {
+  background: var(--rmf-surface);
+}
+
+.page-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-menu .settings {
+  order: 1;
+  margin-top: 1rem;
+}

@@ -1,1 +1,9 @@
-npx --no -- commitlint --edit "$1"
+branch="$(git branch --show-current)"
+case "$branch" in
+  dev | main)
+    npx --no -- commitlint --edit "$1"
+    ;;
+  *)
+    :
+    ;;
+esac

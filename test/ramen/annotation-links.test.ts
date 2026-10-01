@@ -37,7 +37,6 @@ function records(project: RamenModel, text: Node, target: Node, definition: Rame
   )?.relationId;
   assert.ok(incoming && outgoing);
   return {
-    modelId: project.getModel().id,
     nodes: [
       { id: 'textRecord000001', typeId: text.id, properties: { uuid: 'abac88bd-b3e3-418a-8afe-000000000001' } },
       {
@@ -63,7 +62,7 @@ void test('broad Entity selection reuses RAMEN and accepts entities added after 
   const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
   project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'entity',
     relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, RAMEN_ELEMENT.ENTITY),
   });
@@ -92,7 +91,7 @@ void test('Person and Place selections remain narrow and reuse existing endpoint
   project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
   const reference: Relation = project.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'person',
     relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, person),
   });
@@ -103,7 +102,7 @@ void test('Person and Place selections remain narrow and reuse existing endpoint
   assert.equal(project.validateInstances(records(project, text, place, created.element)).hasErrors, true);
   project.refersTo(RAMEN_ELEMENT.ANNOTATION, place);
   const placeType: RamenChange<RamenAnnotation> = project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'place',
     relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, place),
   });
@@ -121,7 +120,7 @@ void test('refined Annotation nodes support broad targets and annotation updates
   project.hasAnnotation(text, annotation);
   project.refersTo(annotation, person);
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
-    annotationId: annotation,
+    node: annotation,
     type: 'entity',
     relations: links(project, annotation, text, person),
   });
@@ -145,7 +144,7 @@ void test('endpoint selection cannot reopen broad Entity relationships excluded 
   const before: RamenModelDocument = next.getModel();
   assert.throws((): void => {
     next.createAnnotation({
-      annotationId: RAMEN_ELEMENT.ANNOTATION,
+      nodeId: RAMEN_ELEMENT.ANNOTATION,
       type: 'entity',
       relations: [{ to: RAMEN_ELEMENT.ENTITY, bounds: { lowerBound: 1, upperBound: 1 } }],
     });
@@ -153,7 +152,7 @@ void test('endpoint selection cannot reopen broad Entity relationships excluded 
   assert.deepEqual(next.getModel(), before);
   assert.equal(next.validate().valid, true);
   const narrowed: RamenChange<RamenAnnotation> = next.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'person',
     relations: links(next, RAMEN_ELEMENT.ANNOTATION, refinedText, person),
   });
@@ -167,7 +166,7 @@ void test('unknown endpoints and malformed bounds leave the model unchanged', ()
   const before: RamenModelDocument = project.getModel();
   assert.throws((): void => {
     project.createAnnotation({
-      annotationId: RAMEN_ELEMENT.ANNOTATION,
+      nodeId: RAMEN_ELEMENT.ANNOTATION,
       type: 'note',
       relations: [{ to: 'unknownNode00001', bounds: ONE }],
     });
@@ -175,7 +174,7 @@ void test('unknown endpoints and malformed bounds leave the model unchanged', ()
   assert.deepEqual(project.getModel(), before);
   assert.throws((): void => {
     project.createAnnotation({
-      annotationId: RAMEN_ELEMENT.ANNOTATION,
+      nodeId: RAMEN_ELEMENT.ANNOTATION,
       type: 'note',
       relations: [{ from: text, bounds: { lowerBound: -1, upperBound: 1 } }],
     });
@@ -188,7 +187,7 @@ void test('an inherited broad annotation accepts future entities when each next 
   const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
   project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
   const created: RamenChange<RamenAnnotation> = project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'entity',
     relations: links(project, RAMEN_ELEMENT.ANNOTATION, text, RAMEN_ELEMENT.ENTITY),
   });
@@ -222,7 +221,7 @@ void test('ambiguous endpoint selections require an explicit reference rather th
   const before: RamenModelDocument = project.getModel();
   assert.throws((): void => {
     project.createAnnotation({
-      annotationId: RAMEN_ELEMENT.ANNOTATION,
+      nodeId: RAMEN_ELEMENT.ANNOTATION,
       type: 'entity',
       relations: [{ to: RAMEN_ELEMENT.ENTITY, bounds: ONE }],
     });
@@ -240,7 +239,7 @@ void test('stored connection selections are rechecked after edits and cannot be 
   const before: RamenModelDocument = project.getModel();
   assert.throws((): void => {
     project.createAnnotation({
-      annotationId: other,
+      node: other,
       type: 'person',
       relations: [{ connection, bounds: { lowerBound: 1, upperBound: 1 } }],
     });
@@ -250,7 +249,7 @@ void test('stored connection selections are rechecked after edits and cannot be 
   const removed: RamenModelDocument = project.getModel();
   assert.throws((): void => {
     project.createAnnotation({
-      annotationId: RAMEN_ELEMENT.ANNOTATION,
+      nodeId: RAMEN_ELEMENT.ANNOTATION,
       type: 'person',
       relations: [{ connection, bounds: { lowerBound: 1, upperBound: 1 } }],
     });

@@ -36,7 +36,7 @@ void test('declares and reuses annotation types without refining the imported An
     version: '1.0.0',
   });
   const text: Node = first.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
-  const note: RamenChange<RamenAnnotation> = first.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
+  const note: RamenChange<RamenAnnotation> = first.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
 
   assert.equal(note.validation.valid, true);
   assert.deepEqual(
@@ -58,7 +58,7 @@ void test('declares and reuses annotation types without refining the imported An
     version: '1.0.0',
   });
   const comment: RamenChange<RamenAnnotation> = second.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
   });
   const annotations: readonly string[] = second
@@ -73,7 +73,6 @@ void test('declares and reuses annotation types without refining the imported An
 
 function assertValidReusedAnnotation(model: RamenModel, type: string): void {
   const data: ModelInstanceGraph = {
-    modelId: model.getModel().id,
     nodes: [
       {
         id: 'annotationValue001',
@@ -114,12 +113,12 @@ void test('suggests different types for Text and Image sharing the imported Anno
   }).element;
 
   project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'emphasis',
     relations: [{ relationId: textAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
   project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'imageRegion',
     relations: [{ relationId: imageAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
@@ -163,12 +162,12 @@ void test('suggests types of separate TextAnnotation and ImageAnnotation nodes',
   const imageAttachment: Relation = project.hasAnnotation(image, imageAnnotation).element;
 
   project.createAnnotation({
-    annotationId: textAnnotation.id,
+    nodeId: textAnnotation.id,
     type: 'emphasis',
     relations: [{ relationId: textAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
   project.createAnnotation({
-    annotationId: imageAnnotation.id,
+    nodeId: imageAnnotation.id,
     type: 'imageRegion',
     relations: [{ relationId: imageAttachment.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
@@ -208,7 +207,7 @@ void test('inherits an annotation type unchanged while reusing the same imported
     version: '1.0.0',
   });
   const original: RamenChange<RamenAnnotation> = first.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'entityLink',
     relations: [
       { relationId: `${RAMEN_MODEL.id}:${reference.id}`, direction: 'outgoing', bounds: { lowerBound: 0, upperBound: -1 } },
@@ -232,7 +231,7 @@ void test('rejects redeclaration of an inherited annotation type', (): void => {
     name: 'Base type',
     version: '1.0.0',
   });
-  first.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
+  first.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
 
   const second: RamenModel = first.createNextLevel({
     id: 'annotationRepeat01',
@@ -241,7 +240,7 @@ void test('rejects redeclaration of an inherited annotation type', (): void => {
     version: '1.0.0',
   });
   const replacement: RamenChange<RamenAnnotation> = second.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'note',
   });
 
@@ -267,21 +266,20 @@ void test('uses an imported Annotation node and relation in project data', (): v
   });
   const text: Node = model.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
   const definition: RamenChange<RamenAnnotation> = model.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'note',
     relations: [
       { relationId: `${RAMEN_MODEL.id}:${relation.id}`, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } },
     ],
   });
-  const data: ModelInstanceGraph = linkedAnnotationData(model.getModel().id, text.id, relation.id);
+  const data: ModelInstanceGraph = linkedAnnotationData(text.id, relation.id);
 
   assert.equal(definition.validation.valid, true);
   assert.deepEqual(model.validateInstances(data).diagnostics, []);
 });
 
-function linkedAnnotationData(modelId: string, textTypeId: string, relationTypeId: string): ModelInstanceGraph {
+function linkedAnnotationData(textTypeId: string, relationTypeId: string): ModelInstanceGraph {
   return {
-    modelId: modelId,
     nodes: [
       { id: 'textObject000001', typeId: textTypeId, properties: { uuid: 'abac88bd-b3e3-418a-8afe-6ac14409b9a1' } },
       {
@@ -450,7 +448,7 @@ function personAnnotationGraph(fixture: CorrespondenceFixture): ModelInstanceGra
 void test('rejects duplicate types on the same node and on a refined node', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const duplicate: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
-    annotationId: fixture.nodes.annotation.id,
+    nodeId: fixture.nodes.annotation.id,
     type: 'persName',
   });
 
@@ -470,7 +468,7 @@ void test('rejects duplicate types on the same node and on a refined node', (): 
     name: 'DetailedAnnotation',
     refines: { modelId: fixture.model.id, elementId: fixture.nodes.annotation.id },
   }).element.id;
-  const replacement: RamenChange<RamenAnnotation> = child.createAnnotation({ annotationId: annotationId, type: 'persName' });
+  const replacement: RamenChange<RamenAnnotation> = child.createAnnotation({ nodeId: annotationId, type: 'persName' });
 
   assert.ok(
     replacement.validation.diagnostics.some(
@@ -495,7 +493,6 @@ function annotationGraph(
   extra: Readonly<Record<string, unknown>>,
 ): ModelInstanceGraph {
   return {
-    modelId: fixture.model.id,
     nodes: [
       {
         id: 'annotationInstance01',

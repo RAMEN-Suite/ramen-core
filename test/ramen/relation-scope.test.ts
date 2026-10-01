@@ -75,7 +75,6 @@ void test('data cannot use an ancestor relation without selecting it at the curr
   const relation: Relation = first.partOf(node, node).element;
   const second: RamenModel = next(first, 'scopeData010000000');
   const data: ModelInstanceGraph = {
-    modelId: second.getModel().id,
     nodes: [{ id: 'scopeRecord0100000', typeId: `${first.getModel().id}:${node.id}`, properties: {} }],
     relations: [
       {
@@ -101,7 +100,7 @@ void test('model edits refresh suggestions while previous advisors keep their or
   const link: Relation = first.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
   const before: RamenAdvisor = first.getAdvisor();
   first.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
     relations: [{ relationId: link.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
@@ -139,7 +138,7 @@ void test('connect preserves the model qualifier when consecutive levels reuse a
   const third: RamenModel = next(second, 'scopeSharedId0002');
   const selected: RelationSuggestion | undefined = third.suggestRelations(witness, letter)[0];
   assert.ok(selected);
-  const link: Relation = third.connect(witness, letter, selected.ref).element;
+  const link: Relation = third.createRelation({ fromNode: witness, toNode: letter, refines: selected.ref }).element;
   assert.deepEqual(link.superTypes, [`${document.id}:${original.id}`]);
   assert.deepEqual(third.partOf(witness, letter).element.superTypes, link.superTypes);
   assert.equal(third.validate().valid, true);

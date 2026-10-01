@@ -38,12 +38,12 @@ function media(refined: boolean): Media {
     bounds: { lowerBound: 1, upperBound: 1 },
   });
   project.createAnnotation({
-    annotationId: owner,
+    nodeId: owner,
     type: 'caption',
     relations: [{ relationId: textLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
   project.createAnnotation({
-    annotationId: owner,
+    nodeId: owner,
     type: 'region',
     properties: [width],
     relations: [{ relationId: imageLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -130,7 +130,7 @@ void test('editing a shared declaration changes exactly its original model after
 void test('alternative carriers retain one shared cardinality rule through import', (): void => {
   const fixture: Media = media(false);
   fixture.project.createAnnotation({
-    annotationId: fixture.owner,
+    nodeId: fixture.owner,
     type: 'comment',
     relations: [
       {
@@ -169,7 +169,6 @@ void test('file readers return detached annotation properties and preserve data 
   const values: readonly unknown[] = [5, 'wide', undefined];
   for (const width of values) {
     const data: ModelInstanceGraph = {
-      modelId: fixture.project.getModel().id,
       nodes: [
         {
           id: 'annotationData01',

@@ -39,8 +39,22 @@ void test('publishes the RAMEN reference model and its reusable scalar types', (
     .filter((classifier: Classifier): boolean => classifier.kind === 'DataType')
     .map((classifier: Classifier): string => classifier.name);
 
-  assert.deepEqual(names, ['UUID', 'Date', 'DateTime', 'URI', 'Email']);
+  assert.deepEqual(names, ['UUID', 'Date', 'DateTime', 'URI', 'Email', 'Selector']);
   assert.equal(RAMEN_MODEL.$id, RAMEN_MODEL_URI);
+
+  const selector: Classifier | undefined = RAMEN_MODEL.classifiers.find(
+    (classifier: Classifier): boolean => classifier.id === RAMEN_ELEMENT.SELECTOR,
+  );
+  const annotation: Classifier | undefined = RAMEN_MODEL.classifiers.find(
+    (classifier: Classifier): boolean => classifier.id === RAMEN_ELEMENT.ANNOTATION,
+  );
+
+  assert.equal(selector?.kind, 'DataType');
+  if (selector?.kind !== 'DataType') return;
+  assert.equal(selector.baseType, 'Object');
+  assert.equal(annotation?.kind, 'Node');
+  if (annotation?.kind !== 'Node') return;
+  assert.equal(annotation.attributes.find((attribute: Attribute): boolean => attribute.name === 'selector')?.typeId, selector.id);
 });
 
 void test('publishes a schema for RAMEN annotation definitions', (): void => {
@@ -100,7 +114,7 @@ void test('keeps first-class annotations when a project is exported and split', 
     refines: RAMEN_ELEMENT.ANNOTATION,
   }).element;
 
-  project.createAnnotation({ annotationId: annotation.id, type: 'date' });
+  project.createAnnotation({ nodeId: annotation.id, type: 'date' });
   const model: RamenModelDocument = project.getModel();
   const result: RamenFile = RamenFiles.write(model.id, [model, RAMEN_MODEL]);
 

@@ -13,6 +13,7 @@ export interface PropertyOption {
   readonly attributeId: Id;
   readonly ref: Ref;
   readonly name: string;
+  readonly typeId: Ref;
   readonly modelledBounds: Bounds;
   readonly suggestedBounds: Bounds;
   /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
@@ -88,6 +89,7 @@ export class AnnotationAdvisor {
         attributeId: attribute.id,
         ref: modelId === contextModelId ? attribute.id : ModelRef.qualify(modelId, attribute.id),
         name: attribute.name,
+        typeId: attribute.typeId,
         modelledBounds: { ...attribute.bounds },
         suggestedBounds: { ...attribute.bounds },
         cardinalityOptions: this.cardinalityOptions(attribute.bounds),
@@ -109,6 +111,7 @@ export class AnnotationAdvisor {
           attributeId: attribute.id,
           ref: owner.modelId === contextModelId ? attribute.id : ModelRef.qualify(owner.modelId, attribute.id),
           name: attribute.name,
+          typeId: attribute.typeId,
           modelledBounds: { ...attribute.bounds },
           suggestedBounds: { ...attribute.bounds },
           cardinalityOptions: this.cardinalityOptions(attribute.bounds),

@@ -14,6 +14,7 @@ export const RAMEN_ELEMENT: Readonly<{
   DATE_TIME: string;
   URI: string;
   EMAIL: string;
+  SELECTOR: string;
   COLLECTION: string;
   ENTITY: string;
   CONTENT: string;
@@ -24,6 +25,7 @@ export const RAMEN_ELEMENT: Readonly<{
   DATE_TIME: 'mXhHHuR4mQoDq31D',
   URI: 'T3YiJGOy7M7g1lTQ',
   EMAIL: 'DJRorIpghXJGAi41',
+  SELECTOR: 'selectorDataType01',
   COLLECTION: 'aP3xK8nV1qR6tY2uZ9wB',
   ENTITY: 'n7Vb2Qx0Lm9P3sT6yK1h',
   CONTENT: 'Z4kq1M8sV0bN2xR7pT6u',

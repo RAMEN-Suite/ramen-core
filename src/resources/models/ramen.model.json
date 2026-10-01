@@ -83,6 +83,12 @@
       ]
     },
     {
+      "kind": "DataType",
+      "id": "selectorDataType01",
+      "name": "Selector",
+      "baseType": "Object"
+    },
+    {
       "kind": "Node",
       "id": "aP3xK8nV1qR6tY2uZ9wB",
       "name": "Collection",
@@ -183,6 +189,15 @@
           },
           "constraints": [],
           "id": "474ec2797fdb07af"
+        },
+        {
+          "name": "selector",
+          "typeId": "selectorDataType01",
+          "bounds": {
+            "lowerBound": 0,
+            "upperBound": 1
+          },
+          "id": "annotationSelector01"
         }
       ]
     }
@@ -195,7 +210,6 @@
       "name": "PART_OF",
       "from": {
         "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
-        "role": "_collections",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -205,7 +219,6 @@
       },
       "to": {
         "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
-        "role": "_collectionOf",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -221,7 +234,6 @@
       "name": "PART_OF",
       "from": {
         "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
-        "role": "_content",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -231,7 +243,6 @@
       },
       "to": {
         "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
-        "role": "_collections",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -247,7 +258,6 @@
       "name": "HAS_ANNOTATION",
       "from": {
         "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
-        "role": "_annotatesCollections",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -257,7 +267,6 @@
       },
       "to": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_annotations",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -273,7 +282,6 @@
       "name": "HAS_ANNOTATION",
       "from": {
         "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
-        "role": "_annotatesContent",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -283,7 +291,6 @@
       },
       "to": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_annotations",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -299,7 +306,6 @@
       "name": "HAS_ANNOTATION",
       "from": {
         "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
-        "role": "_annotatesEntities",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -309,7 +315,6 @@
       },
       "to": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_annotations",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -325,7 +330,6 @@
       "name": "HAS_ANNOTATION",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_annotatesAnnotations",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -335,7 +339,6 @@
       },
       "to": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_annotations",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -351,7 +354,6 @@
       "name": "REFERS_TO",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_referredToBy",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -361,7 +363,6 @@
       },
       "to": {
         "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
-        "role": "_refersToCollections",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -377,7 +378,6 @@
       "name": "REFERS_TO",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_referredToBy",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -387,7 +387,6 @@
       },
       "to": {
         "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
-        "role": "_refersToContent",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -403,7 +402,6 @@
       "name": "REFERS_TO",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_referredToBy",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -413,7 +411,6 @@
       },
       "to": {
         "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
-        "role": "_refersToEntities",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -429,7 +426,6 @@
       "name": "REFERS_TO",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_referredToBy",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -439,7 +435,6 @@
       },
       "to": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "role": "_refersToAnnotations",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1

@@ -16,7 +16,6 @@ import type {
   Model,
   Node,
   Id,
-  ModelInstanceGraph,
   ModelInstanceNode,
   ModelInstanceRelation,
   ProjectValidationResult,
@@ -35,6 +34,7 @@ export const RAMEN_INSTANCE_ERROR: Readonly<{
   ANNOTATION_UNKNOWN: 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN';
   ANNOTATION_PROPERTY_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED';
   ANNOTATION_PROPERTY_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_CARDINALITY';
+  SELECTOR_TYPE_REQUIRED: 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED';
   ANNOTATION_RELATION_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED';
   ANNOTATION_RELATION_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY';
 }> = {
@@ -42,6 +42,7 @@ export const RAMEN_INSTANCE_ERROR: Readonly<{
   ANNOTATION_UNKNOWN: 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN',
   ANNOTATION_PROPERTY_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED',
   ANNOTATION_PROPERTY_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_CARDINALITY',
+  SELECTOR_TYPE_REQUIRED: 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED',
   ANNOTATION_RELATION_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED',
   ANNOTATION_RELATION_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY',
 } as const;
@@ -68,12 +69,12 @@ export class RamenInstanceValidator {
       attributes: (type: ResolvedElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
         this.effectiveAttributes(project.graph, annotations, rootModelId, type, node),
     });
-    if (!InstanceSchemaValidator.isValid(input) || input.modelId !== rootModelId) return base;
+    if (!InstanceSchemaValidator.isValid(input)) return base;
     const diagnostics: Diagnostic[] = [...base.diagnostics];
     const connections: ReadonlyMap<Id, readonly ModelInstanceRelation[]> = this.indexRelations(input.relations);
     input.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       const connected: readonly ModelInstanceRelation[] = connections.get(node.id) ?? [];
-      this.validateAnnotationNode(project.graph, annotations, input, node, index, connected, diagnostics);
+      this.validateAnnotationNode(project.graph, annotations, rootModelId, node, index, connected, diagnostics);
     });
 
     return {
@@ -116,16 +117,18 @@ export class RamenInstanceValidator {
   private validateAnnotationNode(
     graph: ProjectGraph,
     annotations: AnnotationIndex,
-    instance: ModelInstanceGraph,
+    modelId: Id,
     node: ModelInstanceNode,
     index: number,
     connected: readonly ModelInstanceRelation[],
     diagnostics: Diagnostic[],
   ): void {
-    const resolved: ResolvedElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
+    const resolved: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, node.typeId);
     if (!resolved || !annotations.isAnnotationNode(resolved.modelId, resolved.element.id)) return;
     const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
     const type: unknown = node.properties.type;
+
+    this.validateSelector(node, path, diagnostics);
 
     if (typeof type !== 'string') {
       this.error(
@@ -138,7 +141,7 @@ export class RamenInstanceValidator {
 
       return;
     }
-    const selected: ResolvedAnnotation | undefined = annotations.findEffective(instance.modelId, node.typeId, type);
+    const selected: ResolvedAnnotation | undefined = annotations.findEffective(modelId, node.typeId, type);
     if (!selected) {
       this.error(
         diagnostics,
@@ -151,7 +154,22 @@ export class RamenInstanceValidator {
       return;
     }
     this.validateProperties(graph, resolved, selected, node, path, diagnostics);
-    this.validateRelations(graph, selected, instance.modelId, node, path, connected, diagnostics);
+    this.validateRelations(graph, selected, modelId, node, path, connected, diagnostics);
+  }
+
+  private validateSelector(node: ModelInstanceNode, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+    const selector: unknown = node.properties.selector;
+    if (selector === undefined || selector === null || typeof selector !== 'object' || Array.isArray(selector)) return;
+    const type: unknown = (selector as Record<string, unknown>).type;
+    if (typeof type === 'string' && type.trim().length > 0) return;
+
+    this.error(
+      diagnostics,
+      RAMEN_INSTANCE_ERROR.SELECTOR_TYPE_REQUIRED,
+      'Annotation selector must declare a non-empty type.',
+      path.property('properties').property('selector').property('type'),
+      node.id,
+    );
   }
 
   private validateProperties(

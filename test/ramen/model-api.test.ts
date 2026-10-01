@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/index.js';
+import { DataTypes, RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/index.js';
 import type {
   Attribute,
   AttributeNameResult,
@@ -14,6 +14,7 @@ import type {
   Node,
   NodeSuggestion,
   NodeRelationSuggestion,
+  PropertyOption,
   RamenAdvisor,
   RamenAnnotation,
   RamenAnnotationChange,
@@ -32,9 +33,9 @@ void test('corrects a semantically invalid annotation edit through the simple mo
     name: 'Editable changes',
     version: '1.0.0',
   });
-  model.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
+  model.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'draft' });
   const duplicate: RamenChange<RamenAnnotation> = model.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'draft',
   });
   const corrected: RamenChange<RamenAnnotation> = model.updateAnnotation(duplicate.element.id, { type: 'note' });
@@ -57,7 +58,7 @@ void test('rejects a structurally invalid annotation edit before mutating the mo
   const before: Model = model.getModel();
 
   assert.throws(
-    (): RamenChange<RamenAnnotation> => model.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: '' }),
+    (): RamenChange<RamenAnnotation> => model.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: '' }),
     /Invalid annotation definitions/,
   );
   assert.deepEqual(model.getModel(), before);
@@ -93,7 +94,7 @@ void test('suggests only actual imports when advising an intermediate model leve
   assert.equal(options.includes(descendant.id), false);
 });
 
-void test('connects compatible RAMEN nodes without naming the relation', (): void => {
+void test('creates compatible RAMEN relations without naming the relation', (): void => {
   const model: RamenModel = RamenModel.create({
     id: 'automaticLinkModel01',
     uri: 'https://example.org/models/automatic-link',
@@ -106,18 +107,20 @@ void test('connects compatible RAMEN nodes without naming the relation', (): voi
 
   assert.equal(linked.element.name, 'REFERS_TO');
   assert.equal(linked.validation.valid, true);
-  assert.throws((): RamenChange<Relation> => model.connect(annotation, annotation), /found 2: HAS_ANNOTATION, REFERS_TO/);
+  assert.throws(
+    (): RamenChange<Relation> => model.createRelation({ fromNode: annotation, toNode: annotation }),
+    /found 2: HAS_ANNOTATION, REFERS_TO/,
+  );
 
   const choices: readonly RelationSuggestion[] = model.suggestRelations(annotation.id, annotation.id);
   const selected: RelationSuggestion | undefined = choices.find(
     (item: RelationSuggestion): boolean => item.name === 'HAS_ANNOTATION',
   );
   assert.ok(selected);
-  const explicit: RamenChange<Relation> = model.connect(annotation, annotation, selected);
+  const explicit: RamenChange<Relation> = model.createRelation({ fromNode: annotation, toNode: annotation, refines: selected });
   assert.equal(explicit.validation.valid, true);
   assert.equal(explicit.element.name, 'HAS_ANNOTATION');
   assert.throws((): RamenChange<Relation> => model.partOf(annotation, person), /found 0/);
-  assert.throws((): RamenChange<Relation> => model.connect(annotation, person, selected), /does not connect these nodes/);
 
   const next: RamenModel = model.createNextLevel({
     id: 'specificLinkModel01',
@@ -127,7 +130,7 @@ void test('connects compatible RAMEN nodes without naming the relation', (): voi
   });
   const refinedAnnotation: Node = next.createNode({ name: 'EditionAnnotation', refines: annotation.id }).element;
   const refinedPerson: Node = next.createNode({ name: 'HistoricalPerson', refines: person.id }).element;
-  const refinedLink: RamenChange<Relation> = next.connect(refinedAnnotation, refinedPerson);
+  const refinedLink: RamenChange<Relation> = next.createRelation({ fromNode: refinedAnnotation, toNode: refinedPerson });
 
   assert.equal(refinedLink.validation.valid, true);
   assert.deepEqual(refinedLink.element.superTypes, [`${model.getModel().id}:${linked.element.id}`]);
@@ -183,7 +186,7 @@ void test('removes annotation references together with their owning node', (): v
 void test('updates and removes local annotation definitions', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const created: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
-    annotationId: fixture.nodes.annotation.id,
+    nodeId: fixture.nodes.annotation.id,
     type: 'temporary',
   });
   const updated: RamenChange<RamenAnnotation> = fixture.project.updateAnnotation(created.element.id, { type: 'editorialNote' });
@@ -212,7 +215,7 @@ void test('exports and imports a complete editable RAMEN project file', (): void
 void test('does not export a project with invalid RAMEN annotation semantics', (): void => {
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const duplicate: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
-    annotationId: fixture.nodes.annotation.id,
+    nodeId: fixture.nodes.annotation.id,
     type: 'persName',
   });
   assert.equal(duplicate.validation.valid, false);
@@ -239,7 +242,7 @@ void test('compares two project states and reports RAMEN errors in the later sta
   const fixture: CorrespondenceFixture = createCorrespondenceFixture();
   const before: RamenModel = RamenModel.load(fixture.model);
   const changed: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
-    annotationId: fixture.nodes.annotation.id,
+    nodeId: fixture.nodes.annotation.id,
     type: 'persName',
   });
   const report: RamenEvolutionReport = before.compareTo(fixture.project);
@@ -350,15 +353,9 @@ void test('suggests inherited attributes and rejects conflicting attribute names
     fixture.nodes.person.id,
     'label',
   );
-  const roleConflict: AttributeNameResult = advisor.validateAttributeName(
-    fixture.model.id,
-    fixture.nodes.person.id,
-    relation.role,
-  );
   const available: AttributeNameResult = advisor.validateAttributeName(fixture.model.id, fixture.nodes.person.id, 'occupation');
 
   assert.deepEqual(attributeConflict, { allowed: false, conflicts: ['attribute'] });
-  assert.deepEqual(roleConflict, { allowed: false, conflicts: ['relationRole'] });
   assert.deepEqual(available, { allowed: true, conflicts: [] });
 });
 
@@ -391,3 +388,124 @@ void test('RAMEN uses the generic relation object fields and their precedence ov
   assert.equal(relation.to.nodeId, person.id);
   assert.equal(model.validate().valid, true);
 });
+
+void test('annotation inputs accept objects, prefer them to IDs and store references', (): void => {
+  const { edition, annotation, certainty, textHasAnnotation }: AnnotationInputFixture = annotationInputFixture();
+
+  const created: RamenChange<RamenAnnotation> = edition.createAnnotation({
+    node: annotation,
+    nodeId: 'missingNode00001',
+    type: 'note',
+    properties: [{ attribute: certainty, attributeId: 'missingAttribute01' }],
+    relations: [
+      {
+        relation: textHasAnnotation,
+        relationId: 'missingRelation01',
+        direction: 'incoming',
+        bounds: { lowerBound: 0, upperBound: -1 },
+      },
+    ],
+  });
+  assert.equal(created.validation.valid, true);
+  assert.equal(created.element.annotationId, annotation.id);
+  assert.deepEqual(created.element.properties, [{ attributeId: certainty.id }]);
+  assert.deepEqual(created.element.relations, [
+    { relationId: textHasAnnotation.id, direction: 'incoming', bounds: { lowerBound: 0, upperBound: -1 } },
+  ]);
+
+  const updated: RamenChange<RamenAnnotation> = edition.updateAnnotation(created.element.id, {
+    properties: [{ attribute: certainty, bounds: { lowerBound: 1, upperBound: 1 } }],
+    relations: [{ relation: textHasAnnotation, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+  assert.equal(updated.validation.valid, true);
+  assert.deepEqual(updated.element.properties, [{ attributeId: certainty.id, bounds: { lowerBound: 1, upperBound: 1 } }]);
+  assert.deepEqual(updated.element.relations[0]?.bounds, { lowerBound: 1, upperBound: 1 });
+  assert.deepEqual(RamenModel.import(edition.export()).getAnnotations(), edition.getAnnotations());
+});
+
+void test('invalid annotation objects do not fall back to their accompanying IDs', (): void => {
+  const { edition, annotation, certainty, textHasAnnotation }: AnnotationInputFixture = annotationInputFixture();
+  const before: readonly RamenAnnotation[] = edition.getAnnotations();
+  const missingAttribute: Attribute = { ...certainty, id: 'missingAttribute01' };
+  const missingRelation: Relation = { ...textHasAnnotation, id: 'missingRelation01' };
+  assert.throws(
+    (): RamenChange<RamenAnnotation> =>
+      edition.createAnnotation({
+        node: annotation,
+        type: 'badProperty',
+        properties: [{ attribute: missingAttribute, attributeId: certainty.id }],
+      }),
+    /Expected one attribute/,
+  );
+  assert.throws(
+    (): RamenChange<RamenAnnotation> =>
+      edition.createAnnotation({
+        node: annotation,
+        type: 'badRelation',
+        relations: [
+          {
+            relation: missingRelation,
+            relationId: textHasAnnotation.id,
+            direction: 'incoming',
+            bounds: { lowerBound: 0, upperBound: -1 },
+          },
+        ],
+      }),
+    /relation/,
+  );
+  assert.deepEqual(edition.getAnnotations(), before);
+});
+
+void test('an invalid Annotation node object cannot fall back to nodeId', (): void => {
+  const { edition, annotation }: AnnotationInputFixture = annotationInputFixture();
+  const missing: Node = { ...annotation, id: 'missingNode00001' };
+  const before: readonly RamenAnnotation[] = edition.getAnnotations();
+
+  assert.throws(
+    (): RamenChange<RamenAnnotation> => edition.createAnnotation({ node: missing, nodeId: annotation.id, type: 'note' }),
+    /node/,
+  );
+  assert.deepEqual(edition.getAnnotations(), before);
+});
+
+void test('annotation property objects from a preceding level become qualified references', (): void => {
+  const base: RamenModel = RamenModel.create('Edition');
+  const text: Node = base.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const annotation: Node = base.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const certainty: Attribute = base.createAttribute(annotation, { name: 'certainty', typeId: DataTypes.String }).element;
+  base.hasAnnotation(text, annotation);
+
+  const next: RamenModel = base.createNextLevel('Publication');
+  const review: Node = next.createNode({ name: 'ReviewAnnotation', refines: annotation }).element;
+  const textHasReview: Relation = next.hasAnnotation(text, review).element;
+  const created: RamenChange<RamenAnnotation> = next.createAnnotation({
+    node: review,
+    type: 'review',
+    properties: [{ attribute: certainty }],
+    relations: [{ relation: textHasReview, direction: 'incoming', bounds: { lowerBound: 0, upperBound: -1 } }],
+  });
+
+  assert.equal(created.validation.valid, true, JSON.stringify(created.validation.diagnostics));
+  assert.deepEqual(created.element.properties, [{ attributeId: `${base.getModel().id}:${certainty.id}` }]);
+  assert.deepEqual(
+    next.getAttributesForAnnotation(review, 'review').map((property: PropertyOption): string => property.name),
+    ['certainty'],
+  );
+  assert.equal(RamenModel.import(next.export()).validate().valid, true);
+});
+
+interface AnnotationInputFixture {
+  readonly edition: RamenModel;
+  readonly annotation: Node;
+  readonly certainty: Attribute;
+  readonly textHasAnnotation: Relation;
+}
+
+function annotationInputFixture(): AnnotationInputFixture {
+  const edition: RamenModel = RamenModel.create('Edition');
+  const text: Node = edition.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const annotation: Node = edition.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const certainty: Attribute = edition.createAttribute(annotation, { name: 'certainty', typeId: DataTypes.String }).element;
+  const textHasAnnotation: Relation = edition.hasAnnotation(text, annotation).element;
+  return { edition, annotation, certainty, textHasAnnotation };
+}

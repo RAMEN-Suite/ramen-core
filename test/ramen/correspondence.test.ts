@@ -159,7 +159,7 @@ void test('serialises three model levels and validates data after importing the 
   const serialised: string = JSON.stringify(exported);
   const parsed: unknown = JSON.parse(serialised);
   const restored: RamenModel = RamenModel.import(parsed);
-  const data: ModelInstanceGraph = editionAnnotationData(restored.getModel().id, annotation.id);
+  const data: ModelInstanceGraph = editionAnnotationData(annotation.id);
   const valid: ValidationResult = restored.validateInstances(data);
   const invalid: ValidationResult = restored.validateInstances({
     ...data,
@@ -174,9 +174,8 @@ void test('serialises three model levels and validates data after importing the 
   );
 });
 
-function editionAnnotationData(modelId: string, annotationId: string): ModelInstanceGraph {
+function editionAnnotationData(annotationId: string): ModelInstanceGraph {
   return {
-    modelId: modelId,
     nodes: [
       {
         id: 'editionAnnotation1',

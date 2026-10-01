@@ -190,12 +190,12 @@ function createOtherAnnotations(
   attachments: readonly AnnotationRelation[],
 ): Pick<CorrespondenceAnnotations, 'date' | 'comment' | 'externalReference'> {
   const date: RamenAnnotation = project.createAnnotation({
-    annotationId: owner.id,
+    nodeId: owner.id,
     type: 'date',
     relations: attachments,
   }).element;
   const comment: RamenAnnotation = project.createAnnotation({
-    annotationId: owner.id,
+    nodeId: owner.id,
     type: 'comment',
     relations: [
       ...attachments,
@@ -203,7 +203,7 @@ function createOtherAnnotations(
     ],
   }).element;
   const externalReference: RamenAnnotation = project.createAnnotation({
-    annotationId: owner.id,
+    nodeId: owner.id,
     type: 'externalReference',
     properties: [{ attributeId: url.id, bounds: { lowerBound: 1, upperBound: 1 } }],
     relations: attachments,
@@ -231,7 +231,7 @@ function createReferenceAnnotation(
   attachments: readonly AnnotationRelation[],
 ): RamenAnnotation {
   return project.createAnnotation({
-    annotationId: owner.id,
+    nodeId: owner.id,
     type: type,
     relations: [...attachments, { relationId: reference.id, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } }],
   }).element;

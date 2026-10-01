@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Diagnostic, EvolutionChange, Model, Node, Relation } from '../../dist/ramen-core/model/index.js';
-import { RamenModel } from '../../dist/ramen-core/ramen/index.js';
+import { RAMEN_ELEMENT, RamenModel } from '../../dist/ramen-core/ramen/index.js';
 import type {
   AnnotationSuggestion,
   RamenChange,
@@ -24,7 +24,7 @@ void test('M05: model with selected suggestions, exchange the project and report
   );
   assert.ok(choice);
 
-  const connection: RamenChange<Relation> = edition.connect(text, annotation, choice);
+  const connection: RamenChange<Relation> = edition.createRelation({ fromNode: text, toNode: annotation, refines: choice });
   assert.equal(connection.validation.valid, true, JSON.stringify(connection.validation.diagnostics));
   assert.deepEqual(connection.element.superTypes, [`${base.model.id}:${base.relations.textAnnotation.id}`]);
   assert.deepEqual(suggestedTypes(edition, text), ['comment', 'date', 'externalReference', 'persName', 'placeName']);
@@ -65,6 +65,37 @@ void test('M06: reject a widened relation, correct it and exchange the valid mod
   assert.equal(corrected.validation.valid, true, JSON.stringify(corrected.validation.diagnostics));
   assert.equal(roundTrip(edition).validate().valid, true);
   assert.deepEqual(base.project.getModels(), parentSnapshot);
+});
+
+void test('M07: Text and Image suggest person on the shared Annotation node', (): void => {
+  const project: RamenModel = RamenModel.create('Edition');
+  const text: Node = project.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const image: Node = project.createNode({ name: 'Image', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const person: Node = project.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+
+  const textLink: Relation = project.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
+  const imageLink: Relation = project.hasAnnotation(image, RAMEN_ELEMENT.ANNOTATION).element;
+  const personLink: Relation = project.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
+
+  project.createAnnotation({
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'person',
+    relations: [
+      {
+        relation: textLink,
+        alternatives: [imageLink.id],
+        direction: 'incoming',
+        bounds: { lowerBound: 1, upperBound: 1 },
+      },
+      { relation: personLink, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } },
+    ],
+  });
+
+  assert.equal(project.validate().valid, true);
+  assert.deepEqual(suggestedTypes(project, text), ['person']);
+  assert.deepEqual(suggestedTypes(project, image), ['person']);
+  assert.deepEqual(project.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'person'), []);
+  assert.deepEqual(suggestedTypes(roundTrip(project), text), ['person']);
 });
 
 function nextEdition(base: RamenModel): RamenModel {

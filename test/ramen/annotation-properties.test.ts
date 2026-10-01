@@ -46,9 +46,8 @@ function width(): Attribute {
   return ModelFactory.createAttribute({ name: 'width', typeId: 'Integer', bounds: { lowerBound: 1, upperBound: 1 } });
 }
 
-function annotationData(project: RamenModel, properties: Readonly<Record<string, unknown>>): ModelInstanceGraph {
+function annotationData(properties: Readonly<Record<string, unknown>>): ModelInstanceGraph {
   return {
-    modelId: project.getModel().id,
     nodes: [
       {
         id: 'mediaAnnotation010',
@@ -64,11 +63,11 @@ void test('type-owned properties remain separate from the shared Annotation node
   const fixture: MediaModel = mediaModel();
   const property: Attribute = width();
   const created: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'imageRegion',
     properties: [property],
   });
-  fixture.project.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'emphasis' });
+  fixture.project.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'emphasis' });
 
   assert.equal(created.validation.valid, true, JSON.stringify(created.validation.diagnostics));
   assert.deepEqual(
@@ -82,17 +81,64 @@ void test('type-owned properties remain separate from the shared Annotation node
     fixture.project.getAttributes(RAMEN_ELEMENT.ANNOTATION).some((item: AttributeInfo): boolean => item.name === 'width'),
     false,
   );
-  assert.equal(
-    fixture.project.validateInstances(annotationData(fixture.project, { type: 'imageRegion', width: 3 })).hasErrors,
-    false,
-  );
+  assert.equal(fixture.project.validateInstances(annotationData({ type: 'imageRegion', width: 3 })).hasErrors, false);
 
   for (const properties of [{ type: 'imageRegion' }, { type: 'imageRegion', width: 'wide' }, { type: 'emphasis', width: 3 }]) {
-    assert.equal(fixture.project.validateInstances(annotationData(fixture.project, properties)).hasErrors, true);
+    assert.equal(fixture.project.validateInstances(annotationData(properties)).hasErrors, true);
   }
   const exported: ReturnType<RamenModel['export']> = fixture.project.export();
   const restored: RamenModel = RamenModel.import(JSON.parse(JSON.stringify(exported)) as unknown);
   assert.deepEqual(restored.getAnnotations(), fixture.project.getAnnotations());
+});
+
+void test('annotation types can use one property name with different data types', (): void => {
+  const fixture: MediaModel = mediaModel();
+  const note: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'note',
+    properties: [{ name: 'place', typeId: 'String' }],
+  });
+  const region: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'region',
+    properties: [{ name: 'place', typeId: 'Integer' }],
+  });
+
+  assert.equal(note.validation.valid, true);
+  assert.equal(region.validation.valid, true);
+  assert.equal(fixture.project.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'note')[0]?.typeId, 'String');
+  assert.equal(fixture.project.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'region')[0]?.typeId, 'Integer');
+  assert.equal(fixture.project.validateInstances(annotationData({ type: 'note', place: 'foot' })).hasErrors, false);
+  assert.equal(fixture.project.validateInstances(annotationData({ type: 'note', place: 2 })).hasErrors, true);
+  assert.equal(fixture.project.validateInstances(annotationData({ type: 'region', place: 2 })).hasErrors, false);
+  assert.equal(fixture.project.validateInstances(annotationData({ type: 'region', place: 'foot' })).hasErrors, true);
+});
+
+void test('RAMEN annotations accept one optional typed selector on the shared Annotation node', (): void => {
+  const fixture: MediaModel = mediaModel();
+
+  fixture.project.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'person' });
+
+  const valid: ModelInstanceGraph = annotationData({
+    type: 'person',
+    selector: { type: 'TextPositionSelector', start: 2, end: 8 },
+  });
+  const wholeTarget: ModelInstanceGraph = annotationData({ type: 'person' });
+  const invalidType: ModelInstanceGraph = annotationData({ type: 'person', selector: { start: 2 } });
+  const invalidValue: ModelInstanceGraph = annotationData({ type: 'person', selector: '[2,8]' });
+
+  assert.equal(fixture.project.validateInstances(valid).hasErrors, false);
+  assert.equal(fixture.project.validateInstances(wholeTarget).hasErrors, false);
+  assert.ok(
+    fixture.project
+      .validateInstances(invalidType)
+      .diagnostics.some((item: Diagnostic): boolean => item.code === 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED'),
+  );
+  assert.ok(
+    fixture.project
+      .validateInstances(invalidValue)
+      .diagnostics.some((item: Diagnostic): boolean => item.code === 'INSTANCE_PROPERTY_TYPE_INVALID'),
+  );
 });
 
 void test('own properties coexist with selected attributes and reject unresolved references or data types', (): void => {
@@ -104,7 +150,7 @@ void test('own properties coexist with selected attributes and reject unresolved
     bounds: { lowerBound: 0, upperBound: 1 },
   }).element;
   const valid: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
-    annotationId: owner.id,
+    nodeId: owner.id,
     type: 'region',
     properties: [{ attributeId: selected.id }, width()],
   });
@@ -127,7 +173,7 @@ void test('own properties coexist with selected attributes and reject unresolved
 });
 
 function mediaData(fixture: MediaModel, links: readonly Relation[]): ModelInstanceGraph {
-  const base: ModelInstanceGraph = annotationData(fixture.project, { type: 'comment' });
+  const base: ModelInstanceGraph = annotationData({ type: 'comment' });
   const nodes: readonly ModelInstanceNode[] = [
     ...base.nodes,
     { id: 'mediaText010000000', typeId: fixture.text.id, properties: { uuid: 'b9c07998-641b-4b6e-8b48-f039d67d9ced' } },
@@ -145,7 +191,7 @@ function mediaData(fixture: MediaModel, links: readonly Relation[]): ModelInstan
 void test('alternative carriers count together: exactly one Text or Image attachment', (): void => {
   const fixture: MediaModel = mediaModel();
   const created: RamenChange<RamenAnnotation> = fixture.project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
     relations: [
       {
@@ -186,7 +232,7 @@ void test('properties keep their datatype and options through a refined Annotati
     typeId: dataType.id,
     bounds: { lowerBound: 1, upperBound: 1 },
   });
-  fixture.project.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'caption', properties: [property] });
+  fixture.project.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'caption', properties: [property] });
   const next: RamenModel = fixture.project.createNextLevel({
     id: 'mediaRefinedLevel001',
     uri: 'https://example.org/media-next',
@@ -198,7 +244,7 @@ void test('properties keep their datatype and options through a refined Annotati
 
   assert.equal(next.validate().valid, true);
   assert.equal(options[0]?.ref, `${fixture.project.getModel().id}:${property.id}`);
-  const base: ModelInstanceGraph = annotationData(next, { type: 'caption', caption: 'Heading' });
+  const base: ModelInstanceGraph = annotationData({ type: 'caption', caption: 'Heading' });
   const original: ModelInstanceNode | undefined = base.nodes[0];
   assert.ok(original);
   const data: ModelInstanceGraph = { ...base, nodes: [{ ...original, typeId: owner.id }] };
@@ -212,6 +258,32 @@ void test('properties keep their datatype and options through a refined Annotati
   );
 });
 
+void test('refined Annotation nodes suggest inherited and newly added node attributes', (): void => {
+  const project: RamenModel = RamenModel.create('Edition');
+  const annotation: Node = project.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
+  const place: Attribute = project.createAttribute(annotation, { name: 'place', typeId: 'String' }).element;
+  project.createAnnotation({ node: annotation, type: 'note', properties: [{ attribute: place }] });
+
+  const next: RamenModel = project.createNextLevel('Publication');
+  const review: Node = next.createNode({ name: 'ReviewAnnotation', refines: annotation }).element;
+
+  assert.equal(next.validateAttributeName(review, 'place').allowed, false);
+  assert.equal(next.validateAttributeName(review, 'n').allowed, true);
+
+  next.createAttribute(review, { name: 'n', typeId: 'String' });
+
+  const options: AnnotationOptions | undefined = next.suggestAnnotationOptions(review);
+  assert.deepEqual(
+    options?.properties.map((property: PropertyOption): string => property.name),
+    ['n', 'place'],
+  );
+  assert.deepEqual(
+    next.getAttributesForAnnotation(review, 'note').map((property: PropertyOption): string => property.name),
+    ['place'],
+  );
+  assert.equal(next.validate().valid, true);
+});
+
 void test('annotation property declarations reject duplicate names, invalid bounds and node collisions', (): void => {
   const fixture: MediaModel = mediaModel();
   const property: Attribute = width();
@@ -222,7 +294,7 @@ void test('annotation property declarations reject duplicate names, invalid boun
     [{ ...property, isKey: true, bounds: { lowerBound: 0, upperBound: 1 } }],
   ];
   const annotation: RamenAnnotation = fixture.project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'region',
   }).element;
 
@@ -235,7 +307,7 @@ void test('annotation property declarations reject duplicate names, invalid boun
 void test('alternative groups reject duplicate relations, invalid endpoints and impossible cardinality', (): void => {
   const fixture: MediaModel = mediaModel();
   const annotation: RamenAnnotation = fixture.project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
   }).element;
   const unrelated: Relation = fixture.project.partOf(
@@ -285,7 +357,7 @@ void test('annotation options exposes selected properties, carrier relations and
   assert.equal(fixture.project.suggestAnnotationOptions(fixture.text), undefined);
 
   fixture.project.createAnnotation({
-    annotationId: owner,
+    node: owner,
     type: 'caption',
     properties: [{ attributeId: label.id, bounds: { lowerBound: 1, upperBound: 1 } }],
     relations: [{ relationId: fixture.textLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -316,7 +388,7 @@ void test('annotation options exposes selected properties, carrier relations and
 void test('changing returned annotation options cannot change later options or validation', (): void => {
   const fixture: MediaModel = mediaModel();
   fixture.project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'region',
     properties: [width()],
     relations: [{ relationId: fixture.imageLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -352,13 +424,13 @@ function manyAnnotations(fixture: MediaModel, count: number): ModelInstanceGraph
       toId: id,
     });
   }
-  return { modelId: fixture.project.getModel().id, nodes, relations };
+  return { nodes, relations };
 }
 
 void test('1000 annotations on an unchanged Annotation node retain carrier and property checks after exchange', (): void => {
   const fixture: MediaModel = mediaModel();
   fixture.project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'region',
     properties: [width()],
     relations: [{ relationId: fixture.imageLink.id, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -388,13 +460,13 @@ void test('a type-owned custom datatype resolves in the project when Annotation 
     typeId: count.id,
     bounds: { lowerBound: 1, upperBound: 1 },
   });
-  project.createAnnotation({ annotationId: RAMEN_ELEMENT.ANNOTATION, type: 'region', properties: [property] });
+  project.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'region', properties: [property] });
   const restored: RamenModel = RamenModel.import(project.export());
   assert.equal(restored.validate().valid, true);
-  assert.equal(restored.validateInstances(annotationData(restored, { type: 'region', width: 2 })).hasErrors, false);
+  assert.equal(restored.validateInstances(annotationData({ type: 'region', width: 2 })).hasErrors, false);
   assert.ok(
     restored
-      .validateInstances(annotationData(restored, { type: 'region', width: 'wrong' }))
+      .validateInstances(annotationData({ type: 'region', width: 'wrong' }))
       .diagnostics.some((item: Diagnostic): boolean => item.code === 'INSTANCE_PROPERTY_TYPE_INVALID'),
   );
 });

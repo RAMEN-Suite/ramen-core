@@ -66,7 +66,6 @@ void test('data validates relation and endpoint constraints from all ancestor le
   const seen: ConstraintContext[] = [];
   const registry: ConstraintRegistry = language(seen);
   const data: ModelInstanceGraph = {
-    modelId: leaf.id,
     nodes: [{ id: 'relationRulesData', typeId: `${root.id}:relationRulesNode1`, properties: {} }],
     relations: [
       { id: 'relationRulesEdge', typeId: 'relationRulesLeafLink', fromId: 'relationRulesData', toId: 'relationRulesData' },

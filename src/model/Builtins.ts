@@ -9,6 +9,7 @@ import { BuiltinType, TypeRef } from './Types';
  * | `DataTypes.Boolean` | `true` or `false` |
  * | `DataTypes.Integer` | A whole number |
  * | `DataTypes.Float` | A finite number, including fractions |
+ * | `DataTypes.Object` | A JSON object value, excluding arrays and null; it has no model identity or relations |
  *
  * Use these references with {@link Modeller.createAttribute} or {@link Modeller.createDataType}.
  * For attributes using declared types, pass a {@link DataType} or a {@link DataTypeSuggestion} instead.
@@ -27,11 +28,14 @@ export const DataTypes: {
   readonly Integer: 'Integer';
   /** Finite numbers, serialised as the built-in reference `Float`. */
   readonly Float: 'Float';
+  /** JSON object values, serialised as the built-in reference `Object`. */
+  readonly Object: 'Object';
 } = {
   String: 'String',
   Boolean: 'Boolean',
   Integer: 'Integer',
   Float: 'Float',
+  Object: 'Object',
 };
 
 /** Recognizes primitive type references that require no model declaration. */

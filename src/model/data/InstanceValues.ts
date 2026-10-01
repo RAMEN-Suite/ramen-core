@@ -1,6 +1,6 @@
 import { BuiltinDataTypes } from '../Builtins';
 import { ModelRef } from '../graph/References';
-import { Bounds, Attribute, Constraint, DataType, Literal, Node, Id } from '../Types';
+import { Bounds, Attribute, BuiltinType, Constraint, DataType, Literal, Node, Id } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
 import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { ConstraintRegistry } from '../validation/Constraints';
@@ -33,7 +33,7 @@ export class InstanceValueValidator {
 
         return;
       }
-      const type: ResolvedElement<Node> | undefined = graph.resolveNode(instance.modelId, node.typeId);
+      const type: ResolvedElement<Node> | undefined = graph.resolveNode(graph.getRootModel().id, node.typeId);
       if (!type) {
         diagnostics.push(
           this.error(
@@ -158,7 +158,7 @@ export class InstanceValueValidator {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const isMissing: boolean = value === undefined || value === null;
+    const isMissing: boolean = value === undefined;
     if (isMissing) {
       if (attribute.bounds.lowerBound > 0) {
         diagnostics.push(
@@ -230,7 +230,7 @@ export class InstanceValueValidator {
         );
       }
     } else {
-      const contextId: Id = ModelRef.isQualified(attribute.typeId) ? this.graphContext.instances.modelId : modelId;
+      const contextId: Id = ModelRef.isQualified(attribute.typeId) ? graph.getRootModel().id : modelId;
       const dataType: ResolvedElement<DataType> | undefined = graph.resolveDataType(contextId, attribute.typeId);
 
       if (dataType) this.validateDataTypeValue(dataType, instanceId, attribute, value, path, diagnostics);
@@ -344,10 +344,11 @@ export class InstanceValueValidator {
     }
   }
 
-  private matchesBuiltin(type: 'String' | 'Boolean' | 'Integer' | 'Float', value: unknown): boolean {
+  private matchesBuiltin(type: BuiltinType, value: unknown): boolean {
     if (type === 'String') return typeof value === 'string';
     if (type === 'Boolean') return typeof value === 'boolean';
     if (type === 'Integer') return typeof value === 'number' && Number.isInteger(value);
+    if (type === 'Object') return value !== null && typeof value === 'object' && !Array.isArray(value);
     return typeof value === 'number' && Number.isFinite(value);
   }
 

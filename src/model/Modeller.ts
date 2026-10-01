@@ -55,7 +55,7 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
     );
   }
 
-  /** Validates captured data against this model; custom languages apply only to data. */
+  /** Validates a complete data graph against this model. */
   public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { hasErrors: true, diagnostics: result.diagnostics };

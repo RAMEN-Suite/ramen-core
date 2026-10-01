@@ -35,7 +35,7 @@ export class InstanceRelationValidator {
       const path: DiagnosticPath = DiagnosticPath.root().property('relations').index(index);
       const resolved: ResolvedInstanceRelation | undefined = this.resolveRelation(
         graph,
-        instance.modelId,
+        graph.getRootModel().id,
         relation,
         path,
         ids,
@@ -45,7 +45,7 @@ export class InstanceRelationValidator {
       if (resolved) result.push(resolved);
     });
     const counts: ReadonlyMap<string, number> = this.relationCounts(graph, result);
-    this.validateCardinalities(graph, instance.modelId, nodesById, counts, diagnostics);
+    this.validateCardinalities(graph, graph.getRootModel().id, nodesById, counts, diagnostics);
     return result;
   }
 
@@ -249,10 +249,9 @@ export class InstanceRelationValidator {
       const key: Ref = `${endpoint.modelId}:${endpoint.element.id}`;
       const opposite: 'from' | 'to' = direction === 'from' ? 'to' : 'from';
       const bounds: Bounds = relation[opposite].bounds;
-      const role: string = relation[opposite].role;
       for (const node of nodes.get(key) ?? []) {
         const count: number = counts.get(`${type.modelId}:${relation.id}:${direction}:${node.instance.id}`) ?? 0;
-        this.validateCount(role, bounds, count, DiagnosticPath.root().property('relations'), ref, diagnostics);
+        this.validateCount(relation.name, bounds, count, DiagnosticPath.root().property('relations'), ref, diagnostics);
       }
     }
   }

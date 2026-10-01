@@ -39,7 +39,12 @@ export class ModelConnections {
    * Add the returned relation with ModelEditor.addRelation; this object never edits a model.
    * Throws if the selection is unavailable, incompatible or ambiguous.
    */
-  public connect(from: Node | Ref, to: Node | Ref, choice?: RelationChoice): Relation {
+  public createRelation(input: {
+    readonly fromNode: Node | Ref;
+    readonly toNode: Node | Ref;
+    readonly refines?: RelationChoice;
+  }): Relation {
+    const { fromNode: from, toNode: to, refines: choice } = input;
     const suggestions: readonly RelationSuggestion[] = this.suggestRelations(from, to);
     const selected: RelationSuggestion = this.select(suggestions, choice);
     const base: Model | undefined = this.project.graph.getModel(selected.modelId);

@@ -36,19 +36,6 @@ export class InstanceValidator {
       };
     }
 
-    if (input.modelId !== graph.getRootModel().id) {
-      return {
-        hasErrors: true,
-        diagnostics: [
-          Diagnostics.error({
-            code: VALIDATION_ERROR.INSTANCE_MODEL_MISMATCH,
-            message: `Expected data for model '${graph.getRootModel().id}', received '${input.modelId}'.`,
-            path: DiagnosticPath.root().property('modelId'),
-            ref: input.modelId,
-          }),
-        ],
-      };
-    }
     return this.validateData(graph, input, options);
   }
 
@@ -65,7 +52,7 @@ export class InstanceValidator {
         project: graph,
         instances: instance,
       },
-      options.relations ?? new ModelRelationScope(graph).available(instance.modelId),
+      options.relations ?? new ModelRelationScope(graph).available(graph.getRootModel().id),
     );
     const nodesById: Map<string, ResolvedInstanceNode> = values.validate(graph, instance, diagnostics);
 

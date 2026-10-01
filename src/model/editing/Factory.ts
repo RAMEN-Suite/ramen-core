@@ -51,10 +51,11 @@ export interface CreateRelationInput {
   readonly toNodeId: Id;
 }
 
-/** Values needed to create an initially unrestricted data type. */
+/** Values needed to create a named data type and its value rules. */
 export interface CreateDataTypeInput {
   readonly name: string;
   readonly baseType: BuiltinType;
+  readonly constraints?: readonly Constraint[];
 }
 
 /** Duplicated node together with the duplicated relations connected to it. */
@@ -126,19 +127,19 @@ export class ModelFactory {
     };
   }
 
-  /** Creates a data type without literals or constraints. */
+  /** Creates a data type without literals and with optional value rules. */
   public static createDataType(input: CreateDataTypeInput): DataType {
     return {
       kind: 'DataType',
       id: this.createIdentifier(),
       name: input.name,
       baseType: input.baseType,
-      constraints: [],
+      constraints: structuredClone([...(input.constraints ?? [])]),
       ext: {},
     };
   }
 
-  /** Creates a relation whose roles and bounds are copied from a base relation. */
+  /** Creates a relation whose end bounds are copied from a base relation. */
   public static createRelation(base: Model, baseId: Id, input: CreateRelationInput): Relation {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
     const baseRelation: Relation | undefined = baseIndex.relationsById.get(input.baseRelationId);
@@ -157,7 +158,7 @@ export class ModelFactory {
   }
 
   private static refineEnd(base: RelationEnd, nodeId: Id): RelationEnd {
-    const end: RelationEnd = this.createRelationEnd(nodeId, base.role, base.bounds);
+    const end: RelationEnd = this.createRelationEnd(nodeId, base.bounds);
     if (base.isComposite !== undefined) end.isComposite = base.isComposite;
     if (base.isNavigable !== undefined) end.isNavigable = base.isNavigable;
     return end;
@@ -228,12 +229,11 @@ export class ModelFactory {
     };
   }
 
-  /** Creates a relation end for a node, role, and cardinality. */
-  public static createRelationEnd(nodeId: Id, role: string, bounds: Bounds): RelationEnd {
+  /** Creates a relation end for a node and cardinality. */
+  public static createRelationEnd(nodeId: Id, bounds: Bounds): RelationEnd {
     return {
       id: this.createIdentifier(),
       nodeId: nodeId,
-      role: role,
       bounds: { ...bounds },
       constraints: [],
       ext: {},

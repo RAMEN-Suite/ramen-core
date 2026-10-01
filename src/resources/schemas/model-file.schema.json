@@ -42,8 +42,8 @@
     },
     "BuiltinType": {
       "type": "string",
-      "enum": ["String", "Boolean", "Integer", "Float"],
-      "$comment": "Built-in scalar datatypes."
+      "enum": ["String", "Boolean", "Integer", "Float", "Object"],
+      "$comment": "Built-in JSON value types. Object excludes arrays and null."
     },
     "LocalRef": { "$ref": "#/$defs/Id" },
     "QualifiedRef": {
@@ -138,14 +138,14 @@
       "type": "object",
       "required": ["kind", "id", "name", "baseType"],
       "additionalProperties": false,
-      "$comment": "User-defined scalar datatype with a JSON-compatible primitive representation; literals make the value domain an enumeration.",
+      "$comment": "User-defined datatype with a JSON-compatible representation; scalar literals make the value domain an enumeration.",
       "properties": {
         "kind": { "const": "DataType" },
         "id": { "$ref": "#/$defs/Id" },
         "name": { "type": "string" },
         "baseType": {
           "$ref": "#/$defs/BuiltinType",
-          "$comment": "Primitive representation validated before datatype literals and constraints."
+          "$comment": "Value representation validated before datatype literals and constraints."
         },
         "literals": {
           "description": "A non-empty enumeration. String literals use literal exactly as written, or name when literal is absent. Numeric literals require value. Boolean enumerations are not supported; use the Boolean primitive instead.",
@@ -249,13 +249,12 @@
     },
     "RelationEnd": {
       "type": "object",
-      "required": ["id", "nodeId", "role", "bounds"],
+      "required": ["id", "nodeId", "bounds"],
       "additionalProperties": false,
-      "$comment": "Association end with role name and multiplicity.",
+      "$comment": "Association end with node reference and cardinality.",
       "properties": {
         "id": { "$ref": "#/$defs/Id" },
         "nodeId": { "$ref": "#/$defs/Ref" },
-        "role": { "type": "string" },
         "bounds": { "$ref": "#/$defs/Bounds" },
         "isComposite": {
           "type": "boolean",
@@ -335,14 +334,14 @@
       "type": "object",
       "required": ["kind", "id", "name", "baseType", "modelId"],
       "additionalProperties": false,
-      "$comment": "User-defined scalar datatype with a JSON-compatible primitive representation; literals make the value domain an enumeration.",
+      "$comment": "User-defined datatype with a JSON-compatible representation; scalar literals make the value domain an enumeration.",
       "properties": {
         "kind": { "const": "DataType" },
         "id": { "$ref": "#/$defs/Id" },
         "name": { "type": "string" },
         "baseType": {
           "$ref": "#/$defs/BuiltinType",
-          "$comment": "Primitive representation validated before datatype literals and constraints."
+          "$comment": "Value representation validated before datatype literals and constraints."
         },
         "literals": {
           "description": "A non-empty enumeration. String literals use literal exactly as written, or name when literal is absent. Numeric literals require value. Boolean enumerations are not supported; use the Boolean primitive instead.",

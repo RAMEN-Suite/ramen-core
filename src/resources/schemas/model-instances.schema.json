@@ -3,13 +3,9 @@
   "$id": "https://ramen-schema.org/model/1.0.0/instances.schema.json",
   "title": "RAMEN model instance graph",
   "type": "object",
-  "required": ["modelId", "nodes", "relations"],
+  "required": ["nodes", "relations"],
   "additionalProperties": false,
   "properties": {
-    "modelId": {
-      "$ref": "#/$defs/Id",
-      "description": "Model context for this complete data graph. It must match the root model selected for validation."
-    },
     "nodes": { "type": "array", "items": { "$ref": "#/$defs/Node" } },
     "relations": { "type": "array", "items": { "$ref": "#/$defs/Relation" } }
   },

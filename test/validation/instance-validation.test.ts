@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   Modeller,
+  DataTypes,
   RamenModel,
-  RAMEN_MODEL,
   DiagnosticPath,
   ConstraintRegistry,
   Diagnostics,
@@ -16,6 +16,7 @@ import type {
   Attribute,
   Constraint,
   ConstraintContext,
+  DataType,
   Diagnostic,
   Model,
   Node,
@@ -61,7 +62,6 @@ function graph(): ProjectGraph {
 
 void test('validates closed properties, values, arrays, and constraints', (): void => {
   const instance: ModelInstanceGraph = {
-    modelId: MODEL_ID,
     nodes: [
       {
         id: 'personInstance01',
@@ -81,7 +81,6 @@ void test('validates closed properties, values, arrays, and constraints', (): vo
 
 void test('rejects undeclared fields outside the modelled properties object', (): void => {
   const input: unknown = {
-    modelId: MODEL_ID,
     nodes: [
       {
         id: 'personInstance01',
@@ -98,7 +97,6 @@ void test('rejects undeclared fields outside the modelled properties object', ()
 
 void test('accepts valid nodes and relation cardinalities', (): void => {
   const instance: ModelInstanceGraph = {
-    modelId: MODEL_ID,
     nodes: [
       { id: 'personInstance01', typeId: PERSON_ID, properties: { name: 'Ada', tags: ['researcher'] } },
       { id: 'placeInstance001', typeId: PLACE_ID, properties: {} },
@@ -109,9 +107,70 @@ void test('accepts valid nodes and relation cardinalities', (): void => {
   assert.deepEqual(result.diagnostics, []);
 });
 
+void test('accepts JSON objects for Object properties and rejects arrays, null and scalar values', (): void => {
+  const schema: Model = model('objectModel000001');
+  const item: Node = node('objectNode0000001', 'Item');
+
+  item.attributes.push(attribute('objectAttr000001', 'details', DataTypes.Object, boundsOf(0, 1)));
+  schema.classifiers.push(item);
+
+  const built: ProjectGraphResult = buildProjectGraph({ rootModelId: schema.id, models: [schema] });
+  assert.equal(built.ok, true);
+  if (!built.ok) return;
+
+  for (const value of [{ type: 'example', start: 2 }, {}, [], null, 'json', 42]) {
+    const data: ModelInstanceGraph = {
+      nodes: [{ id: 'objectInstance01', typeId: item.id, properties: { details: value } }],
+      relations: [],
+    };
+    const result: ValidationResult = new InstanceValidator().validate(built.graph, data);
+    const valid: boolean = value !== null && typeof value === 'object' && !Array.isArray(value);
+
+    assert.equal(result.hasErrors, !valid, JSON.stringify(value));
+  }
+});
+
+void test('evaluates an Object-based data type with a registered value rule', (): void => {
+  const project: Modeller = Modeller.create('Regions');
+  const document: Node = project.createNode('Document').element;
+  const rule: Constraint = {
+    id: 'regionOrderRule01',
+    name: 'Region order',
+    language: 'example:region-order',
+    expression: {},
+  };
+  const region: DataType = project.createDataType({ name: 'Region', baseType: DataTypes.Object, constraints: [rule] }).element;
+
+  project.createAttribute(document, { name: 'region', type: region });
+  const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
+  registry.register({
+    language: rule.language,
+    evaluate(_constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
+      const value: Record<string, unknown> = context.value as Record<string, unknown>;
+      const ordered: boolean = typeof value.start === 'number' && typeof value.end === 'number' && value.start < value.end;
+
+      return ordered ? [] : [Diagnostics.error({ code: 'REGION_ORDER_INVALID', message: 'Invalid region.', path: context.path })];
+    },
+  });
+
+  const data: ModelInstanceGraph = {
+    nodes: [{ id: 'regionRecord00001', typeId: document.id, properties: { region: { start: 8, end: 2 } } }],
+    relations: [],
+  };
+  const invalid: ValidationResult = project.validateInstances(data, registry);
+  const valid: ValidationResult = project.validateInstances(
+    { ...data, nodes: [{ ...data.nodes[0], properties: { region: { start: 2, end: 8 } } }] },
+    registry,
+  );
+
+  assert.equal(project.validate().valid, true);
+  assert.equal(invalid.diagnostics[0]?.code, 'REGION_ORDER_INVALID');
+  assert.equal(invalid.diagnostics[0]?.path, '/nodes/0/properties/region');
+  assert.deepEqual(valid.diagnostics, []);
+});
+
 void test('validates relation endpoint types and required cardinalities', (): void => {
   const instance: ModelInstanceGraph = {
-    modelId: MODEL_ID,
     nodes: [
       { id: 'personInstance01', typeId: PERSON_ID, properties: { name: 'Ada', tags: [] } },
       { id: 'personInstance02', typeId: PERSON_ID, properties: { name: 'Grace', tags: [] } },
@@ -146,7 +205,6 @@ void test('validates a modelled Date datatype as a constrained String', (): void
   if (!built.ok) return;
 
   const result: ValidationResult = new InstanceValidator().validate(built.graph, {
-    modelId: schema.id,
     nodes: [{ id: 'eventInstance001', typeId: 'eventNode0000001', properties: { date: '2026-02-30' } }],
     relations: [],
   });
@@ -176,7 +234,6 @@ void test('passes the complete graph and current instance to a custom constraint
   registerPlaceLinkRule(registry, rule);
 
   const data: ModelInstanceGraph = {
-    modelId: schema.id,
     nodes: [
       { id: 'personInstance01', typeId: PERSON_ID, properties: {} },
       { id: 'placeInstance001', typeId: PLACE_ID, properties: {} },
@@ -208,25 +265,23 @@ function registerPlaceLinkRule(registry: ConstraintRegistry, rule: Constraint): 
   });
 }
 
-void test('data cannot select an ancestor or unknown model to bypass the chosen context', (): void => {
+void test('the selected model supplies the validation context', (): void => {
   const base: Modeller = Modeller.create('Documents');
+  const document: Node = base.createNode('Document').element;
   const project: Modeller = base.createNextLevel('Edition');
+  const page: Node = project.createNode({ name: 'Page', refines: document }).element;
   const ramen: RamenModel = RamenModel.create('Correspondence');
-  const cases: readonly [Modeller | RamenModel, string][] = [
-    [project, base.getModel().id],
-    [project, 'missingModel0001'],
-    [ramen, RAMEN_MODEL.id],
-    [ramen, 'missingModel0001'],
-  ];
+  const data: ModelInstanceGraph = {
+    nodes: [{ id: 'pageRecord000001', typeId: page.id, properties: {} }],
+    relations: [],
+  };
 
-  for (const [target, modelId] of cases) {
-    const result: ValidationResult = target.validateInstances({ modelId, nodes: [], relations: [] });
-    assert.equal(result.hasErrors, true);
-    assert.equal(result.diagnostics[0]?.code, 'INSTANCE_MODEL_MISMATCH');
-    assert.equal(result.diagnostics[0]?.path, '/modelId');
-    assert.equal(result.diagnostics[0]?.severity, 'error');
-  }
-  assert.equal(project.validateInstances({ modelId: project.getModel().id, nodes: [], relations: [] }).hasErrors, false);
+  assert.equal(project.validateInstances(data).hasErrors, false);
+  assert.equal(ramen.validateInstances({ nodes: [], relations: [] }).hasErrors, false);
+  assert.equal(base.validateInstances(data).diagnostics[0]?.code, 'INSTANCE_NODE_TYPE_NOT_FOUND');
+
+  const withModelId: unknown = { ...data, modelId: project.getModel().id };
+  assert.equal(project.validateInstances(withModelId).diagnostics[0]?.code, 'INSTANCE_SCHEMA_INVALID');
 });
 
 void test('diagnostic paths escape slashes and tildes in data property names', (): void => {
@@ -240,7 +295,6 @@ void test('optional properties named like Object members are absent unless decla
   const document: Node = project.createNode('Document').element;
   project.createAttribute(document, { name: 'toString', typeId: 'String' });
   const input: ModelInstanceGraph = {
-    modelId: project.getModel().id,
     nodes: [{ id: 'documentRecord01', typeId: document.id, properties: {} }],
     relations: [],
   };

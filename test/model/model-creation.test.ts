@@ -81,7 +81,7 @@ void test('createDataType creates an empty custom data type', (): void => {
   assert.equal(dataType.literals, undefined);
 });
 
-void test('createRelation copies roles and bounds from its base relation', (): void => {
+void test('createRelation copies bounds from its base relation', (): void => {
   const baseRelation: Relation | undefined = RAMEN_MODEL.relations[0];
   assert.ok(baseRelation, 'RAMEN must contain a relation for this contract test');
   const relation: Relation = ModelFactory.createRelation(RAMEN_MODEL, RAMEN_MODEL.id, {
@@ -91,10 +91,21 @@ void test('createRelation copies roles and bounds from its base relation', (): v
   });
 
   assert.equal(relation.name, baseRelation.name);
-  assert.equal(relation.from.role, baseRelation.from.role);
-  assert.equal(relation.to.role, baseRelation.to.role);
   assert.deepEqual(relation.from.bounds, baseRelation.from.bounds);
   assert.deepEqual(relation.to.bounds, baseRelation.to.bounds);
+});
+
+void test('RAMEN relation ends need no roles and legacy role fields fail RMF validation', (): void => {
+  const current: Model = structuredClone(RAMEN_MODEL);
+  const first: Relation | undefined = current.relations[0];
+  assert.ok(first);
+
+  assert.equal('role' in first.from, false);
+  assert.equal('role' in first.to, false);
+  assert.equal(ModelSchemaValidator.isValid(current), true);
+
+  Object.assign(first.from, { role: '_collections' });
+  assert.equal(ModelSchemaValidator.isValid(current), false);
 });
 
 void test('createLiteral creates an identifiable enum literal', (): void => {
@@ -105,7 +116,7 @@ void test('createLiteral creates an identifiable enum literal', (): void => {
 });
 
 void test('createRelationEnd creates an identifiable relation end', (): void => {
-  const end: RelationEnd = ModelFactory.createRelationEnd('localNode000001', 'documents', { lowerBound: 0, upperBound: -1 });
+  const end: RelationEnd = ModelFactory.createRelationEnd('localNode000001', { lowerBound: 0, upperBound: -1 });
   assert.equal(end.id.length, 16);
   assert.equal(end.nodeId, 'localNode000001');
   assert.deepEqual(end.bounds, { lowerBound: 0, upperBound: -1 });
@@ -133,8 +144,8 @@ void test('duplicateConnectedNode redirects qualified self-relations without tou
     id: 'duplicateLink0001',
     name: 'RELATED',
     superTypes: [],
-    from: ModelFactory.createRelationEnd(reference, 'source', { lowerBound: 0, upperBound: -1 }),
-    to: ModelFactory.createRelationEnd(reference, 'target', { lowerBound: 0, upperBound: -1 }),
+    from: ModelFactory.createRelationEnd(reference, { lowerBound: 0, upperBound: -1 }),
+    to: ModelFactory.createRelationEnd(reference, { lowerBound: 0, upperBound: -1 }),
   };
   model.classifiers.push(source);
   model.relations.push(relation);

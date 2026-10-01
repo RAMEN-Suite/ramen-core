@@ -1,5 +1,4 @@
 import { Attribute, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types';
-import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
 import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelRelationScope, RelationSelections } from '../graph/RelationScope';
@@ -284,7 +283,6 @@ export class ModelRules {
         ),
       );
     }
-    this.validateRoleConflicts(graph, modelId, relation, path, diagnostics);
 
     const superType: Ref | undefined = relation.superTypes[0];
     if (!superType) return;
@@ -295,43 +293,7 @@ export class ModelRules {
 
   private validateRelationEnd(end: RelationEnd, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     if (!Cardinality.areBoundsCoherent(end.bounds)) {
-      diagnostics.push(
-        this.error('RELATION_END_BOUNDS_INVALID', `Relation role '${end.role}' has incoherent bounds.`, path, end.id),
-      );
-    }
-  }
-
-  private validateRoleConflicts(
-    graph: ProjectGraph,
-    modelId: Id,
-    relation: Relation,
-    path: DiagnosticPath,
-    diagnostics: Diagnostic[],
-  ): void {
-    const from: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, relation.from.nodeId);
-    const to: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, relation.to.nodeId);
-
-    if (from) this.validateRoleAgainstNode(graph, from, relation.to.role, path.property('to').property('role'), diagnostics);
-    if (to) this.validateRoleAgainstNode(graph, to, relation.from.role, path.property('from').property('role'), diagnostics);
-  }
-
-  private validateRoleAgainstNode(
-    graph: ProjectGraph,
-    target: ResolvedElement<Node>,
-    role: string,
-    path: DiagnosticPath,
-    diagnostics: Diagnostic[],
-  ): void {
-    const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(graph, target.modelId, target.element.id);
-    if (effective?.attributes.some((attribute: Attribute): boolean => attribute.name === role)) {
-      diagnostics.push(
-        this.error(
-          'RELATION_ROLE_PROPERTY_CONFLICT',
-          `Relation role '${role}' conflicts with an attribute.`,
-          path,
-          target.element.id,
-        ),
-      );
+      diagnostics.push(this.error('RELATION_END_BOUNDS_INVALID', `Relation end has incoherent bounds.`, path, end.id));
     }
   }
 
@@ -356,20 +318,13 @@ export class ModelRules {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    if (end.role !== baseEnd.role) {
-      diagnostics.push(
-        this.error('RELATION_ROLE_MISMATCH', `Role '${end.role}' must remain '${baseEnd.role}'.`, path.property('role'), end.id),
-      );
-    }
     if (!Cardinality.isModelBoundsCompatible(baseEnd.bounds, end.bounds)) {
       diagnostics.push(
-        this.error('RELATION_BOUNDS_WIDENED', `Role '${end.role}' widens its base cardinality.`, path.property('bounds'), end.id),
+        this.error('RELATION_BOUNDS_WIDENED', `Relation end widens its base cardinality.`, path.property('bounds'), end.id),
       );
     }
     if ((end.isComposite === true) !== (baseEnd.isComposite === true)) {
-      diagnostics.push(
-        this.error('RELATION_COMPOSITE_MISMATCH', `Role '${end.role}' changes composition semantics.`, path, end.id),
-      );
+      diagnostics.push(this.error('RELATION_COMPOSITE_MISMATCH', `Relation end changes composition semantics.`, path, end.id));
     }
 
     const actualNode: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);

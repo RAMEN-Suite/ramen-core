@@ -187,8 +187,8 @@ void test('resolves custom data types and relation endpoints', (): void => {
     id: relationId,
     name: 'links',
     superTypes: [],
-    from: { id: 'sourceEnd0000001', nodeId: sourceId, role: 'source', bounds: { lowerBound: 1, upperBound: 1 } },
-    to: { id: 'targetEnd0000001', nodeId: targetId, role: 'target', bounds: { lowerBound: 0, upperBound: -1 } },
+    from: { id: 'sourceEnd0000001', nodeId: sourceId, bounds: { lowerBound: 1, upperBound: 1 } },
+    to: { id: 'targetEnd0000001', nodeId: targetId, bounds: { lowerBound: 0, upperBound: -1 } },
   });
 
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: ROOT_ID, models: [root] });

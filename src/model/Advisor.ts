@@ -57,14 +57,13 @@ export interface AttributeInfo {
   readonly inherited: boolean;
 }
 
-/** One relation role that can apply to a selected node and its compatible local targets. */
+/** One relationship that can apply to a selected node and its compatible local targets. */
 export interface NodeRelationSuggestion {
   readonly modelId: Id;
   readonly relationId: Id;
   readonly ref: Ref;
   readonly name: string;
   readonly direction: 'outgoing' | 'incoming';
-  readonly role: string;
   readonly requiredTarget: NodeLineageItem;
   /** Local IDs or qualified references for imported target nodes. */
   readonly compatibleTargetNodeIds: readonly Ref[];
@@ -81,7 +80,7 @@ export interface NodeInfo {
 /** Result of checking whether an attribute name can be declared locally. */
 export interface AttributeNameResult {
   readonly allowed: boolean;
-  readonly conflicts: readonly ('attribute' | 'relationRole')[];
+  readonly conflicts: readonly 'attribute'[];
 }
 
 /** Provides generic modelling suggestions from the same graph used by validation. */
@@ -168,14 +167,12 @@ export class ModelAdvisor {
     return actual ? this.nodeRelationSuggestions(modelId, actual) : [];
   }
 
-  /** Checks inherited attributes and applicable relation roles before an attribute is created. */
+  /** Checks inherited attributes before an attribute is created. */
   public validateAttributeName(modelId: Id, nodeId: Id, name: string): AttributeNameResult {
     const info: NodeInfo | undefined = this.getNodeInfo(modelId, nodeId);
     if (!info) return { allowed: false, conflicts: [] };
-    const conflicts: ('attribute' | 'relationRole')[] = [];
+    const conflicts: 'attribute'[] = [];
     if (info.attributes.some((attribute: AttributeInfo): boolean => attribute.name === name)) conflicts.push('attribute');
-    if (info.relations.some((relation: NodeRelationSuggestion): boolean => relation.role === name))
-      conflicts.push('relationRole');
     return { allowed: conflicts.length === 0, conflicts: conflicts };
   }
 
@@ -309,7 +306,6 @@ export class ModelAdvisor {
       ref: owner.id === modelId ? relation.id : ModelRef.qualify(owner.id, relation.id),
       name: relation.name,
       direction: direction,
-      role: direction === 'outgoing' ? relation.to.role : relation.from.role,
       requiredTarget: this.lineageItem(target, modelId),
       compatibleTargetNodeIds: compatibleTargetNodeIds,
       actions: owner.id === modelId ? ['reuse'] : ['reuse', 'refine'],

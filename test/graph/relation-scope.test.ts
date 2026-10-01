@@ -94,7 +94,7 @@ void test('five refinement levels retain attributes and relation limits after sh
   for (let level: number = 1; level <= 5; level += 1) {
     const next: Modeller = current.createNextLevel(`Edition${level}`);
     refined = next.createNode({ name: `Letter${level}`, refines: refined }).element;
-    const connected: Relation = next.connect(refined, folder).element;
+    const connected: Relation = next.createRelation({ fromNode: refined, toNode: folder }).element;
     assert.deepEqual(connected.to.bounds, { lowerBound: 0, upperBound: 1 });
     assert.equal(next.validate().valid, true);
     current = next;
@@ -114,6 +114,6 @@ void test('five refinement levels retain attributes and relation limits after sh
   const later: Modeller = empty.createNextLevel('Later');
   assert.deepEqual(later.suggestRelations(refined, folder), []);
   assert.throws((): void => {
-    later.connect(refined, folder);
+    later.createRelation({ fromNode: refined, toNode: folder });
   }, /Expected one relation/);
 });

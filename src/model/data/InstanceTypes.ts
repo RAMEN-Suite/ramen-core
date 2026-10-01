@@ -18,7 +18,6 @@ export interface ModelInstanceRelation {
 
 /** Complete instance graph interpreted from the context of one model. */
 export interface ModelInstanceGraph {
-  readonly modelId: Id;
   readonly nodes: readonly ModelInstanceNode[];
   readonly relations: readonly ModelInstanceRelation[];
 }

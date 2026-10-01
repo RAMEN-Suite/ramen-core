@@ -42,11 +42,16 @@ export interface NodeInput {
   readonly refines?: ElementInput;
 }
 
-/** A primitive or selected data type; attributes default to optional scalar values (0..1). */
+/**
+ * Select a data type object with type or a string reference with typeId. The object takes precedence.
+ * Attributes default to optional scalar values (0..1).
+ */
 export type AttributeInput = Omit<CreateAttributeInput, 'typeId' | 'bounds'> & {
-  readonly typeId: ElementInput;
   readonly bounds?: Bounds;
-};
+} & (
+    | { readonly type: Exclude<ElementInput, Ref>; readonly typeId?: Ref }
+    | { readonly type?: Exclude<ElementInput, Ref>; readonly typeId: Ref }
+  );
 
 /**
  * Select a base relation, or declare a named root relation. Unspecified root bounds are 0..*.
@@ -57,8 +62,6 @@ export type RelationInput = {
   readonly name?: string;
   readonly fromBounds?: Bounds;
   readonly toBounds?: Bounds;
-  readonly fromRole?: string;
-  readonly toRole?: string;
 } & (
   | { readonly fromNode: Exclude<ElementInput, Ref>; readonly fromNodeId?: Ref }
   | { readonly fromNode?: Exclude<ElementInput, Ref>; readonly fromNodeId: Ref }
@@ -150,8 +153,8 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   }
 
   /** Lists attributes visible on a local or imported node. */
-  public getAttributes(nodeId: ElementInput): readonly AttributeInfo[] {
-    const owner: ElementRef = this.resolveRef(nodeId, 'node');
+  public getAttributes(node: ElementInput): readonly AttributeInfo[] {
+    const owner: ElementRef = this.resolveRef(node, 'node');
     return this.getAdvisor().getAttributes(owner.modelId, owner.elementId);
   }
 
@@ -160,12 +163,12 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.getAdvisor().getNodeInfo(this.model.id, this.nodeReference(node));
   }
 
-  /** Lists possible connection roles and their compatible targets for one node. */
+  /** Lists possible relations and their compatible targets for one node. */
   public suggestConnections(node: ElementInput): readonly NodeRelationSuggestion[] {
     return this.getAdvisor().suggestConnections(this.model.id, this.nodeReference(node));
   }
 
-  /** Checks whether a new attribute name conflicts with visible attributes or relation roles. */
+  /** Checks whether a new attribute name conflicts with visible attributes. */
   public validateAttributeName(node: ElementInput, name: string): AttributeNameResult {
     return this.getAdvisor().validateAttributeName(this.model.id, this.nodeReference(node), name);
   }
@@ -225,7 +228,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const nodeId: Id = this.localNode(owner);
     const attribute: Attribute = ModelFactory.createAttribute({
       ...input,
-      typeId: this.typeReference(input.typeId),
+      typeId: this.attributeType(input),
       bounds: input.bounds ?? { lowerBound: 0, upperBound: 1 },
     });
     this.model = ModelEditor.addAttribute(this.model, nodeId, attribute);
@@ -250,7 +253,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.change(attribute);
   }
 
-  /** Adds a scalar data type and immediately validates the resulting project. */
+  /** Adds a named data type and immediately validates the resulting project. */
   public createDataType(input: CreateDataTypeInput): ModelChange<DataType> {
     const dataType: DataType = ModelFactory.createDataType(input);
     this.model = ModelEditor.addClassifier(this.model, dataType);
@@ -320,11 +323,6 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
     this.model = ModelEditor.addRelation(this.model, narrowed);
     return this.change(narrowed);
-  }
-
-  /** Connects local nodes using a chosen suggestion, or infers the unique most specific relation. */
-  public connect(from: ElementInput, to: ElementInput, choice?: RelationChoice): ModelChange<Relation> {
-    return this.connectBy(from, to, choice);
   }
 
   /** Updates a local relation and validates the resulting project. */
@@ -481,7 +479,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       if (!base) throw new Error(`Unknown model: '${reference.modelId}'.`);
       return ModelFactory.createRelation(base, base.id, { baseRelationId: reference.elementId, fromNodeId: from, toNodeId: to });
     }
-    if (this.model.imports.length > 0) throw new Error('Select a relation permitted by the preceding model level.');
+    if (this.model.imports.length > 0) return this.inferRelation(from, to);
     if (!input.name) throw new Error('A root relation needs a name.');
     const fromBounds: Bounds = input.fromBounds ?? { lowerBound: 0, upperBound: -1 };
     const toBounds: Bounds = input.toBounds ?? { lowerBound: 0, upperBound: -1 };
@@ -492,9 +490,17 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       name: input.name,
       superTypes: [],
       constraints: [],
-      from: ModelFactory.createRelationEnd(from, input.fromRole ?? 'source', fromBounds),
-      to: ModelFactory.createRelationEnd(to, input.toRole ?? 'target', toBounds),
+      from: ModelFactory.createRelationEnd(from, fromBounds),
+      to: ModelFactory.createRelationEnd(to, toBounds),
     };
+  }
+
+  private inferRelation(from: Ref, to: Ref): Relation {
+    const result: ProjectValidationResult = this.validate();
+    if (!result.valid) throw new Error('Cannot infer a relation from an invalid model.');
+
+    const connections: ModelConnections = new ModelConnections(result, this.selections());
+    return connections.createRelation({ fromNode: from, toNode: to });
   }
 
   private inputRef(input: ElementInput): Ref {
@@ -515,6 +521,14 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const reference: ElementRef = this.resolveRef(input, 'node');
     if (reference.modelId !== this.model.id) throw new Error('Only local nodes can be edited. Refine the imported node first.');
     return reference.elementId;
+  }
+
+  protected attributeType(input: AttributeInput): Ref {
+    const type: ElementInput | undefined = input.type ?? input.typeId;
+    if (type === undefined) throw new Error('An attribute requires a data type or type ID.');
+    if (input.type !== undefined && typeof input.type === 'string') throw new Error('Use typeId for string references.');
+    if (input.type === undefined && typeof input.typeId !== 'string') throw new Error('Use type for data type objects.');
+    return this.typeReference(type);
   }
 
   private typeReference(input: ElementInput): Ref {

@@ -171,7 +171,6 @@
       "name": "PART_OF",
       "from": {
         "nodeId": "k1nsqV4EImkrzZ2j",
-        "role": "_collections",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -182,7 +181,6 @@
       },
       "to": {
         "nodeId": "Seg0cKcMGCKmCll1",
-        "role": "_collectionOf",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -201,7 +199,6 @@
       "name": "PART_OF",
       "from": {
         "nodeId": "Seg0cKcMGCKmCll1",
-        "role": "_collections",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -212,7 +209,6 @@
       },
       "to": {
         "nodeId": "Seg0cKcMGCKmCll1",
-        "role": "_collectionOf",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -231,7 +227,6 @@
       "name": "PART_OF",
       "from": {
         "nodeId": "q9zvfhsvTeaC5tYJ",
-        "role": "_content",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -242,7 +237,6 @@
       },
       "to": {
         "nodeId": "k1nsqV4EImkrzZ2j",
-        "role": "_collections",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -261,7 +255,6 @@
       "name": "HAS_ANNOTATION",
       "from": {
         "nodeId": "q9zvfhsvTeaC5tYJ",
-        "role": "_annotatesContent",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -272,7 +265,6 @@
       },
       "to": {
         "nodeId": "qR7aST8pHEnrnUWu",
-        "role": "_annotations",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -291,7 +283,6 @@
       "name": "REFERS_TO",
       "from": {
         "nodeId": "qR7aST8pHEnrnUWu",
-        "role": "_referredToBy",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -302,7 +293,6 @@
       },
       "to": {
         "nodeId": "x0YgCFFNElWeMgzw",
-        "role": "_refersToEntities",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -321,7 +311,6 @@
       "name": "REFERS_TO",
       "from": {
         "nodeId": "qR7aST8pHEnrnUWu",
-        "role": "_referredToBy",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1
@@ -332,7 +321,6 @@
       },
       "to": {
         "nodeId": "Dw1IOSlQJR0xI7jn",
-        "role": "_refersToEntities",
         "bounds": {
           "lowerBound": 0,
           "upperBound": -1

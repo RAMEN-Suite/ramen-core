@@ -48,8 +48,8 @@ void test('generic connection uses a suggestion or infers a unique relation with
   const choices: readonly RelationSuggestion[] = api.suggestRelations('connectionLetter1', 'connectionArchive');
   const choice: RelationSuggestion | undefined = choices[0];
   assert.ok(choice);
-  const selected: Relation = api.connect('connectionLetter1', 'connectionArchive', choice);
-  const inferred: Relation = api.connect('connectionLetter1', 'connectionArchive');
+  const selected: Relation = api.createRelation({ fromNode: 'connectionLetter1', toNode: 'connectionArchive', refines: choice });
+  const inferred: Relation = api.createRelation({ fromNode: 'connectionLetter1', toNode: 'connectionArchive' });
   assert.deepEqual(selected.superTypes, [choice.ref]);
   assert.deepEqual(inferred.superTypes, selected.superTypes);
   assert.equal(input.project.relations.length, 0);
@@ -62,10 +62,19 @@ void test('ambiguous connections require a choice and incompatible choices are r
   input.base.relations.push(relation('connectionLink002', 'FILED_UNDER', input.document.id, input.folder.id));
   const api: ModelConnections = connections(input.project, [input.base]);
   const ref: string = `${input.base.id}:${input.link.id}`;
-  assert.throws((): Relation => api.connect('connectionLetter1', 'connectionArchive'), /found 2/);
-  assert.deepEqual(api.connect('connectionLetter1', 'connectionArchive', ref).superTypes, [ref]);
-  assert.throws((): Relation => api.connect('connectionArchive', 'connectionLetter1', ref), /does not connect/);
-  assert.throws((): Relation => api.connect('connectionLetter1', 'connectionArchive', 'unknownRelation01'), /does not connect/);
+  assert.throws((): Relation => api.createRelation({ fromNode: 'connectionLetter1', toNode: 'connectionArchive' }), /found 2/);
+  assert.deepEqual(api.createRelation({ fromNode: 'connectionLetter1', toNode: 'connectionArchive', refines: ref }).superTypes, [
+    ref,
+  ]);
+  assert.throws(
+    (): Relation => api.createRelation({ fromNode: 'connectionArchive', toNode: 'connectionLetter1', refines: ref }),
+    /does not connect/,
+  );
+  assert.throws(
+    (): Relation =>
+      api.createRelation({ fromNode: 'connectionLetter1', toNode: 'connectionArchive', refines: 'unknownRelation01' }),
+    /does not connect/,
+  );
 });
 
 void test('generic connections cannot skip a level that did not select a relation', (): void => {
@@ -75,7 +84,7 @@ void test('generic connections cannot skip a level that did not select a relatio
   const from: string = `${input.base.id}:${input.document.id}`;
   const to: string = `${input.base.id}:${input.folder.id}`;
   assert.deepEqual(api.suggestRelations(from, to), []);
-  assert.throws((): Relation => api.connect(from, to), /found 0/);
+  assert.throws((): Relation => api.createRelation({ fromNode: from, toNode: to }), /found 0/);
 });
 
 void test('relation refinement preserves composition and navigation while keeping new identities', (): void => {
@@ -84,7 +93,7 @@ void test('relation refinement preserves composition and navigation while keepin
   input.link.to.isNavigable = false;
   input.link.from.isNavigable = true;
   const api: ModelConnections = connections(input.project, [input.base]);
-  const refined: Relation = api.connect('connectionLetter1', 'connectionArchive');
+  const refined: Relation = api.createRelation({ fromNode: 'connectionLetter1', toNode: 'connectionArchive' });
   assert.equal(refined.to.isComposite, true);
   assert.equal(refined.to.isNavigable, false);
   assert.equal(refined.from.isNavigable, true);
@@ -96,7 +105,7 @@ void test('relation refinement preserves composition and navigation while keepin
 void test('adding a relation detaches its nested values from the caller', (): void => {
   const input: Fixture = fixture();
   const api: ModelConnections = connections(input.project, [input.base]);
-  const link: Relation = api.connect('connectionLetter1', 'connectionArchive');
+  const link: Relation = api.createRelation({ fromNode: 'connectionLetter1', toNode: 'connectionArchive' });
   const edited: Model = ModelEditor.addRelation(input.project, link);
   link.to.bounds.lowerBound = 9;
   assert.equal(edited.relations[0]?.to.bounds.lowerBound, 0);
@@ -122,7 +131,7 @@ void test('getRelations is read-only, retains endpoint identities and does not c
 
   assert.deepEqual(child.getRelations(letter, folder), []);
   assert.deepEqual(child.getModel(), before);
-  const refined: Relation = child.connect(letter, folder).element;
+  const refined: Relation = child.createRelation({ fromNode: letter, toNode: folder }).element;
   assert.equal(child.getRelations(letter, folder)[0]?.ref, `${child.getModel().id}:${refined.id}`);
 });
 
@@ -157,7 +166,7 @@ void test('getRelations includes both predecessor and local definitions and reje
   const folder: Node = base.createNode('Folder').element;
   const original: Relation = base.createRelation({ name: 'IN_FOLDER', fromNode: document, toNode: folder }).element;
   const child: Modeller = base.createNextLevel('Edition');
-  const refined: Relation = child.connect(document, folder).element;
+  const refined: Relation = child.createRelation({ fromNode: document, toNode: folder }).element;
   const matches: readonly RelationSelection[] = child.getRelations(document, folder);
   const refs: readonly string[] = matches.map((item: RelationSelection): string => item.ref);
   assert.deepEqual(refs, [`${child.getModel().id}:${refined.id}`, `${base.getModel().id}:${original.id}`]);

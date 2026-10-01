@@ -25,7 +25,6 @@ function validate(schema: Model, values: readonly string[]): ValidationResult {
   const project: ProjectValidationResult = new ModelValidator().validateProject(schema.id, [schema]);
   assert.ok(project.valid, JSON.stringify(project.diagnostics));
   const data: ModelInstanceGraph = {
-    modelId: schema.id,
     nodes: [{ id: 'modifierRecord001', typeId: 'modifierNode000001', properties: { labels: values } }],
     relations: [],
   };
@@ -84,7 +83,6 @@ void test('composition allows one owner end and navigability does not prohibit s
   const project: ProjectValidationResult = new ModelValidator().validateProject(schema.id, [schema]);
   assert.ok(project.valid);
   const data: ModelInstanceGraph = {
-    modelId: schema.id,
     nodes: [{ id: 'modifierRecord001', typeId: owner.id, properties: {} }],
     relations: [{ id: 'modifierEdge00001', typeId: edge.id, fromId: 'modifierRecord001', toId: 'modifierRecord001' }],
   };

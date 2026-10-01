@@ -6,7 +6,6 @@ import { model } from '../models.ts';
 
 function accepts(project: Modeller, owner: Node, value: unknown): boolean {
   const data: unknown = {
-    modelId: project.getModel().id,
     nodes: [{ id: 'enumRecord000001', typeId: owner.id, properties: { status: value } }],
     relations: [],
   };
@@ -21,7 +20,7 @@ void test('string enums use exact stored values and only fall back to names when
   project.createLiteral(status.id, { name: 'closed' });
   project.createLiteral(status.id, { name: 'Empty', literal: '' });
   project.createLiteral(status.id, { name: 'Spaced', literal: ' open ' });
-  project.createAttribute(owner, { name: 'status', typeId: status });
+  project.createAttribute(owner, { name: 'status', type: status });
   assert.equal(project.validate().valid, true);
 
   for (const value of ['open', 'closed', '', ' open ']) assert.equal(accepts(project, owner, value), true, value);
@@ -39,7 +38,7 @@ void test('numeric enums require explicit numbers and reject display names or un
   const status: DataType = project.createDataType({ name: 'Status', baseType: 'Integer' }).element;
   project.createLiteral(status.id, { name: 'Open', value: 0 });
   project.createLiteral(status.id, { name: 'Closed', value: 1 });
-  project.createAttribute(owner, { name: 'status', typeId: status });
+  project.createAttribute(owner, { name: 'status', type: status });
   assert.equal(project.validate().valid, true);
 
   for (const value of [0, 1]) assert.equal(accepts(project, owner, value), true);

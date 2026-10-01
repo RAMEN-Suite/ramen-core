@@ -16,8 +16,8 @@ function addKey(project: Modeller, owner: Node, name: string): ProjectValidation
     .validation;
 }
 
-function data(project: Modeller, nodes: readonly ModelInstanceNode[]): ModelInstanceGraph {
-  return { modelId: project.getModel().id, nodes, relations: [] };
+function data(nodes: readonly ModelInstanceNode[]): ModelInstanceGraph {
+  return { nodes, relations: [] };
 }
 
 void test('nodes may have zero or one key but cannot declare two keys', (): void => {
@@ -60,7 +60,7 @@ void test('key duplicates are checked across the declaring node and sibling refi
     { id: 'editorRecord0001', typeId: editor.id, properties: { identifier: 'P001' } },
   ];
   const restored: Modeller = Modeller.import(project.export());
-  const result: ValidationResult = restored.validateInstances(data(restored, nodes));
+  const result: ValidationResult = restored.validateInstances(data(nodes));
   const duplicates: readonly Diagnostic[] = result.diagnostics;
   assert.equal(result.hasErrors, true);
   assert.equal(duplicates.length, 2);
@@ -73,7 +73,7 @@ void test('key duplicates are checked across the declaring node and sibling refi
     ...node,
     properties: { identifier: `P00${index}` },
   }));
-  assert.equal(restored.validateInstances(data(restored, distinct)).hasErrors, false);
+  assert.equal(restored.validateInstances(data(distinct)).hasErrors, false);
 });
 
 void test('independent keys have separate scopes and each validation starts with an empty value index', (): void => {
@@ -86,7 +86,7 @@ void test('independent keys have separate scopes and each validation starts with
     { id: 'personRecord0001', typeId: person.id, properties: { identifier: '001' } },
     { id: 'placeRecord00001', typeId: place.id, properties: { identifier: '001' } },
   ];
-  const input: ModelInstanceGraph = data(project, nodes);
+  const input: ModelInstanceGraph = data(nodes);
   assert.equal(project.validateInstances(input).hasErrors, false);
   assert.equal(project.validateInstances(input).hasErrors, false);
   assert.equal(Modeller.import(project.export()).validateInstances(input).hasErrors, false);
@@ -102,7 +102,7 @@ void test('missing and wrongly typed keys report value errors rather than duplic
     { id: 'personRecord0003', typeId: person.id, properties: { identifier: 1 } },
     { id: 'personRecord0004', typeId: person.id, properties: { identifier: 1 } },
   ];
-  const result: ValidationResult = project.validateInstances(data(project, nodes));
+  const result: ValidationResult = project.validateInstances(data(nodes));
   assert.equal(result.diagnostics.length, 4);
   assert.ok(result.diagnostics.every((item: Diagnostic): boolean => item.code !== 'INSTANCE_KEY_DUPLICATE'));
 });
@@ -116,7 +116,7 @@ void test('RAMEN annotation definitions cannot add a key alongside the inherited
     isKey: true,
   });
   const result: ProjectValidationResult = project.createAnnotation({
-    annotationId: RAMEN_ELEMENT.ANNOTATION,
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'note',
     properties: [key],
   }).validation;

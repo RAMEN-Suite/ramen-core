@@ -35,7 +35,7 @@ function broadModel(size: number): Model {
   return result;
 }
 
-function broadData(owner: Model, size: number): ModelInstanceGraph {
+function broadData(size: number): ModelInstanceGraph {
   const nodes: ModelInstanceNode[] = [];
   const relations: ModelInstanceRelation[] = [];
   for (let index: number = 0; index < size; index += 1) {
@@ -47,14 +47,14 @@ function broadData(owner: Model, size: number): ModelInstanceGraph {
       toId: id('record', (index + 1) % size),
     });
   }
-  return { modelId: owner.id, nodes, relations };
+  return { nodes, relations };
 }
 
 void test('a graph with 1000 node types and 1000 relation types validates data and detects a missing edge', (): void => {
   const source: Model = broadModel(1000);
   const result: ProjectValidationResult = new ModelValidator().validateProject(source.id, [source]);
   assert.ok(result.valid, JSON.stringify(result.diagnostics));
-  const data: ModelInstanceGraph = broadData(source, 1000);
+  const data: ModelInstanceGraph = broadData(1000);
   const validator: InstanceValidator = new InstanceValidator();
   assert.equal(validator.validate(result.graph, data).hasErrors, false);
 
@@ -126,7 +126,7 @@ function checkCombination(bounds: Bounds, refineFrom: boolean, refineTo: boolean
   const child: Modeller = base.createNextLevel('Edition');
   const from: Node = refineFrom ? child.createNode({ name: 'Letter', refines: document }).element : document;
   const to: Node = refineTo ? child.createNode({ name: 'Archive', refines: folder }).element : folder;
-  const connection: Relation = child.connect(from, to).element;
+  const connection: Relation = child.createRelation({ fromNode: from, toNode: to }).element;
 
   const result: ProjectValidationResult = child.updateRelation(connection.id, { to: { ...connection.to, bounds } }).validation;
   const allowed: boolean = bounds.upperBound === 1;
@@ -143,9 +143,8 @@ void test('indexed cardinalities include sibling refinements, count self-relatio
   const project: Modeller = base.createNextLevel('Edition');
   const author: Node = project.createNode({ name: 'Author', refines: person }).element;
   const editor: Node = project.createNode({ name: 'Editor', refines: person }).element;
-  const selected: Relation = project.connect(person, person).element;
+  const selected: Relation = project.createRelation({ fromNode: person, toNode: person }).element;
   const input: ModelInstanceGraph = {
-    modelId: project.getModel().id,
     nodes: [
       { id: 'authorRecord0001', typeId: author.id, properties: {} },
       { id: 'editorRecord0001', typeId: editor.id, properties: {} },

@@ -34,8 +34,8 @@ export function relation(id: Id, name: string, fromId: Ref, toId: Ref, bounds: B
     id: id,
     name: name,
     superTypes: [],
-    from: { id: `${id}From`, nodeId: fromId, role: 'source', bounds: boundsOf(0, -1), constraints: [] },
-    to: { id: `${id}To`, nodeId: toId, role: 'target', bounds: bounds, constraints: [] },
+    from: { id: `${id}From`, nodeId: fromId, bounds: boundsOf(0, -1), constraints: [] },
+    to: { id: `${id}To`, nodeId: toId, bounds: bounds, constraints: [] },
     constraints: [],
   };
 }

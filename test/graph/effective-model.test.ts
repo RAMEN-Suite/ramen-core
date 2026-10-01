@@ -108,7 +108,6 @@ void test('inherited custom datatypes keep their declaring model in options and 
   assert.ok(result.valid);
   const advisor: ModelAdvisor = new ModelAdvisor(result);
   const data: ModelInstanceGraph = {
-    modelId: child.id,
     nodes: [{ id: 'datatypeRecord001', typeId: 'datatypeRefined01', properties: { count: 'wrong' } }],
     relations: [],
   };

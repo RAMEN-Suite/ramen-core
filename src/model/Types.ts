@@ -6,8 +6,8 @@ export type Id = string;
 export type Ref = string;
 /** Reference in the `<modelId>:<elementId>` form. */
 export type QualifiedRef = string;
-/** Primitive data types available without a model declaration. */
-export type BuiltinType = 'String' | 'Boolean' | 'Integer' | 'Float';
+/** Built-in JSON value types available without a model declaration; Object is a value, not a Node. */
+export type BuiltinType = 'String' | 'Boolean' | 'Integer' | 'Float' | 'Object';
 /** Reference to a built-in or declared data type. */
 export type TypeRef = Ref;
 
@@ -77,12 +77,12 @@ export interface Constraint {
   ext?: Record<string, unknown>;
 }
 
-/** Declared scalar value domain, optionally restricted to a set of literals. */
+/** Named value domain; Object-based types are opaque values without modelled members or relationships. */
 export interface DataType {
   kind: 'DataType';
   id: Id;
   name: string;
-  /** JSON-compatible primitive representation used before domain constraints are evaluated. */
+  /** JSON-compatible representation used before domain constraints are evaluated. */
   baseType: BuiltinType;
   literals?: [Literal, ...Literal[]];
   constraints?: Constraint[];
@@ -111,11 +111,10 @@ export interface Relation {
   ext?: Record<string, unknown>;
 }
 
-/** One endpoint of a relation, including role and cardinality. */
+/** One endpoint of a relation, including its node and cardinality. */
 export interface RelationEnd {
   id: Id;
   nodeId: Ref;
-  role: string;
   bounds: Bounds;
   isNavigable?: boolean;
   isComposite?: boolean;

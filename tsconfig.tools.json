@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["examples/**/*.ts", "dist/ramen-core/**/*.d.ts"]
+  "include": ["tools/**/*.ts"]
 }

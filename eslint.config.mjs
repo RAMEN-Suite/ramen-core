@@ -8,17 +8,11 @@ export default defineConfig(
     ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
   },
   {
-    files: ['scripts/**/*.mjs'],
-    extends: [js.configs.recommended],
-    languageOptions: { globals: { process: 'readonly', URL: 'readonly' } },
-    rules: { complexity: ['error', 12] },
-  },
-  {
-    files: ['src/**/*.ts', 'test/**/*.ts', 'examples/**/*.ts'],
+    files: ['src/**/*.ts', 'test/**/*.ts', 'tools/**/*.ts'],
     extends: [js.configs.recommended, tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.json', './tsconfig.test.json', './tsconfig.examples.json'],
+        project: ['./tsconfig.json', './tsconfig.test.json', './tsconfig.tools.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },

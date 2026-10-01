@@ -21,32 +21,34 @@
     "./ramen": {
       "types": "./dist/ramen-core/ramen/index.d.ts",
       "default": "./dist/ramen-core/ramen/index.js"
+    },
+    "./schemas/*": {
+      "default": "./dist/ramen-core/schemas/*"
     }
   },
   "scripts": {
-    "build": "npm run clean:core && npm run build:types && npm run build:bundle",
+    "build": "npm run build:types && npm run build:bundle && npm run build:schemas",
     "build:bundle": "esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --external:json-schema-library --external:short-unique-id",
+    "build:schemas": "node --experimental-strip-types tools/package-schemas.ts",
     "build:types": "tsc -p tsconfig.json",
-    "clean": "node scripts/clean.mjs",
-    "clean:core": "node scripts/clean.mjs core",
     "docs:build": "typedoc",
     "docs:serve": "npm run docs:build && concurrently --kill-others --names docs,server \"npm run docs:watch\" \"http-server dist/api-doc -a 127.0.0.1 -p 5173 -c-1\"",
     "docs:watch": "typedoc --watch --preserveWatchOutput",
-    "examples:check": "tsc -p tsconfig.examples.json --noEmit && node scripts/check-examples.mjs",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
-    "lint": "eslint src test examples scripts",
-    "lint:fix": "eslint src test examples scripts --fix",
+    "lint": "eslint src test tools",
+    "lint:fix": "eslint src test tools --fix",
     "package:check": "npm pack --dry-run --ignore-scripts",
     "prepare": "husky",
-    "schema:check": "node scripts/generate-ramen-project-schema.mjs --check",
-    "schema:generate": "node scripts/generate-ramen-project-schema.mjs",
+    "schema:check": "node --experimental-strip-types tools/generate-schema.ts --check",
+    "schema:generate": "node --experimental-strip-types tools/generate-schema.ts",
     "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
     "test:coverage": "npm run build && npm run typecheck:tests && node --experimental-strip-types --experimental-test-coverage --test-coverage-include='dist/ramen-core/**/*.js' --test test/**/*.test.ts",
     "test:watch": "npm run typecheck:tests && node --experimental-strip-types --test --watch test/**/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
-    "verify": "npm run schema:check && npm run build && npm run lint && npm run format && npm run examples:check && npm test && npm run docs:build && npm run package:check"
+    "typecheck:tools": "tsc -p tsconfig.tools.json --noEmit",
+    "verify": "npm run typecheck:tools && npm run schema:check && npm run build && npm run lint && npm run format && npm test && npm run docs:build && npm run package:check"
   },
   "dependencies": {
     "json-schema-library": "^11.0.4",

@@ -4,14 +4,21 @@
   "tsconfig": "tsconfig.json",
   "out": "dist/api-doc",
   "name": "RAMEN Core",
-  "readme": "docs/rmf.md",
+  "readme": "docs/rmf/rmf.md",
   "excludePrivate": true,
   "excludeProtected": true,
   "excludeInternal": true,
   "disableSources": true,
-  "projectDocuments": ["docs/rmf.md", "docs/suggestions.md", "docs/constraints.md", "docs/validation.md", "docs/diagnostics.md"],
+  "projectDocuments": [
+    "docs/rmf/rmf.md",
+    "docs/rmf/constraints.md",
+    "docs/rmf/suggestions.md",
+    "docs/rmf/validation.md",
+    "docs/rmf/diagnostics.md",
+    "docs/ramen/ramen-suggestions.md"
+  ],
   "sortEntryPoints": false,
-  "groupOrder": ["Guides", "Modules", "*"],
+  "groupOrder": ["RMF", "RAMEN", "Modules", "*"],
   "navigation": {
     "includeGroups": true
   },

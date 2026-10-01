@@ -1,6 +1,6 @@
 ---
 title: RAMEN Model Format
-group: Guides
+group: RMF
 ---
 
 # RAMEN Model Format
@@ -68,7 +68,9 @@ Each captured Document must have a string title.
 
 ### Define data types
 
-{@link model.DataTypes | DataTypes} provides `String`, `Boolean`, `Integer` and `Float`. To add a property to Folder, pass it to the model’s editing method:
+{@link model.DataTypes | DataTypes} provides `String`, `Boolean`, `Integer`, `Float` and `Object`. `Object` accepts a JSON object, but not an array or `null`. RMF does not inspect its fields. Use a {@link model.Node | Node} when fields or relationships need to be modelled.
+
+To add a property to Folder, pass it to the model’s editing method:
 
 ```ts
 model.createAttribute(folder, { name: 'description', typeId: DataTypes.String });
@@ -89,7 +91,7 @@ model.createAttribute(folder, { name: 'visibility', type: visibility });
 Folder's optional `visibility` accepts only `"public"` or `"private"`.
 Use `type` for data type objects and `typeId` for string references, such as `DataTypes.String`.
 If both are supplied, `type` takes precedence.
-For a type picker in an editor, see [Data type suggestions](suggestions.md#select-a-data-type).
+For a type picker in an editor, see [Data type suggestions](suggestions.md#choose-a-data-type).
 
 ### Set cardinality
 
@@ -154,7 +156,7 @@ if (!result.valid) {
 ```
 
 Export requires a valid model.
-See [Validation](validation.md) for the checks, [Constraints](constraints.md) for value rules and [Diagnostics](diagnostics.md) for their findings.
+See [Validate Models and Data](validation.md), [Writing Constraints](constraints.md) and [Read Diagnostics](diagnostics.md).
 
 ## Refine the model
 
@@ -217,7 +219,7 @@ This permits Page → Section, with at most one Section per Page. You can also n
 project.createRelation({ refines: filedIn, fromNode: page, toNode: section });
 ```
 
-If several relations fit, choose one with {@link model.Modeller.suggestRelations | suggestRelations()} and pass it as `refines`. See [Relation suggestions](suggestions.md#select-a-relation).
+If several relations fit, choose one with {@link model.Modeller.suggestRelations | suggestRelations()} and pass it as `refines`. See [Relation suggestions](suggestions.md#choose-a-relationship).
 
 ### Further levels
 
@@ -248,7 +250,7 @@ Post belongs to Blog; Section remains defined in Website. The same rules apply a
 
 {@link model.Modeller.export | export()} writes Website and its imported Filing model to one file. `models` holds their metadata; `classifiers` and `relations` hold their declarations with an owning `modelId`. `superTypes` preserve refinements. {@link model.Modeller.import | import()} restores the two model levels from this information.
 
-The file follows the [RMF file schema](https://ramen-schema.org/model/1.0.0/file.schema.json). RAMEN exports follow the [RAMEN file schema](https://ramen-schema.org/ramen/1.0.0/file.schema.json), which also includes annotations. Both schemas ship in `@ramen-suite/core/schemas/`.
+The file follows the [RMF file schema](https://ramen-schema.org/model/1.0.0/file.schema.json), which ships in `@ramen-suite/core/schemas/`.
 
 ```ts
 import type { ModelFile } from '@ramen-suite/core/model';

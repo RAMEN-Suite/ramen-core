@@ -126,7 +126,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
   /**
    * Validates the complete current project and returns its graph on success.
-   * Findings are returned in `diagnostics`; see [Diagnostics](../../../docs/diagnostics.md).
+   * Findings are returned in `diagnostics`; see [Diagnostics](../../../docs/rmf/diagnostics.md).
    */
   public validate(): ProjectValidationResult {
     if (this.validatedModel === this.model && this.validation) return this.validation;

@@ -1,15 +1,15 @@
 ---
-title: Annotation Suggestions
+title: Suggest Annotations
 group: RAMEN
 ---
 
-# Annotation Suggestions
+# Suggest Annotations
 
-These queries help an editor offer only annotation choices allowed by the current RAMEN model. The [RMF Suggestions guide](../rmf/suggestions.md) covers generic nodes, data types and relationships.
+These queries help an editor offer only annotation choices allowed by the current RAMEN model. Read [Define Annotation Types](annotations.md) for the rules behind these choices. The [RMF Suggestions guide](../rmf/suggestions.md) covers generic nodes, data types and relationships.
 
 ## Example model
 
-This small model uses the imported Annotation node without refining it. A `person` annotation may be attached to Text or Image and refers to a Person. The two carrier relationships count together: each annotation needs exactly one carrier.
+This small model uses the imported Annotation node. A `person` annotation needs at least one Text or Image attachment and one Person reference.
 
 ```ts
 import type { Node, Relation } from '@ramen-suite/core/model';
@@ -28,18 +28,13 @@ edition.createAnnotation({
   nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'person',
   relations: [
-    {
-      relation: textLink,
-      alternatives: [imageLink.id],
-      direction: 'incoming',
-      bounds: { lowerBound: 1, upperBound: 1 },
-    },
+    { relations: [textLink, imageLink], direction: 'incoming', bounds: { lowerBound: 1, upperBound: -1 } },
     { relation: personLink, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } },
   ],
 });
 ```
 
-Text and Image are separate Content refinements. Their `HAS_ANNOTATION` relationships both target the same imported Annotation node. The annotation type selects those relationships and the reference to Person.
+Text and Image are separate Content refinements. The grouped `relations` count their incoming links together; suggestions recognise either carrier.
 
 ## Suggest a type for a node
 
@@ -100,4 +95,4 @@ console.log(properties);
 // []
 ```
 
-The `person` type needs no extra properties here. If a project adds type-owned properties later, this query includes their names, data types and cardinalities. The generic `getAttributes(annotation)` instead lists attributes of the shared Annotation node.
+The `person` type needs no extra properties here. If a project adds type-owned properties later, this query includes their names, data types and cardinalities. The generic {@link model.Modeller.getAttributes | getAttributes(annotation)} instead lists attributes of the shared Annotation node.

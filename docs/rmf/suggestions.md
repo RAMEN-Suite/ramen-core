@@ -5,7 +5,7 @@ group: RMF
 
 # Request Suggestions
 
-A suggestion is a choice that the current model level permits. Request choices when a person selects a node type, data type or relationship in an editor. Suggestions do not change the model; the choice is applied with a `create*` method. An empty list means that no choice is available.
+A suggestion is a choice available while editing the current model. Request choices when a person selects a node type, data type or relationship. Suggestions do not change the model; apply a choice with a `create*` method. An empty list means that no matching choice is available.
 
 | Query       | Use it to                                | Example                                                                        |
 | ----------- | ---------------------------------------- | ------------------------------------------------------------------------------ |
@@ -17,7 +17,7 @@ The following steps use the [Filing and Website models](rmf.md) from the RMF gui
 
 ```ts
 import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type { Node } from '@ramen-suite/core/model';
+import type { Node, Relation } from '@ramen-suite/core/model';
 
 const filing: Modeller = Modeller.create('Filing');
 const document: Node = filing.createNode('Document').element;
@@ -28,20 +28,21 @@ filing.createAttribute(document, {
   typeId: DataTypes.String,
   bounds: { lowerBound: 1, upperBound: 1 },
 });
-filing.createRelation({ name: 'FILED_IN', fromNode: document, toNode: folder });
+filing.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } });
 
 const website: Modeller = filing.createNextLevel('Website');
 ```
 
 ## Choose a node to refine
 
-{@link model.Modeller.suggestNodes | suggestNodes()} lists imported nodes that Website can refine. Pass the selected suggestion directly to `createNode()`:
+{@link model.Modeller.suggestNodes | suggestNodes()} lists both local and imported nodes that can be refined. Filing can refine its own Document; Website can also refine the imported Document. Pass a selected suggestion directly to {@link model.Modeller.createNode | createNode()}:
 
 ```ts
 import type { NodeSuggestion } from '@ramen-suite/core/model';
 
-const nodes: readonly NodeSuggestion[] = website.suggestNodes();
-// Document and Folder are available.
+const localNodes: readonly NodeSuggestion[] = filing.suggestNodes();
+const websiteNodes: readonly NodeSuggestion[] = website.suggestNodes();
+// Both lists include Document and Folder.
 
 function addNode(name: string, selected: NodeSuggestion): Node {
   return website.createNode({ name, refines: selected }).element;
@@ -57,7 +58,7 @@ const section: Node = website.createNode({ name: 'Section', refines: folder }).e
 
 ## Choose a data type
 
-{@link model.Modeller.suggestDataTypes | suggestDataTypes()} includes built-in and declared types. The selected suggestion can be used as an attribute's `type`:
+{@link model.Modeller.suggestDataTypes | suggestDataTypes()} includes the [built-in and declared types](data-types.md). The selected suggestion can be used as an attribute's `type`:
 
 ```ts
 import type { DataTypeSuggestion } from '@ramen-suite/core/model';
@@ -74,7 +75,7 @@ The editor presents `types`; the caller passes the chosen object to `addSummary`
 
 ## Choose a relationship
 
-{@link model.Modeller.suggestRelations | suggestRelations(from, to)} returns the preceding level's relationships that accept both node types:
+{@link model.Modeller.suggestRelations | suggestRelations(from, to)} returns compatible local and permitted predecessor relationships. Here Website has no local relationship yet, so the suggestion comes from Filing:
 
 ```ts
 import type { RelationSuggestion } from '@ramen-suite/core/model';
@@ -82,12 +83,27 @@ import type { RelationSuggestion } from '@ramen-suite/core/model';
 const relations: readonly RelationSuggestion[] = website.suggestRelations(page, section);
 // One choice: FILED_IN, from Document → Folder.
 
-function addFilingRelation(selected?: RelationSuggestion): void {
-  website.createRelation({ fromNode: page, toNode: section, refines: selected });
+function addFilingRelation(selected?: RelationSuggestion): Relation {
+  return website.createRelation({ from: { node: page }, to: { node: section }, refines: selected }).element;
 }
+
+const pageFiledIn: Relation = addFilingRelation(relations[0]);
 ```
 
-Pass the chosen suggestion to `addFilingRelation`; omit it when exactly one relationship fits.
+Pass the chosen suggestion to `addFilingRelation`; omit it when exactly one relationship fits. If several fit, select one explicitly. [Refine by Inheritance](inheritance.md) explains why Website must apply the relationship.
+
+## Explore connections from a node
+
+After a relationship is applied, {@link model.Modeller.suggestConnections | suggestConnections(page)} lists its outgoing or incoming directions and compatible target types in the current level:
+
+```ts
+import type { NodeRelationSuggestion } from '@ramen-suite/core/model';
+
+const connections: readonly NodeRelationSuggestion[] = website.suggestConnections(page);
+// FILED_IN is outgoing from Page and accepts Section.
+```
+
+Before `pageFiledIn` was created, this list was empty in Website. `suggestRelations(page, section)` answered a different question: which predecessor relationship **could be applied** between those types.
 
 ## Check an attribute name
 
@@ -100,4 +116,4 @@ const result: AttributeNameResult = website.validateAttributeName(page, 'title')
 // { allowed: false, conflicts: ['attribute'] }
 ```
 
-RAMEN-specific choices, including annotation types for a node, are covered in [Annotation Suggestions](../ramen/ramen-suggestions.md).
+RAMEN-specific choices, including annotation types for a node, are covered in [Suggest Annotations](../ramen/suggest-annotations.md).

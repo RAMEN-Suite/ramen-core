@@ -11,11 +11,17 @@
   "disableSources": true,
   "projectDocuments": [
     "docs/rmf/rmf.md",
-    "docs/rmf/constraints.md",
+    "docs/constraint-languages.md",
+    "docs/rmf/inheritance.md",
     "docs/rmf/suggestions.md",
     "docs/rmf/validation.md",
-    "docs/rmf/diagnostics.md",
-    "docs/ramen/ramen-suggestions.md"
+    "docs/rmf/exchange.md",
+    "docs/ramen/ramen.md",
+    "docs/ramen/data-types.md",
+    "docs/ramen/annotations.md",
+    "docs/ramen/validation.md",
+    "docs/ramen/export.md",
+    "docs/glossary.md"
   ],
   "sortEntryPoints": false,
   "groupOrder": ["RMF", "RAMEN", "Modules", "*"],

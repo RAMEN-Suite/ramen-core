@@ -116,8 +116,6 @@ export interface RelationEnd {
   id: Id;
   nodeId: Ref;
   bounds: Bounds;
-  isNavigable?: boolean;
-  isComposite?: boolean;
   constraints?: Constraint[];
   ext?: Record<string, unknown>;
 }

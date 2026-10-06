@@ -1,120 +1,93 @@
 import { ModelConnections, RelationChoice, RelationSelection } from './Connections';
 import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './Editor';
-import { ModelFactory, CreateModelInput, CreateAttributeInput, CreateDataTypeInput } from './Factory';
+import { ModelFactory, CreateModelInput, CreateDataTypeInput } from './Factory';
+import type {
+  AttributeInput,
+  ElementInput,
+  ElementRef,
+  LiteralInput,
+  LiteralUpdate,
+  ModelChange,
+  ModelInput,
+  NodeInput,
+  RelationEndInput,
+  RelationInput,
+  Removal,
+} from './Inputs';
 import {
   ModelAdvisor,
   AttributeInfo,
   DataTypeSuggestion,
   NodeSuggestion,
   RelationSuggestion,
-  NodeInfo,
+  NodeLineageItem,
   NodeRelationSuggestion,
   AttributeNameResult,
 } from '../Advisor';
+import {
+  ModelWorkspace,
+  ModelRemovalPreview,
+  ModelUpdate,
+  NodeRemovalPreview,
+  RelationRemovalPreview,
+  WorkspaceElement,
+} from './Workspace';
+import { ConstraintOwners } from './ConstraintOwner';
+import type { ConstraintLocation, ConstraintOwnerInput } from './ConstraintOwner';
 import { ModelRef } from '../graph/References';
 import type { RelationSelections } from '../graph/RelationScope';
 import type { ResolvedElement } from '../graph/ProjectGraph';
+import { DiagnosticPath } from '../validation/Diagnostics';
 import type { Diagnostic } from '../validation/Diagnostics';
+import { NodeDiagnostics } from '../validation/NodeDiagnostics';
 import { BuiltinDataTypes } from '../Builtins';
-import type { ProjectValidationResult, ValidProjectResult } from '../validation/ModelValidator';
-import type { Attribute, Bounds, Classifier, DataType, Id, Literal, Model, Node, Ref, Relation } from '../Types';
-
-/** Model identity; omitted IDs and URIs are generated, and version defaults to 1.0.0. */
-export interface ModelInput {
-  readonly name: string;
-  readonly id?: Id;
-  readonly uri?: string;
-  readonly version?: string;
-}
-
-/** An element identified within its declaring model. */
-export interface ElementRef {
-  readonly modelId: Id;
-  readonly elementId: Id;
-}
-
-/** Pass an ID, a qualified reference, an element, or a suggestion directly. */
-export type ElementInput = Ref | ElementRef | { readonly id: Id } | { readonly ref: Ref };
-
-/** Declare a root node, or select an existing node to refine on a derived level. */
-export interface NodeInput {
-  readonly name: string;
-  readonly refines?: ElementInput;
-}
-
-/**
- * Select a data type object with type or a string reference with typeId. The object takes precedence.
- * Attributes default to optional scalar values (0..1).
- */
-export type AttributeInput = Omit<CreateAttributeInput, 'typeId' | 'bounds'> & {
-  readonly bounds?: Bounds;
-} & (
-    | { readonly type: Exclude<ElementInput, Ref>; readonly typeId?: Ref }
-    | { readonly type?: Exclude<ElementInput, Ref>; readonly typeId: Ref }
-  );
-
-/**
- * Select a base relation, or declare a named root relation. Unspecified root bounds are 0..*.
- * Supply a node object or an ID for each endpoint. When both are present, the object takes precedence.
- */
-export type RelationInput = {
-  readonly refines?: ElementInput;
-  readonly name?: string;
-  readonly fromBounds?: Bounds;
-  readonly toBounds?: Bounds;
-} & (
-  | { readonly fromNode: Exclude<ElementInput, Ref>; readonly fromNodeId?: Ref }
-  | { readonly fromNode?: Exclude<ElementInput, Ref>; readonly fromNodeId: Ref }
-) &
-  (
-    | { readonly toNode: Exclude<ElementInput, Ref>; readonly toNodeId?: Ref }
-    | { readonly toNode?: Exclude<ElementInput, Ref>; readonly toNodeId: Ref }
-  );
-
-/** Values of one data type literal. */
-export interface LiteralInput {
-  readonly name: string;
-  readonly literal?: string;
-  readonly value?: number;
-}
-
-/** Editable fields of a literal. */
-export type LiteralUpdate = Partial<Pick<Literal, 'name' | 'literal' | 'value' | 'constraints' | 'ext'>>;
-
-/** A detached edited element and immediate validation of the resulting model. */
-export interface ModelChange<T> {
-  readonly element: T;
-  readonly validation: ProjectValidationResult;
-}
-
-/** References removed by a generic edit; extensions can clean up their own references. */
-export interface Removal {
-  readonly nodeId?: Id;
-  readonly attributeId?: Id;
-  readonly relationIds?: ReadonlySet<Id>;
-}
+import { ConstraintRegistry } from '../validation/Constraints';
+import { ValueValidator } from '../data/ValueValidator';
+import { InstanceValueValidator } from '../data/InstanceValues';
+import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
+import type { ProjectValidationResult, ValidProjectResult, ValidationResult } from '../validation/ModelValidator';
+import type {
+  Attribute,
+  Bounds,
+  BuiltinType,
+  Classifier,
+  Constraint,
+  DataType,
+  Id,
+  Literal,
+  Model,
+  Node,
+  Ref,
+  Relation,
+  RelationEnd,
+} from '../Types';
 
 /** Shared editing state for generic and domain-specific modelling facades. */
 export abstract class ModelDraft<A extends ModelAdvisor> {
-  protected model: Model;
-  protected readonly dependencies: ReadonlyMap<Id, Model>;
-  private validatedModel: Model | undefined;
+  protected readonly workspace: ModelWorkspace;
+  private readonly modelId: Id;
+  private validatedRevision: number = -1;
   private validation: ProjectValidationResult | undefined;
   private advisor: A | undefined;
 
-  protected constructor(model: Model, dependencies: readonly Model[]) {
-    this.model = structuredClone(model);
-    this.dependencies = new Map<Id, Model>(dependencies.map((item: Model): [Id, Model] => [item.id, structuredClone(item)]));
+  protected constructor(model: Model, dependencies: readonly Model[], workspace?: ModelWorkspace, attach: boolean = false) {
+    this.workspace = workspace ?? new ModelWorkspace([...dependencies, model]);
+    this.modelId = model.id;
+    if (workspace && !attach) this.workspace.add(model);
   }
 
-  /** Lists imported node types that this level can refine. */
-  public suggestNodes(): readonly NodeSuggestion[] {
-    return this.getAdvisor().suggestNodes(this.model.id);
+  protected get model(): Model {
+    const model: Model | undefined = this.workspace.get(this.modelId);
+    if (!model) throw new Error(`Model not found: '${this.modelId}'.`);
+    return model;
   }
 
-  /** Lists primitive and project-defined data types. */
-  public suggestDataTypes(): readonly DataTypeSuggestion[] {
-    return this.getAdvisor().suggestDataTypes(this.model.id);
+  protected set model(model: Model) {
+    this.workspace.update(model);
+  }
+
+  protected get dependencies(): ReadonlyMap<Id, Model> {
+    return this.workspace.dependenciesOf(this.modelId);
   }
 
   /** Returns a detached snapshot of the current project model. */
@@ -127,20 +100,30 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.validationInputs().map((model: Model): Model => structuredClone(model));
   }
 
+  /** Lists attributes visible on a local or imported node. */
+  public getAttributes(node: ElementInput): readonly AttributeInfo[] {
+    const owner: ElementRef = this.resolveRef(node, 'node');
+    return this.getAdvisor().getAttributes(owner.modelId, owner.elementId);
+  }
+
+  /** Returns the node's base-first refinement lineage. */
+  public getNodeLineage(node: ElementInput): readonly NodeLineageItem[] {
+    return this.getAdvisor().getNodeLineage(this.model.id, this.nodeReference(node));
+  }
+
   /**
-   * Validates the complete current project and returns its graph on success.
-   * Findings are returned in `diagnostics`; see [Diagnostics](../../../docs/rmf/diagnostics.md).
+   * Lists existing relationships with exact endpoints, including permitted predecessor definitions.
+   * Returns an empty list for no matches and all matches for parallel relationships; never edits the model.
+   * Requires valid node references and a valid model snapshot.
    */
-  public validate(): ProjectValidationResult {
-    if (this.validatedModel === this.model && this.validation) return this.validation;
-    const result: ProjectValidationResult = this.check();
-    this.validatedModel = this.model;
-    this.advisor = undefined;
-    this.validation = Object.freeze({
-      ...result,
-      diagnostics: Object.freeze(result.diagnostics.map((diagnostic: Diagnostic): Diagnostic => Object.freeze(diagnostic))),
-    });
-    return this.validation;
+  public getRelations(from: ElementInput, to: ElementInput): readonly RelationSelection[] {
+    return this.getAdvisor().getRelations(this.model.id, this.nodeReference(from), this.nodeReference(to));
+  }
+
+  /** Returns the rules declared directly on an element, including one from an imported model. */
+  public getConstraints(owner: ConstraintOwnerInput): readonly Constraint[] {
+    const location: ConstraintLocation = ConstraintOwners.find(this.validationInputs(), owner);
+    return structuredClone(location.constraints);
   }
 
   /** Returns an advisor or explains why the current model cannot provide suggestions. */
@@ -152,25 +135,19 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.advisor;
   }
 
-  /** Lists attributes visible on a local or imported node. */
-  public getAttributes(node: ElementInput): readonly AttributeInfo[] {
-    const owner: ElementRef = this.resolveRef(node, 'node');
-    return this.getAdvisor().getAttributes(owner.modelId, owner.elementId);
+  /** Lists local and imported node types that this level can refine. */
+  public suggestNodes(): readonly NodeSuggestion[] {
+    return this.getAdvisor().suggestNodes(this.model.id);
   }
 
-  /** Returns the node's lineage, existing attributes and available connection options. */
-  public getNodeInfo(node: ElementInput): NodeInfo | undefined {
-    return this.getAdvisor().getNodeInfo(this.model.id, this.nodeReference(node));
+  /** Lists primitive and project-defined data types. */
+  public suggestDataTypes(): readonly DataTypeSuggestion[] {
+    return this.getAdvisor().suggestDataTypes(this.model.id);
   }
 
   /** Lists possible relations and their compatible targets for one node. */
   public suggestConnections(node: ElementInput): readonly NodeRelationSuggestion[] {
     return this.getAdvisor().suggestConnections(this.model.id, this.nodeReference(node));
-  }
-
-  /** Checks whether a new attribute name conflicts with visible attributes. */
-  public validateAttributeName(node: ElementInput, name: string): AttributeNameResult {
-    return this.getAdvisor().validateAttributeName(this.model.id, this.nodeReference(node), name);
   }
 
   /** Lists relations that can connect two nodes in this model. */
@@ -179,12 +156,104 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   }
 
   /**
-   * Lists existing relationships with exact endpoints, including permitted predecessor definitions.
-   * Returns an empty list for no matches and all matches for parallel relationships; never edits the model.
-   * Requires valid node references and a valid model snapshot.
+   * Validates the complete current project and returns its graph on success.
+   * Findings are returned in `diagnostics`; see [Diagnostics](../../../docs/rmf/diagnostics.md).
    */
-  public getRelations(from: ElementInput, to: ElementInput): readonly RelationSelection[] {
-    return this.getAdvisor().getRelations(this.model.id, this.nodeReference(from), this.nodeReference(to));
+  public validate(): ProjectValidationResult {
+    if (this.validatedRevision === this.workspace.version && this.validation) return this.validation;
+    const result: ProjectValidationResult = this.check();
+    this.validatedRevision = this.workspace.version;
+    this.advisor = undefined;
+    this.validation = Object.freeze({
+      ...result,
+      diagnostics: Object.freeze(result.diagnostics.map((diagnostic: Diagnostic): Diagnostic => Object.freeze(diagnostic))),
+    });
+    return this.validation;
+  }
+
+  /** Returns complete-project findings attached to a node, its ancestors or incident relations. */
+  public validateNode(input: ElementInput): ValidationResult {
+    const owner: ElementRef = this.resolveRef(input, 'node');
+    const diagnostics: NodeDiagnostics = new NodeDiagnostics(this.validationInputs());
+    const lineage: readonly ElementRef[] = diagnostics.lineage(owner);
+    return diagnostics.select(lineage, this.validate().diagnostics, this.nodeDiagnosticPaths(lineage));
+  }
+
+  /** Checks whether a new attribute name conflicts with visible attributes. */
+  public validateAttributeName(node: ElementInput, name: string): AttributeNameResult {
+    return this.getAdvisor().validateAttributeName(this.model.id, this.nodeReference(node), name);
+  }
+
+  /** Checks one value against a built-in or declared data type, including literals and value rules. */
+  public validateValue(
+    type: ElementInput,
+    value: unknown,
+    registry: ConstraintRegistry = ConstraintRegistry.createDefault(),
+  ): ValidationResult {
+    const result: ProjectValidationResult = this.validate();
+    if (!result.valid) return { diagnostics: result.diagnostics, hasErrors: true };
+
+    const reference: Ref = this.inputRef(type);
+    let selected: BuiltinType | ResolvedElement<DataType>;
+    if (BuiltinDataTypes.isBuiltin(reference)) {
+      selected = reference;
+    } else {
+      const owner: ElementRef = this.resolveRef(type, 'dataType');
+      const dataType: DataType | undefined = result.graph.getDataType(owner.modelId, owner.elementId);
+      if (!dataType) throw new Error(`Data type not found: '${reference}'.`);
+      selected = { modelId: owner.modelId, element: dataType };
+    }
+
+    const validator: ValueValidator = new ValueValidator(registry);
+    return validator.validate(selected, value, { path: DiagnosticPath.root().property('value'), label: 'Value' });
+  }
+
+  /** Checks one local or inherited attribute input. Custom evaluators must work without a data graph. */
+  public validateAttributeValue(
+    node: ElementInput,
+    name: string,
+    value: unknown,
+    registry: ConstraintRegistry = ConstraintRegistry.createDefault(),
+  ): ValidationResult {
+    const result: ProjectValidationResult = this.validate();
+    if (!result.valid) return { diagnostics: result.diagnostics, hasErrors: true };
+
+    const owner: ElementRef = this.resolveRef(node, 'node');
+    const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(result.graph, owner.modelId, owner.elementId);
+    const attribute: Attribute | undefined = effective?.attributes.find((item: Attribute): boolean => item.name === name);
+    if (!attribute) throw new Error(`Attribute '${name}' not found on node '${owner.elementId}'.`);
+
+    return new InstanceValueValidator(registry).validateOneAttribute(result.graph, owner.modelId, attribute, value);
+  }
+
+  /** Updates this model's identity and the exact imports used by later levels. */
+  public updateModel(patch: ModelUpdate): ModelChange<Model> {
+    const updated: Model = this.workspace.updateModel(this.model.id, patch);
+    return this.change(updated);
+  }
+
+  /** Updates a level that directly imports this model. */
+  public updateNextLevel(modelId: Id, patch: ModelUpdate): Model {
+    this.requireNextLevel(modelId);
+    return this.workspace.updateModel(modelId, patch);
+  }
+
+  /** Shows the chosen next level and every later level that imports it. */
+  public previewNextLevelRemoval(modelId: Id): ModelRemovalPreview {
+    this.requireNextLevel(modelId);
+    return this.workspace.previewModelRemoval(modelId);
+  }
+
+  /** Removes a next level; cascade also removes every level that depends on it. */
+  public removeNextLevel(modelId: Id, options: { readonly cascade?: boolean } = {}): ModelRemovalPreview {
+    const preview: ModelRemovalPreview = this.previewNextLevelRemoval(modelId);
+    const blockers: readonly string[] = preview.models.slice(1).map((model): string => `${model.name} (${model.id})`);
+    if (!options.cascade && blockers.length > 0) {
+      throw new Error(`Cannot remove model '${modelId}': still used by ${blockers.join(', ')}.`);
+    }
+
+    this.workspace.removeModels(preview);
+    return preview;
   }
 
   /** Creates a root node or a refinement and validates the resulting model. */
@@ -204,21 +273,44 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.change(this.requireNode(nodeId));
   }
 
-  /** Removes a local node and its connected local relations. */
-  public removeNode(nodeId: Id): ModelChange<Node> {
-    const node: Node = this.requireNode(nodeId);
-    const relationIds: Set<Id> = new Set<Id>(
-      this.model.relations
-        .filter(
-          (relation: Relation): boolean =>
-            ModelRef.matches(relation.from.nodeId, this.model.id, nodeId) ||
-            ModelRef.matches(relation.to.nodeId, this.model.id, nodeId),
-        )
-        .map((relation: Relation): Id => relation.id),
-    );
+  /** Shows every declaration that would be removed with this node. */
+  public previewNodeRemoval(nodeId: Id): NodeRemovalPreview {
+    this.requireNode(nodeId);
+    const target: WorkspaceElement = { modelId: this.model.id, elementId: nodeId };
+    const preview: NodeRemovalPreview = this.workspace.previewNodeRemoval(target);
+    const withRemovals: NodeRemovalPreview = { ...preview, annotations: this.annotationRemovals(preview) };
+    return { ...withRemovals, updatedAnnotations: this.annotationUpdates(withRemovals) };
+  }
 
-    this.model = ModelEditor.removeNode(this.model, nodeId);
-    this.onRemove({ nodeId: nodeId, relationIds: relationIds });
+  /** Removes an unused node, or atomically removes its dependent definitions with cascade. */
+  public removeNode(nodeId: Id, options: { readonly cascade?: boolean } = {}): ModelChange<Node> {
+    const node: Node = this.requireNode(nodeId);
+    const preview: NodeRemovalPreview = this.previewNodeRemoval(nodeId);
+    const blockers: readonly string[] = [
+      ...preview.nodes.slice(1).map((item: WorkspaceElement): string => this.removalLabel(item, 'node')),
+      ...preview.relations.map((item: WorkspaceElement): string => this.removalLabel(item, 'relation')),
+      ...preview.annotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
+      ...preview.updatedAnnotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
+    ];
+    if (!options.cascade && blockers.length > 0) {
+      throw new Error(`Cannot remove node '${node.name}' (${nodeId}): still used by ${blockers.join(', ')}.`);
+    }
+
+    const nodeKeys: ReadonlySet<string> = new Set<string>(
+      preview.nodes.map((item: WorkspaceElement): string => `${item.modelId}:${item.elementId}`),
+    );
+    const relationKeys: ReadonlySet<string> = new Set<string>(
+      preview.relations.map((item: WorkspaceElement): string => `${item.modelId}:${item.elementId}`),
+    );
+    const replacements: Model[] = this.workspace.all().map((model: Model): Model => {
+      const remaining: Model = {
+        ...model,
+        classifiers: model.classifiers.filter((item: Classifier): boolean => !nodeKeys.has(`${model.id}:${item.id}`)),
+        relations: model.relations.filter((item: Relation): boolean => !relationKeys.has(`${model.id}:${item.id}`)),
+      };
+      return this.cleanRemoval(remaining, preview);
+    });
+    this.workspace.updateMany(replacements);
 
     return this.change(node);
   }
@@ -268,10 +360,9 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.change(this.requireDataType(dataTypeId));
   }
 
-  /** Removes a local data type and validates the resulting project. */
+  /** Removes a local data type; unresolved references remain visible in validation diagnostics. */
   public removeDataType(dataTypeId: Id): ModelChange<DataType> {
     const dataType: DataType = this.requireDataType(dataTypeId);
-
     this.model = ModelEditor.removeClassifierById(this.model, dataTypeId);
 
     return this.change(dataType);
@@ -314,15 +405,18 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
   /** Creates a root relation or a refinement and validates the resulting model. */
   public createRelation(input: RelationInput): ModelChange<Relation> {
+    const [fromInput, toInput]: readonly [RelationEndInput, RelationEndInput] = this.relationEndInputs(input);
     const relation: Relation = this.newRelation(input);
-    const narrowed: Relation = {
+    const configured: Relation = {
       ...relation,
-      from: { ...relation.from, bounds: input.fromBounds ?? relation.from.bounds },
-      to: { ...relation.to, bounds: input.toBounds ?? relation.to.bounds },
+      name: input.name ?? relation.name,
+      constraints: structuredClone([...(input.constraints ?? relation.constraints ?? [])]),
+      from: this.configureRelationEnd(relation.from, fromInput),
+      to: this.configureRelationEnd(relation.to, toInput),
     };
 
-    this.model = ModelEditor.addRelation(this.model, narrowed);
-    return this.change(narrowed);
+    this.model = ModelEditor.addRelation(this.model, configured);
+    return this.change(configured);
   }
 
   /** Updates a local relation and validates the resulting project. */
@@ -333,14 +427,83 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.change(this.requireRelation(relationId));
   }
 
-  /** Removes a local relation and validates the resulting project. */
-  public removeRelation(relationId: Id): ModelChange<Relation> {
-    const relation: Relation = this.requireRelation(relationId);
+  /** Shows relation refinements and annotation types affected by removal. */
+  public previewRelationRemoval(relationId: Id): RelationRemovalPreview {
+    this.requireRelation(relationId);
+    const target: WorkspaceElement = { modelId: this.model.id, elementId: relationId };
+    const preview: RelationRemovalPreview = this.workspace.previewRelationRemoval(target);
+    const removal: NodeRemovalPreview = { nodes: [], relations: preview.relations, annotations: [], updatedAnnotations: [] };
+    return { ...preview, updatedAnnotations: this.annotationUpdates(removal) };
+  }
 
-    this.model = ModelEditor.removeRelationById(this.model, relationId);
-    this.onRemove({ relationIds: new Set<Id>([relationId]) });
+  /** Removes an unused relation, or its dependants with explicit cascade. */
+  public removeRelation(relationId: Id, options: { readonly cascade?: boolean } = {}): ModelChange<Relation> {
+    const relation: Relation = this.requireRelation(relationId);
+    const preview: RelationRemovalPreview = this.previewRelationRemoval(relationId);
+    const blockers: readonly string[] = [
+      ...preview.relations.slice(1).map((item: WorkspaceElement): string => this.removalLabel(item, 'relation')),
+      ...preview.updatedAnnotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
+    ];
+    if (!options.cascade && blockers.length > 0) {
+      throw new Error(`Cannot remove relation '${relation.name}' (${relationId}): still used by ${blockers.join(', ')}.`);
+    }
+
+    const removal: NodeRemovalPreview = {
+      nodes: [],
+      relations: preview.relations,
+      annotations: [],
+      updatedAnnotations: preview.updatedAnnotations,
+    };
+    const relationKeys: ReadonlySet<string> = new Set<string>(
+      preview.relations.map((item: WorkspaceElement): string => `${item.modelId}:${item.elementId}`),
+    );
+    const replacements: Model[] = this.workspace.all().map((model: Model): Model => {
+      const remaining: Model = {
+        ...model,
+        relations: model.relations.filter((item: Relation): boolean => !relationKeys.has(`${model.id}:${item.id}`)),
+      };
+      return this.cleanRemoval(remaining, removal);
+    });
+    this.workspace.updateMany(replacements);
 
     return this.change(relation);
+  }
+
+  /** Adds one rule to a local element without replacing its existing rules. */
+  public addConstraint(owner: ConstraintOwnerInput, rule: Constraint): ModelChange<Constraint> {
+    const location: ConstraintLocation = this.localConstraintOwner(owner);
+    if (location.constraints.some((item: Constraint): boolean => item.id === rule.id)) {
+      throw new Error(`Constraint already exists: '${rule.id}'.`);
+    }
+    const validation: ProjectValidationResult = this.replaceConstraints(location, [...location.constraints, rule]);
+    return { element: structuredClone(rule), validation };
+  }
+
+  /** Updates one rule by ID on a local element while preserving its other rules. */
+  public updateConstraint(
+    owner: ConstraintOwnerInput,
+    ruleId: Id,
+    patch: Partial<Omit<Constraint, 'id'>>,
+  ): ModelChange<Constraint> {
+    const location: ConstraintLocation = this.localConstraintOwner(owner);
+    const current: Constraint | undefined = location.constraints.find((item: Constraint): boolean => item.id === ruleId);
+    if (!current) throw new Error(`Constraint not found: '${ruleId}'.`);
+    const updated: Constraint = { ...current, ...structuredClone(patch) };
+    const rules: readonly Constraint[] = location.constraints.map((item: Constraint): Constraint =>
+      item.id === ruleId ? updated : item,
+    );
+    const validation: ProjectValidationResult = this.replaceConstraints(location, rules);
+    return { element: structuredClone(updated), validation };
+  }
+
+  /** Removes one rule by ID from a local element while preserving its other rules. */
+  public removeConstraint(owner: ConstraintOwnerInput, ruleId: Id): ModelChange<Constraint> {
+    const location: ConstraintLocation = this.localConstraintOwner(owner);
+    const removed: Constraint | undefined = location.constraints.find((item: Constraint): boolean => item.id === ruleId);
+    if (!removed) throw new Error(`Constraint not found: '${ruleId}'.`);
+    const rules: readonly Constraint[] = location.constraints.filter((item: Constraint): boolean => item.id !== ruleId);
+    const validation: ProjectValidationResult = this.replaceConstraints(location, rules);
+    return { element: structuredClone(removed), validation };
   }
 
   protected abstract check(): ProjectValidationResult;
@@ -353,6 +516,26 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
   protected onRemove(_input: Removal): void {
     /* Domain extensions may clean up references after an edit. */
+  }
+
+  protected annotationRemovals(_preview: NodeRemovalPreview): readonly WorkspaceElement[] {
+    return [];
+  }
+
+  protected nodeDiagnosticPaths(_lineage: readonly ElementRef[]): readonly string[] {
+    return [];
+  }
+
+  protected annotationUpdates(_preview: NodeRemovalPreview): readonly WorkspaceElement[] {
+    return [];
+  }
+
+  protected annotationName(item: WorkspaceElement): string {
+    return item.elementId;
+  }
+
+  protected cleanRemoval(model: Model, _preview: NodeRemovalPreview): Model {
+    return model;
   }
 
   protected static options(input: ModelInput | string): CreateModelInput {
@@ -379,6 +562,15 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   protected findModel(modelId: Id): Model | undefined {
     if (modelId === this.model.id) return this.model;
     return this.dependencies.get(modelId);
+  }
+
+  private requireNextLevel(modelId: Id): Model {
+    const model: Model | undefined = this.workspace.get(modelId);
+    if (!model) throw new Error(`Model not found: '${modelId}'.`);
+    if (!model.imports.some((entry): boolean => entry.modelId === this.model.id)) {
+      throw new Error(`Model '${modelId}' does not directly import '${this.model.id}'.`);
+    }
+    return model;
   }
 
   protected resolveRef(input: ElementInput, kind: 'node' | 'relation' | 'dataType'): ElementRef {
@@ -411,7 +603,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const suggestions: readonly RelationSuggestion[] = connections.suggestRelations(fromRef, toRef);
     const candidates: readonly RelationSuggestion[] = this.selectFamily(result, suggestions, family);
     const selected: RelationSuggestion = connections.select(candidates, choice);
-    const input: RelationInput = { refines: selected.ref, fromNodeId: fromRef, toNodeId: toRef };
+    const input: RelationInput = { refines: selected.ref, from: { nodeId: fromRef }, to: { nodeId: toRef } };
     const relation: Relation = this.newRelation(input);
     this.model = ModelEditor.addRelation(this.model, relation);
     return this.change(relation);
@@ -421,6 +613,41 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const classifier: Classifier | undefined = this.model.classifiers.find((item: Classifier): boolean => item.id === nodeId);
     if (classifier?.kind !== 'Node') throw new Error(`Node not found: '${nodeId}'.`);
     return classifier;
+  }
+
+  private localConstraintOwner(owner: ConstraintOwnerInput): ConstraintLocation {
+    const location: ConstraintLocation = ConstraintOwners.find(this.validationInputs(), owner);
+    if (location.modelId !== this.model.id) {
+      throw new Error(`Constraint owner '${location.id}' belongs to another model. Open that level to edit it.`);
+    }
+    return location;
+  }
+
+  private replaceConstraints(location: ConstraintLocation, rules: readonly Constraint[]): ProjectValidationResult {
+    const constraints: Constraint[] = structuredClone([...rules]);
+    const parentId: Id | undefined = location.parentId;
+    if (location.kind === 'node') return this.updateNode(location.id, { constraints }).validation;
+    if (location.kind === 'dataType') return this.updateDataType(location.id, { constraints }).validation;
+    if (location.kind === 'relation') return this.updateRelation(location.id, { constraints }).validation;
+
+    if (!parentId) throw new Error(`Constraint owner '${location.id}' has no parent.`);
+    if (location.kind === 'attribute') return this.updateAttribute(parentId, location.id, { constraints }).validation;
+    if (location.kind === 'literal') return this.updateLiteral(parentId, location.id, { constraints }).validation;
+
+    const relation: Relation = this.requireRelation(parentId);
+    const end: RelationEnd = relation[location.kind];
+    return this.updateRelation(parentId, { [location.kind]: { ...end, constraints } }).validation;
+  }
+
+  private removalLabel(item: WorkspaceElement, kind: 'node' | 'relation' | 'annotation'): string {
+    const model: Model | undefined = this.workspace.get(item.modelId);
+    let name: string = item.elementId;
+    if (kind === 'node')
+      name = model?.classifiers.find((entry: Classifier): boolean => entry.id === item.elementId)?.name ?? name;
+    if (kind === 'relation')
+      name = model?.relations.find((entry: Relation): boolean => entry.id === item.elementId)?.name ?? name;
+    if (kind === 'annotation') name = this.annotationName(item);
+    return `${kind} '${name}' (${item.elementId}) in model '${model?.name ?? item.modelId}'`;
   }
 
   private requireDataType(dataTypeId: Id): DataType {
@@ -449,9 +676,11 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   }
 
   private newNode(input: NodeInput): Node {
+    const constraints: Constraint[] = structuredClone([...(input.constraints ?? [])]);
     if (input.refines !== undefined) {
       const base: ElementRef = this.resolveRef(input.refines, 'node');
-      return ModelFactory.createNode(base.modelId, { name: input.name, baseNodeId: base.elementId });
+      const node: Node = ModelFactory.createNode(base.modelId, { name: input.name, baseNodeId: base.elementId });
+      return { ...node, constraints: constraints };
     }
     if (this.model.imports.length > 0) throw new Error('Select a node to refine from the imported models.');
     return {
@@ -460,15 +689,29 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       name: input.name,
       superTypes: [],
       attributes: [],
-      constraints: [],
+      constraints: constraints,
     };
   }
 
   private relationNodes(input: RelationInput): readonly [from: Ref, to: Ref] {
-    const from: ElementInput | undefined = input.fromNode ?? input.fromNodeId;
-    const to: ElementInput | undefined = input.toNode ?? input.toNodeId;
+    const [fromInput, toInput]: readonly [RelationEndInput, RelationEndInput] = this.relationEndInputs(input);
+    const from: ElementInput | undefined = fromInput.node ?? fromInput.nodeId;
+    const to: ElementInput | undefined = toInput.node ?? toInput.nodeId;
     if (from === undefined || to === undefined) throw new Error('A relation requires source and target nodes or IDs.');
     return [this.nodeReference(from), this.nodeReference(to)];
+  }
+
+  private relationEndInputs(input: RelationInput): readonly [RelationEndInput, RelationEndInput] {
+    if (!input.from || !input.to) throw new Error('A relation requires source and target nodes or IDs.');
+    return [input.from, input.to];
+  }
+
+  private configureRelationEnd(end: RelationEnd, input: RelationEndInput): RelationEnd {
+    return {
+      ...end,
+      bounds: input.bounds ?? end.bounds,
+      constraints: structuredClone([...(input.constraints ?? end.constraints ?? [])]),
+    };
   }
 
   private newRelation(input: RelationInput): Relation {
@@ -481,8 +724,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     }
     if (this.model.imports.length > 0) return this.inferRelation(from, to);
     if (!input.name) throw new Error('A root relation needs a name.');
-    const fromBounds: Bounds = input.fromBounds ?? { lowerBound: 0, upperBound: -1 };
-    const toBounds: Bounds = input.toBounds ?? { lowerBound: 0, upperBound: -1 };
+    const defaultBounds: Bounds = { lowerBound: 0, upperBound: -1 };
 
     return {
       kind: 'Relation',
@@ -490,8 +732,8 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       name: input.name,
       superTypes: [],
       constraints: [],
-      from: ModelFactory.createRelationEnd(from, fromBounds),
-      to: ModelFactory.createRelationEnd(to, toBounds),
+      from: ModelFactory.createRelationEnd(from, defaultBounds),
+      to: ModelFactory.createRelationEnd(to, defaultBounds),
     };
   }
 

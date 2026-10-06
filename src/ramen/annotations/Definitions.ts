@@ -1,4 +1,5 @@
-import type { Attribute, Bounds, Model, Id, Ref, RelationSelections } from '../../model/index';
+import type { Attribute, Bounds, Model, Id, Ref } from '../../model/Types';
+import type { RelationSelections } from '../../model/graph/RelationScope';
 import { RamenAnnotationSchemaValidator } from './Schema';
 import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat } from '../Document';
 import type { RamenModelDocument } from '../Document';
@@ -12,11 +13,9 @@ export interface AttributeReference {
 /** An existing node attribute or a property declared directly by this type. */
 export type AnnotationProperty = AttributeReference | Attribute;
 
-/** Relation selected for one closed RAMEN annotation definition. */
+/** Relations counted together for one closed RAMEN annotation definition. */
 export interface AnnotationRelation {
-  readonly relationId: Ref;
-  /** Other permitted relations counted together with relationId. */
-  readonly alternatives?: readonly Ref[];
+  readonly relationIds: readonly Ref[];
   readonly direction: 'outgoing' | 'incoming';
   readonly bounds: Bounds;
 }
@@ -38,14 +37,10 @@ export class RamenAnnotations {
       models.map((model: RamenModelDocument): [Id, readonly Ref[]] => [
         model.id,
         model.annotations.flatMap((annotation: RamenAnnotation): Ref[] =>
-          annotation.relations.flatMap((relation: AnnotationRelation): readonly Ref[] => this.relationRefs(relation)),
+          annotation.relations.flatMap((relation: AnnotationRelation): readonly Ref[] => relation.relationIds),
         ),
       ]),
     );
-  }
-
-  public static relationRefs(relation: AnnotationRelation): readonly Ref[] {
-    return [relation.relationId, ...(relation.alternatives ?? [])];
   }
 
   /** Returns a detached list of annotations declared by the model. */

@@ -1,36 +1,27 @@
 import { AnnotationProperties } from './Properties';
-import { DiagnosticPath, Diagnostics, ModelRef, ProjectGraph } from '../../model/index';
+import { DiagnosticPath, Diagnostics } from '../../model/validation/Diagnostics';
+import { ModelRef } from '../../model/graph/References';
+import { ProjectGraph } from '../../model/graph/ProjectGraph';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { Bounds, Diagnostic, Model, Node, Relation, Id, Ref, ResolvedElement } from '../../model/index';
-import { RamenAnnotation, AnnotationRelation, RamenAnnotations } from './Definitions';
+import type { Diagnostic } from '../../model/validation/Diagnostics';
+import type { ResolvedElement } from '../../model/graph/ProjectGraph';
+import type { Bounds, Model, Node, Relation, Id, Ref } from '../../model/Types';
+import { RamenAnnotation, AnnotationRelation } from './Definitions';
 import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
-export const RAMEN_VALIDATION_ERROR: Readonly<{
-  RELATION_SCOPE_INVALID: 'RELATION_SCOPE_INVALID';
-  BASE_MODEL_REQUIRED: 'RAMEN_BASE_MODEL_REQUIRED';
-  ANNOTATIONS_INVALID: 'RAMEN_ANNOTATIONS_INVALID';
-  ANNOTATION_ID_DUPLICATE: 'RAMEN_ANNOTATION_ID_DUPLICATE';
-  ANNOTATION_TYPE_EMPTY: 'RAMEN_ANNOTATION_TYPE_EMPTY';
-  ANNOTATION_TYPE_DUPLICATE: 'RAMEN_ANNOTATION_TYPE_DUPLICATE';
-  ANNOTATION_NODE_INVALID: 'RAMEN_ANNOTATION_NODE_INVALID';
-  ANNOTATION_PROPERTY_INVALID: 'RAMEN_ANNOTATION_PROPERTY_INVALID';
-  ANNOTATION_RELATION_INVALID: 'RAMEN_ANNOTATION_RELATION_INVALID';
-  ANNOTATION_BOUNDS_INVALID: 'RAMEN_ANNOTATION_BOUNDS_INVALID';
-  PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED';
-}> = {
-  RELATION_SCOPE_INVALID: 'RELATION_SCOPE_INVALID',
-  BASE_MODEL_REQUIRED: 'RAMEN_BASE_MODEL_REQUIRED',
-  ANNOTATIONS_INVALID: 'RAMEN_ANNOTATIONS_INVALID',
-  ANNOTATION_ID_DUPLICATE: 'RAMEN_ANNOTATION_ID_DUPLICATE',
-  ANNOTATION_TYPE_EMPTY: 'RAMEN_ANNOTATION_TYPE_EMPTY',
-  ANNOTATION_TYPE_DUPLICATE: 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
-  ANNOTATION_NODE_INVALID: 'RAMEN_ANNOTATION_NODE_INVALID',
-  ANNOTATION_PROPERTY_INVALID: 'RAMEN_ANNOTATION_PROPERTY_INVALID',
-  ANNOTATION_RELATION_INVALID: 'RAMEN_ANNOTATION_RELATION_INVALID',
-  ANNOTATION_BOUNDS_INVALID: 'RAMEN_ANNOTATION_BOUNDS_INVALID',
-  PROJECT_FORMAT_REQUIRED: 'RAMEN_PROJECT_FORMAT_REQUIRED',
-} as const;
+export enum RAMEN_VALIDATION_ERROR {
+  BASE_MODEL_REQUIRED = 'RAMEN_BASE_MODEL_REQUIRED',
+  ANNOTATIONS_INVALID = 'RAMEN_ANNOTATIONS_INVALID',
+  ANNOTATION_ID_DUPLICATE = 'RAMEN_ANNOTATION_ID_DUPLICATE',
+  ANNOTATION_TYPE_EMPTY = 'RAMEN_ANNOTATION_TYPE_EMPTY',
+  ANNOTATION_TYPE_DUPLICATE = 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
+  ANNOTATION_NODE_INVALID = 'RAMEN_ANNOTATION_NODE_INVALID',
+  ANNOTATION_PROPERTY_INVALID = 'RAMEN_ANNOTATION_PROPERTY_INVALID',
+  ANNOTATION_RELATION_INVALID = 'RAMEN_ANNOTATION_RELATION_INVALID',
+  ANNOTATION_BOUNDS_INVALID = 'RAMEN_ANNOTATION_BOUNDS_INVALID',
+  PROJECT_FORMAT_REQUIRED = 'RAMEN_PROJECT_FORMAT_REQUIRED',
+}
 
 interface RelationIndex {
   readonly selected: Set<string>;
@@ -148,7 +139,7 @@ export class RamenAnnotationRules {
     seen: RelationIndex,
     diagnostics: Diagnostic[],
   ): void {
-    const refs: readonly Ref[] = RamenAnnotations.relationRefs(requirement);
+    const refs: readonly Ref[] = requirement.relationIds;
     const relations: readonly (ResolvedElement<Relation> | undefined)[] = refs.map(
       (ref: Ref): ResolvedElement<Relation> | undefined => graph.resolveRelation(resolved.modelId, ref),
     );
@@ -166,16 +157,20 @@ export class RamenAnnotationRules {
         ? -1
         : bounds.reduce((sum: number, value: Bounds): number => sum + value.upperBound, 0),
     };
-    const duplicate: boolean = this.overlaps(graph, resolved.modelId, requirement, seen);
+    const duplicate: boolean = this.overlaps(graph, relations, requirement.direction, seen);
     const path: DiagnosticPath = this.path(resolved.modelId, resolved.annotation.id).property('relations');
     this.validateRelationShape(resolved, requirement, relations[0], modelledBounds, validEndpoint, duplicate, path, diagnostics);
   }
 
-  private overlaps(graph: ProjectGraph, modelId: Id, requirement: AnnotationRelation, seen: RelationIndex): boolean {
+  private overlaps(
+    graph: ProjectGraph,
+    relations: readonly (ResolvedElement<Relation> | undefined)[],
+    direction: AnnotationRelation['direction'],
+    seen: RelationIndex,
+  ): boolean {
     let overlap: boolean = false;
-    const prefix: string = `${requirement.direction}:`;
-    for (const ref of RamenAnnotations.relationRefs(requirement)) {
-      const relation: ResolvedElement<Relation> | undefined = graph.resolveRelation(modelId, ref);
+    const prefix: string = `${direction}:`;
+    for (const relation of relations) {
       if (!relation) continue;
       const key: string = `${prefix}${ModelRef.qualify(relation.modelId, relation.element.id)}`;
       const ancestors: readonly string[] = graph
@@ -207,7 +202,7 @@ export class RamenAnnotationRules {
       this.error(
         diagnostics,
         RAMEN_VALIDATION_ERROR.ANNOTATION_RELATION_INVALID,
-        `Annotation relation '${requirement.relationId}' must select applicable, non-overlapping relations exactly once.`,
+        `Annotation relations '${requirement.relationIds.join(', ')}' must select applicable, non-overlapping relations exactly once.`,
         path,
         resolved.annotation.id,
       );

@@ -1,12 +1,11 @@
-import {
-  DiagnosticPath,
-  Diagnostics,
-  ModelValidator,
-  ModelSchemaValidator,
-  ProjectGraph,
-  VALIDATION_ERROR,
-} from '../../model/index';
-import type { Diagnostic, Model, Id, ProjectValidationResult } from '../../model/index';
+import { DiagnosticPath, Diagnostics } from '../../model/validation/Diagnostics';
+import { ModelValidator } from '../../model/validation/ModelValidator';
+import { ModelSchemaValidator } from '../../model/validation/ModelSchema';
+import { ProjectGraph } from '../../model/graph/ProjectGraph';
+import { VALIDATION_ERROR } from '../../model/validation/Codes';
+import type { Diagnostic } from '../../model/validation/Diagnostics';
+import type { ProjectValidationResult } from '../../model/validation/ModelValidator';
+import type { Model, Id } from '../../model/Types';
 import { RamenAnnotations } from '../annotations/Definitions';
 import { RamenModelFormat } from '../Document';
 import { RAMEN_MODEL } from '../ReferenceModel';

@@ -271,16 +271,6 @@
         "id": { "$ref": "#/$defs/Id" },
         "nodeId": { "$ref": "#/$defs/Ref" },
         "bounds": { "$ref": "#/$defs/Bounds" },
-        "isComposite": {
-          "type": "boolean",
-          "default": false,
-          "description": "Marks this end as the conceptual whole or owner. At most one end may be composite; automatic deletion and acyclicity are not implied."
-        },
-        "isNavigable": {
-          "type": "boolean",
-          "default": false,
-          "description": "Tells tools whether a node at the opposite end can navigate this relation toward nodes at this end. It does not restrict which relations may be stored."
-        },
         "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" }, "default": [] },
         "ext": {
           "type": "object",
@@ -307,13 +297,16 @@
     },
     "RamenAnnotationRelation": {
       "type": "object",
-      "description": "Allows one modelled relation for this annotation type, including its direction from the annotation and a type-specific cardinality.",
-      "required": ["relationId", "direction", "bounds"],
+      "description": "Selects one or more modelled relations for this annotation type. Their matches share one cardinality interval.",
+      "required": ["relationIds", "direction", "bounds"],
       "additionalProperties": false,
       "properties": {
-        "relationId": {
-          "$ref": "#/$defs/RamenRef",
-          "description": "Reference to a modelled relation. Its endpoint types determine which nodes can be connected."
+        "relationIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/RamenRef" },
+          "description": "References to modelled relations counted together. Their endpoint types determine which nodes can be connected."
         },
         "direction": {
           "enum": ["outgoing", "incoming"],
@@ -321,14 +314,7 @@
         },
         "bounds": {
           "$ref": "#/$defs/RamenBounds",
-          "description": "Number of matching relations allowed for one annotation; it must not widen the modelled relation cardinality."
-        },
-        "alternatives": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/RamenRef" },
-          "description": "Other allowed relations. The bounds count all selected alternatives together, not each one separately."
+          "description": "Total number of matching relations allowed for one annotation; it must not widen the modelled cardinality."
         }
       }
     },

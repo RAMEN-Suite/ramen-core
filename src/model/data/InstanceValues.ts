@@ -1,6 +1,6 @@
 import { BuiltinDataTypes } from '../Builtins';
 import { ModelRef } from '../graph/References';
-import { Bounds, Attribute, BuiltinType, Constraint, DataType, Literal, Node, Id } from '../Types';
+import { Bounds, Attribute, BuiltinType, Constraint, DataType, Node, Id } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
 import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { ConstraintRegistry } from '../validation/Constraints';
@@ -8,18 +8,40 @@ import type { ConstraintGraph } from '../validation/Constraints';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
 import { ValidationCode } from '../validation/Codes';
+import { jsonValueKey } from '../JsonValue';
+import { ValueValidator } from './ValueValidator';
+import type { ValueCheck } from './ValueValidator';
+import type { ValidationResult } from '../validation/ModelValidator';
 
 /** Validates instance properties against effective node attributes and constraints. */
 export class InstanceValueValidator {
   private readonly nodes: Map<string, EffectiveNode> = new Map<string, EffectiveNode>();
   private readonly keys: Map<string, Map<unknown, Id>> = new Map<string, Map<unknown, Id>>();
+  private readonly values: ValueValidator;
 
   /** Creates a value validator with the supplied constraint languages. */
   public constructor(
     private readonly constraints: ConstraintRegistry,
-    private readonly graphContext: ConstraintGraph,
+    private readonly graphContext?: ConstraintGraph,
     private readonly attributes?: InstanceValidationOptions['attributes'],
-  ) {}
+  ) {
+    this.values = new ValueValidator(constraints);
+  }
+
+  /** Checks one property input without requiring a complete recorded graph. */
+  public validateOneAttribute(graph: ProjectGraph, modelId: Id, attribute: Attribute, value: unknown): ValidationResult {
+    const diagnostics: Diagnostic[] = [];
+    this.validateAttributeValue(
+      graph,
+      modelId,
+      undefined,
+      attribute,
+      value,
+      DiagnosticPath.root().property('value'),
+      diagnostics,
+    );
+    return { diagnostics, hasErrors: diagnostics.some((item: Diagnostic): boolean => item.severity === 'error') };
+  }
 
   /** Resolves instance node types and validates their modelled properties. */
   public validate(graph: ProjectGraph, instance: ModelInstanceGraph, diagnostics: Diagnostic[]): Map<Id, ResolvedInstanceNode> {
@@ -152,7 +174,7 @@ export class InstanceValueValidator {
   private validateAttributeValue(
     graph: ProjectGraph,
     modelId: Id,
-    instanceId: Id,
+    instanceId: Id | undefined,
     attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
@@ -173,7 +195,7 @@ export class InstanceValueValidator {
     this.validateCount(attribute.name, attribute.bounds, values.length, path, attribute.id, diagnostics);
     if (
       attribute.isUnique !== false &&
-      new Set(values.map((item: unknown): string => JSON.stringify(item))).size !== values.length
+      new Set(values.map((item: unknown): string => jsonValueKey(item))).size !== values.length
     ) {
       diagnostics.push(
         this.error('INSTANCE_PROPERTY_NOT_UNIQUE', `Property '${attribute.name}' contains duplicate values.`, path, attribute.id),
@@ -212,28 +234,25 @@ export class InstanceValueValidator {
   private validateTypedValue(
     graph: ProjectGraph,
     modelId: Id,
-    instanceId: Id,
+    instanceId: Id | undefined,
     attribute: Attribute,
     value: unknown,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    if (BuiltinDataTypes.isBuiltin(attribute.typeId)) {
-      if (!this.matchesBuiltin(attribute.typeId, value)) {
-        diagnostics.push(
-          this.error(
-            'INSTANCE_PROPERTY_TYPE_INVALID',
-            `Property '${attribute.name}' must contain ${attribute.typeId} values.`,
-            path,
-            attribute.id,
-          ),
-        );
-      }
-    } else {
-      const contextId: Id = ModelRef.isQualified(attribute.typeId) ? graph.getRootModel().id : modelId;
-      const dataType: ResolvedElement<DataType> | undefined = graph.resolveDataType(contextId, attribute.typeId);
-
-      if (dataType) this.validateDataTypeValue(dataType, instanceId, attribute, value, path, diagnostics);
+    const type: BuiltinType | ResolvedElement<DataType> | undefined = BuiltinDataTypes.isBuiltin(attribute.typeId)
+      ? attribute.typeId
+      : graph.resolveDataType(ModelRef.isQualified(attribute.typeId) ? graph.getRootModel().id : modelId, attribute.typeId);
+    if (type) {
+      const result: ValueCheck = this.values.validate(type, value, {
+        path,
+        label: `Property '${attribute.name}'`,
+        ref: attribute.id,
+        instanceId,
+        graph: this.graphContext,
+      });
+      diagnostics.push(...result.diagnostics);
+      if (!result.typeValid) return;
     }
     for (const constraint of attribute.constraints ?? []) {
       diagnostics.push(
@@ -242,80 +261,6 @@ export class InstanceValueValidator {
           ownerId: attribute.id,
           instanceId: instanceId,
           target: 'attribute',
-          value: value,
-          path: path,
-          graph: this.graphContext,
-        }),
-      );
-    }
-  }
-
-  private validateDataTypeValue(
-    dataType: ResolvedElement<DataType>,
-    instanceId: Id,
-    attribute: Attribute,
-    value: unknown,
-    path: DiagnosticPath,
-    diagnostics: Diagnostic[],
-  ): void {
-    if (!this.matchesBuiltin(dataType.element.baseType, value)) {
-      diagnostics.push(
-        this.error(
-          'INSTANCE_PROPERTY_TYPE_INVALID',
-          `Property '${attribute.name}' must contain ${dataType.element.baseType} values for data type '${dataType.element.name}'.`,
-          path,
-          attribute.id,
-        ),
-      );
-
-      return;
-    }
-    this.validateLiteralValue(dataType, instanceId, attribute, value, path, diagnostics);
-    for (const constraint of dataType.element.constraints ?? []) {
-      diagnostics.push(
-        ...this.constraints.evaluate(constraint, {
-          modelId: dataType.modelId,
-          ownerId: dataType.element.id,
-          instanceId: instanceId,
-          target: 'dataType',
-          value: value,
-          path: path,
-          graph: this.graphContext,
-        }),
-      );
-    }
-  }
-
-  private validateLiteralValue(
-    dataType: ResolvedElement<DataType>,
-    instanceId: Id,
-    attribute: Attribute,
-    value: unknown,
-    path: DiagnosticPath,
-    diagnostics: Diagnostic[],
-  ): void {
-    const literals: readonly Literal[] | undefined = dataType.element.literals;
-    if (!literals) return;
-    const literal: Literal | undefined = literals.find((item: Literal): boolean => this.matchesLiteral(item, value));
-    if (!literal) {
-      diagnostics.push(
-        this.error(
-          'INSTANCE_PROPERTY_LITERAL_INVALID',
-          `Property '${attribute.name}' contains no literal declared by data type '${dataType.element.name}'.`,
-          path,
-          attribute.id,
-        ),
-      );
-
-      return;
-    }
-    for (const constraint of literal.constraints ?? []) {
-      diagnostics.push(
-        ...this.constraints.evaluate(constraint, {
-          modelId: dataType.modelId,
-          ownerId: literal.id,
-          instanceId: instanceId,
-          target: 'literal',
           value: value,
           path: path,
           graph: this.graphContext,
@@ -342,19 +287,6 @@ export class InstanceValueValidator {
         ),
       );
     }
-  }
-
-  private matchesBuiltin(type: BuiltinType, value: unknown): boolean {
-    if (type === 'String') return typeof value === 'string';
-    if (type === 'Boolean') return typeof value === 'boolean';
-    if (type === 'Integer') return typeof value === 'number' && Number.isInteger(value);
-    if (type === 'Object') return value !== null && typeof value === 'object' && !Array.isArray(value);
-    return typeof value === 'number' && Number.isFinite(value);
-  }
-
-  private matchesLiteral(literal: Literal, value: unknown): boolean {
-    if (typeof value === 'number') return value === literal.value;
-    return value === (literal.literal ?? literal.name);
   }
 
   private error(code: ValidationCode, message: string, path: DiagnosticPath, ref?: string): Diagnostic {

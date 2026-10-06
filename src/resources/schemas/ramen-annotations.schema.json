@@ -51,13 +51,16 @@
     },
     "AnnotationRelation": {
       "type": "object",
-      "description": "Allows one modelled relation for this annotation type, including its direction from the annotation and a type-specific cardinality.",
-      "required": ["relationId", "direction", "bounds"],
+      "description": "Selects one or more modelled relations for this annotation type. Their matches share one cardinality interval.",
+      "required": ["relationIds", "direction", "bounds"],
       "additionalProperties": false,
       "properties": {
-        "relationId": {
-          "$ref": "#/$defs/Ref",
-          "description": "Reference to a modelled relation. Its endpoint types determine which nodes can be connected."
+        "relationIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/Ref" },
+          "description": "References to modelled relations counted together. Their endpoint types determine which nodes can be connected."
         },
         "direction": {
           "enum": ["outgoing", "incoming"],
@@ -65,16 +68,7 @@
         },
         "bounds": {
           "$ref": "#/$defs/Bounds",
-          "description": "Number of matching relations allowed for one annotation; it must not widen the modelled relation cardinality."
-        },
-        "alternatives": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/Ref"
-          },
-          "description": "Other allowed relations. The bounds count all selected alternatives together, not each one separately."
+          "description": "Total number of matching relations allowed for one annotation; it must not widen the modelled cardinality."
         }
       }
     },

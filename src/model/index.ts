@@ -49,11 +49,20 @@ export type {
   ElementInput,
   NodeInput,
   AttributeInput,
+  RelationEndInput,
   RelationInput,
   LiteralInput,
   LiteralUpdate,
   ModelChange,
-} from './editing/Draft';
+} from './editing/Inputs';
+export type {
+  ModelRemovalPreview,
+  ModelUpdate,
+  NodeRemovalPreview,
+  RelationRemovalPreview,
+  WorkspaceElement,
+} from './editing/Workspace';
+export type { ConstraintOwner, ConstraintOwnerInput } from './editing/ConstraintOwner';
 
 export { ModelFiles } from './exchange/File';
 export type { ModelFile, ModelHeader, Owned } from './exchange/File';

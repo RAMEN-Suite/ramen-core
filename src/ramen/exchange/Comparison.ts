@@ -1,5 +1,6 @@
-import { ModelEvolution } from '../../model/index';
-import type { EvolutionChange, EvolutionReport, Id, Model } from '../../model/index';
+import { ModelEvolution } from '../../model/exchange/Comparison';
+import type { EvolutionChange, EvolutionReport } from '../../model/exchange/Comparison';
+import type { Id, Model } from '../../model/Types';
 import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions';
 import { RamenModelFormat } from '../Document';
 import { RamenValidator } from '../validation/ModelValidator';
@@ -27,9 +28,9 @@ interface AnnotationRecord {
 export class RamenEvolution {
   /** Reports generic model changes, annotation changes, and RAMEN validation findings. */
   public static compare(
-    beforeRootModelId: Id,
+    beforeModelId: Id,
     beforeModels: readonly Model[],
-    afterRootModelId: Id,
+    afterModelId: Id,
     afterModels: readonly Model[],
   ): RamenEvolutionReport {
     const changes: readonly EvolutionChange[] = ModelEvolution.compareChanges(
@@ -39,11 +40,17 @@ export class RamenEvolution {
     const validator: RamenValidator = new RamenValidator();
 
     return {
-      beforeRootModelId,
-      afterRootModelId,
+      beforeModelId,
+      afterModelId,
       changes,
-      beforeDiagnostics: validator.validateProject(beforeRootModelId, beforeModels).diagnostics,
-      afterDiagnostics: validator.validateProject(afterRootModelId, afterModels).diagnostics,
+      beforeDiagnostics: ModelEvolution.validateWorkspace(
+        beforeModels,
+        (id: Id) => validator.validateProject(id, beforeModels).diagnostics,
+      ),
+      afterDiagnostics: ModelEvolution.validateWorkspace(
+        afterModels,
+        (id: Id) => validator.validateProject(id, afterModels).diagnostics,
+      ),
       annotationChanges: this.compareAnnotations(beforeModels, afterModels),
     };
   }

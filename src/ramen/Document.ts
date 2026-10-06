@@ -1,5 +1,5 @@
-import { MODEL_SCHEMA_URI } from '../model/index';
-import type { Model } from '../model/index';
+import { MODEL_SCHEMA_URI } from '../model/validation/ModelSchema';
+import type { Model } from '../model/Types';
 import type { RamenAnnotation } from './annotations/Definitions';
 
 /** Schema identifier for project models that refine RAMEN. */

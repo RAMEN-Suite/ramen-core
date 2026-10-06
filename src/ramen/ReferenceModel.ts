@@ -1,4 +1,4 @@
-import type { Model } from '../model/index';
+import type { Model } from '../model/Types';
 import ramenModel from '../resources/models/ramen.model.json';
 
 /** Canonical identifier of the versioned RAMEN base model. */

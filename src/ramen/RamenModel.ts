@@ -1,33 +1,15 @@
 import { ModelDraft } from '../model/editing/Draft';
-import type {
-  ElementInput,
-  ElementRef,
-  AttributeInput,
-  ModelInput,
-  NodeInput,
-  RelationInput,
-  LiteralInput,
-  LiteralUpdate,
-  ModelChange,
-  Removal,
-} from '../model/editing/Draft';
-import { ModelFactory, ModelRef } from '../model/index';
-import type {
-  Attribute,
-  Bounds,
-  RelationSelection,
-  ConstraintRegistry,
-  Id,
-  Model,
-  Node,
-  Ref,
-  Relation,
-  RelationSelections,
-  ProjectValidationResult,
-  ValidProjectResult,
-  ValidationResult,
-} from '../model/index';
+import { ModelWorkspace, NodeRemovalPreview, WorkspaceElement } from '../model/editing/Workspace';
+import type { ElementInput, ElementRef, AttributeInput, ModelInput, ModelChange, Removal } from '../model/editing/Inputs';
+import { ModelFactory } from '../model/editing/Factory';
+import { ModelRef } from '../model/graph/References';
+import type { RelationSelection } from '../model/Advisor';
+import type { RelationSelections } from '../model/graph/RelationScope';
+import type { ConstraintRegistry } from '../model/validation/Constraints';
+import type { ProjectValidationResult, ValidProjectResult, ValidationResult } from '../model/validation/ModelValidator';
+import type { Attribute, Bounds, Id, Model, Node, Ref, Relation } from '../model/Types';
 import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions';
+import { AnnotationRemoval } from './annotations/Removal';
 import type { AttributeReference } from './annotations/Definitions';
 import { RamenModelFormat, RamenModelDocument } from './Document';
 import { RAMEN_MODEL } from './ReferenceModel';
@@ -38,35 +20,21 @@ import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
 import { RamenFiles, RamenFile } from './exchange/File';
 import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
 
-/** Model-qualified element identifier. */
-export type RamenElementRef = ElementRef;
-
-/** An element, suggestion, local ID or qualified reference. */
-export type RamenRef = ElementInput;
-
-/** Values for a RAMEN node refinement. */
-export type CreateRamenNodeInput = NodeInput & { readonly refines: ElementInput };
-
-/** Values for a RAMEN relation refinement. */
-export type CreateRamenRelationInput = RelationInput & { readonly refines: ElementInput };
-
-/** Values for one data type literal. */
-export type CreateRamenLiteralInput = LiteralInput;
-
-/** Editable literal fields. */
-export type UpdateRamenLiteralInput = LiteralUpdate;
-
-/** Edited element and its project validation. */
-export type RamenChange<T> = ModelChange<T>;
-
 /** Select a permitted relationship by its other endpoint and annotation-side cardinality. */
 export type AnnotationLink = {
   readonly bounds: Bounds;
-} & ({ readonly from: RamenRef; readonly to?: never } | { readonly to: RamenRef; readonly from?: never });
+} & ({ readonly from: ElementInput; readonly to?: never } | { readonly to: ElementInput; readonly from?: never });
 
 /** Apply a selected relationship to an annotation type with its own cardinality. */
 export interface AnnotationConnection {
   readonly connection: RelationSelection;
+  readonly bounds: Bounds;
+}
+
+/** Count selected relations under one cardinality rule. */
+export interface AnnotationRelationGroupInput {
+  readonly relations: readonly Relation[];
+  readonly direction: 'outgoing' | 'incoming';
   readonly bounds: Bounds;
 }
 
@@ -76,10 +44,17 @@ export type AnnotationPropertyInput =
   | AttributeInput
   | (Omit<AttributeReference, 'attributeId'> & { readonly attribute: Attribute; readonly attributeId?: Ref });
 
-/** Select a relationship by object, ID or endpoints. The object takes precedence over its ID. */
+/** Select relationships by objects, IDs or endpoints. */
 export type AnnotationRelationInput =
   | AnnotationRelation
-  | (Omit<AnnotationRelation, 'relationId'> & { readonly relation: Relation; readonly relationId?: Ref })
+  | AnnotationRelationGroupInput
+  | {
+      readonly relation: Relation;
+      readonly relationId?: Ref;
+      readonly direction: 'outgoing' | 'incoming';
+      readonly bounds: Bounds;
+    }
+  | { readonly relationId: Ref; readonly direction: 'outgoing' | 'incoming'; readonly bounds: Bounds }
   | AnnotationLink
   | AnnotationConnection;
 
@@ -99,8 +74,13 @@ export interface AnnotationUpdate {
 
 /** Adds the RAMEN vocabulary and annotation rules to shared generic editing. */
 export class RamenModel extends ModelDraft<RamenAdvisor> {
-  private constructor(model: RamenModelDocument, dependencies: readonly Model[]) {
-    super(model, dependencies);
+  private constructor(
+    model: RamenModelDocument,
+    dependencies: readonly Model[],
+    workspace?: ModelWorkspace,
+    attach: boolean = false,
+  ) {
+    super(model, dependencies, workspace, attach);
   }
 
   protected check(): ProjectValidationResult {
@@ -136,20 +116,10 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return new RamenModel(RamenModelFormat.create(ModelFactory.createModel(base, this.options(input))), [...models.values()]);
   }
 
-  /** Creates the next model level while retaining the complete dependency chain. */
-  public createNextLevel(input: ModelInput | string): RamenModel {
-    return RamenModel.createLevel(this.model, input, [...this.dependencies.values()]);
-  }
-
   /** Loads a project with all models needed to resolve its imports. */
   public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL]): RamenModel {
     if (!RamenModelFormat.isDocument(model)) throw new Error('Expected a RAMEN project model.');
     return new RamenModel(model, dependencies);
-  }
-
-  /** Exports a single RAMEN graph. Annotation types and inherited declarations are stored once. */
-  public export(): RamenFile {
-    return RamenFiles.write(this.model.id, this.validationInputs());
   }
 
   /** Restores an editable project from a shared graph and validates every model level. */
@@ -164,9 +134,71 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     );
   }
 
+  /** Creates another level in the same editable model workspace. */
+  public createNextLevel(input: ModelInput | string): RamenModel {
+    const next: Model = ModelFactory.createModel(this.model, RamenModel.options(input));
+    return new RamenModel(RamenModelFormat.create(next), [], this.workspace);
+  }
+
+  /** Opens an imported RAMEN project level for editing; the packaged reference model stays read-only. */
+  public openLevel(modelId: Id): RamenModel {
+    const model: Model | undefined = this.workspace.get(modelId);
+    if (!model) throw new Error(`Model not found in workspace: '${modelId}'.`);
+    if (!RamenModelFormat.isDocument(model)) throw new Error('The RAMEN reference model is read-only.');
+    return new RamenModel(model, [], this.workspace, true);
+  }
+
+  /** Captures the entire editable RAMEN workspace, including sibling levels, as an independent state. */
+  public snapshot(): RamenModel {
+    return new RamenModel(this.getModel(), [], this.workspace.snapshot(), true);
+  }
+
+  /** Exports a single RAMEN graph. Annotation types and inherited declarations are stored once. */
+  public export(): RamenFile {
+    return RamenFiles.write(this.model.id, this.validationInputs());
+  }
+
+  /** Compares complete RAMEN workspaces and includes validation findings from both states. */
+  public compareTo(next: RamenModel): RamenEvolutionReport {
+    return RamenEvolution.compare(this.model.id, this.workspace.all(), next.model.id, next.workspace.all());
+  }
+
   /** Returns a detached snapshot of the current project model. */
   public getModel(): RamenModelDocument {
     return structuredClone(this.model) as RamenModelDocument;
+  }
+
+  /** Returns the closed annotation variants declared directly by the project model. */
+  public getAnnotations(): readonly RamenAnnotation[] {
+    return RamenAnnotations.get(this.model);
+  }
+
+  /** Lists the properties selected or declared by one annotation type. */
+  public getAttributesForAnnotation(annotation: ElementInput, type: string): readonly PropertyOption[] {
+    return this.getAdvisor().getAttributesForAnnotation(this.model.id, this.nodeReference(annotation), type);
+  }
+
+  /** Lists current-level relations allowed by one annotation type, including its cardinality rules. */
+  public getRelationsForAnnotation(node: ElementInput, type: string): readonly RelationOption[] {
+    return this.getAdvisor().getRelationsForAnnotation(this.model.id, this.nodeReference(node), type);
+  }
+
+  /** Lists annotation definitions available on a local or imported node. */
+  public suggestAnnotations(annotation: ElementInput): readonly AnnotationSuggestion[] {
+    const owner: ElementRef = this.resolveRef(annotation, 'node');
+    const reference: Id = owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
+    return this.getAdvisor().suggestAnnotations(this.model.id, reference);
+  }
+
+  /** Lists annotation types allowed on a carrier, optionally for one chosen Annotation node. */
+  public suggestAnnotationsForNode(node: ElementInput, annotation?: ElementInput): readonly AnnotationSuggestion[] {
+    const target: Id | undefined = annotation ? this.nodeReference(annotation) : undefined;
+    return this.getAdvisor().suggestAnnotationsForNode(this.model.id, this.nodeReference(node), target);
+  }
+
+  /** Lists properties and selected model relations available when declaring an annotation type. */
+  public suggestAnnotationOptions(node: ElementInput): AnnotationOptions | undefined {
+    return this.getAdvisor().suggestAnnotationOptions(this.model.id, this.nodeReference(node));
   }
 
   /** Validates a complete data graph against this RAMEN model. */
@@ -178,96 +210,46 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return validator.validate(this.model.id, this.validationInputs(), input);
   }
 
-  /** Compares this project with a later state and includes RAMEN validation findings from both states. */
-  public compareTo(next: RamenModel): RamenEvolutionReport {
-    return RamenEvolution.compare(this.model.id, this.validationInputs(), next.model.id, next.validationInputs());
-  }
-
-  /** Lists properties and selected model relations available when declaring an annotation type. */
-  public suggestAnnotationOptions(node: ElementInput): AnnotationOptions | undefined {
-    return this.getAdvisor().suggestAnnotationOptions(this.model.id, this.nodeReference(node));
-  }
-
-  /** Lists current-level relations allowed by one annotation type, including its cardinality rules. */
-  public getRelationsForAnnotation(node: ElementInput, type: string): readonly RelationOption[] {
-    return this.getAdvisor().getRelationsForAnnotation(this.model.id, this.nodeReference(node), type);
-  }
-
-  /** Lists the properties selected or declared by one annotation type. */
-  public getAttributesForAnnotation(annotation: ElementInput, type: string): readonly PropertyOption[] {
-    return this.getAdvisor().getAttributesForAnnotation(this.model.id, this.nodeReference(annotation), type);
-  }
-
-  /** Lists annotation definitions available on a local or imported node. */
-  public suggestAnnotations(annotation: ElementInput): readonly AnnotationSuggestion[] {
-    const owner: RamenElementRef = this.resolveRef(annotation, 'node');
-    const reference: Id = owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
-    return this.getAdvisor().suggestAnnotations(this.model.id, reference);
-  }
-
-  /** Lists annotation types allowed on a carrier, optionally for one chosen Annotation node. */
-  public suggestAnnotationsForNode(node: ElementInput, annotation?: ElementInput): readonly AnnotationSuggestion[] {
-    const target: Id | undefined = annotation ? this.nodeReference(annotation) : undefined;
-    return this.getAdvisor().suggestAnnotationsForNode(this.model.id, this.nodeReference(node), target);
-  }
-
-  /** Returns the closed annotation variants declared directly by the project model. */
-  public getAnnotations(): readonly RamenAnnotation[] {
-    return RamenAnnotations.get(this.model);
-  }
-
   /**
    * Declares an annotation variant. Relationship selections refer to existing allowed definitions; declaring an annotation never creates relations.
    * Throws on unavailable or ambiguous selections without changing the model. Object selections are stored as references.
    */
-  public createAnnotation(input: AnnotationInput): RamenChange<RamenAnnotation> {
-    const before: Model = this.model;
-    try {
-      const annotationNode: RamenRef | undefined = input.node ?? input.nodeId;
-      if (annotationNode === undefined) throw new Error('Select an Annotation node.');
-      const owner: RamenElementRef = this.resolveRef(annotationNode, 'node');
-      const annotation: RamenAnnotation = {
-        id: ModelFactory.createIdentifier(),
-        annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
-        type: input.type,
-        properties: this.annotationProperties(input.properties ?? []),
-        relations: this.annotationRelations(annotationNode, input.relations ?? []),
-      };
+  public createAnnotation(input: AnnotationInput): ModelChange<RamenAnnotation> {
+    const annotationNode: ElementInput | undefined = input.node ?? input.nodeId;
+    if (annotationNode === undefined) throw new Error('Select an Annotation node.');
+    const owner: ElementRef = this.resolveRef(annotationNode, 'node');
+    const annotation: RamenAnnotation = {
+      id: ModelFactory.createIdentifier(),
+      annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
+      type: input.type,
+      properties: this.annotationProperties(input.properties ?? []),
+      relations: this.annotationRelations(annotationNode, input.relations ?? []),
+    };
 
-      this.model = RamenAnnotations.add(this.model, annotation);
-      return this.change(annotation);
-    } catch (error: unknown) {
-      this.model = before;
-      throw error;
-    }
+    this.model = RamenAnnotations.add(this.model, annotation);
+    return this.change(annotation);
   }
 
   /** Updates a local annotation, resolving endpoint selections or preserving supplied references, then validates the project. */
-  public updateAnnotation(annotationId: Id, input: AnnotationUpdate): RamenChange<RamenAnnotation> {
-    const before: Model = this.model;
-    try {
-      const current: RamenAnnotation | undefined = this.getAnnotations().find(
-        (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
-      );
+  public updateAnnotation(annotationId: Id, input: AnnotationUpdate): ModelChange<RamenAnnotation> {
+    const current: RamenAnnotation | undefined = this.getAnnotations().find(
+      (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
+    );
+    if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
 
-      if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
-      const annotation: RamenAnnotation = {
-        ...current,
-        type: input.type ?? current.type,
-        properties: this.annotationProperties(input.properties ?? current.properties),
-        relations: this.annotationRelations(current.annotationId, input.relations ?? current.relations),
-      };
+    const annotation: RamenAnnotation = {
+      ...current,
+      type: input.type ?? current.type,
+      properties: this.annotationProperties(input.properties ?? current.properties),
+      relations: this.annotationRelations(current.annotationId, input.relations ?? current.relations),
+    };
 
-      this.model = RamenAnnotations.update(this.model, annotationId, annotation);
-      return this.change(annotation);
-    } catch (error: unknown) {
-      this.model = before;
-      throw error;
-    }
+    this.model = RamenAnnotations.update(this.model, annotationId, annotation);
+    return this.change(annotation);
   }
 
   /** Removes a locally declared annotation and validates the complete project. */
-  public removeAnnotation(annotationId: Id): RamenChange<RamenAnnotation> {
+  public removeAnnotation(annotationId: Id): ModelChange<RamenAnnotation> {
     const current: RamenAnnotation | undefined = this.getAnnotations().find(
       (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
     );
@@ -278,17 +260,17 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /** Creates a RAMEN PART_OF relation when the node types permit it. */
-  public partOf(part: ElementInput, whole: ElementInput): RamenChange<Relation> {
+  public partOf(part: ElementInput, whole: ElementInput): ModelChange<Relation> {
     return this.connectBy(part, whole, undefined, this.family('PART_OF'));
   }
 
   /** Creates a RAMEN HAS_ANNOTATION relation when the node types permit it. */
-  public hasAnnotation(subject: ElementInput, annotation: ElementInput): RamenChange<Relation> {
+  public hasAnnotation(subject: ElementInput, annotation: ElementInput): ModelChange<Relation> {
     return this.connectBy(subject, annotation, undefined, this.family('HAS_ANNOTATION'));
   }
 
   /** Creates a RAMEN REFERS_TO relation when the node types permit it. */
-  public refersTo(annotation: ElementInput, target: ElementInput): RamenChange<Relation> {
+  public refersTo(annotation: ElementInput, target: ElementInput): ModelChange<Relation> {
     return this.connectBy(annotation, target, undefined, this.family('REFERS_TO'));
   }
 
@@ -320,29 +302,40 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return owner.id === this.model.id ? attribute.id : ModelRef.qualify(owner.id, attribute.id);
   }
 
-  private annotationRelations(owner: RamenRef, inputs: readonly AnnotationRelationInput[]): readonly AnnotationRelation[] {
+  private annotationRelations(owner: ElementInput, inputs: readonly AnnotationRelationInput[]): readonly AnnotationRelation[] {
     return inputs.map((input: AnnotationRelationInput): AnnotationRelation => {
-      if ('relation' in input) {
-        const selected: ElementRef = this.resolveRef(input.relation, 'relation');
-        const relationId: Ref =
-          selected.modelId === this.model.id ? selected.elementId : ModelRef.qualify(selected.modelId, selected.elementId);
+      if ('relations' in input) {
         return {
-          relationId,
+          relationIds: input.relations.map((relation: Relation): Ref => this.relationReference(relation)),
           direction: input.direction,
           bounds: { ...input.bounds },
-          ...(input.alternatives ? { alternatives: [...input.alternatives] } : {}),
         };
       }
-      if ('relationId' in input) return structuredClone(input);
+      if ('relation' in input) {
+        return {
+          relationIds: [this.relationReference(input.relation)],
+          direction: input.direction,
+          bounds: { ...input.bounds },
+        };
+      }
+      if ('relationIds' in input) return structuredClone(input);
+      if ('relationId' in input) {
+        return { relationIds: [input.relationId], direction: input.direction, bounds: { ...input.bounds } };
+      }
       if ('connection' in input) return this.connectionRule(owner, input);
-      const from: RamenRef = input.from ?? owner;
-      const to: RamenRef = input.to ?? owner;
+      const from: ElementInput = input.from ?? owner;
+      const to: ElementInput = input.to ?? owner;
       const connection: RelationSelection = this.requireConnection(from, to);
       return this.connectionRule(owner, { connection, bounds: input.bounds });
     });
   }
 
-  private requireConnection(from: RamenRef, to: RamenRef, ref?: Ref): RelationSelection {
+  private relationReference(relation: Relation): Ref {
+    const selected: ElementRef = this.resolveRef(relation, 'relation');
+    return selected.modelId === this.model.id ? selected.elementId : ModelRef.qualify(selected.modelId, selected.elementId);
+  }
+
+  private requireConnection(from: ElementInput, to: ElementInput, ref?: Ref): RelationSelection {
     const matches: readonly RelationSelection[] = this.getRelations(from, to).filter(
       (item: RelationSelection): boolean => ref === undefined || item.ref === ref,
     );
@@ -353,7 +346,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return selected;
   }
 
-  private connectionRule(owner: RamenRef, input: AnnotationConnection): AnnotationRelation {
+  private connectionRule(owner: ElementInput, input: AnnotationConnection): AnnotationRelation {
     const reference: ElementRef = this.resolveRef(owner, 'node');
     const node: Ref = ModelRef.qualify(reference.modelId, reference.elementId);
     const connection: RelationSelection = input.connection;
@@ -367,46 +360,30 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       ModelRef.isQualified(selected.ref) && ModelRef.splitQualified(selected.ref).modelId === this.model.id
         ? ModelRef.localId(selected.ref)
         : selected.ref;
-    return { relationId, direction, bounds: { ...input.bounds } };
+    return { relationIds: [relationId], direction, bounds: { ...input.bounds } };
   }
 
-  private remainingRelations(relations: readonly AnnotationRelation[], removed?: ReadonlySet<Id>): readonly AnnotationRelation[] {
-    return relations.flatMap((relation: AnnotationRelation): AnnotationRelation[] => {
-      const refs: readonly Id[] = RamenAnnotations.relationRefs(relation).filter((ref: Id): boolean => !removed?.has(ref));
-      const relationId: Id | undefined = refs[0];
-      if (!relationId) return [];
-      const { alternatives: _alternatives, ...rest }: AnnotationRelation = relation;
-      return [{ ...rest, relationId, ...(refs.length > 1 ? { alternatives: refs.slice(1) } : {}) }];
-    });
+  protected annotationRemovals(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
+    return new AnnotationRemoval(this.workspace).removedByNodes(preview);
+  }
+
+  protected nodeDiagnosticPaths(lineage: readonly ElementRef[]): readonly string[] {
+    return new AnnotationRemoval(this.workspace).diagnosticPaths(this.validationInputs(), lineage);
+  }
+
+  protected annotationUpdates(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
+    return new AnnotationRemoval(this.workspace).updatedByRemoval(preview);
+  }
+
+  protected annotationName(item: WorkspaceElement): string {
+    return new AnnotationRemoval(this.workspace).name(item);
+  }
+
+  protected cleanRemoval(model: Model, preview: NodeRemovalPreview): Model {
+    return new AnnotationRemoval(this.workspace).clean(model, preview);
   }
 
   protected onRemove(input: Removal): void {
-    const removed: ReadonlySet<Id> = new Set<Id>(
-      [...(input.relationIds ?? [])].flatMap((id: Id): Id[] => [id, ModelRef.qualify(this.model.id, id)]),
-    );
-    for (const annotation of this.getAnnotations()) {
-      if (input.nodeId !== undefined && ModelRef.matches(annotation.annotationId, this.model.id, input.nodeId)) {
-        this.model = RamenAnnotations.remove(this.model, annotation.id);
-        continue;
-      }
-      const properties: readonly AnnotationProperty[] = annotation.properties.filter(
-        (property: AnnotationProperty): boolean =>
-          !('attributeId' in property) ||
-          input.attributeId === undefined ||
-          !ModelRef.matches(property.attributeId, this.model.id, input.attributeId),
-      );
-      const relations: readonly AnnotationRelation[] = this.remainingRelations(annotation.relations, removed);
-
-      if (
-        properties.length === annotation.properties.length &&
-        JSON.stringify(relations) === JSON.stringify(annotation.relations)
-      )
-        continue;
-      this.model = RamenAnnotations.update(this.model, annotation.id, {
-        ...annotation,
-        properties: properties,
-        relations: relations,
-      });
-    }
+    this.model = new AnnotationRemoval(this.workspace).removeAttribute(this.model, input);
   }
 }

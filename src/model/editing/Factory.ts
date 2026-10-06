@@ -158,10 +158,7 @@ export class ModelFactory {
   }
 
   private static refineEnd(base: RelationEnd, nodeId: Id): RelationEnd {
-    const end: RelationEnd = this.createRelationEnd(nodeId, base.bounds);
-    if (base.isComposite !== undefined) end.isComposite = base.isComposite;
-    if (base.isNavigable !== undefined) end.isNavigable = base.isNavigable;
-    return end;
+    return this.createRelationEnd(nodeId, base.bounds);
   }
 
   /** Deeply duplicates a node and assigns new identifiers to its owned elements. */

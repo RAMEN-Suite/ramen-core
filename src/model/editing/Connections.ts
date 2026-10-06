@@ -24,7 +24,7 @@ export class ModelConnections {
     this.model = project.graph.getRootModel();
   }
 
-  /** Lists relations that the preceding model level permits between these node types. */
+  /** Lists local and permitted predecessor relations between these node types. */
   public suggestRelations(from: Node | Ref, to: Node | Ref): readonly RelationSuggestion[] {
     return this.advisor.suggestRelations(this.model.id, this.nodeRef(from), this.nodeRef(to));
   }

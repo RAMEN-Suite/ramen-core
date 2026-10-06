@@ -1,9 +1,13 @@
 import { AnnotationProperties } from './Properties';
 import { ModelRelationScope } from '../../model/graph/RelationScope';
-import { EffectiveModel, ModelRef, ProjectGraph } from '../../model/index';
+import { EffectiveModel } from '../../model/graph/EffectiveModel';
+import { ModelRef } from '../../model/graph/References';
+import { ProjectGraph } from '../../model/graph/ProjectGraph';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { Bounds, EffectiveNode, Attribute, Model, Node, Relation, Id, Ref, ResolvedElement } from '../../model/index';
-import { RamenAnnotations, AnnotationRelation } from './Definitions';
+import type { EffectiveNode } from '../../model/graph/EffectiveModel';
+import type { ResolvedElement } from '../../model/graph/ProjectGraph';
+import type { Bounds, Attribute, Model, Node, Relation, Id, Ref } from '../../model/Types';
+import { AnnotationRelation } from './Definitions';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
 import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
 
@@ -35,8 +39,8 @@ export interface RelationOption {
   readonly suggestedBounds: Bounds;
   /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
   readonly cardinalityOptions: readonly Bounds[];
-  /** Relation references counted together by suggestedBounds, when this choice belongs to an alternative group. */
-  readonly alternatives?: readonly Ref[];
+  /** Relation references counted together by suggestedBounds when this choice belongs to a group. */
+  readonly relationIds?: readonly Ref[];
 }
 
 /** Complete creation options for an annotation definition. */
@@ -184,7 +188,7 @@ export class AnnotationAdvisor {
   private findRequirement(choice: RelationOption, definition: ResolvedAnnotation): AnnotationRelation | undefined {
     for (const requirement of definition.annotation.relations) {
       if (requirement.direction !== choice.direction) continue;
-      const matches: boolean = RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
+      const matches: boolean = requirement.relationIds.some((ref: Ref): boolean =>
         this.graph.isRelationRefSameOrSubtype(choice.modelId, choice.relationId, definition.modelId, ref),
       );
       if (matches) return requirement;
@@ -198,11 +202,11 @@ export class AnnotationAdvisor {
       suggestedBounds: { ...requirement.bounds },
       cardinalityOptions: this.cardinalityOptions(requirement.bounds),
     };
-    if (!requirement.alternatives) return selected;
-    const alternatives: readonly Ref[] = RamenAnnotations.relationRefs(requirement).map((ref: Ref): Ref =>
+    if (requirement.relationIds.length === 1) return selected;
+    const relationIds: readonly Ref[] = requirement.relationIds.map((ref: Ref): Ref =>
       ModelRef.isQualified(ref) ? ref : ModelRef.qualify(modelId, ref),
     );
-    return { ...selected, alternatives };
+    return { ...selected, relationIds };
   }
 
   private commonAnnotationAttributeIds(): ReadonlySet<Id> {

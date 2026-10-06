@@ -1,51 +1,30 @@
 import { ModelRelationScope } from '../../model/graph/RelationScope';
 import { AnnotationProperties } from '../annotations/Properties';
-import {
-  DiagnosticPath,
-  Diagnostics,
-  EffectiveModel,
-  InstanceSchemaValidator,
-  InstanceValidator,
-  ProjectGraph,
-  ConstraintRegistry,
-} from '../../model/index';
-import type {
-  Bounds,
-  Diagnostic,
-  Attribute,
-  Model,
-  Node,
-  Id,
-  ModelInstanceNode,
-  ModelInstanceRelation,
-  ProjectValidationResult,
-  Ref,
-  ResolvedElement,
-  ValidationResult,
-} from '../../model/index';
+import { DiagnosticPath, Diagnostics } from '../../model/validation/Diagnostics';
+import { EffectiveModel } from '../../model/graph/EffectiveModel';
+import { InstanceSchemaValidator } from '../../model/data/InstanceSchema';
+import { InstanceValidator } from '../../model/data/InstanceValidator';
+import { ProjectGraph } from '../../model/graph/ProjectGraph';
+import { ConstraintRegistry } from '../../model/validation/Constraints';
+import type { Diagnostic } from '../../model/validation/Diagnostics';
+import type { ModelInstanceNode, ModelInstanceRelation } from '../../model/data/InstanceTypes';
+import type { ProjectValidationResult, ValidationResult } from '../../model/validation/ModelValidator';
+import type { ResolvedElement } from '../../model/graph/ProjectGraph';
+import type { Bounds, Attribute, Model, Node, Id, Ref } from '../../model/Types';
 import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
 import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex';
 import { RamenValidator } from '../validation/ModelValidator';
 
 /** Stable diagnostic codes emitted while validating RAMEN instances. */
-export const RAMEN_INSTANCE_ERROR: Readonly<{
-  ANNOTATION_REQUIRED: 'RAMEN_INSTANCE_ANNOTATION_REQUIRED';
-  ANNOTATION_UNKNOWN: 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN';
-  ANNOTATION_PROPERTY_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED';
-  ANNOTATION_PROPERTY_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_CARDINALITY';
-  SELECTOR_TYPE_REQUIRED: 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED';
-  ANNOTATION_RELATION_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED';
-  ANNOTATION_RELATION_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY';
-}> = {
-  ANNOTATION_REQUIRED: 'RAMEN_INSTANCE_ANNOTATION_REQUIRED',
-  ANNOTATION_UNKNOWN: 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN',
-  ANNOTATION_PROPERTY_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED',
-  ANNOTATION_PROPERTY_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_CARDINALITY',
-  SELECTOR_TYPE_REQUIRED: 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED',
-  ANNOTATION_RELATION_NOT_ALLOWED: 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED',
-  ANNOTATION_RELATION_CARDINALITY: 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY',
-} as const;
+export enum RAMEN_INSTANCE_ERROR {
+  ANNOTATION_REQUIRED = 'RAMEN_INSTANCE_ANNOTATION_REQUIRED',
+  ANNOTATION_UNKNOWN = 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN',
+  ANNOTATION_PROPERTY_NOT_ALLOWED = 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED',
+  SELECTOR_TYPE_REQUIRED = 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED',
+  ANNOTATION_RELATION_NOT_ALLOWED = 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED',
+  ANNOTATION_RELATION_CARDINALITY = 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY',
+}
 
 /** Validates a complete instance graph against the RAMEN model format and closed annotation definitions. */
 export class RamenInstanceValidator {
@@ -254,7 +233,7 @@ export class RamenInstanceValidator {
       let allowed: boolean = false;
       for (const requirement of selected.annotation.relations) {
         if (!this.hasDirection(requirement, relation, node.id)) continue;
-        const matches: boolean = RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
+        const matches: boolean = requirement.relationIds.some((ref: Ref): boolean =>
           graph.isRelationRefSameOrSubtype(modelId, relation.typeId, selected.modelId, ref),
         );
         if (!matches) continue;

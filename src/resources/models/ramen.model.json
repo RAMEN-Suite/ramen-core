@@ -214,7 +214,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "11882a4a1a1a92f0"
       },
       "to": {
@@ -223,7 +222,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "5296ec802aed7bb1"
       }
     },
@@ -238,7 +236,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "ed2832e9484cc9ee"
       },
       "to": {
@@ -247,7 +244,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "357d8ae975078df2"
       }
     },
@@ -262,7 +258,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "f203ff8cc45e18d6"
       },
       "to": {
@@ -271,7 +266,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "4a61755cb3d9a650"
       }
     },
@@ -286,7 +280,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "e8124ac0f6affeeb"
       },
       "to": {
@@ -295,7 +288,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "9d1fb8a998d44055"
       }
     },
@@ -310,7 +302,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "01eff83f221ab3ff"
       },
       "to": {
@@ -319,7 +310,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "09d895defd083d74"
       }
     },
@@ -334,7 +324,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "f782e8c214c6de2a"
       },
       "to": {
@@ -343,7 +332,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "e8762d26b8de4a64"
       }
     },
@@ -358,7 +346,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "c7eb6cb19894f86b"
       },
       "to": {
@@ -367,7 +354,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "5a3c92c63ec68015"
       }
     },
@@ -382,7 +368,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "c1ce93334b435f1a"
       },
       "to": {
@@ -391,7 +376,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "ec5e8fa8a5ccc88c"
       }
     },
@@ -406,7 +390,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "828ed555908f66ce"
       },
       "to": {
@@ -415,7 +398,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "421b47ea683a1a02"
       }
     },
@@ -430,7 +412,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "c4f94b4b334e4c1e"
       },
       "to": {
@@ -439,7 +420,6 @@
           "lowerBound": 0,
           "upperBound": -1
         },
-        "isNavigable": true,
         "id": "97e03b1a1f4fe685"
       }
     }

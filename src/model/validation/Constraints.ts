@@ -1,5 +1,5 @@
 import { Constraint, Id } from '../Types';
-import { compileSchema, SchemaNode } from 'json-schema-library';
+import { compileSchema, draft2020, JsonError, SchemaNode } from 'json-schema-library';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics';
 import { VALIDATION_ERROR } from './Codes';
 import type { ProjectGraph } from '../graph/ProjectGraph';
@@ -11,6 +11,13 @@ const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string,
     compileSchema({ type: 'string', format: format }),
   ]),
 );
+
+function finding(constraint: Constraint, code: string, message: string, path: DiagnosticPath): Diagnostic {
+  const report: DiagnosticReport = { code, message, path, ref: constraint.id };
+  if (constraint.severity === 'warn') return Diagnostics.warn(report);
+  if (constraint.severity === 'info') return Diagnostics.info(report);
+  return Diagnostics.error(report);
+}
 
 /** Model element kind that supplies the context for a constraint evaluation. */
 export type ConstraintTarget = 'node' | 'attribute' | 'dataType' | 'literal' | 'relation' | 'relationEnd';
@@ -48,9 +55,9 @@ export class ConstraintRegistry {
     for (const evaluator of evaluators) this.register(evaluator);
   }
 
-  /** Creates the standard registry containing safe regular-expression and scalar-format evaluators. */
+  /** Creates the standard registry for regular expressions, formats and JSON Schema value rules. */
   public static createDefault(): ConstraintRegistry {
-    return new ConstraintRegistry([new RegexEvaluator(), new FormatEvaluator()]);
+    return new ConstraintRegistry([new RegexEvaluator(), new FormatEvaluator(), new JsonSchemaEvaluator()]);
   }
 
   /** Registers an evaluator or throws when its language already exists. */
@@ -76,6 +83,86 @@ export class ConstraintRegistry {
   }
 }
 
+/** Evaluates one value against a JSON Schema Draft 2020-12 constraint. */
+export class JsonSchemaEvaluator implements ConstraintEvaluator {
+  public readonly language: string = 'json-schema';
+  private readonly schemas: Map<string, SchemaNode> = new Map<string, SchemaNode>();
+
+  /** Returns the schema error, if an expression cannot be compiled. */
+  public validateExpression(expression: Constraint['expression']): string | undefined {
+    if (typeof expression === 'string') return 'expected a JSON Schema object';
+    try {
+      this.compile(expression);
+      return undefined;
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  /** Checks a scalar or object value; `format` remains a separate constraint language. */
+  public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
+    if (typeof constraint.expression === 'string') {
+      return [this.invalid(constraint, context, 'expected a JSON Schema object')];
+    }
+
+    let errors: JsonError[];
+    try {
+      const schema: SchemaNode = this.compile(constraint.expression);
+      errors = schema.validate(context.value).errors;
+    } catch (error: unknown) {
+      const reason: string = error instanceof Error ? error.message : String(error);
+      return [this.invalid(constraint, context, reason)];
+    }
+
+    return errors.map((error: JsonError): Diagnostic => {
+      const code: string = constraint.code ?? VALIDATION_ERROR.CONSTRAINT_JSON_SCHEMA_MISMATCH;
+      const message: string = constraint.message ?? error.message;
+      return finding(constraint, code, message, this.valuePath(context.path, error));
+    });
+  }
+
+  private compile(expression: Record<string, unknown>): SchemaNode {
+    if (expression.$schema !== undefined && expression.$schema !== draft2020.$schema) {
+      throw new Error(`expected JSON Schema Draft 2020-12`);
+    }
+    const key: string = JSON.stringify(expression);
+    const cached: SchemaNode | undefined = this.schemas.get(key);
+    if (cached) return cached;
+
+    const schema: SchemaNode = compileSchema(expression, {
+      drafts: [draft2020],
+      formatAssertion: false,
+      throwOnInvalidSchema: true,
+      throwOnInvalidRef: true,
+    });
+    this.schemas.set(key, schema);
+    return schema;
+  }
+
+  private valuePath(path: DiagnosticPath, error: JsonError): DiagnosticPath {
+    const pointer: unknown = error.data?.pointer;
+    if (typeof pointer !== 'string' || pointer === '#') return path;
+
+    return pointer
+      .replace(/^#\/?/, '')
+      .split('/')
+      .reduce(
+        (current: DiagnosticPath, part: string): DiagnosticPath =>
+          current.property(part.replaceAll('~1', '/').replaceAll('~0', '~')),
+        path,
+      );
+  }
+
+  private invalid(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {
+    return Diagnostics.error({
+      code: VALIDATION_ERROR.CONSTRAINT_EXPRESSION_INVALID,
+      message: `Constraint '${constraint.name}' has an invalid JSON Schema: ${reason}.`,
+      path: context.path,
+      ref: constraint.id,
+    });
+  }
+}
+
 /** Evaluates `regex` constraints without executing arbitrary model expressions. */
 export class RegexEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'regex';
@@ -96,11 +183,11 @@ export class RegexEvaluator implements ConstraintEvaluator {
     if (expression.test(context.value)) return [];
 
     return [
-      this.createDiagnostic(
+      finding(
         constraint,
-        context,
         constraint.code ?? VALIDATION_ERROR.CONSTRAINT_REGEX_MISMATCH,
         constraint.message ?? `Value violates constraint '${constraint.name}'.`,
+        context.path,
       ),
     ];
   }
@@ -112,13 +199,6 @@ export class RegexEvaluator implements ConstraintEvaluator {
       path: context.path,
       ref: constraint.id,
     });
-  }
-
-  private createDiagnostic(constraint: Constraint, context: ConstraintContext, code: string, message: string): Diagnostic {
-    const report: DiagnosticReport = { code: code, message: message, path: context.path, ref: constraint.id };
-    if (constraint.severity === 'warn') return Diagnostics.warn(report);
-    if (constraint.severity === 'info') return Diagnostics.info(report);
-    return Diagnostics.error(report);
   }
 }
 
@@ -138,7 +218,9 @@ export class FormatEvaluator implements ConstraintEvaluator {
     if (!supported) return [this.invalid(constraint, context, `unsupported format '${constraint.expression}'`)];
     const valid: boolean = schema ? schema.validate(context.value).valid : this.isAbsoluteUri(context.value);
     if (valid) return [];
-    return [this.diagnostic(constraint, context, constraint.message ?? `Value is not a valid ${constraint.expression}.`)];
+    const code: string = constraint.code ?? VALIDATION_ERROR.CONSTRAINT_FORMAT_MISMATCH;
+    const message: string = constraint.message ?? `Value is not a valid ${constraint.expression}.`;
+    return [finding(constraint, code, message, context.path)];
   }
 
   private isAbsoluteUri(value: string): boolean {
@@ -156,18 +238,5 @@ export class FormatEvaluator implements ConstraintEvaluator {
       path: context.path,
       ref: constraint.id,
     });
-  }
-
-  private diagnostic(constraint: Constraint, context: ConstraintContext, message: string): Diagnostic {
-    const report: DiagnosticReport = {
-      code: constraint.code ?? VALIDATION_ERROR.CONSTRAINT_FORMAT_MISMATCH,
-      message: message,
-      path: context.path,
-      ref: constraint.id,
-    };
-
-    if (constraint.severity === 'warn') return Diagnostics.warn(report);
-    if (constraint.severity === 'info') return Diagnostics.info(report);
-    return Diagnostics.error(report);
   }
 }

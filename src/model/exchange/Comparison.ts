@@ -1,11 +1,12 @@
 import type { Classifier, DataType, Id, Model } from '../Types';
 import type { Diagnostic } from '../validation/Diagnostics';
 import { ModelValidator } from '../validation/ModelValidator';
+import { jsonValueKey } from '../JsonValue';
 
 /** Model elements tracked across two versions by their stable identifiers. */
 export type EvolutionElement = 'model' | 'node' | 'dataType' | 'attribute' | 'literal' | 'relation';
 
-/** Observable change between two complete project states. */
+/** Observable change between two complete workspace states. */
 export interface EvolutionChange {
   readonly action: 'added' | 'removed' | 'changed';
   readonly element: EvolutionElement;
@@ -18,8 +19,8 @@ export interface EvolutionChange {
 
 /** Reproducible comparison artifact; diagnostics identify invalid input states. */
 export interface EvolutionReport {
-  readonly beforeRootModelId: Id;
-  readonly afterRootModelId: Id;
+  readonly beforeModelId: Id;
+  readonly afterModelId: Id;
   readonly beforeDiagnostics: readonly Diagnostic[];
   readonly afterDiagnostics: readonly Diagnostic[];
   readonly changes: readonly EvolutionChange[];
@@ -33,25 +34,53 @@ interface ElementRecord {
   readonly value: unknown;
 }
 
-/** Compares full project states without mutating them or guessing migration rules. */
+/** Compares full workspace states without mutating them or guessing migration rules. */
 export class ModelEvolution {
   /** Compares models, classifiers, attributes, literals, and relations by stable ID. */
   public static compare(
-    beforeRootModelId: Id,
+    beforeModelId: Id,
     beforeModels: readonly Model[],
-    afterRootModelId: Id,
+    afterModelId: Id,
     afterModels: readonly Model[],
   ): EvolutionReport {
     const validator: ModelValidator = new ModelValidator();
-    const beforeDiagnostics: readonly Diagnostic[] = validator.validateProject(beforeRootModelId, beforeModels).diagnostics;
-    const afterDiagnostics: readonly Diagnostic[] = validator.validateProject(afterRootModelId, afterModels).diagnostics;
+    const beforeDiagnostics: readonly Diagnostic[] = this.validateWorkspace(
+      beforeModels,
+      (id: Id): readonly Diagnostic[] => validator.validateProject(id, beforeModels).diagnostics,
+    );
+    const afterDiagnostics: readonly Diagnostic[] = this.validateWorkspace(
+      afterModels,
+      (id: Id): readonly Diagnostic[] => validator.validateProject(id, afterModels).diagnostics,
+    );
     return {
-      beforeRootModelId,
-      afterRootModelId,
+      beforeModelId,
+      afterModelId,
       beforeDiagnostics,
       afterDiagnostics,
       changes: this.compareChanges(beforeModels, afterModels),
     };
+  }
+
+  /** Validates each terminal model so diagnostics from sibling branches appear once. */
+  public static validateWorkspace(
+    models: readonly Model[],
+    validate: (modelId: Id) => readonly Diagnostic[],
+  ): readonly Diagnostic[] {
+    const imported: Set<Id> = new Set<Id>(
+      models.flatMap((model: Model): Id[] => model.imports.map((entry): Id => entry.modelId)),
+    );
+    const leaves: readonly Model[] = models.filter((model: Model): boolean => !imported.has(model.id));
+    const roots: readonly Model[] = leaves.length > 0 ? leaves : models;
+    const diagnostics: Map<string, Diagnostic> = new Map<string, Diagnostic>();
+
+    for (const model of roots) {
+      for (const diagnostic of validate(model.id)) {
+        const key: string = JSON.stringify(diagnostic);
+        diagnostics.set(key, diagnostic);
+      }
+    }
+
+    return [...diagnostics.values()];
   }
 
   /** Reports element changes only; callers choose whether and how to validate the two states. */
@@ -139,17 +168,6 @@ export class ModelEvolution {
 
   /** Compares JSON values without treating object key order as a model change. */
   public static sameJson(left: unknown, right: unknown): boolean {
-    return JSON.stringify(this.canonical(left)) === JSON.stringify(this.canonical(right));
-  }
-
-  private static canonical(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map((item: unknown): unknown => this.canonical(item));
-    if (value === null || typeof value !== 'object') return value;
-    const record: Record<string, unknown> = value as Record<string, unknown>;
-    return Object.fromEntries(
-      Object.keys(record)
-        .sort()
-        .map((key: string): [string, unknown] => [key, this.canonical(record[key])]),
-    );
+    return jsonValueKey(left) === jsonValueKey(right);
   }
 }

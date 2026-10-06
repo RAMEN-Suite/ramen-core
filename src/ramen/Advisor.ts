@@ -14,7 +14,6 @@ export type {
   NodeLineageItem,
   AttributeInfo,
   NodeRelationSuggestion,
-  NodeInfo,
   AttributeNameResult,
 } from '../model/Advisor';
 
@@ -37,6 +36,16 @@ export class RamenAdvisor extends ModelAdvisor {
     super(result, RamenAnnotations.relationSelections(models));
     this.annotations = new AnnotationIndex(result.graph, models);
     this.annotationAdvisor = new AnnotationAdvisor(result.graph, this.relations, this.annotations);
+  }
+
+  /** Lists properties available for one annotation type, including its own declarations. */
+  public getAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly PropertyOption[] {
+    return this.annotationAdvisor.getTypeInfo(modelId, nodeId, type)?.properties ?? [];
+  }
+
+  /** Lists the modelled relations permitted by one effective annotation type. */
+  public getRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly RelationOption[] {
+    return this.annotationAdvisor.getTypeInfo(modelId, annotationNodeId, type)?.relations ?? [];
   }
 
   /** Lists all reachable annotations, or only the effective variants of one Annotation node. */
@@ -85,6 +94,11 @@ export class RamenAdvisor extends ModelAdvisor {
     );
   }
 
+  /** Lists valid property, relation, target and cardinality options for a new annotation definition. */
+  public suggestAnnotationOptions(modelId: Id, annotationNodeId: Id): AnnotationOptions | undefined {
+    return this.annotationAdvisor.suggestOptions(modelId, annotationNodeId);
+  }
+
   private annotationTargets(modelId: Id, relation: NodeRelationSuggestion, selected?: ResolvedElement<Node>): readonly Ref[] {
     return relation.compatibleTargetNodeIds.filter((ref: Ref): boolean => {
       const target: ResolvedElement<Node> | undefined = this.resolveNode(modelId, ref);
@@ -105,25 +119,10 @@ export class RamenAdvisor extends ModelAdvisor {
         (requirement: AnnotationRelation): boolean =>
           requirement.direction === 'incoming' &&
           requirement.bounds.upperBound !== 0 &&
-          RamenAnnotations.relationRefs(requirement).some((ref: Ref): boolean =>
+          requirement.relationIds.some((ref: Ref): boolean =>
             this.graph.isRelationRefSameOrSubtype(relation.modelId, relation.relationId, definition.modelId, ref),
           ),
       );
     });
-  }
-
-  /** Lists valid property, relation, target and cardinality options for a new annotation definition. */
-  public suggestAnnotationOptions(modelId: Id, annotationNodeId: Id): AnnotationOptions | undefined {
-    return this.annotationAdvisor.suggestOptions(modelId, annotationNodeId);
-  }
-
-  /** Lists the modelled relations permitted by one effective annotation type. */
-  public getRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly RelationOption[] {
-    return this.annotationAdvisor.getTypeInfo(modelId, annotationNodeId, type)?.relations ?? [];
-  }
-
-  /** Lists properties available for one annotation type, including its own declarations. */
-  public getAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly PropertyOption[] {
-    return this.annotationAdvisor.getTypeInfo(modelId, nodeId, type)?.properties ?? [];
   }
 }

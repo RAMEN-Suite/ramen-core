@@ -1,4 +1,5 @@
-import { ModelDraft, ModelInput } from './editing/Draft';
+import { ModelDraft } from './editing/Draft';
+import type { ModelInput } from './editing/Inputs';
 import { ModelAdvisor } from './Advisor';
 import { ModelFactory } from './editing/Factory';
 import { ModelValidator, ProjectValidationResult, ValidProjectResult, ValidationResult } from './validation/ModelValidator';
@@ -6,12 +7,13 @@ import { InstanceValidator } from './data/InstanceValidator';
 import type { ConstraintRegistry } from './validation/Constraints';
 import { ModelFiles, ModelFile } from './exchange/File';
 import { ModelEvolution, EvolutionReport } from './exchange/Comparison';
+import { ModelWorkspace } from './editing/Workspace';
 import type { Id, Model } from './Types';
 
 /** Creates and refines generic models while retaining dependencies, validation and suggestions. */
 export class Modeller extends ModelDraft<ModelAdvisor> {
-  private constructor(model: Model, dependencies: readonly Model[]) {
-    super(model, dependencies);
+  private constructor(model: Model, dependencies: readonly Model[], workspace?: ModelWorkspace, attach: boolean = false) {
+    super(model, dependencies, workspace, attach);
   }
 
   /** Creates a root modelling language. A name is enough; identity fields remain configurable. */
@@ -28,19 +30,9 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
     return new Modeller(ModelFactory.createModel(base, this.options(input)), [...models.values()]);
   }
 
-  /** Creates a new refinement level and carries its complete dependency chain forward. */
-  public createNextLevel(input: ModelInput | string): Modeller {
-    return Modeller.createLevel(this.model, input, [...this.dependencies.values()]);
-  }
-
   /** Opens an existing generic model for editing, with its dependency models. */
   public static load(model: Model, dependencies: readonly Model[] = []): Modeller {
     return new Modeller(model, dependencies);
-  }
-
-  /** Exports one graph with retained inheritance, original IDs and declaration ownership. */
-  public export(): ModelFile {
-    return ModelFiles.write(this.model.id, this.validationInputs());
   }
 
   /** Loads a shared graph and restores its project context without a consumer-side model selection. */
@@ -55,16 +47,39 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
     );
   }
 
+  /** Creates another level in the same editable model workspace. */
+  public createNextLevel(input: ModelInput | string): Modeller {
+    const next: Model = ModelFactory.createModel(this.model, Modeller.options(input));
+    return new Modeller(next, [], this.workspace);
+  }
+
+  /** Opens another model in this editable workspace, including an imported predecessor. */
+  public openLevel(modelId: Id): Modeller {
+    const model: Model | undefined = this.workspace.get(modelId);
+    if (!model) throw new Error(`Model not found in workspace: '${modelId}'.`);
+    return new Modeller(model, [], this.workspace, true);
+  }
+
+  /** Captures the entire editable model workspace, including sibling levels, as an independent state. */
+  public snapshot(): Modeller {
+    return new Modeller(this.model, [], this.workspace.snapshot(), true);
+  }
+
+  /** Exports one graph with retained inheritance, original IDs and declaration ownership. */
+  public export(): ModelFile {
+    return ModelFiles.write(this.model.id, this.validationInputs());
+  }
+
+  /** Reports changes across both complete workspaces without migrating captured data. */
+  public compareTo(next: Modeller): EvolutionReport {
+    return ModelEvolution.compare(this.model.id, this.workspace.all(), next.model.id, next.workspace.all());
+  }
+
   /** Validates a complete data graph against this model. */
   public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { hasErrors: true, diagnostics: result.diagnostics };
     return new InstanceValidator(constraints).validate(result.graph, input);
-  }
-
-  /** Reports changes between two model states without migrating captured data. */
-  public compareTo(next: Modeller): EvolutionReport {
-    return ModelEvolution.compare(this.model.id, this.validationInputs(), next.model.id, next.validationInputs());
   }
 
   protected check(): ProjectValidationResult {

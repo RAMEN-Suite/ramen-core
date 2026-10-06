@@ -1,12 +1,15 @@
-import { Attribute, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types';
+import { Attribute, Constraint, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types';
 import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelRelationScope, RelationSelections } from '../graph/RelationScope';
 import { Cardinality } from './Cardinality';
 import { ValidationCode } from './Codes';
+import { JsonSchemaEvaluator } from './Constraints';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
 export class ModelRules {
+  private readonly jsonSchema: JsonSchemaEvaluator = new JsonSchemaEvaluator();
+
   /** Validates every reachable model and returns all semantic findings. */
   public validate(graph: ProjectGraph, selections?: RelationSelections): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
@@ -52,12 +55,24 @@ export class ModelRules {
     this.validateImports(model, diagnostics);
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
+      this.validateConstraints(classifier.constraints, path, diagnostics);
       if (classifier.kind === 'Node') this.validateNode(graph, model, classifier, path, diagnostics);
       else this.validateDataType(classifier, path, diagnostics);
     });
     model.relations.forEach((relation: Relation, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'relations', index);
+      this.validateConstraints(relation.constraints, path, diagnostics);
       this.validateRelation(graph, model.id, relation, path, diagnostics);
+    });
+  }
+
+  private validateConstraints(rules: readonly Constraint[] | undefined, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+    rules?.forEach((rule: Constraint, index: number): void => {
+      if (rule.language !== 'json-schema') return;
+      const reason: string | undefined = this.jsonSchema.validateExpression(rule.expression);
+      if (!reason) return;
+      const rulePath: DiagnosticPath = path.property('constraints').index(index).property('expression');
+      diagnostics.push(this.error('CONSTRAINT_EXPRESSION_INVALID', `Constraint '${rule.name}': ${reason}.`, rulePath, rule.id));
     });
   }
 
@@ -96,6 +111,7 @@ export class ModelRules {
     this.validateLiteralUniqueness(literals, path, diagnostics);
 
     literals.forEach((literal: Literal, index: number): void => {
+      this.validateConstraints(literal.constraints, path.property('literals').index(index), diagnostics);
       const numeric: boolean = dataType.baseType === 'Integer' || dataType.baseType === 'Float';
       const valid: boolean = dataType.baseType === 'String' || (numeric && literal.value !== undefined);
       if (valid) return;
@@ -201,6 +217,7 @@ export class ModelRules {
         );
       }
       localNames.add(attribute.name);
+      this.validateConstraints(attribute.constraints, attributePath, diagnostics);
       this.validateAttribute(attribute, attributePath, diagnostics);
     });
   }
@@ -273,17 +290,6 @@ export class ModelRules {
     }
     this.validateRelationEnd(relation.from, path.property('from'), diagnostics);
     this.validateRelationEnd(relation.to, path.property('to'), diagnostics);
-    if (relation.from.isComposite === true && relation.to.isComposite === true) {
-      diagnostics.push(
-        this.error(
-          'RELATION_COMPOSITE_BOTH_ENDS',
-          `Relation '${relation.id}' cannot be composite at both ends.`,
-          path,
-          relation.id,
-        ),
-      );
-    }
-
     const superType: Ref | undefined = relation.superTypes[0];
     if (!superType) return;
     const base: ResolvedElement<Relation> | undefined = graph.resolveRelation(modelId, superType);
@@ -292,6 +298,7 @@ export class ModelRules {
   }
 
   private validateRelationEnd(end: RelationEnd, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+    this.validateConstraints(end.constraints, path, diagnostics);
     if (!Cardinality.areBoundsCoherent(end.bounds)) {
       diagnostics.push(this.error('RELATION_END_BOUNDS_INVALID', `Relation end has incoherent bounds.`, path, end.id));
     }
@@ -323,10 +330,6 @@ export class ModelRules {
         this.error('RELATION_BOUNDS_WIDENED', `Relation end widens its base cardinality.`, path.property('bounds'), end.id),
       );
     }
-    if ((end.isComposite === true) !== (baseEnd.isComposite === true)) {
-      diagnostics.push(this.error('RELATION_COMPOSITE_MISMATCH', `Relation end changes composition semantics.`, path, end.id));
-    }
-
     const actualNode: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);
     const requiredNode: ResolvedElement<Node> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
 

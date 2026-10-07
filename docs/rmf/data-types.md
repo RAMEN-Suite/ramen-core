@@ -36,7 +36,7 @@ model.createLiteral(status.id, { name: 'Published', literal: 'published' });
 const statusProperty: Attribute = model.createAttribute(document, { name: 'status', type: status }).element;
 ```
 
-Pass a DataType object as `type`, or a built-in name or ID as `typeId`. For literals, `name` is the label and `literal` is the stored string. Without `literal`, the name is stored. For an integer type, use `value`:
+Pass a DataType object as `type`, or a built-in name or ID as `typeId`. For literals, `name` is the label and `literal` is the stored string. Without `literal`, the name is stored. Numeric types use `value`. `Integer` requires a whole number, while `Float` also accepts fractions such as `0.5`:
 
 ```ts
 const priority: DataType = model.createDataType({ name: 'Priority', baseType: DataTypes.Integer }).element;

@@ -171,8 +171,8 @@
         "id": { "$ref": "#/$defs/Id" },
         "name": { "type": "string" },
         "value": {
-          "type": "integer",
-          "description": "Numeric value represented by this literal, when the data type uses an integer value domain."
+          "type": "number",
+          "description": "Numeric value represented by this literal. Integer data types require a whole number; Float data types also allow fractions."
         },
         "literal": {
           "type": "string",

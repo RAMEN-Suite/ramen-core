@@ -9,10 +9,31 @@ import type {
   DataType,
   Diagnostic,
   ModelInstanceGraph,
+  Literal,
   Node,
   Relation,
   ValidationResult,
 } from '@ramen-suite/core/model';
+
+void test('Float literals preserve fractions through export while Integer literals require whole numbers', (): void => {
+  const model: Modeller = Modeller.create('Scores');
+  const score: DataType = model.createDataType({ name: 'Score', baseType: DataTypes.Float }).element;
+  const half: Literal = model.createLiteral(score.id, { name: 'Half', value: 0.5 }).element;
+  const negative: Literal = model.createLiteral(score.id, { name: 'Negative', value: -1.25 }).element;
+
+  assert.equal(model.validate().valid, true);
+  assert.equal(model.validateValue(score, 0.5).hasErrors, false);
+  assert.equal(model.validateValue(score, -1.25).hasErrors, false);
+  assert.equal(model.validateValue(score, 0.75).diagnostics[0]?.code, 'INSTANCE_PROPERTY_LITERAL_INVALID');
+  assert.equal(Modeller.import(model.export()).validateValue(score, 0.5).hasErrors, false);
+
+  model.removeLiteral(score.id, negative.id);
+  model.updateDataType(score.id, { baseType: DataTypes.Integer });
+  assert.equal(model.validate().diagnostics[0]?.code, 'DATATYPE_LITERAL_TYPE_INVALID');
+  model.updateLiteral(score.id, half.id, { value: 1 });
+  assert.equal(model.validate().valid, true);
+  assert.equal(model.validateValue(score, 1).hasErrors, false);
+});
 
 function checkLength(rule: Constraint, context: ConstraintContext): readonly Diagnostic[] {
   if (typeof context.value !== 'string') return [];

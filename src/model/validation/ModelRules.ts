@@ -4,11 +4,11 @@ import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
 import { ModelRelationScope, RelationSelections } from '../graph/RelationScope';
 import { Cardinality } from './Cardinality';
 import { ValidationCode } from './Codes';
-import { JsonSchemaEvaluator } from './Constraints';
+import { ConstraintRules } from './ConstraintRules';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
 export class ModelRules {
-  private readonly jsonSchema: JsonSchemaEvaluator = new JsonSchemaEvaluator();
+  private readonly constraints: ConstraintRules = new ConstraintRules();
 
   /** Validates every reachable model and returns all semantic findings. */
   public validate(graph: ProjectGraph, selections?: RelationSelections): readonly Diagnostic[] {
@@ -67,13 +67,7 @@ export class ModelRules {
   }
 
   private validateConstraints(rules: readonly Constraint[] | undefined, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
-    rules?.forEach((rule: Constraint, index: number): void => {
-      if (rule.language !== 'json-schema') return;
-      const reason: string | undefined = this.jsonSchema.validateExpression(rule.expression);
-      if (!reason) return;
-      const rulePath: DiagnosticPath = path.property('constraints').index(index).property('expression');
-      diagnostics.push(this.error('CONSTRAINT_EXPRESSION_INVALID', `Constraint '${rule.name}': ${reason}.`, rulePath, rule.id));
-    });
+    diagnostics.push(...this.constraints.validate(rules, path));
   }
 
   private validateImports(model: Model, diagnostics: Diagnostic[]): void {
@@ -113,10 +107,12 @@ export class ModelRules {
     literals.forEach((literal: Literal, index: number): void => {
       this.validateConstraints(literal.constraints, path.property('literals').index(index), diagnostics);
       const numeric: boolean = dataType.baseType === 'Integer' || dataType.baseType === 'Float';
-      const valid: boolean = dataType.baseType === 'String' || (numeric && literal.value !== undefined);
+      const valid: boolean =
+        dataType.baseType === 'String' ||
+        (numeric && literal.value !== undefined && (dataType.baseType === 'Float' || Number.isInteger(literal.value)));
       if (valid) return;
       const literalPath: DiagnosticPath = path.property('literals').index(index);
-      const message: string = `Literal '${literal.name}' has no value for base type '${dataType.baseType}'.`;
+      const message: string = `Literal '${literal.name}' has no valid value for base type '${dataType.baseType}'.`;
       diagnostics.push(this.error('DATATYPE_LITERAL_TYPE_INVALID', message, literalPath, literal.id));
     });
   }

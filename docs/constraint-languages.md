@@ -16,6 +16,8 @@ A constraint declares a rule in the model. Its `language` chooses how to read `e
 
 These rules check recorded values. The model's `baseType` or property's `typeId` still decides the value type. RMF checks that type before evaluating its constraints. [Add Constraints](rmf/constraints.md) shows where to attach rules, and [Validate Models and Data](rmf/validation.md) shows how to run them.
 
+Model validation also checks built-in expressions: regular expressions must compile, format names must be supported, and JSON Schema expressions must be valid. Custom language declarations remain available for tools to evaluate.
+
 ## Regular expressions
 
 Use `regex` for a string pattern. This rule accepts identifiers beginning with `P-`:

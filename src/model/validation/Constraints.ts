@@ -167,17 +167,23 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
 export class RegexEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'regex';
 
+  /** Checks expression syntax without requiring a recorded string. */
+  public validateExpression(expression: Constraint['expression']): string | undefined {
+    try {
+      this.compile(expression);
+      return undefined;
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  }
+
   /** Tests a string value against the constraint expression. */
   public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
-    if (typeof constraint.expression !== 'string') {
-      return [this.invalidExpression(constraint, context, 'expected a string')];
-    }
-
     let expression: RegExp;
     try {
-      expression = new RegExp(constraint.expression);
-    } catch {
-      return [this.invalidExpression(constraint, context, 'invalid regular expression')];
+      expression = this.compile(constraint.expression);
+    } catch (error: unknown) {
+      return [this.invalidExpression(constraint, context, error instanceof Error ? error.message : String(error))];
     }
     if (typeof context.value !== 'string') return [this.invalidExpression(constraint, context, 'expected a string value')];
     if (expression.test(context.value)) return [];
@@ -190,6 +196,11 @@ export class RegexEvaluator implements ConstraintEvaluator {
         context.path,
       ),
     ];
+  }
+
+  private compile(expression: Constraint['expression']): RegExp {
+    if (typeof expression !== 'string') throw new Error('expected a string');
+    return new RegExp(expression);
   }
 
   private invalidExpression(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {
@@ -206,16 +217,20 @@ export class RegexEvaluator implements ConstraintEvaluator {
 export class FormatEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'format';
 
+  /** Checks whether the expression selects a supported format. */
+  public validateExpression(expression: Constraint['expression']): string | undefined {
+    if (typeof expression !== 'string') return 'expected a format name';
+    return STANDARD_FORMAT_SCHEMAS.has(expression) || expression === 'uri' ? undefined : `unsupported format '${expression}'`;
+  }
+
   /** Validates standard JSON Schema string formats used by RAMEN model format data types. */
   public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
-    if (typeof constraint.expression !== 'string' || typeof context.value !== 'string') {
-      return [this.invalid(constraint, context, 'expected a format name and a string value')];
-    }
+    const reason: string | undefined = this.validateExpression(constraint.expression);
+    if (reason) return [this.invalid(constraint, context, reason)];
+    if (typeof constraint.expression !== 'string' || typeof context.value !== 'string')
+      return [this.invalid(constraint, context, 'expected a string value')];
 
     const schema: SchemaNode | undefined = STANDARD_FORMAT_SCHEMAS.get(constraint.expression);
-    const supported: boolean = schema !== undefined || constraint.expression === 'uri';
-
-    if (!supported) return [this.invalid(constraint, context, `unsupported format '${constraint.expression}'`)];
     const valid: boolean = schema ? schema.validate(context.value).valid : this.isAbsoluteUri(context.value);
     if (valid) return [];
     const code: string = constraint.code ?? VALIDATION_ERROR.CONSTRAINT_FORMAT_MISMATCH;

@@ -5,6 +5,7 @@ import type {
   Attribute,
   Constraint,
   ConstraintOwner,
+  Diagnostic,
   DataType,
   Literal,
   Model,
@@ -12,6 +13,31 @@ import type {
   Node,
   Relation,
 } from '@ramen-suite/core/model';
+
+void test('built-in constraint expressions are checked before any recorded value exists', (): void => {
+  const cases: readonly (readonly [string, Constraint['expression']])[] = [
+    ['regex', '['],
+    ['regex', {}],
+    ['format', 'unknown-format'],
+    ['format', {}],
+    ['json-schema', { type: 'bad' }],
+  ];
+  for (const [language, expression] of cases) {
+    const model: Modeller = Modeller.create('Rules');
+    const rule: Constraint = { id: 'invalidRule00001', name: 'Invalid', language, expression };
+    const dataType: DataType = model.createDataType({ name: 'Code', baseType: DataTypes.String, constraints: [rule] }).element;
+    const finding: Diagnostic | undefined = model
+      .validate()
+      .diagnostics.find((item: Diagnostic): boolean => item.code === 'CONSTRAINT_EXPRESSION_INVALID');
+    assert.ok(finding, language);
+    assert.equal(finding.ref, rule.id);
+    assert.equal(finding.severity, 'error');
+    assert.equal(finding.path, `/models/${model.getModel().id}/classifiers/0/constraints/0/expression`);
+
+    model.updateDataType(dataType.id, { constraints: [] });
+    assert.equal(model.validate().valid, true);
+  }
+});
 
 void test('relations accept constraints on creation and update', (): void => {
   const model: Modeller = Modeller.create('Filing');

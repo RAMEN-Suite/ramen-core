@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
 import type { Options } from 'prettier';
@@ -32,15 +32,18 @@ function resource(name: string): string {
   return fileURLToPath(new URL(`../src/resources/schemas/${name}`, import.meta.url));
 }
 
-function qualifyRefs(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(qualifyRefs);
+function rewriteRefs(value: unknown, prefix: string, replacement: string): unknown {
+  if (Array.isArray(value)) return value.map((item: unknown): unknown => rewriteRefs(item, prefix, replacement));
   if (value === null || typeof value !== 'object') return value;
   const result: Record<string, unknown> = {};
   const entries: readonly [string, unknown][] = Object.entries(value);
 
   for (const [key, entry] of entries) {
-    result[key] =
-      key === '$ref' && typeof entry === 'string' ? entry.replace(/^#\/\$defs\//, '#/$defs/Ramen') : qualifyRefs(entry);
+    if (key === '$ref' && typeof entry === 'string' && entry.startsWith(prefix)) {
+      result[key] = `${replacement}${entry.slice(prefix.length)}`;
+      continue;
+    }
+    result[key] = rewriteRefs(entry, prefix, replacement);
   }
   return result;
 }
@@ -49,7 +52,7 @@ function projectSchema(): ModelSchema {
   const definitions: Readonly<Record<string, Schema>> = Object.fromEntries(
     Object.entries(annotations.$defs).map(([name, definition]: [string, Schema]): [string, Schema] => [
       `Ramen${name}`,
-      qualifyRefs(definition) as Schema,
+      rewriteRefs(definition, '#/$defs/', '#/$defs/Ramen') as Schema,
     ]),
   );
 
@@ -61,7 +64,7 @@ function projectSchema(): ModelSchema {
     properties: {
       ...generic.properties,
       $schema: { const: projectUri },
-      annotations: qualifyRefs(annotations.properties.annotations) as Schema,
+      annotations: rewriteRefs(annotations.properties.annotations, '#/$defs/', '#/$defs/Ramen') as Schema,
       ext: { ...generic.properties.ext, properties: { ramen: false } },
     },
     $defs: { ...generic.$defs, ...definitions },
@@ -126,8 +129,10 @@ function graphProperties(fileUri: string, ramen: boolean): Readonly<Record<strin
 }
 
 function graphSchema(input: FileInput): Schema {
-  const definitions: Readonly<Record<string, Schema>> = JSON.parse(
-    JSON.stringify(input.source.$defs).replaceAll(`${generic.$id}#/$defs/`, '#/$defs/'),
+  const definitions: Readonly<Record<string, Schema>> = rewriteRefs(
+    input.source.$defs,
+    `${generic.$id}#/$defs/`,
+    '#/$defs/',
   ) as Readonly<Record<string, Schema>>;
 
   return {
@@ -156,11 +161,9 @@ async function emit(name: string, schema: Schema): Promise<void> {
   const options: Options | null = await prettier.resolveConfig(destination);
   const generated: string = await prettier.format(JSON.stringify(schema), { ...options, parser: 'json' });
 
-  if (!process.argv.includes('--check')) {
-    writeFileSync(destination, generated);
-    return;
-  }
-  if (readFileSync(destination, 'utf8') !== generated) throw new Error(`Outdated ${name}. Run npm run schema:generate.`);
+  if (existsSync(destination) && readFileSync(destination, 'utf8') === generated) return;
+  if (process.argv.includes('--check')) throw new Error(`Outdated ${name}. Run npm run schema:generate.`);
+  writeFileSync(destination, generated);
 }
 
 const project: ModelSchema = projectSchema();

@@ -16,13 +16,18 @@ interface InstalledPackage {
 }
 
 const root: string = fileURLToPath(new URL('../', import.meta.url));
-const npm: string = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const npmCli: string = process.env['npm_execpath'] ?? '';
+if (!npmCli) throw new Error('Run this check with npm run package:check.');
 
 function pack(destination: string): PackedFile {
-  const output: string = execFileSync(npm, ['pack', '.', '--json', '--ignore-scripts', '--pack-destination', destination], {
-    cwd: root,
-    encoding: 'utf8',
-  });
+  const output: string = execFileSync(
+    process.execPath,
+    [npmCli, 'pack', '.', '--json', '--ignore-scripts', '--pack-destination', destination],
+    {
+      cwd: root,
+      encoding: 'utf8',
+    },
+  );
   const files: readonly PackedFile[] = JSON.parse(output) as readonly PackedFile[];
   const file: PackedFile | undefined = files[0];
   if (!file) throw new Error('npm pack returned no package.');
@@ -48,7 +53,10 @@ function checkContents(file: PackedFile): void {
 function install(tarball: string, consumer: string): void {
   mkdirSync(consumer);
   writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
-  execFileSync(npm, ['install', tarball, '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: consumer, stdio: 'inherit' });
+  execFileSync(process.execPath, [npmCli, 'install', tarball, '--ignore-scripts', '--no-audit', '--no-fund'], {
+    cwd: consumer,
+    stdio: 'inherit',
+  });
 
   const manifestPath: string = join(consumer, 'node_modules/@ramen-suite/core/package.json');
   const installed: InstalledPackage = JSON.parse(readFileSync(manifestPath, 'utf8')) as InstalledPackage;

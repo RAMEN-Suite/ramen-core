@@ -6,6 +6,7 @@ body:
     id: version
     attributes:
       label: Version
+      description: Package version or commit when working from source.
       placeholder: '@ramen-suite/core 0.1.0'
     validations:
       required: true
@@ -13,14 +14,14 @@ body:
     id: behaviour
     attributes:
       label: What happened?
-      description: Describe the actual and expected behaviour.
+      description: Describe the actual and expected behaviour. Include diagnostic codes when available.
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
       label: Reproduction
-      description: Provide a minimal example or clear steps.
+      description: Provide a small TypeScript or JSON model example, or clear steps to reproduce the problem.
     validations:
       required: true
   - type: textarea

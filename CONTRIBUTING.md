@@ -53,7 +53,7 @@ Useful focused commands:
 
 ### Coding conventions
 
-- Use strict TypeScript and British English for repository-owned names and text.
+- Use strict TypeScript and BE for repository-owned names and text.
 - Use short domain names, early returns and shallow control flow. Separate semantic blocks with blank lines.
 - Give variables, parameters and return values explicit types in tests. Avoid `any` and suppression comments.
 - Keep RMF independent of RAMEN. Annotation semantics belong in `src/ramen`; tool integration belongs in consuming tools.

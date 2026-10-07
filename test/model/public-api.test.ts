@@ -5,15 +5,49 @@ import {
   ModelAdvisor,
   ModelFactory,
   Modeller,
+  type Attribute,
   type AttributeNameResult,
+  type Constraint,
   type ConnectedNode,
   type DataType,
   type DataTypeSuggestion,
   type Model,
+  type ModelFile,
   type Node,
   type NodeSuggestion,
   type Relation,
 } from '@ramen-suite/core/model';
+
+void test('editing inputs, returned definitions and exported files cannot mutate the draft indirectly', (): void => {
+  const model: Modeller = Modeller.create('Filing');
+  const document: Node = model.createNode('Document').element;
+  const expression: Record<string, unknown> = { minLength: 3 };
+  const rule: Constraint = { id: 'titleLength00001', name: 'Title length', language: 'json-schema', expression };
+  const title: Attribute = model.createAttribute(document, {
+    name: 'title',
+    typeId: DataTypes.String,
+    constraints: [rule],
+  }).element;
+  const original: Model = model.getModel();
+
+  expression['minLength'] = 100;
+  title.name = 'changed';
+  title.constraints?.splice(0);
+  const read: Node | undefined = model.getNode(document.id);
+  assert.ok(read);
+  read.attributes.splice(0);
+
+  const exported: ModelFile = model.export();
+  const entry: ModelFile['classifiers'][number] | undefined = exported.classifiers[0];
+  assert.ok(entry?.kind === 'Node');
+  entry.attributes.splice(0);
+  entry.name = 'Changed';
+
+  assert.deepEqual(model.getModel(), original);
+  assert.equal(model.validateAttributeValue(document, 'title', 'Hello').hasErrors, false);
+  assert.equal(model.validateAttributeValue(document, 'title', 'Hi').hasErrors, true);
+  assert.equal(model.validate().valid, true);
+});
 
 void test('the generic editor suggests available types and rejects inherited property names', (): void => {
   const base: Modeller = Modeller.create('File system');

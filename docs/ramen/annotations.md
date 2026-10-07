@@ -8,7 +8,7 @@ children:
 
 # Define Annotation Types
 
-The `Annotation` **node** defines what all annotations share. An annotation **type**, such as `person`, selects the properties and relationships permitted for one variant. Projects declare types with {@link ramen.RamenModel.createAnnotation | createAnnotation()}; RAMEN has no fixed list. Validation rejects recorded annotations with an undeclared type, property or connection.
+The `Annotation` **node** defines what all annotations share. An annotation **type**, such as `person`, selects the properties and relationships permitted for one variant. Projects declare their own types with {@link ramen.RamenModel.createAnnotation | createAnnotation()} because RAMEN has no fixed list. Validation rejects recorded annotations with an undeclared type, property or connection.
 
 Projects may borrow names such as [persName](https://tei-c.org/release/doc/tei-p5-doc/en/html/ref-persName.html) and [placeName](https://tei-c.org/release/doc/tei-p5-doc/en/html/ref-placeName.html) from the [TEI Guidelines](https://tei-c.org/release/doc/tei-p5-doc/en/html/). They still define each type's rules in RAMEN.
 
@@ -56,7 +56,7 @@ const personType: RamenAnnotation = media.createAnnotation({
 
 The grouped `relations` count Text and Image links **together**: one or more must exist. The person's name belongs on the referenced Person's `label`, not on this annotation.
 
-The type selects existing relationships; it does not create them. See [Suggest Annotations](suggest-annotations.md) for choices an editor can offer.
+The type selects existing relationships without creating new ones. See [Suggest Annotations](suggest-annotations.md) for choices an editor can offer.
 
 ## Add properties and constraints
 
@@ -82,7 +82,7 @@ A `person` annotation on Image could select a rectangle with a [Fragment Selecto
 }
 ```
 
-These are property snippets from recorded annotations; their Text or Image links are stored separately. `selector` is an object, not a JSON string. {@link ramen.RAMEN_ELEMENT | RAMEN_ELEMENT.SELECTOR} identifies its [RAMEN data type](data-types.md). RAMEN checks that `selector.type` is present; the consuming tool interprets `start`, `end` or `value`. See [Validate RAMEN Data](validation.md).
+These are property snippets from recorded annotations whose Text or Image links are stored separately. `selector` is an object, not a JSON string. {@link ramen.RAMEN_ELEMENT | RAMEN_ELEMENT.SELECTOR} identifies its [RAMEN data type](data-types.md). RAMEN checks that `selector.type` is present, while the consuming tool interprets `start`, `end` or `value`. See [Validate RAMEN Data](validation.md).
 
 ## Refine the Annotation node when needed
 
@@ -126,4 +126,4 @@ media.createAnnotation({
 });
 ```
 
-Both refined nodes inherit the common fields and the `person` type. `unclearReading` belongs only to `TextAnnotation`; `damage` belongs only to `ImageAnnotation`. Later refinements inherit these types and may add new ones. See [Refine by Inheritance](../rmf/inheritance.md).
+Both refined nodes inherit the common fields and the `person` type. `unclearReading` belongs only to `TextAnnotation`, while `damage` belongs only to `ImageAnnotation`. Later refinements inherit these types and may add new ones. See [Refine by Inheritance](../rmf/inheritance.md).

@@ -13,7 +13,7 @@ A constraint declares a rule in the model. Its `language` chooses how to read `e
 | `format`      | Supported format name | Check a date, URI, email address or UUID |
 | `json-schema` | JSON Schema object    | Check a value, including an `Object`     |
 
-These rules check recorded values. The model's `baseType` or property's `typeId` still decides the value type. RMF checks that type before evaluating its constraints. [Add Constraints](rmf/constraints.md) shows where to attach rules; [Validate Models and Data](rmf/validation.md) shows how to run them.
+These rules check recorded values. The model's `baseType` or property's `typeId` still decides the value type. RMF checks that type before evaluating its constraints. [Add Constraints](rmf/constraints.md) shows where to attach rules, and [Validate Models and Data](rmf/validation.md) shows how to run them.
 
 ## Regular expressions
 
@@ -96,7 +96,7 @@ Most Boolean properties need no constraint: `DataTypes.Boolean` already accepts 
 
 ### Integer and Float
 
-Use numeric keywords for ranges. `Integer` rejects fractions before constraints run; `Float` accepts finite whole and fractional numbers:
+Use numeric keywords for ranges. `Integer` rejects fractions before constraints run, while `Float` accepts finite whole and fractional numbers:
 
 ```ts
 const age = model.createDataType({
@@ -139,7 +139,7 @@ model.createAttribute(person, { name: 'contact', type: contact });
 
 Here `city` and `postcode` belong to the stored Object value. Use RMF nodes and relationships when those parts need independent IDs, inheritance or links.
 
-JSON Schema expressions may use local `$defs` and `$ref`. The expression must be self-contained; unresolved external references make the model invalid. Model validation reports a schema the evaluator cannot compile as `CONSTRAINT_EXPRESSION_INVALID`. A recorded value that fails a valid schema produces `CONSTRAINT_JSON_SCHEMA_MISMATCH`. [Read Diagnostics](rmf/diagnostics.md) explains these findings.
+JSON Schema expressions may use local `$defs` and `$ref`, but they must be self-contained. Unresolved external references make the model invalid. Model validation reports a schema the evaluator cannot compile as `CONSTRAINT_EXPRESSION_INVALID`. A recorded value that fails a valid schema produces `CONSTRAINT_JSON_SCHEMA_MISMATCH`. [Read Diagnostics](rmf/diagnostics.md) explains these findings.
 
 ## Custom languages
 

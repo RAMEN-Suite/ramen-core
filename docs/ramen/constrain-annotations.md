@@ -59,4 +59,4 @@ The relevant properties of a recorded Role annotation are:
 { "type": "role", "name": "sender" }
 ```
 
-In a complete data graph with the required Text and Person links, {@link ramen.RamenModel.validateInstances | media.validateInstances(data)} accepts `sender`. An `editor` value reports `INSTANCE_PROPERTY_LITERAL_INVALID`; a missing `name` violates `1..1`. [Validate RAMEN Data](validation.md) shows the complete graph format.
+In a complete data graph with the required Text and Person links, {@link ramen.RamenModel.validateInstances | media.validateInstances(data)} accepts `sender`. An `editor` value reports `INSTANCE_PROPERTY_LITERAL_INVALID`, while a missing `name` violates `1..1`. [Validate RAMEN Data](validation.md) shows the complete graph format.

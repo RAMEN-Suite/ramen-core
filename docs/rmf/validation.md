@@ -21,4 +21,4 @@ RMF checks the **model** that defines allowed data and the **recorded data** cre
 | Before accepting records or links | [Validate the complete data graph](validate-data.md) against the model.         |
 | When a check finds a problem      | [Read its diagnostics](diagnostics.md) to locate and explain the finding.       |
 
-Model validation resolves imports, inheritance and rules. Data validation first needs a valid model, then checks recorded values and links. A model contains definitions; it does not contain the records collected by a tool.
+Model validation resolves imports, inheritance and rules. Data validation first needs a valid model, then checks recorded values and links. A model contains definitions rather than the records collected by a tool.

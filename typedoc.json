@@ -16,12 +16,12 @@
     "docs/rmf/suggestions.md",
     "docs/rmf/validation.md",
     "docs/rmf/exchange.md",
+    "docs/rmf/model-changes.md",
     "docs/ramen/ramen.md",
     "docs/ramen/data-types.md",
     "docs/ramen/annotations.md",
     "docs/ramen/validation.md",
-    "docs/ramen/export.md",
-    "docs/glossary.md"
+    "docs/ramen/export.md"
   ],
   "sortEntryPoints": false,
   "groupOrder": ["RMF", "RAMEN", "Modules", "*"],

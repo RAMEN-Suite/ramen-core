@@ -39,4 +39,4 @@ edition.createAttribute(person, {
 });
 ```
 
-The qualified reference identifies the type in the imported RAMEN model. The inherited `uuid` property already uses RAMEN's `UUID` type. Use [Define Annotation Types](annotations.md#locate-a-selected-part) for `Selector`; it has its own RAMEN rule in addition to its RMF `Object` base type.
+The qualified reference identifies the type in the imported RAMEN model. The inherited `uuid` property already uses RAMEN's `UUID` type. [Define Annotation Types](annotations.md#locate-a-selected-part) explains `Selector`, which has its own RAMEN rule in addition to its RMF `Object` base type.

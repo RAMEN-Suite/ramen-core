@@ -5,7 +5,7 @@ group: RMF
 
 # Request Suggestions
 
-A suggestion is a choice available while editing the current model. Request choices when a person selects a node type, data type or relationship. Suggestions do not change the model; apply a choice with a `create*` method. An empty list means that no matching choice is available.
+A suggestion is a choice available while editing the current model. Request choices when a person selects a node type, data type or relationship. Suggestions leave the model unchanged until you apply a choice with a `create*` method. An empty list means that no matching choice is available.
 
 | Query       | Use it to                                | Example                                                                        |
 | ----------- | ---------------------------------------- | ------------------------------------------------------------------------------ |
@@ -35,7 +35,7 @@ const website: Modeller = filing.createNextLevel('Website');
 
 ## Choose a node to refine
 
-{@link model.Modeller.suggestNodes | suggestNodes()} lists both local and imported nodes that can be refined. Filing can refine its own Document; Website can also refine the imported Document. Pass a selected suggestion directly to {@link model.Modeller.createNode | createNode()}:
+{@link model.Modeller.suggestNodes | suggestNodes()} lists both local and imported nodes that can be refined. Filing can refine its own Document, and Website can refine the imported Document. Pass a selected suggestion directly to {@link model.Modeller.createNode | createNode()}:
 
 ```ts
 import type { NodeSuggestion } from '@ramen-suite/core/model';
@@ -71,7 +71,7 @@ function addSummary(selected: DataTypeSuggestion): void {
 }
 ```
 
-The editor presents `types`; the caller passes the chosen object to `addSummary`. For a known type in code, use `typeId: DataTypes.String` directly.
+The editor presents `types` and passes the chosen object to `addSummary`. For a known type in code, use `typeId: DataTypes.String` directly.
 
 ## Choose a relationship
 
@@ -90,7 +90,7 @@ function addFilingRelation(selected?: RelationSuggestion): Relation {
 const pageFiledIn: Relation = addFilingRelation(relations[0]);
 ```
 
-Pass the chosen suggestion to `addFilingRelation`; omit it when exactly one relationship fits. If several fit, select one explicitly. [Refine by Inheritance](inheritance.md) explains why Website must apply the relationship.
+Pass the chosen suggestion to `addFilingRelation`, or omit it when exactly one relationship fits. If several fit, select one explicitly. [Refine by Inheritance](inheritance.md) explains why Website must apply the relationship.
 
 ## Explore connections from a node
 
@@ -115,5 +115,3 @@ import type { AttributeNameResult } from '@ramen-suite/core/model';
 const result: AttributeNameResult = website.validateAttributeName(page, 'title');
 // { allowed: false, conflicts: ['attribute'] }
 ```
-
-RAMEN-specific choices, including annotation types for a node, are covered in [Suggest Annotations](../ramen/suggest-annotations.md).

@@ -5,7 +5,7 @@ group: RMF
 
 # Validate Recorded Data
 
-{@link model.Modeller.validateInstances | validateInstances(data)} checks recorded objects and links against a valid model. A tool translates its stored data into a complete {@link model.ModelInstanceGraph | ModelInstanceGraph}; RMF does not read a database or interpret a tool's own file format.
+{@link model.Modeller.validateInstances | validateInstances(data)} checks recorded objects and links against a valid model. A tool first translates its stored data into a complete {@link model.ModelInstanceGraph | ModelInstanceGraph} because RMF does not read databases or tool-specific file formats.
 
 ## Missing required values
 

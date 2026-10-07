@@ -7,18 +7,18 @@ group: RMF
 
 A constraint is a rule attached to a model element. Choose the owner by the value the rule must inspect. [Constraint Languages](../constraint-languages.md) explains the built-in expressions.
 
-| Owner                 | Value checked                                                        | Built-in languages that fit the value                            | Typical use                                  |
-| --------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
-| Data type             | One value of its `baseType`                                          | `regex` and `format` for String; `json-schema` for any base type | Reusable value rule                          |
-| Property              | One value of that property                                           | Same as its data type                                            | Rule for one field                           |
-| Node                  | All recorded properties of one node                                  | `json-schema`                                                    | Condition between properties                 |
-| Relation              | One recorded link (`id`, `typeId`, `fromId`, `toId`)                 | `json-schema`                                                    | Rarely useful; custom graph rule is common   |
-| Source or target node | The complete recorded node at `from` or `to`, including `properties` | `json-schema`                                                    | Condition that applies when this link exists |
-| Literal               | Its fixed value, only when that literal is selected                  | Same as its data type                                            | Usually redundant; custom rule if needed     |
+| Owner                 | Value checked                                                        | Built-in languages that fit the value                            | Typical use                                              |
+| --------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| Data type             | One value of its `baseType`                                          | `regex` and `format` for String, `json-schema` for any base type | Reusable value rule                                      |
+| Property              | One value of that property                                           | Same as its data type                                            | Rule for one field                                       |
+| Node                  | All recorded properties of one node                                  | `json-schema`                                                    | Condition between properties                             |
+| Relation              | One recorded link (`id`, `typeId`, `fromId`, `toId`)                 | `json-schema`                                                    | Rarely useful because custom graph rules are more common |
+| Source or target node | The complete recorded node at `from` or `to`, including `properties` | `json-schema`                                                    | Condition that applies when this link exists             |
+| Literal               | Its fixed value, only when that literal is selected                  | Same as its data type                                            | Usually redundant unless a custom rule is needed         |
 
 `regex` and `format` require a string value. A JSON Schema on a node should express a condition **between** properties, rather than repeat their RMF definitions. A recorded relation has no properties beyond its IDs, so JSON Schema adds little there. [Validate Models and Data](validation.md) explains when each rule runs.
 
-Custom languages can be attached to every owner. **Current behaviour:** The editing API accepts any language on every owner; it does not yet reject unsuitable combinations when the rule is attached. Model validation checks whether a `json-schema` expression can be compiled. `regex` and `format` require a string at data validation time. A custom language needs a registered evaluator in the validating tool.
+Custom languages can be attached to every owner. **Current behaviour:** The editing API accepts any language on every owner without rejecting unsuitable combinations when the rule is attached. Model validation checks whether a `json-schema` expression can be compiled. `regex` and `format` require a string at data validation time. A custom language needs a registered evaluator in the validating tool.
 
 The examples below share this small model:
 
@@ -85,7 +85,7 @@ const title: Attribute = model.createAttribute(document, {
 }).element;
 ```
 
-The rule checks each title value. `bounds` controls how many values may be present; it is not a constraint expression. [Add Properties](properties.md) explains those bounds.
+The rule checks each title value. `bounds` controls how many values may be present rather than expressing a value constraint. [Add Properties](properties.md) explains those bounds.
 
 ## Node: compare its properties
 
@@ -110,7 +110,7 @@ const publicationRule: Constraint = {
 model.updateNode(document.id, { constraints: [publicationRule] });
 ```
 
-The properties themselves remain declared as RMF attributes. A node rule is checked with a complete recorded node; {@link model.Modeller.validateAttributeValue | validateAttributeValue()} cannot evaluate a rule that needs another property.
+The properties themselves remain declared as RMF attributes. A node rule needs a complete recorded node, so {@link model.Modeller.validateAttributeValue | validateAttributeValue()} cannot evaluate a rule that refers to another property.
 
 ## Relation: inspect a link
 
@@ -153,7 +153,7 @@ model.createRelation({
 });
 ```
 
-The outer `properties` is the JSON Schema keyword; the inner `properties` is the recorded node's field of that name. [Add Relationships](relationships.md) explains both ends and their cardinalities.
+The outer `properties` is the JSON Schema keyword, while the inner `properties` is the recorded node's field of that name. [Add Relationships](relationships.md) explains both ends and their cardinalities.
 
 ## Literal: react to one selected choice
 
@@ -194,7 +194,7 @@ const owner: ConstraintOwnerInput = { modelId: model.getModel().id, elementId: t
 model.getConstraints(owner);
 ```
 
-{@link model.Modeller.addConstraint | addConstraint()} adds a rule to an existing element. These methods work for all six owners above, including a relation's `from` or `to` object. They preserve the owner's other rules. To edit a rule from an earlier model level, open that level; inherited rules remain owned there.
+{@link model.Modeller.addConstraint | addConstraint()} adds a rule to an existing element. These methods work for all six owners above, including a relation's `from` or `to` object. They preserve the owner's other rules. Open an earlier model level to edit a rule declared there because inherited rules remain with their original owner.
 
 ```ts
 model.updateAttribute(document.id, title.id, { constraints: [capitalised] });

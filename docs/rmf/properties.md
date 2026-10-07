@@ -40,24 +40,24 @@ model.createAttribute(document, {
 // Recorded value: { keywords: ['history', 'letters'] }
 ```
 
-| Bounds           | Meaning                                           |
-| ---------------- | ------------------------------------------------- |
-| `0..0`           | No value allowed                                  |
-| `0..1`           | Optional single value; attribute default          |
-| `1..1`           | Required single value                             |
-| `0..*` or `1..*` | Any number, or at least one; use `upperBound: -1` |
-| `n..m`           | From `n` to `m` values, inclusive                 |
+| Bounds           | Meaning                                          |
+| ---------------- | ------------------------------------------------ |
+| `0..0`           | No value allowed                                 |
+| `0..1`           | Optional single value and attribute default      |
+| `1..1`           | Required single value                            |
+| `0..*` or `1..*` | Any number or at least one with `upperBound: -1` |
+| `n..m`           | From `n` to `m` values, inclusive                |
 
 ## Set property behaviour
 
-The flags describe different rules; they are not interchangeable:
+Each flag describes a different rule:
 
-| Field        | Default | Effect                                                                                                              | Example                                        |
-| ------------ | ------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `isKey`      | `false` | One `1..1` property identifies records across a node and its subtypes. A refinement cannot add another key.         | Document uses `reference` as its key.          |
-| `isUnique`   | `true`  | Prevents repeated values in one record's multi-valued property.                                                     | With `false`, `['draft', 'draft']` is allowed. |
-| `isOrdered`  | `true`  | Array position carries meaning; validation does not impose an order.                                                | `['draft', 'published']` keeps this sequence.  |
-| `isReadOnly` | `false` | Tells a tool to prevent changes to a recorded value after creation; validating one record cannot check its history. | A tool locks `reference` after creation.       |
+| Field        | Default | Effect                                                                                                                     | Example                                        |
+| ------------ | ------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `isKey`      | `false` | One `1..1` property identifies records across a node and its subtypes. A refinement cannot add another key.                | Document uses `reference` as its key.          |
+| `isUnique`   | `true`  | Prevents repeated values in one record's multi-valued property.                                                            | With `false`, `['draft', 'draft']` is allowed. |
+| `isOrdered`  | `true`  | Array position carries meaning, although validation does not impose an order.                                              | `['draft', 'published']` keeps this sequence.  |
+| `isReadOnly` | `false` | Tells a tool to prevent changes to a recorded value after creation because validating one record cannot check its history. | A tool locks `reference` after creation.       |
 
 For example, make `reference` a stable key and allow repeated tags whose order does not matter:
 
@@ -82,7 +82,7 @@ To restrict which values a property accepts, [define a data type](data-types.md)
 
 ## Inherit without redeclaring
 
-A refined node receives its parent's properties. It may add new names but cannot redeclare `title` with another type or bounds. Read inherited properties with {@link model.Modeller.getAttributes | getAttributes(node)}; use [Request Suggestions](suggestions.md#check-an-attribute-name) to check a proposed name before creating it.
+A refined node receives its parent's properties. It may add new names but cannot redeclare `title` with another type or bounds. Read inherited properties with {@link model.Modeller.getAttributes | getAttributes(node)}, and use [Request Suggestions](suggestions.md#check-an-attribute-name) to check a proposed name before creating it.
 
 ## Update a property
 

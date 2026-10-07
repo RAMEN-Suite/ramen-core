@@ -25,8 +25,8 @@ const filedIn: Relation = filing.createRelation({
 }).element;
 ```
 
-`FILED_IN` permits each Document to link to at most one Folder. It defines a possible connection; it does not create a recorded link.
-Recorded links have an ID, a relation type and two endpoint IDs. They cannot carry additional properties; put information that needs its own properties on a node. A relation definition may have constraints or `ext` metadata, but neither adds fields to recorded links.
+`FILED_IN` permits each Document to link to at most one Folder. It defines a possible connection without creating a recorded link.
+Recorded links have an ID, a relation type and two endpoint IDs. Put information that needs additional properties on a node because recorded links cannot carry them. A relation definition may have constraints or `ext` metadata, but neither adds fields to recorded links.
 You can set `constraints` on a relationship or either end in {@link model.Modeller.createRelation | createRelation()}, and change them later with {@link model.Modeller.updateRelation | updateRelation()}. [Add Constraints](constraints.md) explains how rules are evaluated.
 
 ## Count both ends
@@ -68,13 +68,13 @@ filing.updateRelation(filedIn.id, {
 
 ## Remove a relationship
 
-{@link model.Modeller.previewRelationRemoval | previewRelationRemoval()} lists the relation, its refinements in later levels and any RAMEN annotation types that would change.
+{@link model.Modeller.previewRelationRemoval | previewRelationRemoval()} lists the relation and its refinements in later levels.
 
 ```ts
 const preview = filing.previewRelationRemoval(filedIn.id);
 ```
 
-{@link model.Modeller.removeRelation | removeRelation()} rejects the edit while another definition depends on the relation. To remove all relations in the preview and update the affected annotation types, request a cascade:
+{@link model.Modeller.removeRelation | removeRelation()} rejects the edit while another definition depends on the relation. To remove all relations in the preview, request a cascade:
 
 ```ts
 filing.removeRelation(filedIn.id, { cascade: true });

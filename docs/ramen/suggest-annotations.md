@@ -34,7 +34,7 @@ edition.createAnnotation({
 });
 ```
 
-Text and Image are separate Content refinements. The grouped `relations` count their incoming links together; suggestions recognise either carrier.
+Text and Image are separate Content refinements. The grouped `relations` count their incoming links together, so suggestions recognise either carrier.
 
 ## Suggest a type for a node
 
@@ -53,7 +53,7 @@ console.log(annotationChoices(image).map((choice: AnnotationSuggestion): string 
 // ['person']
 ```
 
-An editor can call the same function when a user selects Text or Image. The result follows the modelled relationships; the tool does not need a hard-coded list of annotation types for each carrier.
+An editor can call the same function when a user selects Text or Image. Because the result follows the modelled relationships, the tool needs no hard-coded list of annotation types for each carrier.
 
 ## List types on the Annotation node
 
@@ -79,7 +79,7 @@ console.log(options?.relations.map((relation: RelationOption): string => relatio
 // ['Image', 'Person', 'Text']
 ```
 
-`uuid`, `type` and the optional `selector` are common Annotation properties, so they are not offered as type-specific options. RAMEN declares `Selector` as an object-valued data type. Its `type` field names the selection method; tools interpret the remaining fields. A new annotation type may also declare its own properties; those are created with the type and are not shared with other types.
+`uuid`, `type` and the optional `selector` are common Annotation properties, so they are not offered as type-specific options. RAMEN declares `Selector` as an object-valued data type. Its `type` field names the selection method, and tools interpret the remaining fields. A new annotation type may also declare properties that belong only to that type.
 
 ## Read a selected type
 

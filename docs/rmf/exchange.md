@@ -39,7 +39,7 @@ The file has one list of model headers and shared lists of declarations:
 | `classifiers` | Page and Document, each tagged with the `modelId` of its declaring model.     |
 | `relations`   | Relationship definitions, likewise tagged with their declaring `modelId`.     |
 
-Page still refers to Document through `superTypes`. The export does **not** copy Document's inherited properties onto Page. The array order does not define the levels; imports and `modelId` do. To inspect ownership in the exported file:
+Page still refers to Document through `superTypes`. The export does **not** copy Document's inherited properties onto Page. Imports and `modelId` define the levels, regardless of array order. To inspect ownership in the exported file:
 
 ```ts
 console.log(file.id === website.getModel().id); // true
@@ -73,4 +73,4 @@ restoredFiling.updateNode(document.id, { name: 'Record' });
 console.log(restored.getNodeLineage(page)[0]?.name); // Record
 ```
 
-The edit is visible from Website. {@link model.Modeller.getModel | getModel()} returns only the currently opened model document; `export()` combines it with its predecessors again. Import creates an independent workspace, so these edits do not change the original Filing and Website objects. RAMEN uses the same exchange pattern and adds [annotation type definitions](../ramen/export.md).
+The edit is visible from Website. {@link model.Modeller.getModel | getModel()} returns only the currently opened model document, while `export()` combines it with its predecessors again. Import creates an independent workspace, so these edits do not change the original Filing and Website objects.

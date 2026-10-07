@@ -7,6 +7,7 @@ children:
   - data-types.md
   - relationships.md
   - constraints.md
+  - glossary.md
 ---
 
 # RAMEN Model Format
@@ -14,7 +15,7 @@ children:
 ## Understand RMF
 
 **RAMEN Model Format (RMF)** describes data models in JSON.
-You define which types, properties and relationships tools can use to collect data. This page builds a small Filing model and then a Website model based on it. Each step continues the previous one; the linked guides explain the choices.
+You define which types, properties and relationships tools can use to collect data. This page builds a small Filing model and then a Website model based on it. Each step continues the previous one, with links to guides that explain the choices.
 
 | Concept                | Purpose                    | Example                        |
 | ---------------------- | -------------------------- | ------------------------------ |
@@ -28,8 +29,8 @@ You define which types, properties and relationships tools can use to collect da
 
 {@link model.Modeller | Modeller} is the class you use to edit a model.
 `Model`, `Node`, `Attribute` and `Relation` are data interfaces.
-Node objects hold definitions; editing methods belong to Modeller.
-The [Glossary](../glossary.md) distinguishes model levels, graphs, records and API results.
+Node objects hold definitions, and Modeller provides the editing methods.
+The [Glossary](glossary.md) distinguishes model levels, graphs, records and API results.
 
 ## Create a model
 
@@ -45,9 +46,9 @@ const folder: Node = model.createNode('Folder').element;
 ```
 
 **Filing** is the model. **Document** and **Folder** are the types it defines.
-This defines a schema; it does not create individual documents or folders.
+This defines a schema for documents and folders rather than creating individual records.
 
-Editing methods return a {@link model.ModelChange | ModelChange}: `{ element, validation }`. Use `.element` to keep a definition. The API generates IDs and a model URI; the version defaults to `1.0.0`. [Create Nodes](nodes.md) covers creation, editing and deletion of node types.
+Editing methods return a {@link model.ModelChange | ModelChange}: `{ element, validation }`. Use `.element` to keep a definition. The API generates IDs and a model URI, with `1.0.0` as the default version. [Create Nodes](nodes.md) covers creation, editing and deletion of node types.
 
 ## Add properties to nodes
 
@@ -63,13 +64,13 @@ model.createAttribute(document, {
 });
 ```
 
-`typeId` selects the value type; `bounds` requires exactly one value. Add optional Folder properties:
+`typeId` selects the value type, while `bounds` requires exactly one value. Add optional Folder properties:
 
 ```ts
 model.createAttribute(folder, { name: 'description', typeId: DataTypes.String });
 ```
 
-The default cardinality is `0..1`; refined nodes inherit these properties. [Add Properties](properties.md) explains cardinality and flags such as `isKey`, `isUnique` and `isOrdered`. [Add Data Types](data-types.md) shows literals and web formats.
+The default cardinality is `0..1`, and refined nodes inherit these properties. [Add Properties](properties.md) explains cardinality and flags such as `isKey`, `isUnique` and `isOrdered`. [Add Data Types](data-types.md) shows literals and web formats.
 
 ## Add relationships
 
@@ -114,7 +115,7 @@ const section: Node = project.createNode({ name: 'Section', refines: folder }).e
 project.createRelation({ refines: filedIn, from: { node: page }, to: { node: section } });
 ```
 
-Page inherits `title`; Section inherits `description`. Website explicitly applies Filing's relationship. [Refine by Inheritance](inheritance.md) compares inheritance in one model with a new level.
+Page inherits `title`, and Section inherits `description`. Website explicitly applies Filing's relationship. [Refine by Inheritance](inheritance.md) compares inheritance in one model with a new level.
 
 ## Export and import
 

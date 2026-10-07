@@ -7,7 +7,7 @@ children:
 
 # Validate RAMEN Data
 
-First check the **data model**. Then check whether **recorded data** follow it. RAMEN adds annotation rules to the [generic RMF validation](../rmf/validation.md); problems are returned as [diagnostics](diagnostics.md).
+First check the **data model**. Then check whether **recorded data** follow it. RAMEN adds annotation rules to the [generic RMF validation](../rmf/validation.md) and returns problems as [diagnostics](diagnostics.md).
 
 ## Check the model
 
@@ -89,8 +89,8 @@ console.log(invalid.diagnostics.map((item: Diagnostic): string => item.code));
 // ['RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY']
 ```
 
-`typeId` points to a model definition; `properties.type` chooses the annotation type. The graph needs no model ID because `media` supplies it.
+`typeId` points to a model definition, while `properties.type` chooses the annotation type. The graph needs no model ID because `media` supplies it.
 
 ## Use data from a tool
 
-A tool translates its own records into `ModelInstanceGraph` before validation. RAMEN checks annotation types, allowed properties and links, and that `selector` has a `type`; the tool interprets selector details such as `start` and `end`. See [Constrain Annotations](constrain-annotations.md) for fixed value lists and [Add Constraints](../rmf/constraints.md) for custom checks.
+A tool translates its own records into `ModelInstanceGraph` before validation. RAMEN checks annotation types, allowed properties and links, and that `selector` has a `type`. The tool interprets selector details such as `start` and `end`. See [Constrain Annotations](constrain-annotations.md) for fixed value lists and [Add Constraints](../rmf/constraints.md) for custom checks.

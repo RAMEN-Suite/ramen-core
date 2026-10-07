@@ -25,7 +25,7 @@ for (const diagnostic of checked.diagnostics) {
 
 That check reports `INSTANCE_PROPERTY_REQUIRED` at `/nodes/0/properties/title`: `0` means the first entry in `data.nodes`, and `title` names its missing property. The record is `data.nodes[0]`, whose ID is `record1`. Use that ID when showing the finding in a tool. The path is positional, so it changes if records are reordered. For missing values, its final segment names where the value should be, even though that location does not yet exist.
 
-Paths follow [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) notation. `ref` identifies a related declaration or record; it is not a second path.
+Paths follow [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) notation. `ref` identifies a related declaration or record rather than a second path.
 
 An `error` sets `hasErrors` to `true`. A model result also has `valid`, which is `false` when errors prevent a usable project graph. Warnings and information may still appear in `diagnostics` without invalidating the result. See [Validate Models and Data](validation.md) for the two checks.
 
@@ -108,4 +108,4 @@ These codes come from {@link model.Modeller.validateInstances | validateInstance
 | `INSTANCE_RELATION_END_TYPE_INVALID` | A linked record has an incompatible node type.                           |
 | `INSTANCE_CARDINALITY_INVALID`       | A property's or relationship's value count falls outside its bounds.     |
 
-A constraint may supply its own `code`; a custom evaluator may also return its own diagnostics. Those codes are defined by the project or tool. RAMEN adds [its own diagnostic codes](../ramen/diagnostics.md) for annotation rules.
+A constraint may supply its own `code`, and a custom evaluator may return its own diagnostics. Those codes are defined by the project or tool.

@@ -6,7 +6,7 @@ group: RAMEN
 # Model with RAMEN
 
 RAMEN is a reference model built with the [RAMEN Model Format](../rmf/rmf.md). This guide creates an Edition **data model**: it defines what tools may record, not individual letters or people.
-The [Glossary](../glossary.md) distinguishes the reference model, project models, annotation nodes and annotation types.
+The [Glossary](../rmf/glossary.md) distinguishes the reference model, project models, annotation nodes and annotation types.
 
 ## Start from the reference model
 
@@ -27,7 +27,7 @@ It also offers three relationship families:
 | `HAS_ANNOTATION` | Text → Annotation   |
 | `REFERS_TO`      | Annotation → Person |
 
-The project chooses which of these to use. RAMEN permits `0..*` at both ends; a project may narrow that. Every node has a required `uuid`; Collection and Entity also have a `label`. Annotation has a `type` and an optional `selector` ([details](annotations.md)).
+The project chooses which of these to use and may narrow RAMEN's `0..*` bounds at both ends. Every node has a required `uuid`, while Collection and Entity also have a `label`. Annotation has a `type` and an optional `selector` ([details](annotations.md)).
 
 ## Create an Edition model
 
@@ -49,9 +49,9 @@ const person: Node = edition.createNode({ name: 'Person', refines: RAMEN_ELEMENT
 const place: Node = edition.createNode({ name: 'Place', refines: RAMEN_ELEMENT.ENTITY }).element;
 ```
 
-Letter, Person and Place inherit `uuid` and `label`; Text inherits `uuid`. This model reuses `RAMEN_ELEMENT.ANNOTATION` unchanged. It could [refine Annotation](annotations.md#refine-the-annotation-node-when-needed) too.
+Letter, Person and Place inherit `uuid` and `label`, while Text inherits `uuid`. This model reuses `RAMEN_ELEMENT.ANNOTATION` unchanged. It could [refine Annotation](annotations.md#refine-the-annotation-node-when-needed) too.
 
-For attributes, use [Add Properties](../rmf/properties.md). [Use RAMEN Data Types](data-types.md) shows the reference model's Date, DateTime, URI and other reusable types; [Add Data Types](../rmf/data-types.md) explains how to create your own.
+For attributes, use [Add Properties](../rmf/properties.md). [Use RAMEN Data Types](data-types.md) shows the reference model's Date, DateTime, URI and other reusable types, while [Add Data Types](../rmf/data-types.md) explains how to create your own.
 
 ## Choose relationships
 

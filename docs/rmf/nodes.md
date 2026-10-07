@@ -18,11 +18,11 @@ const folder: Node = filing.createNode('Folder').element;
 
 {@link model.Modeller.createNode | createNode()} generates the node's ID. `.element` returns the definition for later calls.
 
-| Input         | Meaning                                                   | Example               |
-| ------------- | --------------------------------------------------------- | --------------------- |
-| `name`        | Required name of the node type.                           | `Document`            |
-| `refines`     | Optional in a root model; required on a new model level.  | `refines: document`   |
-| `constraints` | Optional rules for records of this node and its subtypes. | `constraints: [rule]` |
+| Input         | Meaning                                                     | Example               |
+| ------------- | ----------------------------------------------------------- | --------------------- |
+| `name`        | Required name of the node type.                             | `Document`            |
+| `refines`     | Optional in a root model but required on a new model level. | `refines: document`   |
+| `constraints` | Optional rules for records of this node and its subtypes.   | `constraints: [rule]` |
 
 Properties and relationships are defined separately in [Add Properties](properties.md) and [Add Relationships](relationships.md). For node rules, see [Add Constraints](constraints.md).
 
@@ -43,7 +43,7 @@ const website: Modeller = filing.createNextLevel('Website');
 const page: Node = website.createNode({ name: 'Page', refines: document }).element;
 ```
 
-Page belongs to Website; Document stays in Filing. Website can use Folder without refining it. New nodes on this level need a base node.
+Page belongs to Website, while Document stays in Filing. Website can use Folder without refining it. New nodes on this level need a base node.
 
 ## Read a node definition
 
@@ -67,15 +67,15 @@ console.log(filing.getNodeLineage(letter).map((item: NodeLineageItem): string =>
 
 ## Remove a node
 
-{@link model.Modeller.removeNode | removeNode()} rejects a node used by refinements or relations anywhere in the open workspace. It lists the blockers so you can remove them deliberately. In a RAMEN model, annotation types are checked too.
+{@link model.Modeller.removeNode | removeNode()} rejects a node used by refinements or relations anywhere in the open workspace. It lists the blockers so you can remove them deliberately.
 
 To remove the node and its dependent definitions together, inspect {@link model.Modeller.previewNodeRemoval | previewNodeRemoval()} first:
 
 ```ts
 const preview: NodeRemovalPreview = filing.previewNodeRemoval(document.id);
-console.log(preview.nodes, preview.relations, preview.annotations, preview.updatedAnnotations);
+console.log(preview.nodes, preview.relations);
 
 filing.removeNode(document.id, { cascade: true });
 ```
 
-The cascade also removes Letter and Page, because both refine Document, and removes their affected relationships. In RAMEN models, the preview also lists annotation types to remove or update. Other nodes, such as Folder, remain.
+The cascade also removes Letter and Page, because both refine Document, and removes their affected relationships. Other nodes, such as Folder, remain.

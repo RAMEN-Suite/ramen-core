@@ -27,7 +27,7 @@ console.log(preview.nodes);
 
 Each preview item has a `modelId` and `elementId`, so a tool can identify the affected definition and level. `preview.relations` lists relationships that would also be removed. Domain extensions may fill `annotations` and `updatedAnnotations` with other affected definitions.
 
-{@link model.Modeller.removeNode | removeNode(document.id)} throws while Page depends on Document; the draft stays unchanged. After showing the preview, a tool may request the full removal explicitly:
+{@link model.Modeller.removeNode | removeNode(document.id)} throws while Page depends on Document and leaves the draft unchanged. After showing the preview, a tool may request the full removal explicitly:
 
 ```ts
 filing.removeNode(document.id, { cascade: true });
@@ -59,4 +59,4 @@ console.log(links.relations);
 // FILED_IN and its Website refinement.
 ```
 
-{@link model.Modeller.removeRelation | removeRelation(filedIn.id)} throws while the later relationship depends on it. `{ cascade: true }` removes both. A preview is an effect list for one proposed removal; {@link model.Modeller.snapshot | snapshot()} instead saves an independent copy of the whole editable workspace.
+{@link model.Modeller.removeRelation | removeRelation(filedIn.id)} throws while the later relationship depends on it. `{ cascade: true }` removes both. A preview lists the effects of one proposed removal, while {@link model.Modeller.snapshot | snapshot()} saves an independent copy of the whole editable workspace.

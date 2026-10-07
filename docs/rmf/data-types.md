@@ -7,13 +7,13 @@ group: RMF
 
 An attribute uses a built-in type or a named {@link model.DataType | DataType}. RMF provides these built-in references:
 
-| Reference           | Accepted value                                                        |
-| ------------------- | --------------------------------------------------------------------- |
-| `DataTypes.String`  | String                                                                |
-| `DataTypes.Boolean` | Boolean                                                               |
-| `DataTypes.Integer` | Whole number                                                          |
-| `DataTypes.Float`   | Finite number, including fractions                                    |
-| `DataTypes.Object`  | JSON object, excluding arrays and `null`; its fields are not modelled |
+| Reference           | Accepted value                                                  |
+| ------------------- | --------------------------------------------------------------- |
+| `DataTypes.String`  | String                                                          |
+| `DataTypes.Boolean` | Boolean                                                         |
+| `DataTypes.Integer` | Whole number                                                    |
+| `DataTypes.Float`   | Finite number, including fractions                              |
+| `DataTypes.Object`  | JSON object with unmodelled fields, excluding arrays and `null` |
 
 Custom data types use one of these built-in types as their `baseType`. Use a {@link model.Node | Node} instead of `Object` when fields or relationships need their own definitions.
 
@@ -70,7 +70,7 @@ const publishedDate: DataType = model.createDataType({
 model.createAttribute(document, { name: 'published', type: publishedDate });
 ```
 
-The default evaluator recognises `uuid`, `date`, `date-time`, `email` and `uri`. A `uri` must be absolute. These are RMF constraint expressions, not new primitive types. The RAMEN reference model already declares `UUID`, `Date`, `DateTime`, `URI` and `Email` using such rules. [Add Constraints](constraints.md) covers custom evaluators; [Request Suggestions](suggestions.md#choose-a-data-type) covers type pickers.
+The default evaluator recognises `uuid`, `date`, `date-time`, `email` and `uri`. A `uri` must be absolute. These are constraint expressions rather than new primitive types. [Add Constraints](constraints.md) covers custom evaluators, and [Request Suggestions](suggestions.md#choose-a-data-type) covers type pickers.
 
 Use `json-schema` when a data type needs standard value rules such as `minLength`, `minimum` or nested Object fields. [Constraint Languages](../constraint-languages.md) gives examples for every built-in base type.
 
@@ -86,7 +86,7 @@ You can also change its `baseType`, `constraints`, `ext` or literals. Use the li
 
 ## Remove a data type
 
-{@link model.Modeller.removeDataType | removeDataType()} removes the declaration even if properties still refer to it. The draft remains editable; validation reports each missing reference at its property:
+{@link model.Modeller.removeDataType | removeDataType()} removes the declaration even if properties still refer to it. The draft remains editable, and validation reports each missing reference at its property:
 
 ```ts
 model.removeDataType(status.id);
@@ -95,6 +95,6 @@ console.log(model.validateNode(document).diagnostics);
 model.updateAttribute(document.id, statusProperty.id, { typeId: DataTypes.String });
 ```
 
-The final edit repairs the reference. A RAMEN annotation type can likewise contain a property with a missing data type; project validation reports it. Export requires a valid model. Built-in types cannot be removed.
+The final edit repairs the reference. Export requires a valid model. Built-in types cannot be removed.
 
 Existing levels in the same workspace see the removal. Call {@link model.Modeller.snapshot | snapshot()} before editing when you need an independent state for comparison.

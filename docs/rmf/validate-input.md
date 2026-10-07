@@ -54,3 +54,5 @@ const accepted: ValidationResult = model.validateAttributeValue(letter, 'title',
 `missing` reports the required title, `lowercase` reports the pattern mismatch, and `accepted.hasErrors` is `false`. The rule belongs to `title` on Document and also applies to Letter.
 
 These methods see only one value. They cannot check another property, links or keys across records. For those checks, use [Validate Recorded Data](validate-data.md). A [custom evaluator](constraints.md#register-a-custom-evaluator) can be passed to both methods, but receives no surrounding data graph.
+
+If an evaluator throws, validation returns `CONSTRAINT_EVALUATION_FAILED` for that rule and continues checking the remaining rules. The finding is always an error, even when the rule normally reports a warning.

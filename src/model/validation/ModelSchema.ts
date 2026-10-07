@@ -16,12 +16,13 @@ export class ModelSchemaValidator {
 
   /** Reports whether an unknown value conforms to the RAMEN model format JSON Schema. */
   public static isValid(input: unknown): input is Model {
-    return this.schemaNode.validate(input).valid;
+    // A missing root is invalid; the schema library otherwise treats undefined as an absent optional value.
+    return this.schemaNode.validate(input ?? null).valid;
   }
 
   /** Asserts schema conformance and throws a formatted validation error on failure. */
   public static assertValid(input: unknown): asserts input is Model {
-    const { valid, errors } = this.schemaNode.validate(input);
+    const { valid, errors } = this.schemaNode.validate(input ?? null);
     if (!valid) {
       throw new Error(`Validation Error: ${ModelSchemaValidator.formatErrors(errors)}`);
     }

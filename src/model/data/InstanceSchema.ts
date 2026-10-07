@@ -16,12 +16,12 @@ export class InstanceSchemaValidator {
 
   /** Reports whether an unknown value has the structure of a RAMEN model instance graph. */
   public static isValid(input: unknown): input is ModelInstanceGraph {
-    return this.schemaNode.validate(input).valid;
+    return this.schemaNode.validate(input ?? null).valid;
   }
 
   /** Asserts instance graph structure and throws a formatted validation error on failure. */
   public static assertValid(input: unknown): asserts input is ModelInstanceGraph {
-    const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input);
+    const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input ?? null);
     if (result.valid) return;
     const details: string = result.errors.map((error: JsonError): string => error.message).join('\n');
     throw new Error(`Instance schema validation failed: ${details}`);

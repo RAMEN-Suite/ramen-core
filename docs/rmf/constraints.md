@@ -228,3 +228,5 @@ registry.register({ language: 'example:distinct-ends', evaluate: checkDistinctEn
 ```
 
 Pass `registry` to {@link model.Modeller.validateInstances | validateInstances(data, registry)}. A model may declare other custom languages, but a tool cannot evaluate them until it registers their implementations.
+
+An evaluator exception becomes an error diagnostic for that rule. The remaining rules still run. See [Check Input Values](validate-input.md).

@@ -16,12 +16,12 @@ export class RamenAnnotationSchemaValidator {
 
   /** Reports whether an unknown value conforms to the annotation definition schema. */
   public static isValid(input: unknown): boolean {
-    return this.schemaNode.validate(input).valid;
+    return this.schemaNode.validate(input ?? null).valid;
   }
 
   /** Asserts RAMEN schema conformance and throws a formatted error on failure. */
   public static assertValid(input: unknown): void {
-    const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input);
+    const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input ?? null);
     if (result.valid) return;
     const messages: string = result.errors.map((error: JsonError): string => error.message).join('\n');
     throw new Error(`RAMEN schema validation failed: ${messages}`);

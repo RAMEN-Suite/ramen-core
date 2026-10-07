@@ -28,6 +28,8 @@ That check reports `INSTANCE_PROPERTY_REQUIRED` at `/nodes/0/properties/title`: 
 
 Paths follow [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) notation. `ref` identifies a related declaration or record rather than a second path.
 
+For JSON Schema rules, an ambiguous library path points to the nearest unambiguous containing object. The finding still identifies the failed constraint.
+
 An `error` sets `hasErrors` to `true`. A model result also has `valid`, which is `false` when errors prevent a usable project graph. Warnings and information may still appear in `diagnostics` without invalidating the result. See [Validate Models and Data](validation.md) for the two checks.
 
 ## Model and graph codes
@@ -89,6 +91,7 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 | `RELATION_BOUNDS_WIDENED`                  | A selected relationship widens inherited bounds.                            |
 | `RELATION_END_TYPE_INCOMPATIBLE`           | An endpoint type does not match or refine the inherited endpoint.           |
 | `CONSTRAINT_LANGUAGE_UNSUPPORTED`          | No evaluator is registered for the constraint's language.                   |
+| `CONSTRAINT_EVALUATION_FAILED`             | A registered evaluator threw an exception instead of returning findings.    |
 | `CONSTRAINT_EXPRESSION_INVALID`            | An expression, format name or input value cannot be evaluated as requested. |
 | `CONSTRAINT_REGEX_MISMATCH`                | A value does not match a regular expression.                                |
 | `CONSTRAINT_FORMAT_MISMATCH`               | A value does not match a declared string format.                            |

@@ -35,6 +35,7 @@ export class ModelFiles {
     FileParts.assertSchema(this.schema, input);
     const file: ModelFile = input as ModelFile;
     const models: readonly Model[] = FileParts.split(file);
+
     FileParts.assertValid(new ModelValidator().validateProject(file.id, models), models.length);
     return models;
   }
@@ -65,10 +66,12 @@ export class FileParts {
       if (models.has(header.id)) throw new Error(`Duplicate model identity: '${header.id}'.`);
       models.set(header.id, { ...header, classifiers: [], relations: [] });
     }
+
     for (const entry of file.classifiers) {
       const { modelId, ...classifier }: Owned<Classifier> = entry;
       this.owner(models, modelId).classifiers.push(classifier);
     }
+
     for (const entry of file.relations) {
       const { modelId, ...relation }: Owned<Relation> = entry;
       this.owner(models, modelId).relations.push(relation);
@@ -83,13 +86,14 @@ export class FileParts {
   }
 
   public static assertSchema(schema: SchemaNode, input: unknown): void {
-    const result: ReturnType<SchemaNode['validate']> = schema.validate(input);
+    const result: ReturnType<SchemaNode['validate']> = schema.validate(input ?? null);
     if (!result.valid) throw new Error(`Invalid model file: ${result.errors.map((error): string => error.message).join('\n')}`);
   }
 
   public static assertValid(result: ProjectValidationResult, count?: number): asserts result is ValidProjectResult {
     if (!result.valid)
       throw new Error(`Invalid model file: ${result.diagnostics.map((item): string => item.message).join('\n')}`);
+
     if (count !== undefined && result.graph.getModels().length !== count) {
       throw new Error('Model file contains models outside the exported project.');
     }

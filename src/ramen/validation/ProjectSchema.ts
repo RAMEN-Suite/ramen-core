@@ -14,12 +14,12 @@ export class RamenProjectSchemaValidator {
 
   /** Reports whether an unknown value is a complete RAMEN project document. */
   public static isValid(input: unknown): boolean {
-    return this.schemaNode.validate(input).valid;
+    return this.schemaNode.validate(input ?? null).valid;
   }
 
   /** Throws when a RAMEN project document does not match its own schema. */
   public static assertValid(input: unknown): void {
-    const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input);
+    const result: { readonly valid: boolean; readonly errors: JsonError[] } = this.schemaNode.validate(input ?? null);
     if (result.valid) return;
     const details: string = result.errors.map((error: JsonError): string => error.message).join('\n');
     throw new Error(`Invalid RAMEN project model (${RAMEN_PROJECT_SCHEMA_URI}): ${details}`);

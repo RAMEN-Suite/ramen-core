@@ -68,10 +68,25 @@ export class ConstraintRegistry {
     this.evaluators.set(evaluator.language, evaluator);
   }
 
-  /** Evaluates a constraint or reports that its language is unsupported. */
+  /** Evaluates a constraint and reports unsupported languages or evaluator failures as errors. */
   public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
     const evaluator: ConstraintEvaluator | undefined = this.evaluators.get(constraint.language);
-    if (evaluator) return evaluator.evaluate(constraint, context);
+    if (evaluator) {
+      try {
+        return evaluator.evaluate(constraint, context);
+      } catch (error: unknown) {
+        const reason: string = error instanceof Error ? error.message : String(error);
+        return [
+          Diagnostics.error({
+            code: VALIDATION_ERROR.CONSTRAINT_EVALUATION_FAILED,
+            message: `Evaluator '${constraint.language}' failed for constraint '${constraint.name}': ${reason}.`,
+            path: context.path,
+            ref: constraint.id,
+          }),
+        ];
+      }
+    }
+
     return [
       Diagnostics.error({
         code: VALIDATION_ERROR.CONSTRAINT_LANGUAGE_UNSUPPORTED,
@@ -117,7 +132,7 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
     return errors.map((error: JsonError): Diagnostic => {
       const code: string = constraint.code ?? VALIDATION_ERROR.CONSTRAINT_JSON_SCHEMA_MISMATCH;
       const message: string = constraint.message ?? error.message;
-      return finding(constraint, code, message, this.valuePath(context.path, error));
+      return finding(constraint, code, message, this.valuePath(context, error));
     });
   }
 
@@ -125,6 +140,7 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
     if (expression['$schema'] !== undefined && expression['$schema'] !== draft2020.$schema) {
       throw new Error(`expected JSON Schema Draft 2020-12`);
     }
+
     const key: string = JSON.stringify(expression);
     const cached: SchemaNode | undefined = this.schemas.get(key);
     if (cached) return cached;
@@ -135,22 +151,31 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
       throwOnInvalidSchema: true,
       throwOnInvalidRef: true,
     });
+
     this.schemas.set(key, schema);
     return schema;
   }
 
-  private valuePath(path: DiagnosticPath, error: JsonError): DiagnosticPath {
+  private valuePath(context: ConstraintContext, error: JsonError): DiagnosticPath {
     const pointer: unknown = error.data?.pointer;
-    if (typeof pointer !== 'string' || pointer === '#') return path;
+    if (typeof pointer !== 'string') return context.path;
+    let remaining: string = pointer.replace(/^#/, '');
+    let value: unknown = context.value;
+    let path: DiagnosticPath = context.path;
 
-    return pointer
-      .replace(/^#\/?/, '')
-      .split('/')
-      .reduce(
-        (current: DiagnosticPath, part: string): DiagnosticPath =>
-          current.property(part.replaceAll('~1', '/').replaceAll('~0', '~')),
-        path,
+    // The schema library supplies unescaped keys. Stop at the last unambiguous owner rather than inventing a path.
+    while (remaining.startsWith('/') && value !== null && typeof value === 'object') {
+      const keys: readonly string[] = Object.keys(value).filter(
+        (key: string): boolean => remaining === `/${key}` || remaining.startsWith(`/${key}/`),
       );
+      const key: string | undefined = keys[0];
+      if (keys.length !== 1 || key === undefined) return path;
+
+      path = path.property(key);
+      remaining = remaining.slice(key.length + 1);
+      value = (value as Record<string, unknown>)[key];
+    }
+    return path;
   }
 
   private invalid(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {

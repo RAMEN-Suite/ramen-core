@@ -32,9 +32,9 @@
     }
   },
   "scripts": {
-    "build": "npm run build:types && npm run build:bundle && npm run build:schemas",
+    "build": "npm run build:types && npm run build:bundle && npm run build:package",
     "build:bundle": "esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --external:json-schema-library --external:short-unique-id",
-    "build:schemas": "node --experimental-strip-types tools/package-schemas.ts",
+    "build:package": "node --experimental-strip-types tools/package.ts",
     "build:types": "tsc -p tsconfig.json",
     "docs:build": "npm run docs:diagnostics && node --experimental-strip-types ./node_modules/typedoc/bin/typedoc",
     "docs:diagnostics": "node --experimental-strip-types tools/generate-diagnostics.ts",
@@ -45,7 +45,7 @@
     "format:fix": "prettier --write . --ignore-unknown",
     "lint": "eslint src test tools",
     "lint:fix": "eslint src test tools --fix",
-    "package:check": "npm pack --dry-run --ignore-scripts",
+    "package:check": "node --experimental-strip-types tools/check-package.ts",
     "prepare": "git config core.hooksPath .githooks",
     "schema:check": "node --experimental-strip-types tools/generate-schema.ts --check",
     "schema:generate": "node --experimental-strip-types tools/generate-schema.ts",
@@ -79,5 +79,20 @@
   "author": {
     "name": "Sebastian Enns",
     "email": "mail@sebenns.com"
+  },
+  "keywords": [
+    "ramen",
+    "modelling",
+    "metamodelling",
+    "json-schema",
+    "validation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RAMEN-Suite/ramen-core.git"
+  },
+  "homepage": "https://github.com/RAMEN-Suite/ramen-core#readme",
+  "bugs": {
+    "url": "https://github.com/RAMEN-Suite/ramen-core/issues"
   }
 }

@@ -1,6 +1,14 @@
 # RAMEN Core
 
-RAMEN Core is a TypeScript library for defining data models in JSON. Its generic RAMEN Model Format (RMF) handles types, relationships, refinement, validation and single-file exchange. The RAMEN layer adds the reference model and annotation rules.
+RAMEN Core is a TypeScript library for creating, refining, validating and exchanging data models.
+
+## RMF and RAMEN
+
+**RAMEN Model Format (RMF)** is the generic foundation. It describes nodes, properties, data types, relationships and constraints in JSON, with inheritance across model levels.
+
+**RAMEN** is a data model built with RMF for digital scholarly editions. It defines Collection, Content, Entity and Annotation, their properties, data types and permitted relationships. Project models specialise these elements and choose the relationships they need. RAMEN also supports project-defined annotation types and their rules.
+
+The library provides a generic modeller and a RAMEN-specific API for working with these models.
 
 ## Install
 
@@ -12,11 +20,11 @@ npm install @ramen-suite/core
 
 It provides ESM entry points, TypeScript declarations and [JSON schemas](docs/schemas.md). It has no UI framework dependency.
 
-| Import                        | Use                                                        |
-| ----------------------------- | ---------------------------------------------------------- |
-| `@ramen-suite/core/model`     | Create and validate generic RMF models.                    |
-| `@ramen-suite/core/ramen`     | Build RAMEN project models and define annotation variants. |
-| `@ramen-suite/core/schemas/*` | Read the packaged JSON schemas.                            |
+| Import                        | Use                                     |
+| ----------------------------- | --------------------------------------- |
+| `@ramen-suite/core/model`     | Create and validate generic RMF models. |
+| `@ramen-suite/core/ramen`     | Create project models based on RAMEN.   |
+| `@ramen-suite/core/schemas/*` | Read the packaged JSON schemas.         |
 
 ## Create a generic model
 
@@ -37,29 +45,30 @@ const file: ModelFile = model.export();
 
 ```ts
 import { RAMEN_ELEMENT, RamenModel } from '@ramen-suite/core/ramen';
-import type { Node, Relation } from '@ramen-suite/core/model';
+import type { Node } from '@ramen-suite/core/model';
 
 const edition: RamenModel = RamenModel.create('Edition');
 const letter: Node = edition.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION }).element;
 const text: Node = edition.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+const person: Node = edition.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
+const place: Node = edition.createNode({ name: 'Place', refines: RAMEN_ELEMENT.ENTITY }).element;
 
 edition.partOf(text, letter);
-const textLink: Relation = edition.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
-edition.createAnnotation({
-  nodeId: RAMEN_ELEMENT.ANNOTATION,
-  type: 'p',
-  relations: [{ relation: textLink, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
-});
+edition.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION);
+edition.refersTo(RAMEN_ELEMENT.ANNOTATION, person);
+edition.refersTo(RAMEN_ELEMENT.ANNOTATION, place);
 ```
 
-The [RAMEN guide](docs/ramen/ramen.md) covers the reference model, project relationships and annotation definitions.
+Letter, Text, Person and Place inherit the properties of their RAMEN base nodes. The project reuses Annotation without refining it. These relationships define what recorded data may contain.
+
+The [RAMEN guide](docs/ramen/ramen.md) builds the project step by step. [Use Annotations](docs/ramen/annotations.md) shows how to declare annotation types such as `person` and `place` before recording annotations.
 
 ## What the package checks
 
 - Model structure, identities, imports, inheritance and permitted relationships.
 - Recorded values and links supplied as a `ModelInstanceGraph`.
 - Property counts, keys, literals and constraints written with regex, format, JSON Schema or a registered evaluator.
-- RAMEN annotation types, their allowed properties and relationships, and selector type declarations.
+- Project conformance to the RAMEN reference model, including annotation types, their permitted properties and relationships, and selector type declarations.
 
 Tools translate their own data into the instance graph and interpret selector details. Editor requirements and database translations belong to the consuming tools.
 

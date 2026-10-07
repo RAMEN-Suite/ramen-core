@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible problem.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: '@ramen-suite/core 0.1.0'
+    validations:
+      required: true
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: What happened?
+      description: Describe the actual and expected behaviour.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide a minimal example or clear steps.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Node.js, TypeScript and operating system versions, or the browser when relevant.

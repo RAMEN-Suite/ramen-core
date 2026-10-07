@@ -59,14 +59,7 @@ export class RamenAdvisor extends ModelAdvisor {
       : this.annotations.getAll().filter((candidate: ResolvedAnnotation): boolean => visibleModels.has(candidate.modelId));
 
     return candidates
-      .map((candidate: ResolvedAnnotation): AnnotationSuggestion => ({
-        modelId: candidate.modelId,
-        annotationId: candidate.annotation.id,
-        ownerNodeId: candidate.annotation.annotationId,
-        ref:
-          candidate.modelId === modelId ? candidate.annotation.id : ModelRef.qualify(candidate.modelId, candidate.annotation.id),
-        type: candidate.annotation.type,
-      }))
+      .map((candidate: ResolvedAnnotation): AnnotationSuggestion => this.annotationSuggestion(modelId, candidate))
       .sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number => left.type.localeCompare(right.type));
   }
 
@@ -112,17 +105,31 @@ export class RamenAdvisor extends ModelAdvisor {
     targetId: Id,
     relation: NodeRelationSuggestion,
   ): readonly AnnotationSuggestion[] {
-    return this.suggestAnnotations(modelId, targetId).filter((suggestion: AnnotationSuggestion): boolean => {
-      const definition: ResolvedAnnotation | undefined = this.annotations.findEffective(modelId, targetId, suggestion.type);
-      if (!definition) return false;
-      return definition.annotation.relations.some(
-        (requirement: AnnotationRelation): boolean =>
-          requirement.direction === 'incoming' &&
-          requirement.bounds.upperBound !== 0 &&
-          requirement.relationIds.some((ref: Ref): boolean =>
-            this.graph.isRelationRefSameOrSubtype(relation.modelId, relation.relationId, definition.modelId, ref),
-          ),
-      );
-    });
+    return this.annotations
+      .getEffective(modelId, targetId)
+      .filter((definition: ResolvedAnnotation): boolean =>
+        definition.annotation.relations.some(
+          (requirement: AnnotationRelation): boolean =>
+            requirement.direction === 'incoming' &&
+            requirement.bounds.upperBound !== 0 &&
+            requirement.relationIds.some((ref: Ref): boolean =>
+              this.graph.isRelationRefSameOrSubtype(relation.modelId, relation.relationId, definition.modelId, ref),
+            ),
+        ),
+      )
+      .map((definition: ResolvedAnnotation): AnnotationSuggestion => this.annotationSuggestion(modelId, definition));
+  }
+
+  private annotationSuggestion(modelId: Id, definition: ResolvedAnnotation): AnnotationSuggestion {
+    return {
+      modelId: definition.modelId,
+      annotationId: definition.annotation.id,
+      ownerNodeId: definition.annotation.annotationId,
+      ref:
+        definition.modelId === modelId
+          ? definition.annotation.id
+          : ModelRef.qualify(definition.modelId, definition.annotation.id),
+      type: definition.annotation.type,
+    };
   }
 }

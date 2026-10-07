@@ -75,3 +75,5 @@ console.log(restored.getNodeLineage(page)[0]?.name); // Record
 ```
 
 The edit is visible from Website. {@link model.Modeller.getModel | getModel()} returns only the currently opened model document, while `export()` combines it with its predecessors again. Import creates an independent workspace, so these edits do not change the original Filing and Website objects.
+
+See [JSON Schemas](../schemas.md) for all packaged schemas and their purposes.

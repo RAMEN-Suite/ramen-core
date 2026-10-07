@@ -10,7 +10,7 @@ The package is being prepared for its first release. Once published:
 npm install @ramen-suite/core
 ```
 
-It provides ESM entry points, TypeScript declarations and JSON schemas. It has no UI framework dependency.
+It provides ESM entry points, TypeScript declarations and [JSON schemas](docs/schemas.md). It has no UI framework dependency.
 
 | Import                        | Use                                                        |
 | ----------------------------- | ---------------------------------------------------------- |

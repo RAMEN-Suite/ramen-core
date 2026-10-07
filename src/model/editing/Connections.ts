@@ -61,14 +61,17 @@ export class ModelConnections {
     if (choice !== undefined) {
       const ref: Ref = typeof choice === 'string' ? choice : choice.ref;
       const selected: RelationSuggestion | undefined = suggestions.find((item: RelationSuggestion): boolean => item.ref === ref);
+
       if (!selected) throw new Error(`Selected relation '${ref}' does not connect these nodes.`);
       return selected;
     }
+
     const ancestors: ReadonlySet<Ref> = this.ancestors(suggestions);
     const candidates: readonly RelationSuggestion[] = suggestions.filter(
       (item: RelationSuggestion): boolean => !ancestors.has(item.ref),
     );
     const selected: RelationSuggestion | undefined = candidates[0];
+
     if (candidates.length !== 1 || !selected) {
       const names: string = candidates.map((item: RelationSuggestion): string => item.name).join(', ');
       throw new Error(

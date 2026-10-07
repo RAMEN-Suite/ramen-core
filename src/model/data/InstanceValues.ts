@@ -3,14 +3,12 @@ import { ModelRef } from '../graph/References';
 import { Bounds, Attribute, BuiltinType, Constraint, DataType, Node, Id } from '../Types';
 import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
 import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
-import { ConstraintRegistry } from '../validation/Constraints';
-import type { ConstraintGraph } from '../validation/Constraints';
+import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
 import { ValidationCode } from '../validation/Codes';
 import { jsonValueKey } from '../JsonValue';
-import { ValueValidator } from './ValueValidator';
-import type { ValueCheck } from './ValueValidator';
+import { ValueValidator, type ValueCheck } from './ValueValidator';
 import type { ValidationResult } from '../validation/ModelValidator';
 
 /** Validates instance properties against effective node attributes and constraints. */
@@ -68,6 +66,7 @@ export class InstanceValueValidator {
 
         return;
       }
+
       nodesById.set(node.id, { instance: node, type: type });
       this.validateProperties(graph, type, node, path, diagnostics);
     });
@@ -121,11 +120,13 @@ export class InstanceValueValidator {
     const values: Map<string, Id> = this.keys.get(key) ?? new Map<string, Id>();
     const valueKey: string = jsonValueKey(value);
     const previous: Id | undefined = values.get(valueKey);
+
     if (previous !== undefined) {
       const message: string = `Key '${attribute.name}' duplicates the value on instance '${previous}'.`;
       diagnostics.push(this.error('INSTANCE_KEY_DUPLICATE', message, path, instanceId));
       return;
     }
+
     values.set(valueKey, instanceId);
     this.keys.set(key, values);
   }
@@ -202,6 +203,7 @@ export class InstanceValueValidator {
         this.error('INSTANCE_PROPERTY_NOT_UNIQUE', `Property '${attribute.name}' contains duplicate values.`, path, attribute.id),
       );
     }
+
     values.forEach((item: unknown, index: number): void => {
       const valuePath: DiagnosticPath = Array.isArray(value) ? path.index(index) : path;
       this.validateTypedValue(graph, modelId, instanceId, attribute, item, valuePath, diagnostics);
@@ -217,6 +219,7 @@ export class InstanceValueValidator {
 
       return [];
     }
+
     if (!isMany && Array.isArray(value)) {
       diagnostics.push(
         this.error(
@@ -244,6 +247,7 @@ export class InstanceValueValidator {
     const type: BuiltinType | ResolvedElement<DataType> | undefined = BuiltinDataTypes.isBuiltin(attribute.typeId)
       ? attribute.typeId
       : graph.resolveDataType(ModelRef.isQualified(attribute.typeId) ? graph.getRootModel().id : modelId, attribute.typeId);
+
     if (type) {
       const result: ValueCheck = this.values.validate(type, value, {
         path,
@@ -255,6 +259,7 @@ export class InstanceValueValidator {
       diagnostics.push(...result.diagnostics);
       if (!result.typeValid) return;
     }
+
     for (const constraint of attribute.constraints ?? []) {
       diagnostics.push(
         ...this.constraints.evaluate(constraint, {

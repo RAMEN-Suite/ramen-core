@@ -14,6 +14,7 @@ export class ModelRules {
   public validate(graph: ProjectGraph, selections?: RelationSelections): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const scope: ModelRelationScope = new ModelRelationScope(graph, selections);
+
     for (const model of graph.getModels()) {
       this.validateModel(graph, model, diagnostics);
       this.validateRelationSelections(model, scope, selections?.get(model.id) ?? [], diagnostics);
@@ -39,6 +40,7 @@ export class ModelRules {
       ...references,
       ...selections.filter((ref: Ref): boolean => !scope.allowsBase(model.id, ref)),
     ];
+
     for (const reference of invalid) {
       diagnostics.push(
         this.error(
@@ -86,6 +88,7 @@ export class ModelRules {
           ),
         );
       } else firstIndexByModelId.set(modelImport.modelId, index);
+
       if (modelImport.modelId === model.id) {
         diagnostics.push(
           this.error(
@@ -142,6 +145,7 @@ export class ModelRules {
         literalPath.property(hasExplicitLiteral ? 'literal' : 'name'),
         diagnostics,
       );
+
       if (literal.value !== undefined) {
         this.registerLiteralValue(
           values,
@@ -178,11 +182,13 @@ export class ModelRules {
 
       return;
     }
+
     if (model.imports.length > 0 && node.superTypes.length === 0) {
       const referencePath: DiagnosticPath = path.property('superTypes');
       const message: string = `Node '${node.id}' must refine an existing node in a model with imports.`;
       diagnostics.push(this.error('NODE_REFINEMENT_REQUIRED', message, referencePath, node.id));
     }
+
     this.validateKeys(graph, model.id, node, path, diagnostics);
     this.validateLocalAttributes(node, path, diagnostics);
     this.validateInheritedAttributeNames(graph, model.id, node, path, diagnostics);
@@ -212,6 +218,7 @@ export class ModelRules {
           ),
         );
       }
+
       localNames.add(attribute.name);
       this.validateConstraints(attribute.constraints, attributePath, diagnostics);
       this.validateAttribute(attribute, attributePath, diagnostics);
@@ -229,6 +236,7 @@ export class ModelRules {
     for (const ancestor of graph.getNodeAncestors(modelId, node.id)) {
       for (const attribute of ancestor.element.attributes) inheritedNames.add(attribute.name);
     }
+
     for (const attribute of node.attributes) {
       if (!inheritedNames.has(attribute.name)) continue;
       diagnostics.push(
@@ -253,6 +261,7 @@ export class ModelRules {
         ),
       );
     }
+
     if (attribute.isKey === true && (attribute.bounds.lowerBound !== 1 || attribute.bounds.upperBound !== 1)) {
       diagnostics.push(
         this.error(
@@ -284,6 +293,7 @@ export class ModelRules {
 
       return;
     }
+
     this.validateRelationEnd(relation.from, path.property('from'), diagnostics);
     this.validateRelationEnd(relation.to, path.property('to'), diagnostics);
     const superType: Ref | undefined = relation.superTypes[0];
@@ -326,6 +336,7 @@ export class ModelRules {
         this.error('RELATION_BOUNDS_WIDENED', `Relation end widens its base cardinality.`, path.property('bounds'), end.id),
       );
     }
+
     const actualNode: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);
     const requiredNode: ResolvedElement<Node> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
 

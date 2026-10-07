@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type { Diagnostic, ModelFile, ModelInstanceGraph, Node, Relation } from '@ramen-suite/core/model';
+import {
+  DataTypes,
+  Modeller,
+  type Diagnostic,
+  type ModelFile,
+  type ModelInstanceGraph,
+  type Node,
+  type Relation,
+} from '@ramen-suite/core/model';
 
 function fileRecords(file: Node, folder: Node, membership: Relation): ModelInstanceGraph {
   const fileId: string = 'fileRecord00000001';
@@ -32,6 +39,7 @@ void test('RMF scenario: a file system defines files, folders and recorded membe
     typeId: DataTypes.String,
     bounds: { lowerBound: 1, upperBound: 1 },
   });
+
   const inFolder: Relation = filesystem.createRelation({
     name: 'IN_FOLDER',
     from: { node: file },

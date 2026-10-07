@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes } from '@ramen-suite/core/model';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '@ramen-suite/core/ramen';
-import type { Node } from '@ramen-suite/core/model';
-import type { RamenAnnotation, RamenFile } from '@ramen-suite/core/ramen';
+import { DataTypes, type Node } from '@ramen-suite/core/model';
+import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel, type RamenAnnotation, type RamenFile } from '@ramen-suite/core/ramen';
 
 void test('RAMEN import rejects property ID collisions introduced in an otherwise valid file', (): void => {
   const model: RamenModel = RamenModel.create('Edition');

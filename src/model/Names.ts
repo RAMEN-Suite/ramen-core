@@ -1,8 +1,6 @@
 const NAME_START: RegExp = /(?:^|[^\p{L}\p{N}_]+)(\p{L})/gu;
 const NAME_INVALID_CHARS: RegExp = /[^\p{L}\p{N}_]/gu;
-const NODE_NAME_VALID_START: RegExp = /^\p{L}/u;
-
-const PROPERTY_VALID_START: RegExp = /^\p{L}/u;
+const NAME_VALID_START: RegExp = /^\p{L}/u;
 
 const RELATIONSHIP_NAME: RegExp = /[\p{L}\p{N}]+/gu;
 const RELATIONSHIP_VALID_START: RegExp = /^\p{Lu}/u;
@@ -15,7 +13,7 @@ export class ModelNames {
       .replace(NAME_START, (_: string, letter: string): string => letter.toUpperCase())
       .replace(NAME_INVALID_CHARS, '')
       .slice(0, 40);
-    return (NODE_NAME_VALID_START.test(pascalized) ? pascalized : `N${pascalized}`).slice(0, 40);
+    return (NAME_VALID_START.test(pascalized) ? pascalized : `N${pascalized}`).slice(0, 40);
   }
 
   /** Converts text to a camelCase property name of at most 32 characters. */
@@ -26,7 +24,7 @@ export class ModelNames {
       .slice(0, 32);
 
     const camelized: string = pascalized.charAt(0).toLowerCase() + pascalized.slice(1);
-    return (PROPERTY_VALID_START.test(camelized) ? camelized : `p${camelized}`).slice(0, 32);
+    return (NAME_VALID_START.test(camelized) ? camelized : `p${camelized}`).slice(0, 32);
   }
 
   /** Converts text to an uppercase underscore-separated relation name. */

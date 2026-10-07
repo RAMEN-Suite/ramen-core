@@ -53,6 +53,7 @@ function replaceTable(document: string, section: Table): string {
   const end: string = `<!-- diagnostics:${section.marker}:end -->`;
   const first: number = document.indexOf(start);
   const last: number = document.indexOf(end);
+
   if (first < 0 || last < first || document.includes(start, first + 1)) {
     throw new Error(`Expected one diagnostic table marked '${section.marker}'.`);
   }
@@ -85,6 +86,7 @@ async function main(): Promise<void> {
     { marker: 'relations', entries: rmf.filter((entry: CodeEntry): boolean => entry.group === 'Relationships and constraints') },
     { marker: 'data', entries: rmf.filter((entry: CodeEntry): boolean => entry.group === 'Recorded-data codes') },
   ];
+
   if (rmfTables.reduce((count: number, section: Table): number => count + section.entries.length, 0) !== rmf.length) {
     throw new Error('Every RMF diagnostic needs a known @group.');
   }
@@ -98,6 +100,7 @@ async function main(): Promise<void> {
     ],
     check,
   );
+
   if (check && (rmfChanged || ramenChanged)) {
     throw new Error('Diagnostic tables are outdated. Run npm run docs:diagnostics.');
   }

@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type { Attribute, Classifier, Diagnostic, Model, ModelFile, Node, Relation } from '@ramen-suite/core/model';
+import {
+  DataTypes,
+  Modeller,
+  type Attribute,
+  type Classifier,
+  type Diagnostic,
+  type Model,
+  type ModelFile,
+  type Node,
+  type Relation,
+} from '@ramen-suite/core/model';
 import fileSchema from '@ramen-suite/core/schemas/model-file.schema.json' with { type: 'json' };
 
 void test('the consumer entry point and packaged schema describe the same RMF file', (): void => {

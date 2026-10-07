@@ -1,23 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { DataTypes, RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '@ramen-suite/core';
-import type {
-  AnnotationSuggestion,
-  AnnotationRelationInput,
-  Classifier,
-  DataType,
-  Node,
-  NodeLineageItem,
-  RamenFile,
-  RamenAnnotation,
-  Relation,
-  RelationSelection,
-  Diagnostic,
-  ModelInstanceGraph,
-  ModelInstanceNode,
-  ModelInstanceRelation,
-  ValidationResult,
+import {
+  DataTypes,
+  RAMEN_ELEMENT,
+  RAMEN_MODEL,
+  RamenModel,
+  type AnnotationSuggestion,
+  type AnnotationRelationInput,
+  type Classifier,
+  type DataType,
+  type Node,
+  type NodeLineageItem,
+  type RamenFile,
+  type RamenAnnotation,
+  type Relation,
+  type RelationSelection,
+  type Diagnostic,
+  type ModelInstanceGraph,
+  type ModelInstanceNode,
+  type ModelInstanceRelation,
+  type ValidationResult,
 } from '@ramen-suite/core';
 
 interface Edition {
@@ -48,6 +51,7 @@ function createEdition(): Edition {
   edition.partOf(witness, letter);
   edition.partOf(text, witness);
   edition.partOf(image, witness);
+
   const carrier: Relation = edition.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
   const imageCarrier: Relation = edition.hasAnnotation(image, RAMEN_ELEMENT.ANNOTATION).element;
   const personLink: Relation = edition.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
@@ -73,6 +77,7 @@ function declareRole(
 function declareTypes(fixture: Edition): void {
   const edition: RamenModel = fixture.model;
   const roleName: DataType = edition.createDataType({ name: 'RoleName', baseType: DataTypes.String }).element;
+
   edition.createLiteral(roleName.id, { name: 'Sender', literal: 'sender' });
   edition.createLiteral(roleName.id, { name: 'Recipient', literal: 'recipient' });
 
@@ -98,6 +103,7 @@ function declareTypes(fixture: Edition): void {
     direction: 'incoming',
     bounds: { lowerBound: 1, upperBound: 1 },
   };
+
   edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'persName', relations: [textOrImage, personLink] });
   edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'placeName', relations: [carrier, placeLink] });
   declareDate(edition, carrier);
@@ -123,6 +129,7 @@ function declareDate(edition: RamenModel, carrier: AnnotationRelationInput): voi
 void test('RAMEN scenario: a correspondence edition models witnesses and six annotation types', (): void => {
   const fixture: Edition = createEdition();
   const edition: RamenModel = fixture.model;
+
   declareTypes(fixture);
 
   assert.equal(edition.validate().valid, true);
@@ -148,6 +155,7 @@ void test('RAMEN scenario: a correspondence edition models witnesses and six ann
   // A later level specialises Person. Letter, Witness, Text, Place and Annotation are reused.
   const research: RamenModel = edition.createNextLevel('Research edition');
   const correspondent: Node = research.createNode({ name: 'Correspondent', refines: fixture.person }).element;
+
   research.partOf(fixture.witness, fixture.letter);
   research.partOf(fixture.text, fixture.witness);
   research.partOf(fixture.image, fixture.witness);
@@ -169,6 +177,7 @@ void test('RAMEN scenario: a correspondence edition models witnesses and six ann
 function checkExchange(edition: RamenModel): void {
   const exchanged: RamenFile = edition.export();
   const restored: RamenModel = RamenModel.import(exchanged);
+
   assert.equal(exchanged.models.length, 2);
   assert.equal(restored.getAnnotations().length, 6);
   assert.equal(restored.validate().valid, true);
@@ -255,6 +264,7 @@ function recordedEdition(fixture: Edition, model: RamenModel = fixture.model, pe
     link(model, 'imageReference', annotation, person, 'imagePerson', 'person'),
     link(model, 'imageAnnotation', fixture.image, annotation, 'image', 'imagePerson'),
   ];
+
   for (const id of ['personName', 'placeName', 'date', 'highlight', 'note', 'role']) {
     relations.push(link(model, `${id}OnText`, fixture.text, annotation, 'text', id));
   }
@@ -344,6 +354,7 @@ void test('RAMEN scenario: inherited annotation rules constrain data after Perso
   declareTypes(fixture);
   const research: RamenModel = fixture.model.createNextLevel('Research');
   const correspondent: Node = research.createNode({ name: 'Correspondent', refines: fixture.person }).element;
+
   research.partOf(fixture.witness, fixture.letter);
   research.partOf(fixture.text, fixture.witness);
   research.partOf(fixture.image, fixture.witness);
@@ -351,6 +362,7 @@ void test('RAMEN scenario: inherited annotation rules constrain data after Perso
   research.hasAnnotation(fixture.image, RAMEN_ELEMENT.ANNOTATION);
   research.refersTo(RAMEN_ELEMENT.ANNOTATION, correspondent);
   research.refersTo(RAMEN_ELEMENT.ANNOTATION, fixture.place);
+
   const data: ModelInstanceGraph = recordedEdition(fixture, research, correspondent);
   const result: ValidationResult = research.validateInstances(data);
 

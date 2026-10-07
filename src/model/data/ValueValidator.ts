@@ -1,9 +1,7 @@
 import type { BuiltinType, Constraint, DataType, Id, Literal } from '../Types';
 import type { ResolvedElement } from '../graph/ProjectGraph';
-import { ConstraintRegistry } from '../validation/Constraints';
-import type { ConstraintGraph } from '../validation/Constraints';
-import { DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
-import type { Diagnostic } from '../validation/Diagnostics';
+import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from '../validation/Diagnostics';
 import type { ValidationResult } from '../validation/ModelValidator';
 
 /** Context supplied when checking one value, with or without a recorded object. */

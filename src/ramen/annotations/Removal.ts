@@ -2,10 +2,8 @@ import { ModelRef } from '../../model/graph/References';
 import { ModelWorkspace, NodeRemovalPreview, WorkspaceElement } from '../../model/editing/Workspace';
 import type { Attribute, Id, Model, Ref } from '../../model/Types';
 import type { ElementRef, Removal } from '../../model/editing/Inputs';
-import { RamenModelFormat } from '../Document';
-import type { RamenModelDocument } from '../Document';
-import { RamenAnnotations } from './Definitions';
-import type { AnnotationProperty, AnnotationRelation, RamenAnnotation } from './Definitions';
+import { RamenModelFormat, type RamenModelDocument } from '../Document';
+import { RamenAnnotations, type AnnotationProperty, type AnnotationRelation, type RamenAnnotation } from './Definitions';
 
 /** Tracks how generic node and relation removal affects RAMEN annotation definitions. */
 export class AnnotationRemoval {
@@ -43,6 +41,7 @@ export class AnnotationRemoval {
     const attributes: ReadonlySet<Ref> = this.keys(this.removedAttributes(preview));
     const removedRelations: ReadonlySet<Ref> = this.keys(preview.relations);
     const removed: ReadonlySet<Ref> = this.keys(preview.annotations);
+
     return this.workspace.all().flatMap((model: Model): WorkspaceElement[] =>
       RamenAnnotations.get(model).flatMap((annotation: RamenAnnotation): WorkspaceElement[] => {
         if (removed.has(ModelRef.qualify(model.id, annotation.id))) return [];
@@ -87,8 +86,7 @@ export class AnnotationRemoval {
         return [{ ...annotation, properties, relations }];
       },
     );
-    const document: RamenModelDocument = model;
-    const cleaned: RamenModelDocument = { ...document, annotations };
+    const cleaned: RamenModelDocument = { ...model, annotations };
     return cleaned;
   }
 

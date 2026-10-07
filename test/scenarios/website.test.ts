@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type {
-  Attribute,
-  AttributeInfo,
-  ModelFile,
-  Node,
-  NodeLineageItem,
-  Relation,
-  RelationSelection,
+import {
+  DataTypes,
+  Modeller,
+  type Attribute,
+  type AttributeInfo,
+  type ModelFile,
+  type Node,
+  type NodeLineageItem,
+  type Relation,
+  type RelationSelection,
 } from '@ramen-suite/core/model';
 
 function revisePost(website: Modeller, post: Node): void {

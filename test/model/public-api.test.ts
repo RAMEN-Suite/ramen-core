@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, ModelAdvisor, ModelFactory, Modeller } from '@ramen-suite/core/model';
-import type {
-  AttributeNameResult,
-  ConnectedNode,
-  DataType,
-  DataTypeSuggestion,
-  Model,
-  Node,
-  NodeSuggestion,
-  Relation,
+import {
+  DataTypes,
+  ModelAdvisor,
+  ModelFactory,
+  Modeller,
+  type AttributeNameResult,
+  type ConnectedNode,
+  type DataType,
+  type DataTypeSuggestion,
+  type Model,
+  type Node,
+  type NodeSuggestion,
+  type Relation,
 } from '@ramen-suite/core/model';
 
 void test('the generic editor suggests available types and rejects inherited property names', (): void => {

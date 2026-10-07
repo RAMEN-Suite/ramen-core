@@ -1,11 +1,9 @@
 import { AnnotationProperties } from './Properties';
-import { DiagnosticPath, Diagnostics } from '../../model/validation/Diagnostics';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from '../../model/validation/Diagnostics';
 import { ModelIdentifiers } from '../../model/graph/Identifiers';
 import { ModelRef } from '../../model/graph/References';
-import { ProjectGraph } from '../../model/graph/ProjectGraph';
+import { ProjectGraph, type ResolvedElement } from '../../model/graph/ProjectGraph';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { Diagnostic } from '../../model/validation/Diagnostics';
-import type { ResolvedElement } from '../../model/graph/ProjectGraph';
 import type { Bounds, Model, Node, Relation, Id, Ref } from '../../model/Types';
 import { RamenAnnotation, AnnotationRelation } from './Definitions';
 import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
@@ -52,6 +50,7 @@ export class RamenAnnotationRules {
     for (const resolved of annotations.getAll()) {
       this.validateAnnotation(graph, annotations, resolved, identifiers, ownerTypes, diagnostics);
     }
+
     this.validateInheritedProperties(graph, annotations, diagnostics);
     return diagnostics;
   }
@@ -94,6 +93,7 @@ export class RamenAnnotationRules {
 
       return;
     }
+
     if (definition.type.trim().length === 0)
       this.error(
         diagnostics,
@@ -102,6 +102,7 @@ export class RamenAnnotationRules {
         path,
         definition.id,
       );
+
     this.registerOwnerType(resolved.modelId, definition, owner, ownerTypes, path, diagnostics);
     diagnostics.push(...AnnotationProperties.validate(graph, resolved, owner));
     this.validateRelations(graph, resolved, owner, diagnostics);
@@ -195,12 +196,14 @@ export class RamenAnnotationRules {
   ): boolean {
     let overlap: boolean = false;
     const prefix: string = `${direction}:`;
+
     for (const relation of relations) {
       if (!relation) continue;
       const key: string = `${prefix}${ModelRef.qualify(relation.modelId, relation.element.id)}`;
       const ancestors: readonly string[] = graph
         .getRelationAncestors(relation.modelId, relation.element.id)
         .map((item: ResolvedElement<Relation>): string => `${prefix}${ModelRef.qualify(item.modelId, item.element.id)}`);
+
       if (
         seen.selected.has(key) ||
         seen.ancestors.has(key) ||

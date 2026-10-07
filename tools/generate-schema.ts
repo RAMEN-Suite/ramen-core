@@ -37,6 +37,7 @@ function qualifyRefs(value: unknown): unknown {
   if (value === null || typeof value !== 'object') return value;
   const result: Record<string, unknown> = {};
   const entries: readonly [string, unknown][] = Object.entries(value);
+
   for (const [key, entry] of entries) {
     result[key] =
       key === '$ref' && typeof entry === 'string' ? entry.replace(/^#\/\$defs\//, '#/$defs/Ramen') : qualifyRefs(entry);
@@ -51,6 +52,7 @@ function projectSchema(): ModelSchema {
       qualifyRefs(definition) as Schema,
     ]),
   );
+
   return {
     ...generic,
     $id: projectUri,
@@ -82,6 +84,7 @@ function header(source: ModelSchema, ramen: boolean): Schema {
   const metadata: Readonly<Record<string, Schema>> = Object.fromEntries(
     Object.entries(source.properties).filter(([key]: [string, Schema]): boolean => !excluded.includes(key)),
   );
+
   return {
     type: 'object',
     additionalProperties: false,
@@ -110,6 +113,7 @@ function graphProperties(fileUri: string, ramen: boolean): Readonly<Record<strin
       description: 'All original relation declarations. Presence does not automatically permit use at every model level.',
     },
   };
+
   if (ramen) {
     properties['annotations'] = {
       type: 'array',
@@ -125,6 +129,7 @@ function graphSchema(input: FileInput): Schema {
   const definitions: Readonly<Record<string, Schema>> = JSON.parse(
     JSON.stringify(input.source.$defs).replaceAll(`${generic.$id}#/$defs/`, '#/$defs/'),
   ) as Readonly<Record<string, Schema>>;
+
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     $id: input.uri,
@@ -150,6 +155,7 @@ async function emit(name: string, schema: Schema): Promise<void> {
   const destination: string = resource(name);
   const options: Options | null = await prettier.resolveConfig(destination);
   const generated: string = await prettier.format(JSON.stringify(schema), { ...options, parser: 'json' });
+
   if (!process.argv.includes('--check')) {
     writeFileSync(destination, generated);
     return;

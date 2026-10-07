@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ModelValidator, Modeller } from '@ramen-suite/core/model';
-import type { Diagnostic, Model, Node, ProjectValidationResult } from '@ramen-suite/core/model';
+import {
+  ModelValidator,
+  Modeller,
+  type Diagnostic,
+  type Model,
+  type Node,
+  type ProjectValidationResult,
+} from '@ramen-suite/core/model';
 
 void test('a changed import version is reported at the import reference', (): void => {
   const base: Modeller = Modeller.create('Filing');

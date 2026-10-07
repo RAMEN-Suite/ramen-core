@@ -1,26 +1,29 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, RAMEN_ELEMENT, RAMEN_MODEL, RamenModel } from '@ramen-suite/core';
-import type {
-  Attribute,
-  AnnotationProperty,
-  AnnotationUpdate,
-  AnnotationSuggestion,
-  DataType,
-  Diagnostic,
-  EvolutionChange,
-  Node,
-  NodeLineageItem,
-  NodeRemovalPreview,
-  ModelInstanceGraph,
-  ModelChange,
-  ModelRemovalPreview,
-  Model,
-  RamenAnnotation,
-  RamenEvolutionReport,
-  Relation,
-  RelationRemovalPreview,
-  WorkspaceElement,
+import {
+  DataTypes,
+  RAMEN_ELEMENT,
+  RAMEN_MODEL,
+  RamenModel,
+  type Attribute,
+  type AnnotationProperty,
+  type AnnotationUpdate,
+  type AnnotationSuggestion,
+  type DataType,
+  type Diagnostic,
+  type EvolutionChange,
+  type Node,
+  type NodeLineageItem,
+  type NodeRemovalPreview,
+  type ModelInstanceGraph,
+  type ModelChange,
+  type ModelRemovalPreview,
+  type Model,
+  type RamenAnnotation,
+  type RamenEvolutionReport,
+  type Relation,
+  type RelationRemovalPreview,
+  type WorkspaceElement,
 } from '@ramen-suite/core';
 
 interface Edition {
@@ -138,12 +141,15 @@ void test('a deleted annotation-owned data type becomes a repairable diagnostic'
     properties: [{ name: 'level', type: level }],
   }).element;
   const property: Attribute | undefined = note.properties.find((item: AnnotationProperty): item is Attribute => 'typeId' in item);
+
   assert.ok(property);
 
   fixture.model.removeDataType(level.id);
+
   const invalid: Diagnostic | undefined = fixture.model
     .validate()
     .diagnostics.find((item: Diagnostic): boolean => item.code === 'RAMEN_ANNOTATION_PROPERTY_INVALID');
+
   assert.ok(invalid);
   assert.ok(
     fixture.model
@@ -184,6 +190,7 @@ function personRecords(fixture: Edition): ModelInstanceGraph {
     type: 'person',
     relations: [{ relation: fixture.textHas, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
+
   return {
     nodes: [
       { id: 'textRecord000001', typeId: fixture.text.id, properties: { uuid: '550e8400-e29b-41d4-a716-446655440001' } },
@@ -206,6 +213,7 @@ void test('recorded annotations require a declared type, permitted fields and a 
     false,
     JSON.stringify(fixture.model.validateInstances(data).diagnostics),
   );
+
   const textRecord: ModelInstanceGraph['nodes'][number] | undefined = data.nodes[0];
   const noteRecord: ModelInstanceGraph['nodes'][number] | undefined = data.nodes[1];
   assert.ok(textRecord && noteRecord);
@@ -255,6 +263,7 @@ void test('removal preview names annotation types whose relationship rules will 
   }).element;
 
   const preview: NodeRemovalPreview = fixture.model.previewNodeRemoval(fixture.person.id);
+
   assert.deepEqual(preview.annotations, []);
   assert.deepEqual(
     preview.updatedAnnotations.map((item: WorkspaceElement): string => item.elementId),
@@ -279,6 +288,7 @@ void test('relation removal rejects annotation changes until explicitly cascaded
   const before: readonly RamenAnnotation[] = fixture.model.getAnnotations();
 
   const preview: RelationRemovalPreview = fixture.model.previewRelationRemoval(fixture.textHas.id);
+
   assert.deepEqual(
     preview.relations.map((item: WorkspaceElement): string => item.elementId),
     [fixture.textHas.id],

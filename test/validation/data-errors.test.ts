@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type {
-  Diagnostic,
-  ModelInstanceGraph,
-  ModelInstanceNode,
-  Node,
-  Relation,
-  ValidationResult,
+import {
+  DataTypes,
+  Modeller,
+  type Diagnostic,
+  type ModelInstanceGraph,
+  type ModelInstanceNode,
+  type Node,
+  type Relation,
+  type ValidationResult,
 } from '@ramen-suite/core/model';
 
 function expectCode(result: ValidationResult, code: string, path: string): void {
@@ -20,14 +21,17 @@ function expectCode(result: ValidationResult, code: string, path: string): void 
 void test('recorded properties distinguish arrays, scalar values and uniqueness within one record', (): void => {
   const model: Modeller = Modeller.create('Files');
   const file: Node = model.createNode('File').element;
+
   model.createAttribute(file, { name: 'tags', typeId: DataTypes.String, bounds: { lowerBound: 0, upperBound: -1 } });
   model.createAttribute(file, { name: 'title', typeId: DataTypes.String });
+
   const record: ModelInstanceNode = { id: 'fileRecord000001', typeId: file.id, properties: {} };
   const cases: readonly (readonly [Readonly<Record<string, unknown>>, string, string])[] = [
     [{ tags: 'draft' }, 'INSTANCE_PROPERTY_ARRAY_REQUIRED', '/nodes/0/properties/tags'],
     [{ title: ['draft'] }, 'INSTANCE_PROPERTY_SCALAR_REQUIRED', '/nodes/0/properties/title'],
     [{ tags: ['draft', 'draft'] }, 'INSTANCE_PROPERTY_NOT_UNIQUE', '/nodes/0/properties/tags'],
   ];
+
   for (const [properties, code, path] of cases) {
     const data: ModelInstanceGraph = { nodes: [{ ...record, properties }], relations: [] };
     expectCode(model.validateInstances(data), code, path);

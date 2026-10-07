@@ -13,9 +13,14 @@ import type { ResolvedElement } from '../model/graph/ProjectGraph';
 import type { Diagnostic } from '../model/validation/Diagnostics';
 import type { ProjectValidationResult, ValidProjectResult, ValidationResult } from '../model/validation/ModelValidator';
 import type { Attribute, Bounds, Id, Model, Node, Ref, Relation } from '../model/Types';
-import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions';
+import {
+  RamenAnnotation,
+  AnnotationProperty,
+  AnnotationRelation,
+  RamenAnnotations,
+  type AttributeReference,
+} from './annotations/Definitions';
 import { AnnotationRemoval } from './annotations/Removal';
-import type { AttributeReference } from './annotations/Definitions';
 import { RamenModelFormat, RamenModelDocument } from './Document';
 import { RAMEN_MODEL } from './ReferenceModel';
 import { RamenValidator } from './validation/ModelValidator';
@@ -340,6 +345,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       ),
     );
     const owner: Model | undefined = owners[0];
+
     if (owners.length !== 1 || !owner)
       throw new Error(`Expected one attribute with id '${attribute.id}', found ${owners.length}.`);
     return owner.id === this.model.id ? attribute.id : ModelRef.qualify(owner.id, attribute.id);
@@ -354,6 +360,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
           bounds: { ...input.bounds },
         };
       }
+
       if ('relation' in input) {
         return {
           relationIds: [this.relationReference(input.relation)],
@@ -383,6 +390,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       (item: RelationSelection): boolean => ref === undefined || item.ref === ref,
     );
     const selected: RelationSelection | undefined = matches[0];
+
     if (matches.length !== 1 || !selected) {
       throw new Error(`Annotation rule requires one selected relationship, found ${matches.length}.`);
     }
@@ -393,10 +401,13 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     const reference: ElementRef = this.resolveRef(owner, 'node');
     const node: Ref = ModelRef.qualify(reference.modelId, reference.elementId);
     const connection: RelationSelection = input.connection;
+
     if (connection.from !== node && connection.to !== node)
       throw new Error('Selected relationship does not involve this Annotation node.');
+
     if (connection.from === node && connection.to === node)
       throw new Error('Select an explicit direction for a self-relationship.');
+
     const selected: RelationSelection = this.requireConnection(connection.from, connection.to, connection.ref);
     const direction: 'incoming' | 'outgoing' = selected.to === node ? 'incoming' : 'outgoing';
     const relationId: Ref =

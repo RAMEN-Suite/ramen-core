@@ -28,6 +28,7 @@ export class ConstraintOwners {
       if (found) throw new Error(`Constraint owner '${ownerId}' is ambiguous. Supply its modelId and elementId.`);
       found = location;
     }
+
     if (!found) throw new Error(`Constraint owner not found: '${ownerId}'.`);
     return found;
   }
@@ -37,6 +38,7 @@ export class ConstraintOwners {
       const location: ConstraintLocation | undefined = this.inClassifier(model.id, classifier, ownerId);
       if (location) return location;
     }
+
     for (const relation of model.relations) {
       if (relation.id === ownerId) return this.location(model.id, 'relation', relation);
       if (relation.from.id === ownerId) return this.location(model.id, 'from', relation.from, relation.id);
@@ -51,6 +53,7 @@ export class ConstraintOwners {
       const attribute: Attribute | undefined = classifier.attributes.find((item: Attribute): boolean => item.id === ownerId);
       return attribute ? this.location(modelId, 'attribute', attribute, classifier.id) : undefined;
     }
+
     const literal: Literal | undefined = classifier.literals?.find((item: Literal): boolean => item.id === ownerId);
     return literal ? this.location(modelId, 'literal', literal, classifier.id) : undefined;
   }

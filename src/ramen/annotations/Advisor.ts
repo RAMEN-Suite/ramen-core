@@ -1,11 +1,9 @@
 import { AnnotationProperties } from './Properties';
 import { ModelRelationScope } from '../../model/graph/RelationScope';
-import { EffectiveModel } from '../../model/graph/EffectiveModel';
+import { EffectiveModel, type EffectiveNode } from '../../model/graph/EffectiveModel';
 import { ModelRef } from '../../model/graph/References';
-import { ProjectGraph } from '../../model/graph/ProjectGraph';
+import { ProjectGraph, type ResolvedElement } from '../../model/graph/ProjectGraph';
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { EffectiveNode } from '../../model/graph/EffectiveModel';
-import type { ResolvedElement } from '../../model/graph/ProjectGraph';
 import type { Bounds, Attribute, Model, Node, Relation, Id, Ref } from '../../model/Types';
 import { AnnotationRelation } from './Definitions';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';

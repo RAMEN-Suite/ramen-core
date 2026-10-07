@@ -1,7 +1,6 @@
 import type { Constraint, Id, Model } from '../Types';
 import { VALIDATION_ERROR } from '../validation/Codes';
-import { DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
-import type { Diagnostic } from '../validation/Diagnostics';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from '../validation/Diagnostics';
 
 interface IdentifiedElement {
   readonly id: Id;
@@ -22,6 +21,7 @@ export class ModelIdentifiers {
       const members: readonly IdentifiedElement[] =
         classifier.kind === 'Node' ? classifier.attributes : (classifier.literals ?? []);
       const field: string = classifier.kind === 'Node' ? 'attributes' : 'literals';
+
       for (const [memberIndex, member] of members.entries()) {
         this.diagnostics.push(...this.register(member, owner.property(field).index(memberIndex)));
       }

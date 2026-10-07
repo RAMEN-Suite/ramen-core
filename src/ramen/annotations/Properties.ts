@@ -1,8 +1,7 @@
 import { BuiltinDataTypes } from '../../model/Builtins';
 import { EffectiveModel } from '../../model/graph/EffectiveModel';
 import { ModelRef } from '../../model/graph/References';
-import { Diagnostics, DiagnosticPath } from '../../model/validation/Diagnostics';
-import type { Diagnostic } from '../../model/validation/Diagnostics';
+import { Diagnostics, DiagnosticPath, type Diagnostic } from '../../model/validation/Diagnostics';
 import type { ProjectGraph, ResolvedElement } from '../../model/graph/ProjectGraph';
 import type { Attribute, Node } from '../../model/Types';
 import { Cardinality } from '../../model/validation/Cardinality';
@@ -45,6 +44,7 @@ export class AnnotationProperties {
     const ids: Set<string> = new Set<string>();
     const nodeAttributes: readonly Attribute[] =
       EffectiveModel.resolveNode(graph, owner.modelId, owner.element.id)?.attributes ?? [];
+
     for (const [index, property] of definition.annotation.properties.entries()) {
       const attribute: Attribute | undefined = this.selected(graph, owner, property);
       if (!attribute || !this.isValid(graph, definition.modelId, attribute, 'attributeId' in property ? [] : nodeAttributes)) {
@@ -53,6 +53,7 @@ export class AnnotationProperties {
         );
         continue;
       }
+
       if (names.has(attribute.name) || ids.has(attribute.id)) {
         diagnostics.push(
           this.error(definition, 'RAMEN_ANNOTATION_PROPERTY_INVALID', 'Property names and identifiers must be unique.'),
@@ -62,6 +63,7 @@ export class AnnotationProperties {
       if (!('attributeId' in property)) {
         diagnostics.push(...this.validateOwned(definition, attribute, nodeAttributes, index));
       }
+
       names.add(attribute.name);
       ids.add(attribute.id);
     }
@@ -91,6 +93,7 @@ export class AnnotationProperties {
     const allowed: ReadonlySet<string> = new Set<string>(
       this.allowed(graph, definition, owner).map((attribute: Attribute): string => attribute.name),
     );
+
     return attributes
       .filter((attribute: Attribute): boolean => attribute.bounds.lowerBound > 0 && !allowed.has(attribute.name))
       .map((attribute: Attribute): Diagnostic =>

@@ -16,6 +16,7 @@ export function walkGraph(
     if (completed.has(root)) continue;
     const stack: Frame[] = [{ key: root, children: children(root), index: 0 }];
     const active: Map<string, number> = new Map<string, number>([[root, 0]]);
+
     while (stack.length > 0) {
       const frame: Frame | undefined = stack.at(-1);
       if (!frame) break;
@@ -34,6 +35,7 @@ export function walkGraph(
         cycle([...path, next]);
         continue;
       }
+
       active.set(next, stack.length);
       stack.push({ key: next, children: children(next), index: 0 });
     }

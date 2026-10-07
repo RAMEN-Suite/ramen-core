@@ -45,6 +45,7 @@ export class ModelRelationScope {
       if (this.availableCache.has(id) || !this.graph.hasModel(id)) return [];
       return this.graph.getImportedModels(id).map((model: Model): Id => model.id);
     };
+
     walkGraph(
       [modelId],
       children,
@@ -65,11 +66,13 @@ export class ModelRelationScope {
     for (const element of this.graph.getModel(modelId)?.relations ?? []) {
       available.set(ModelRef.qualify(modelId, element.id), Object.freeze({ modelId, element }));
     }
+
     for (const reference of this.selections.get(modelId) ?? []) {
       const key: Ref = ModelRef.isQualified(reference) ? reference : ModelRef.qualify(modelId, reference);
       const item: ResolvedElement<Relation> | undefined = bases.get(key);
       if (item) available.set(key, item);
     }
+
     this.baseCache.set(modelId, bases);
     this.availableCache.set(modelId, available);
   }

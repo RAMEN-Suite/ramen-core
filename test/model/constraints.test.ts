@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type {
-  Attribute,
-  Constraint,
-  ConstraintOwner,
-  Diagnostic,
-  DataType,
-  Literal,
-  Model,
-  ModelChange,
-  Node,
-  Relation,
+import {
+  DataTypes,
+  Modeller,
+  type Attribute,
+  type Constraint,
+  type ConstraintOwner,
+  type Diagnostic,
+  type DataType,
+  type Literal,
+  type Model,
+  type ModelChange,
+  type Node,
+  type Relation,
 } from '@ramen-suite/core/model';
 
 void test('built-in constraint expressions are checked before any recorded value exists', (): void => {
@@ -22,6 +23,7 @@ void test('built-in constraint expressions are checked before any recorded value
     ['format', {}],
     ['json-schema', { type: 'bad' }],
   ];
+
   for (const [language, expression] of cases) {
     const model: Modeller = Modeller.create('Rules');
     const rule: Constraint = { id: 'invalidRule00001', name: 'Invalid', language, expression };
@@ -29,6 +31,7 @@ void test('built-in constraint expressions are checked before any recorded value
     const finding: Diagnostic | undefined = model
       .validate()
       .diagnostics.find((item: Diagnostic): boolean => item.code === 'CONSTRAINT_EXPRESSION_INVALID');
+
     assert.ok(finding, language);
     assert.equal(finding.ref, rule.id);
     assert.equal(finding.severity, 'error');
@@ -62,6 +65,7 @@ void test('relations accept constraints on creation and update', (): void => {
     to: { node: folder },
     constraints: [linkRule],
   }).element;
+
   assert.deepEqual(filedIn.constraints, [linkRule]);
   assert.deepEqual(filedIn.from.constraints, [endRule]);
 
@@ -69,6 +73,7 @@ void test('relations accept constraints on creation and update', (): void => {
     constraints: [],
     from: { ...filedIn.from, constraints: [] },
   }).element;
+
   assert.deepEqual(edited.constraints, []);
   assert.deepEqual(edited.from.constraints, []);
   assert.equal(model.validate().valid, true);
@@ -148,6 +153,7 @@ void test('constraint owners with the same local ID require a model identity', (
   const page: Model['classifiers'][number] | undefined = raw.classifiers.find(
     (item: Model['classifiers'][number]): boolean => item.kind === 'Node',
   );
+
   assert.ok(page?.kind === 'Node');
   page.id = document.id;
 

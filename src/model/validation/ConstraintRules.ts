@@ -1,7 +1,6 @@
 import type { Constraint } from '../Types';
 import { JsonSchemaEvaluator, RegexEvaluator, FormatEvaluator } from './Constraints';
-import { DiagnosticPath, Diagnostics } from './Diagnostics';
-import type { Diagnostic } from './Diagnostics';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from './Diagnostics';
 
 /** Checks constraint declarations before any recorded values are evaluated. */
 export class ConstraintRules {

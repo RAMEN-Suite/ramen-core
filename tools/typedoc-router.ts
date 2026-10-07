@@ -1,5 +1,4 @@
-import { KindRouter } from 'typedoc';
-import type { Application, Reflection } from 'typedoc';
+import { KindRouter, type Application, type Reflection } from 'typedoc';
 
 const ROUTE_PATTERN: RegExp = /^[a-z0-9]+(?:[/-][a-z0-9]+)*$/;
 

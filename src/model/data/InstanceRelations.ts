@@ -3,8 +3,7 @@ import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
 import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
 import { ValidationCode } from '../validation/Codes';
-import { ConstraintRegistry } from '../validation/Constraints';
-import type { ConstraintGraph } from '../validation/Constraints';
+import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {
@@ -101,6 +100,7 @@ export class InstanceRelationValidator {
         }),
       );
     }
+
     for (const [end, node, endPath] of [
       [type.element.from, from, path.property('fromId')],
       [type.element.to, to, path.property('toId')],
@@ -127,6 +127,7 @@ export class InstanceRelationValidator {
 
       return true;
     }
+
     diagnostics.push(this.error('INSTANCE_RELATION_ID_DUPLICATE', `Instance relation id '${id}' is duplicated.`, path, id));
     return false;
   }
@@ -223,9 +224,11 @@ export class InstanceRelationValidator {
         node.type,
         ...graph.getNodeAncestors(node.type.modelId, node.type.element.id),
       ];
+
       for (const type of lineage) {
         const key: Ref = `${type.modelId}:${type.element.id}`;
         const group: ResolvedInstanceNode[] = indexed.get(key) ?? [];
+
         group.push(node);
         indexed.set(key, group);
       }
@@ -243,12 +246,14 @@ export class InstanceRelationValidator {
   ): void {
     const relation: Relation = type.element;
     const ref: Ref = type.modelId === ownerModelId ? relation.id : `${type.modelId}:${relation.id}`;
+
     for (const direction of ['from', 'to'] as const) {
       const endpoint: ResolvedElement<Node> | undefined = graph.resolveNode(type.modelId, relation[direction].nodeId);
       if (!endpoint) continue;
       const key: Ref = `${endpoint.modelId}:${endpoint.element.id}`;
       const opposite: 'from' | 'to' = direction === 'from' ? 'to' : 'from';
       const bounds: Bounds = relation[opposite].bounds;
+
       for (const node of nodes.get(key) ?? []) {
         const count: number = counts.get(`${type.modelId}:${relation.id}:${direction}:${node.instance.id}`) ?? 0;
         this.validateCount(relation.name, bounds, count, DiagnosticPath.root().property('relations'), ref, diagnostics);
@@ -263,10 +268,12 @@ export class InstanceRelationValidator {
         relation.type,
         ...graph.getRelationAncestors(relation.type.modelId, relation.type.element.id),
       ];
+
       for (const type of lineage) {
         const prefix: string = `${type.modelId}:${type.element.id}`;
         const from: string = `${prefix}:from:${relation.instance.fromId}`;
         const to: string = `${prefix}:to:${relation.instance.toId}`;
+
         counts.set(from, (counts.get(from) ?? 0) + 1);
         counts.set(to, (counts.get(to) ?? 0) + 1);
       }

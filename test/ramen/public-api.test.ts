@@ -1,24 +1,28 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RAMEN_ELEMENT, RamenAdvisor, RamenModel } from '@ramen-suite/core/ramen';
-import { ConstraintRegistry, DataTypes, Diagnostics } from '@ramen-suite/core/model';
-import type {
-  Attribute,
-  Constraint,
-  ConstraintContext,
-  DataType,
-  Diagnostic,
-  Node,
-  Relation,
-  ValidationResult,
-} from '@ramen-suite/core/model';
-import type {
-  AnnotationOptions,
-  AnnotationSuggestion,
-  PropertyOption,
-  RamenAnnotation,
-  RelationOption,
+import {
+  RAMEN_ELEMENT,
+  RamenAdvisor,
+  RamenModel,
+  type AnnotationOptions,
+  type AnnotationSuggestion,
+  type PropertyOption,
+  type RamenAnnotation,
+  type RelationOption,
 } from '@ramen-suite/core/ramen';
+import {
+  ConstraintRegistry,
+  DataTypes,
+  Diagnostics,
+  type Attribute,
+  type Constraint,
+  type ConstraintContext,
+  type DataType,
+  type Diagnostic,
+  type Node,
+  type Relation,
+  type ValidationResult,
+} from '@ramen-suite/core/model';
 
 function renameAndRemoveType(edition: RamenModel, type: RamenAnnotation, text: Node): void {
   edition.updateAnnotation(type.id, { type: 'person' });
@@ -41,6 +45,7 @@ void test('RAMEN annotation queries distinguish possible choices from a declared
   const reference: Relation = edition.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
 
   const before: AnnotationOptions | undefined = edition.suggestAnnotationOptions(RAMEN_ELEMENT.ANNOTATION);
+
   assert.ok(before);
   assert.ok(before.relations.some((item: RelationOption): boolean => item.targetName === 'Text'));
   assert.ok(before.relations.some((item: RelationOption): boolean => item.targetName === 'Person'));
@@ -93,6 +98,7 @@ void test('annotation input checks resolve inherited type-owned properties and s
   edition.createLiteral(roleName.id, { name: 'Sender', literal: 'sender' });
   const label: Attribute = edition.createAttribute(annotation, { name: 'label', typeId: DataTypes.String }).element;
   const capitalised: Constraint = { id: 'capitalLabelRule1', name: 'Capitalised', language: 'regex', expression: '^[A-Z]' };
+
   edition.updateAttribute(annotation.id, label.id, { constraints: [capitalised] });
   edition.createAnnotation({
     node: annotation,
@@ -102,6 +108,7 @@ void test('annotation input checks resolve inherited type-owned properties and s
       { attribute: label, bounds: { lowerBound: 1, upperBound: 1 } },
     ],
   });
+
   const next: RamenModel = edition.createNextLevel('Research');
   const refined: Node = next.createNode({ name: 'ResearchAnnotation', refines: annotation }).element;
 
@@ -150,6 +157,7 @@ void test('annotation input checks use custom evaluators and report invalid mode
 
   const rule: Constraint = { id: 'customRoleRule01', name: 'Custom role', language: 'example:role', expression: 'sender' };
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
+
   registry.register({ language: rule.language, evaluate: checkRole });
   edition.updateDataType(roleName.id, { constraints: [rule] });
 

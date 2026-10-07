@@ -1,18 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConstraintRegistry, DataTypes, Diagnostics, Modeller } from '@ramen-suite/core/model';
-import type {
-  Attribute,
-  BuiltinType,
-  Constraint,
-  ConstraintContext,
-  DataType,
-  Diagnostic,
-  ModelInstanceGraph,
-  Literal,
-  Node,
-  Relation,
-  ValidationResult,
+import {
+  ConstraintRegistry,
+  DataTypes,
+  Diagnostics,
+  Modeller,
+  type Attribute,
+  type BuiltinType,
+  type Constraint,
+  type ConstraintContext,
+  type DataType,
+  type Diagnostic,
+  type ModelInstanceGraph,
+  type Literal,
+  type Node,
+  type Relation,
+  type ValidationResult,
 } from '@ramen-suite/core/model';
 
 void test('Float literals preserve fractions through export while Integer literals require whole numbers', (): void => {
@@ -51,12 +54,14 @@ void test('recorded values obey inherited properties, closed fields and custom r
     language: 'regex',
     expression: '^[A-Z]',
   };
+
   base.createAttribute(person, {
     name: 'name',
     typeId: DataTypes.String,
     bounds: { lowerBound: 1, upperBound: 1 },
     constraints: [capitalised],
   });
+
   const next: Modeller = base.createNextLevel('Edition');
   const editor: Node = next.createNode({ name: 'Editor', refines: person }).element;
 
@@ -85,12 +90,14 @@ void test('a same-level subtype accepts its parent relation and property rule', 
     language: 'json-schema',
     expression: { minLength: 3 },
   };
+
   model.createAttribute(document, {
     name: 'title',
     typeId: DataTypes.String,
     bounds: { lowerBound: 1, upperBound: 1 },
     constraints: [rule],
   });
+
   const letter: Node = model.createNode({ name: 'Letter', refines: document }).element;
   const filedIn: Relation = model.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
 
@@ -149,12 +156,14 @@ void test('one inherited attribute input checks required values and its own rule
     language: 'regex',
     expression: '^[A-Z]',
   };
+
   base.createAttribute(document, {
     name: 'title',
     typeId: DataTypes.String,
     bounds: { lowerBound: 1, upperBound: 1 },
     constraints: [capitalised],
   });
+
   const website: Modeller = base.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
 
@@ -233,12 +242,14 @@ function objectKeyModel(): ObjectKeys {
   const base: Modeller = Modeller.create('People');
   const person: Node = base.createNode('Person').element;
   const identifier: DataType = base.createDataType({ name: 'Identifier', baseType: DataTypes.Object }).element;
+
   base.createAttribute(person, {
     name: 'identifier',
     type: identifier,
     bounds: { lowerBound: 1, upperBound: 1 },
     isKey: true,
   });
+
   const edition: Modeller = base.createNextLevel('Edition');
   const editor: Node = edition.createNode({ name: 'Editor', refines: person }).element;
   return { model: edition, personRef: `${base.getModel().id}:${person.id}`, editor };
@@ -293,12 +304,15 @@ void test('built-in keys reject repeated values without sharing keys between unr
     [DataTypes.Boolean, true],
     [DataTypes.Object, { code: 'same' }],
   ];
+
   for (const [typeId, value] of cases) {
     const model: Modeller = Modeller.create('Keys');
     const first: Node = model.createNode('First').element;
     const second: Node = model.createNode('Second').element;
+
     model.createAttribute(first, { name: 'key', typeId, isKey: true, bounds: { lowerBound: 1, upperBound: 1 } });
     model.createAttribute(second, { name: 'key', typeId, isKey: true, bounds: { lowerBound: 1, upperBound: 1 } });
+
     const data: ModelInstanceGraph = {
       nodes: [
         { id: 'firstRecord00001', typeId: first.id, properties: { key: value } },
@@ -340,6 +354,7 @@ void test('an attribute can use a registered evaluator for input and recorded da
     language: 'regex',
     expression: '^[A-Z]',
   };
+
   model.createAttribute(document, {
     name: 'title',
     typeId: DataTypes.String,
@@ -374,6 +389,7 @@ void test('one value checks its base type, literals and constraints without reco
     baseType: DataTypes.String,
     constraints: [{ id: 'startsWithDRule1', name: 'Starts with D', language: 'regex', expression: '^D' }],
   }).element;
+
   model.createLiteral(status.id, { name: 'Draft', literal: 'Draft' });
 
   assert.equal(model.validateValue(status, 'Draft').hasErrors, false);
@@ -468,6 +484,7 @@ void test('JSON Schema rules validate nested Object values and attribute inputs'
       },
     ],
   }).element;
+
   model.createAttribute(person, { name: 'contact', type: contact });
 
   assert.equal(model.validateValue(contact, { city: 'London' }).hasErrors, false);

@@ -20,6 +20,7 @@ export class ModelEditor {
   public static removeClassifierById(model: Model, classifierId: string): Model {
     const classifiers: Classifier[] = model.classifiers;
     const filtered: Classifier[] = classifiers.filter((c: Classifier): boolean => c.id !== classifierId);
+
     if (filtered.length === classifiers.length) throw new Error(`Classifier not found: ${classifierId}`);
     return { ...model, classifiers: filtered };
   }
@@ -36,6 +37,7 @@ export class ModelEditor {
       found = true;
       return { ...classifier, ...structuredClone(patch) };
     });
+
     if (!found) throw new Error(`Node not found: ${nodeId}`);
     return { ...model, classifiers: patched };
   }
@@ -52,6 +54,7 @@ export class ModelEditor {
       found = true;
       return { ...collection, ...structuredClone(patch) };
     });
+
     if (!found) throw new Error(`DataType not found: ${dataTypeId}`);
     return { ...model, classifiers: patched };
   }
@@ -71,6 +74,7 @@ export class ModelEditor {
       found = true;
       return { ...relation, ...structuredClone(patch) };
     });
+
     if (!found) throw new Error(`Relation not found: ${relationId}`);
     return { ...model, relations: patched };
   }
@@ -86,6 +90,7 @@ export class ModelEditor {
     const node: Node = this.requireNode(model, nodeId);
     if (!node.attributes.some((attribute: Attribute): boolean => attribute.id === attributeId))
       throw new Error(`Attribute not found: '${attributeId}'`);
+
     const attributes: Attribute[] = node.attributes.map((attribute: Attribute): Attribute =>
       attribute.id === attributeId ? { ...attribute, ...structuredClone(patch) } : attribute,
     );
@@ -96,6 +101,7 @@ export class ModelEditor {
   public static removeAttribute(model: Model, nodeId: Id, attributeId: Id): Model {
     const node: Node = this.requireNode(model, nodeId);
     const attributes: Attribute[] = node.attributes.filter((attribute: Attribute): boolean => attribute.id !== attributeId);
+
     if (attributes.length === node.attributes.length) throw new Error(`Attribute not found: '${attributeId}'`);
     return this.replaceNode(model, { ...node, attributes });
   }
@@ -104,6 +110,7 @@ export class ModelEditor {
     const classifier: Classifier | undefined = model.classifiers.find(
       (item: Classifier): boolean => item.id === nodeId && item.kind === 'Node',
     );
+
     if (classifier?.kind !== 'Node') throw new Error(`Node not found: '${nodeId}'`);
     return classifier;
   }

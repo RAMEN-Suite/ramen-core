@@ -1,11 +1,9 @@
 import { compileSchema, SchemaNode } from 'json-schema-library';
-import { FileParts } from '../../model/exchange/File';
-import type { ModelFile, Owned } from '../../model/exchange/File';
+import { FileParts, type ModelFile, type Owned } from '../../model/exchange/File';
 import type { Id, Model } from '../../model/Types';
 import type { ProjectValidationResult } from '../../model/validation/ModelValidator';
 import { RamenValidator } from '../validation/ModelValidator';
-import { RamenModelFormat } from '../Document';
-import type { RamenModelDocument } from '../Document';
+import { RamenModelFormat, type RamenModelDocument } from '../Document';
 import type { RamenAnnotation } from '../annotations/Definitions';
 import fileSchema from '../../resources/schemas/ramen-file.schema.json';
 
@@ -29,6 +27,7 @@ export class RamenFiles {
       const { annotations: _annotations, ...rest }: RamenModelDocument = model;
       return rest;
     });
+
     return structuredClone({
       ...FileParts.merge(id, core, fileSchema.$id),
       annotations: selected.flatMap((model: Model): Owned<RamenAnnotation>[] =>
@@ -48,6 +47,7 @@ export class RamenFiles {
     );
     const owners: ReadonlyMap<Id, Model> = new Map<Id, Model>(models.map((model: Model): [Id, Model] => [model.id, model]));
     const groups: Map<Id, RamenAnnotation[]> = new Map<Id, RamenAnnotation[]>();
+
     for (const entry of file.annotations) {
       const { modelId, ...annotation }: Owned<RamenAnnotation> = entry;
       const owner: Model | undefined = owners.get(modelId);
@@ -57,6 +57,7 @@ export class RamenFiles {
       groups.set(modelId, group);
       owner.annotations = group;
     }
+
     FileParts.assertValid(new RamenValidator().validateProject(file.id, models), models.length);
     return models;
   }

@@ -1,10 +1,8 @@
-import { DiagnosticPath, Diagnostics } from '../../model/validation/Diagnostics';
-import { ModelValidator } from '../../model/validation/ModelValidator';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from '../../model/validation/Diagnostics';
+import { ModelValidator, type ProjectValidationResult } from '../../model/validation/ModelValidator';
 import { ModelSchemaValidator } from '../../model/validation/ModelSchema';
 import { ProjectGraph } from '../../model/graph/ProjectGraph';
 import { VALIDATION_ERROR } from '../../model/validation/Codes';
-import type { Diagnostic } from '../../model/validation/Diagnostics';
-import type { ProjectValidationResult } from '../../model/validation/ModelValidator';
 import type { Model, Id } from '../../model/Types';
 import { RamenAnnotations } from '../annotations/Definitions';
 import { RamenModelFormat } from '../Document';
@@ -43,6 +41,7 @@ export class RamenValidator {
     const root: unknown = inputs.find(
       (input: unknown): boolean => typeof input === 'object' && input !== null && 'id' in input && input.id === rootModelId,
     );
+
     if (!RamenModelFormat.isDocument(root)) {
       return [
         Diagnostics.error({
@@ -53,6 +52,7 @@ export class RamenValidator {
         }),
       ];
     }
+
     if (!graph.getModels().some((model: Model): boolean => model.id === RAMEN_MODEL.id)) {
       return [
         Diagnostics.error({
@@ -83,6 +83,7 @@ export class RamenValidator {
       const code: string = RamenAnnotations.hasValidSection(input)
         ? VALIDATION_ERROR.SCHEMA_INVALID
         : RAMEN_VALIDATION_ERROR.ANNOTATIONS_INVALID;
+
       diagnostics.push(
         Diagnostics.error({ code, message: `Model '${input.id}' does not match the RAMEN project schema.`, path, ref: input.id }),
       );

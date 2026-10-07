@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type {
-  Attribute,
-  DataType,
-  Literal,
-  Model,
-  ModelChange,
-  ModelInstanceGraph,
-  Node,
-  NodeRelationSuggestion,
-  NodeSuggestion,
-  Relation,
-  RelationSuggestion,
+import {
+  DataTypes,
+  Modeller,
+  type Attribute,
+  type DataType,
+  type Literal,
+  type Model,
+  type ModelChange,
+  type ModelInstanceGraph,
+  type Node,
+  type NodeRelationSuggestion,
+  type NodeSuggestion,
+  type Relation,
+  type RelationSuggestion,
 } from '@ramen-suite/core/model';
 
 void test('properties, data types and literals remain editable by stable ID', (): void => {
@@ -93,6 +94,7 @@ void test('suggestions include same-level refinements and permitted connections'
 
   const next: Modeller = model.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: document }).element;
+
   assert.ok(next.suggestNodes().some((item: NodeSuggestion): boolean => item.nodeId === page.id));
   assert.ok(next.suggestNodes().some((item: NodeSuggestion): boolean => item.nodeId === document.id));
 });

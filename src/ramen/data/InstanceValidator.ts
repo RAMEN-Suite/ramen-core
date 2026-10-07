@@ -1,15 +1,13 @@
 import { ModelRelationScope } from '../../model/graph/RelationScope';
 import { AnnotationProperties } from '../annotations/Properties';
-import { DiagnosticPath, Diagnostics } from '../../model/validation/Diagnostics';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from '../../model/validation/Diagnostics';
 import { EffectiveModel } from '../../model/graph/EffectiveModel';
 import { InstanceSchemaValidator } from '../../model/data/InstanceSchema';
 import { InstanceValidator } from '../../model/data/InstanceValidator';
-import { ProjectGraph } from '../../model/graph/ProjectGraph';
+import { ProjectGraph, type ResolvedElement } from '../../model/graph/ProjectGraph';
 import { ConstraintRegistry } from '../../model/validation/Constraints';
-import type { Diagnostic } from '../../model/validation/Diagnostics';
 import type { ModelInstanceNode, ModelInstanceRelation } from '../../model/data/InstanceTypes';
 import type { ProjectValidationResult, ValidationResult } from '../../model/validation/ModelValidator';
-import type { ResolvedElement } from '../../model/graph/ProjectGraph';
 import type { Bounds, Attribute, Model, Node, Id, Ref } from '../../model/Types';
 import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions';
 import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex';
@@ -56,6 +54,7 @@ export class RamenInstanceValidator {
     if (!InstanceSchemaValidator.isValid(input)) return base;
     const diagnostics: Diagnostic[] = [...base.diagnostics];
     const connections: ReadonlyMap<Id, readonly ModelInstanceRelation[]> = this.indexRelations(input.relations);
+
     input.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       const connected: readonly ModelInstanceRelation[] = connections.get(node.id) ?? [];
       this.validateAnnotationNode(project.graph, annotations, rootModelId, node, index, connected, diagnostics);
@@ -94,6 +93,7 @@ export class RamenInstanceValidator {
     const byName: Map<string, Attribute> = new Map<string, Attribute>(
       attributes.map((item: Attribute): [string, Attribute] => [item.name, item]),
     );
+
     for (const item of AnnotationProperties.resolve(graph, definition, type)) byName.set(item.name, item);
     return [...byName.values()];
   }
@@ -138,6 +138,7 @@ export class RamenInstanceValidator {
 
       return;
     }
+
     this.validateProperties(graph, resolved, selected, node, path, diagnostics);
     this.validateRelations(graph, selected, modelId, node, path, connected, diagnostics);
   }
@@ -212,6 +213,7 @@ export class RamenInstanceValidator {
       path,
       diagnostics,
     );
+
     for (const requirement of requirements) {
       const count: number = counts.get(requirement) ?? 0;
       if (!this.within(count, requirement.bounds))

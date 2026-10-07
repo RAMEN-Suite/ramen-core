@@ -105,6 +105,7 @@ function resolveImports(rootModelId: Id, state: GraphBuildState): void {
       return target === undefined ? [] : [target];
     });
   };
+
   walkGraph([rootModelId], children, (cycle: readonly string[]): void => {
     state.diagnostics.push(error('IMPORT_CYCLE', `Import cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
   });
@@ -128,6 +129,7 @@ function resolveImportedModel(
 
     return;
   }
+
   if (modelImport.modelUri !== importedModel.$id) {
     state.diagnostics.push(
       error(
@@ -137,6 +139,7 @@ function resolveImportedModel(
       ),
     );
   }
+
   if (modelImport.version !== importedModel.version) {
     state.diagnostics.push(
       error(
@@ -254,6 +257,7 @@ function visibleModels(modelId: Id, state: GraphBuildState): ReadonlySet<Id> {
     const model: Model | undefined = state.modelsById.get(id);
     for (const imported of model?.imports ?? []) pending.push(imported.modelId);
   }
+
   state.visibleModels.set(modelId, visible);
   return visible;
 }
@@ -266,6 +270,7 @@ function validateInheritanceCycles(state: GraphBuildState): void {
     addInheritanceEdges(edges, modelId, 'node', [...index.nodesById.values()]);
     addInheritanceEdges(edges, modelId, 'relation', [...index.relationsById.values()]);
   }
+
   walkGraph(
     [...edges.keys()],
     (key: string): readonly string[] => edges.get(key) ?? [],

@@ -136,6 +136,7 @@ export class ModelAdvisor {
       ...this.relations.bases(modelId),
     ];
     const matches: Map<Ref, RelationSelection> = new Map<Ref, RelationSelection>();
+
     for (const item of choices) {
       if (!this.matchesEndpoints(item, source, target)) continue;
       const ref: Ref = ModelRef.qualify(item.modelId, item.element.id);
@@ -148,6 +149,7 @@ export class ModelAdvisor {
   public suggestNodes(modelId: Id): readonly NodeSuggestion[] {
     const current: Model | undefined = this.graph.getModel(modelId);
     const models: readonly Model[] = current ? [current, ...this.importedModels(modelId)] : this.importedModels(modelId);
+
     return models
       .flatMap((model: Model): NodeSuggestion[] =>
         model.classifiers.flatMap((classifier): NodeSuggestion[] => {
@@ -184,6 +186,7 @@ export class ModelAdvisor {
         });
       },
     );
+
     return [...builtins, ...declared].sort((left: DataTypeSuggestion, right: DataTypeSuggestion): number =>
       left.name.localeCompare(right.name),
     );
@@ -205,6 +208,7 @@ export class ModelAdvisor {
     for (const item of [...this.relations.bases(modelId), ...this.relations.available(modelId)]) {
       choices.set(ModelRef.qualify(item.modelId, item.element.id), item);
     }
+
     return [...choices.values()]
       .flatMap((item: ResolvedElement<Relation>): RelationSuggestion[] => {
         const relation: Relation = item.element;
@@ -230,6 +234,7 @@ export class ModelAdvisor {
     if (!actual) return { allowed: false, conflicts: [] };
     const attributes: readonly AttributeInfo[] = this.getAttributes(modelId, nodeId);
     const conflicts: 'attribute'[] = [];
+
     if (attributes.some((attribute: AttributeInfo): boolean => attribute.name === name)) conflicts.push('attribute');
     return { allowed: conflicts.length === 0, conflicts: conflicts };
   }
@@ -257,6 +262,7 @@ export class ModelAdvisor {
     return lineage.flatMap((owner: ResolvedElement<Node>): AttributeInfo[] => {
       const declaredBy: NodeLineageItem = this.lineageItem(owner, actual.modelId);
       const inherited: boolean = owner.modelId !== actual.modelId || owner.element.id !== actual.element.id;
+
       return owner.element.attributes.map((attribute: Attribute): AttributeInfo => {
         const localType: boolean = owner.modelId === actual.modelId || BuiltinDataTypes.isBuiltin(attribute.typeId);
         const qualified: boolean = ModelRef.isQualified(attribute.typeId);

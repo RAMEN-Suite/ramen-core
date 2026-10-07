@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Modeller } from '@ramen-suite/core/model';
-import type {
-  Constraint,
-  Diagnostic,
-  Model,
-  ModelChange,
-  Node,
-  Relation,
-  RelationRemovalPreview,
-  RelationSelection,
-  RelationSuggestion,
-  WorkspaceElement,
+import {
+  Modeller,
+  type Constraint,
+  type Diagnostic,
+  type Model,
+  type ModelChange,
+  type Node,
+  type Relation,
+  type RelationRemovalPreview,
+  type RelationSelection,
+  type RelationSuggestion,
+  type WorkspaceElement,
 } from '@ramen-suite/core/model';
 
 void test('a refined relation accepts a local name and constraint at creation', (): void => {
@@ -54,12 +54,15 @@ void test('relation bounds can narrow but cannot widen a preceding level', (): v
     from: { node: page },
     to: { node: section, bounds: { lowerBound: 0, upperBound: 1 } },
   }).element;
+
   assert.equal(narrowed.name, 'FILED_IN');
 
   assert.equal(next.validate().valid, true);
+
   const widened: ModelChange<Relation> = next.updateRelation(narrowed.id, {
     to: { ...narrowed.to, bounds: { lowerBound: 0, upperBound: 3 } },
   });
+
   assert.equal(widened.validation.valid, false);
   assert.ok(widened.validation.diagnostics.some((item: Diagnostic): boolean => item.code === 'RELATION_BOUNDS_WIDENED'));
 
@@ -95,6 +98,7 @@ void test('relation removal previews and rejects dependencies, then cascades acr
   const before: readonly Model[] = base.getModels();
 
   const preview: RelationRemovalPreview = base.previewRelationRemoval(filedIn.id);
+
   assert.deepEqual(
     preview.relations.map((item: WorkspaceElement): string => item.elementId),
     [filedIn.id, pageFiledIn.id, letterFiledIn.id, postFiledIn.id],
@@ -146,6 +150,7 @@ void test('parallel relationships require an explicit modelling choice', (): voi
 
   const selected: Relation = next.createRelation({ refines: copiedTo, from: { node: page }, to: { node: section } }).element;
   const existing: readonly RelationSelection[] = next.getRelations(page, section);
+
   assert.equal(selected.name, 'COPIED_TO');
   assert.ok(existing.some((item: RelationSelection): boolean => item.ref === `${next.getModel().id}:${selected.id}`));
 });

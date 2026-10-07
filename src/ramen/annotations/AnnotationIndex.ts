@@ -1,6 +1,5 @@
 import { ModelRef } from '../../model/graph/References';
-import { ProjectGraph } from '../../model/graph/ProjectGraph';
-import type { ResolvedElement } from '../../model/graph/ProjectGraph';
+import { ProjectGraph, type ResolvedElement } from '../../model/graph/ProjectGraph';
 import type { Model, Node, Id, Ref } from '../../model/Types';
 import { RamenAnnotation } from './Definitions';
 import { RamenModelFormat } from '../Document';
@@ -39,6 +38,7 @@ export class AnnotationIndex {
     if (!node) return;
     const key: Ref = ModelRef.qualify(node.modelId, node.element.id);
     const definitions: ResolvedAnnotation[] = this.annotationsByNode.get(key) ?? [];
+
     definitions.push(definition);
     this.annotationsByNode.set(key, definitions);
   }
@@ -67,6 +67,7 @@ export class AnnotationIndex {
       modelId,
       ...this.graph.getTransitiveImports(modelId).map((model: Model): Id => model.id),
     ]);
+
     return lineage.flatMap((owner: ResolvedElement<Node>): ResolvedAnnotation[] => {
       const key: Ref = ModelRef.qualify(owner.modelId, owner.element.id);
       return (this.annotationsByNode.get(key) ?? []).filter((definition: ResolvedAnnotation): boolean =>

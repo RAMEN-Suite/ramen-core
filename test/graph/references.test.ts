@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, ModelValidator, Modeller } from '@ramen-suite/core/model';
-import type { DataType, Diagnostic, Model, Node, ProjectValidationResult } from '@ramen-suite/core/model';
+import {
+  DataTypes,
+  ModelValidator,
+  Modeller,
+  type DataType,
+  type Diagnostic,
+  type Model,
+  type Node,
+  type ProjectValidationResult,
+} from '@ramen-suite/core/model';
 
 function expectInvalid(rootId: string, models: readonly Model[], code: string): void {
   const result: ProjectValidationResult = new ModelValidator().validateProject(rootId, models);
   const finding: Diagnostic | undefined = result.diagnostics.find((item: Diagnostic): boolean => item.code === code);
+
   assert.equal(result.valid, false);
   assert.equal('graph' in result, false);
   assert.ok(finding, JSON.stringify(result.diagnostics));
@@ -46,6 +55,7 @@ void test('raw model inputs cannot bypass node refinement and inherited property
   const page: Node = next.createNode({ name: 'Page', refines: file }).element;
   const raw: Model = next.getModel();
   const independent: Node = { ...page, superTypes: [] };
+
   raw.classifiers = [independent];
 
   expectInvalid(raw.id, [raw, base.getModel()], 'NODE_REFINEMENT_REQUIRED');

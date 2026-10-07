@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProjectGraph, DataTypes, EffectiveModel, Modeller, ModelRef } from '@ramen-suite/core/model';
-import type {
-  DataType,
-  Diagnostic,
-  Model,
-  Node,
-  ProjectGraph,
-  ProjectGraphResult,
-  Relation,
-  ResolvedElement,
+import {
+  buildProjectGraph,
+  DataTypes,
+  EffectiveModel,
+  Modeller,
+  ModelRef,
+  type DataType,
+  type Diagnostic,
+  type Model,
+  type Node,
+  type ProjectGraph,
+  type ProjectGraphResult,
+  type Relation,
+  type ResolvedElement,
 } from '@ramen-suite/core/model';
 
 void test('the public graph resolves imports, inheritance and effective properties', (): void => {
@@ -78,6 +82,7 @@ void test('the public graph queries keep model and element identities distinct',
   const resolvedFile: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, file.id);
   const resolvedPage: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, webPage.id);
   const resolvedRelation: ResolvedElement<Relation> | undefined = graph.resolveRelation(modelId, membership.id);
+
   assert.ok(resolvedFile && resolvedPage && resolvedRelation);
 
   assert.equal(graph.hasModel(modelId), true);

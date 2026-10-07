@@ -65,6 +65,7 @@ export class ProjectGraph {
     const visited: Set<Id> = new Set<Id>();
 
     const pending: Model[] = [...this.getImportedModels(modelId)].reverse();
+
     while (pending.length > 0) {
       const imported: Model | undefined = pending.pop();
       if (!imported || visited.has(imported.id)) continue;
@@ -139,6 +140,7 @@ export class ProjectGraph {
       modelId,
       (ownerId: Id, ref: Ref): ResolvedElement<Node> | undefined => this.resolveNode(ownerId, ref),
     );
+
     this.nodeAncestorCache.set(key, ancestors);
     return ancestors;
   }
@@ -153,6 +155,7 @@ export class ProjectGraph {
       modelId,
       (ownerId: Id, ref: Ref): ResolvedElement<Relation> | undefined => this.resolveRelation(ownerId, ref),
     );
+
     this.relationAncestorCache.set(key, ancestors);
     return ancestors;
   }

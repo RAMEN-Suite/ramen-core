@@ -57,6 +57,7 @@ export class ModelValidator {
         );
       }
     });
+
     if (diagnostics.length > 0) return { valid: false, diagnostics: diagnostics, hasErrors: true };
 
     return this.validateModels(rootModelId, models, selections);

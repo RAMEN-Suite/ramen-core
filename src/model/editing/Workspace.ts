@@ -126,6 +126,7 @@ export class ModelWorkspace {
         ),
       };
     });
+
     this.updateMany(replacements);
     return structuredClone(updated);
   }
@@ -135,6 +136,7 @@ export class ModelWorkspace {
     if (!this.models.has(id)) throw new Error(`Model not found: '${id}'.`);
     const models: { id: Id; name: string }[] = [];
     const children: Map<Id, Id[]> = new Map<Id, Id[]>();
+
     for (const model of this.models.values()) {
       for (const entry of model.imports) {
         const siblings: Id[] = children.get(entry.modelId) ?? [];
@@ -171,6 +173,7 @@ export class ModelWorkspace {
   public dependenciesOf(id: Id): ReadonlyMap<Id, Model> {
     const dependencies: Map<Id, Model> = new Map<Id, Model>();
     const pending: Id[] = [id];
+
     while (pending.length > 0) {
       const current: Id | undefined = pending.pop();
       if (!current) continue;
@@ -183,6 +186,7 @@ export class ModelWorkspace {
         pending.push(imported.id);
       }
     }
+
     dependencies.delete(id);
     return dependencies;
   }
@@ -213,6 +217,7 @@ export class ModelWorkspace {
         const item: WorkspaceElement = { modelId: model.id, elementId: classifier.id };
         for (const parent of classifier.superTypes) append(nodeChildren, keyFor(parent, model.id), item);
       }
+
       for (const relation of model.relations) {
         const item: WorkspaceElement = { modelId: model.id, elementId: relation.id };
         append(incidentRelations, keyFor(relation.from.nodeId, model.id), item);
@@ -226,6 +231,7 @@ export class ModelWorkspace {
   private collectNodes(target: WorkspaceElement, children: ReadonlyMap<string, readonly WorkspaceElement[]>): WorkspaceElement[] {
     const nodes: WorkspaceElement[] = [target];
     const nodeKeys: Set<string> = new Set<string>([keyOf(target)]);
+
     for (const node of nodes) {
       for (const child of children.get(keyOf(node)) ?? []) {
         if (nodeKeys.has(keyOf(child))) continue;
@@ -249,11 +255,13 @@ export class ModelWorkspace {
   ): WorkspaceElement[] {
     const relations: WorkspaceElement[] = [];
     const relationKeys: Set<string> = new Set<string>();
+
     for (const relation of seeds) {
       if (relationKeys.has(keyOf(relation))) continue;
       relationKeys.add(keyOf(relation));
       relations.push(relation);
     }
+
     for (const relation of relations) {
       for (const child of children.get(keyOf(relation)) ?? []) {
         if (relationKeys.has(keyOf(child))) continue;

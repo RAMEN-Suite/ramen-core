@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller } from '@ramen-suite/core/model';
+import { DataTypes, ModelRef, Modeller } from '@ramen-suite/core/model';
 import type {
   Attribute,
   AttributeInfo,
@@ -19,6 +19,64 @@ import type {
   Relation,
   WorkspaceElement,
 } from '@ramen-suite/core/model';
+
+void test('element getters read local and imported definitions without exposing the draft', (): void => {
+  const filing: Modeller = Modeller.create('Filing');
+  const document: Node = filing.createNode('Document').element;
+  const folder: Node = filing.createNode('Folder').element;
+  const status: DataType = filing.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
+  const filedIn: Relation = filing.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
+  const website: Modeller = filing.createNextLevel('Website');
+  const page: Node = website.createNode({ name: 'Page', refines: document }).element;
+
+  const imported: Node | undefined = website.getNode(document.id);
+  const qualified: Node | undefined = website.getNode(ModelRef.qualify(filing.getModel().id, document.id));
+  const local: Node | undefined = website.getNode(page.id);
+  const importedType: DataType | undefined = website.getDataType(status.id);
+  const importedRelation: Relation | undefined = website.getRelation(filedIn.id);
+
+  assert.equal(imported?.name, 'Document');
+  assert.deepEqual(qualified, imported);
+  assert.equal(local?.name, 'Page');
+  assert.equal(importedType?.name, 'Status');
+  assert.equal(importedRelation?.name, 'FILED_IN');
+  assert.equal(website.getNode('missing'), undefined);
+  assert.equal(website.getDataType(DataTypes.String), undefined);
+  assert.equal(website.getRelation('missing'), undefined);
+
+  if (!imported || !importedType || !importedRelation) throw new Error('Expected imported definitions.');
+  imported.name = 'Changed locally';
+  importedType.name = 'Changed locally';
+  importedRelation.name = 'Changed locally';
+
+  assert.equal(website.getNode(document.id)?.name, 'Document');
+  assert.equal(website.getDataType(status.id)?.name, 'Status');
+  assert.equal(website.getRelation(filedIn.id)?.name, 'FILED_IN');
+});
+
+void test('most specific node accepts definitions or a lineage and rejects incomparable branches', (): void => {
+  const model: Modeller = Modeller.create('Filing');
+  const document: Node = model.createNode('Document').element;
+  const letter: Node = model.createNode({ name: 'Letter', refines: document }).element;
+  const note: Node = model.createNode({ name: 'Note', refines: document }).element;
+  const privateLetter: Node = model.createNode({ name: 'PrivateLetter', refines: letter }).element;
+
+  const lineage: readonly NodeLineageItem[] = model.getNodeLineage(privateLetter);
+  const fromLineage: Node | undefined = model.getMostSpecificNode(lineage);
+  const fromNodes: Node | undefined = model.getMostSpecificNode([document, letter, privateLetter]);
+
+  assert.equal(fromLineage?.id, privateLetter.id);
+  assert.equal(fromNodes?.id, privateLetter.id);
+  assert.equal(model.getMostSpecificNode([note, privateLetter]), undefined);
+  assert.equal(model.getMostSpecificNode([]), undefined);
+  assert.throws((): Node | undefined => model.getMostSpecificNode(['missing']), /Expected one node/);
+
+  const website: Modeller = model.createNextLevel('Website');
+  const page: Node = website.createNode({ name: 'Page', refines: document }).element;
+  const acrossLevels: Node | undefined = website.getMostSpecificNode([document, page]);
+
+  assert.equal(acrossLevels?.id, page.id);
+});
 
 void test('levels share edits while an explicit snapshot keeps the earlier state', (): void => {
   const base: Modeller = Modeller.create('Filing');

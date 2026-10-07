@@ -3,6 +3,7 @@ import test from 'node:test';
 import { ConstraintRegistry, DataTypes, Diagnostics, Modeller } from '@ramen-suite/core/model';
 import type {
   Attribute,
+  BuiltinType,
   Constraint,
   ConstraintContext,
   DataType,
@@ -199,6 +200,99 @@ void test('model validation rejects a second key along one inheritance chain', (
   assert.equal(id.isKey, true);
   assert.equal(duplicate.isKey, true);
   assert.ok(model.validateNode(editor).diagnostics.some((item: Diagnostic): boolean => item.code === 'ATTRIBUTE_MULTIPLE_KEYS'));
+});
+
+interface ObjectKeys {
+  readonly model: Modeller;
+  readonly personRef: string;
+  readonly editor: Node;
+}
+
+function objectKeyModel(): ObjectKeys {
+  const base: Modeller = Modeller.create('People');
+  const person: Node = base.createNode('Person').element;
+  const identifier: DataType = base.createDataType({ name: 'Identifier', baseType: DataTypes.Object }).element;
+  base.createAttribute(person, {
+    name: 'identifier',
+    type: identifier,
+    bounds: { lowerBound: 1, upperBound: 1 },
+    isKey: true,
+  });
+  const edition: Modeller = base.createNextLevel('Edition');
+  const editor: Node = edition.createNode({ name: 'Editor', refines: person }).element;
+  return { model: edition, personRef: `${base.getModel().id}:${person.id}`, editor };
+}
+
+void test('Object keys compare JSON content across inherited records, independently of member order', (): void => {
+  const fixture: ObjectKeys = objectKeyModel();
+  const edition: Modeller = fixture.model;
+  const editor: Node = fixture.editor;
+  const records: ModelInstanceGraph = {
+    nodes: [
+      {
+        id: 'personRecord0001',
+        typeId: fixture.personRef,
+        properties: { identifier: { source: 'archive', code: { parts: ['A', 'B'], number: 7 } } },
+      },
+      {
+        id: 'editorRecord0001',
+        typeId: editor.id,
+        properties: { identifier: { code: { number: 7, parts: ['A', 'B'] }, source: 'archive' } },
+      },
+    ],
+    relations: [],
+  };
+  const result: ValidationResult = edition.validateInstances(records);
+  const duplicate: Diagnostic | undefined = result.diagnostics.find(
+    (item: Diagnostic): boolean => item.code === 'INSTANCE_KEY_DUPLICATE',
+  );
+
+  assert.ok(duplicate);
+  assert.deepEqual(
+    { severity: duplicate.severity, path: duplicate.path, ref: duplicate.ref },
+    { severity: 'error', path: '/nodes/1/properties/identifier', ref: 'editorRecord0001' },
+  );
+
+  const distinct: ModelInstanceGraph = {
+    ...records,
+    nodes: records.nodes.map((record: ModelInstanceGraph['nodes'][number]): ModelInstanceGraph['nodes'][number] =>
+      record.typeId === editor.id
+        ? { ...record, properties: { identifier: { source: 'archive', code: { parts: ['B', 'A'], number: 7 } } } }
+        : record,
+    ),
+  };
+  assert.equal(edition.validateInstances(distinct).hasErrors, false);
+});
+
+void test('built-in keys reject repeated values without sharing keys between unrelated node types', (): void => {
+  const cases: readonly (readonly [BuiltinType, unknown])[] = [
+    [DataTypes.String, 'same'],
+    [DataTypes.Integer, 7],
+    [DataTypes.Float, 1.5],
+    [DataTypes.Boolean, true],
+    [DataTypes.Object, { code: 'same' }],
+  ];
+  for (const [typeId, value] of cases) {
+    const model: Modeller = Modeller.create('Keys');
+    const first: Node = model.createNode('First').element;
+    const second: Node = model.createNode('Second').element;
+    model.createAttribute(first, { name: 'key', typeId, isKey: true, bounds: { lowerBound: 1, upperBound: 1 } });
+    model.createAttribute(second, { name: 'key', typeId, isKey: true, bounds: { lowerBound: 1, upperBound: 1 } });
+    const data: ModelInstanceGraph = {
+      nodes: [
+        { id: 'firstRecord00001', typeId: first.id, properties: { key: value } },
+        { id: 'secondRecord0001', typeId: second.id, properties: { key: structuredClone(value) } },
+      ],
+      relations: [],
+    };
+    assert.equal(model.validateInstances(data).hasErrors, false, typeId);
+
+    const repeated: ModelInstanceGraph = {
+      ...data,
+      nodes: [...data.nodes, { id: 'thirdRecord00001', typeId: first.id, properties: { key: structuredClone(value) } }],
+    };
+    assert.equal(model.validateInstances(repeated).diagnostics[0]?.code, 'INSTANCE_KEY_DUPLICATE', typeId);
+  }
 });
 
 void test('an invalid recorded data shape is reported before semantic checks', (): void => {

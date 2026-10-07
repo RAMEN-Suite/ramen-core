@@ -1,5 +1,5 @@
-import { ModelEvolution, type EvolutionChange, type EvolutionReport } from '../../model/exchange/Comparison';
-import type { Id, Model } from '../../model/Types';
+import { ModelEvolution, type EvolutionChange, type EvolutionReport, type Id, type Model } from '../../model';
+
 import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions';
 import { RamenModelFormat } from '../Document';
 import { RamenValidator } from '../validation/ModelValidator';

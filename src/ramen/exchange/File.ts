@@ -1,7 +1,7 @@
 import { compileSchema, SchemaNode } from 'json-schema-library';
-import { FileParts, type ModelFile, type Owned } from '../../model/exchange/File';
-import type { Id, Model } from '../../model/Types';
-import type { ProjectValidationResult } from '../../model/validation/ModelValidator';
+import type { ModelFile, Owned, Id, Model, ProjectValidationResult } from '../../model';
+import { FileParts } from '../../model/exchange/File';
+
 import { RamenValidator } from '../validation/ModelValidator';
 import { RamenModelFormat, type RamenModelDocument } from '../Document';
 import type { RamenAnnotation } from '../annotations/Definitions';

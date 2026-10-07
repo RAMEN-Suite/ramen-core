@@ -1,9 +1,16 @@
 import { BuiltinDataTypes } from '../../model/Builtins';
-import { EffectiveModel } from '../../model/graph/EffectiveModel';
-import { ModelRef } from '../../model/graph/References';
-import { Diagnostics, DiagnosticPath, type Diagnostic } from '../../model/validation/Diagnostics';
-import type { ProjectGraph, ResolvedElement } from '../../model/graph/ProjectGraph';
-import type { Attribute, Node } from '../../model/Types';
+import {
+  EffectiveModel,
+  ModelRef,
+  Diagnostics,
+  DiagnosticPath,
+  type Diagnostic,
+  type ProjectGraph,
+  type ResolvedElement,
+  type Attribute,
+  type Node,
+} from '../../model';
+
 import { Cardinality } from '../../model/validation/Cardinality';
 import type { AnnotationProperty } from './Definitions';
 import type { ResolvedAnnotation } from './AnnotationIndex';

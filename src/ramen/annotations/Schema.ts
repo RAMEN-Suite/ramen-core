@@ -1,4 +1,5 @@
-import { ModelSchemaValidator } from '../../model/validation/ModelSchema';
+import { ModelSchemaValidator } from '../../model';
+
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import schema from '../../resources/schemas/ramen-annotations.schema.json';
 

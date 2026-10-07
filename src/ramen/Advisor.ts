@@ -1,8 +1,15 @@
-import { ModelAdvisor, NodeRelationSuggestion } from '../model/Advisor';
-import { ModelRef } from '../model/graph/References';
-import type { Model, Node, Id, Ref } from '../model/Types';
-import type { ResolvedElement } from '../model/graph/ProjectGraph';
-import type { ValidProjectResult } from '../model/validation/ModelValidator';
+import {
+  ModelAdvisor,
+  type NodeRelationSuggestion,
+  ModelRef,
+  type Model,
+  type Node,
+  type Id,
+  type Ref,
+  type ResolvedElement,
+  type ValidProjectResult,
+} from '../model';
+
 import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions';
 import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex';
 import { AnnotationOptions, PropertyOption, RelationOption, AnnotationAdvisor } from './annotations/Advisor';

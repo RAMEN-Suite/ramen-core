@@ -1,9 +1,16 @@
-import { DiagnosticPath, Diagnostics, type Diagnostic } from '../../model/validation/Diagnostics';
-import { ModelValidator, type ProjectValidationResult } from '../../model/validation/ModelValidator';
-import { ModelSchemaValidator } from '../../model/validation/ModelSchema';
-import { ProjectGraph } from '../../model/graph/ProjectGraph';
-import { VALIDATION_ERROR } from '../../model/validation/Codes';
-import type { Model, Id } from '../../model/Types';
+import {
+  DiagnosticPath,
+  Diagnostics,
+  type Diagnostic,
+  ModelValidator,
+  type ProjectValidationResult,
+  ModelSchemaValidator,
+  ProjectGraph,
+  VALIDATION_ERROR,
+  type Model,
+  type Id,
+} from '../../model';
+
 import { RamenAnnotations } from '../annotations/Definitions';
 import { RamenModelFormat } from '../Document';
 import { RAMEN_MODEL } from '../ReferenceModel';

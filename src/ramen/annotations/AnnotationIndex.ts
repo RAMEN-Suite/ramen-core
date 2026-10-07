@@ -1,6 +1,5 @@
-import { ModelRef } from '../../model/graph/References';
-import { ProjectGraph, type ResolvedElement } from '../../model/graph/ProjectGraph';
-import type { Model, Node, Id, Ref } from '../../model/Types';
+import { ModelRef, ProjectGraph, type ResolvedElement, type Model, type Node, type Id, type Ref } from '../../model';
+
 import { RamenAnnotation } from './Definitions';
 import { RamenModelFormat } from '../Document';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';

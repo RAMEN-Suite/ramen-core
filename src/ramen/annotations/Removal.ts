@@ -1,7 +1,17 @@
-import { ModelRef } from '../../model/graph/References';
-import { ModelWorkspace, NodeRemovalPreview, WorkspaceElement } from '../../model/editing/Workspace';
-import type { Attribute, Id, Model, Ref } from '../../model/Types';
-import type { ElementRef, Removal } from '../../model/editing/Inputs';
+import {
+  ModelRef,
+  type NodeRemovalPreview,
+  type WorkspaceElement,
+  type Attribute,
+  type Id,
+  type Model,
+  type Ref,
+  type ElementRef,
+} from '../../model';
+
+import { ModelWorkspace } from '../../model/editing/Workspace';
+
+import type { Removal } from '../../model/editing/Inputs';
 import { RamenModelFormat, type RamenModelDocument } from '../Document';
 import { RamenAnnotations, type AnnotationProperty, type AnnotationRelation, type RamenAnnotation } from './Definitions';
 

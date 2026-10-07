@@ -1,18 +1,37 @@
 import { ModelDraft } from '../model/editing/Draft';
-import { ModelWorkspace, NodeRemovalPreview, WorkspaceElement } from '../model/editing/Workspace';
-import type { ElementInput, ElementRef, AttributeInput, ModelInput, ModelChange, Removal } from '../model/editing/Inputs';
-import { ModelFactory } from '../model/editing/Factory';
-import { ModelRef } from '../model/graph/References';
-import type { RelationSelection } from '../model/Advisor';
-import type { RelationSelections } from '../model/graph/RelationScope';
-import { ConstraintRegistry } from '../model/validation/Constraints';
+import {
+  type NodeRemovalPreview,
+  type WorkspaceElement,
+  type ElementInput,
+  type ElementRef,
+  type AttributeInput,
+  type ModelInput,
+  type ModelChange,
+  ModelFactory,
+  ModelRef,
+  type RelationSelection,
+  type RelationSelections,
+  ConstraintRegistry,
+  type ResolvedElement,
+  type Diagnostic,
+  type ProjectValidationResult,
+  type ValidProjectResult,
+  type ValidationResult,
+  type Attribute,
+  type Bounds,
+  type Id,
+  type Model,
+  type Node,
+  type Ref,
+  type Relation,
+} from '../model';
+import { ModelWorkspace } from '../model/editing/Workspace';
+import type { Removal } from '../model/editing/Inputs';
+
 import { InstanceValueValidator } from '../model/data/InstanceValues';
 import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex';
 import { AnnotationProperties } from './annotations/Properties';
-import type { ResolvedElement } from '../model/graph/ProjectGraph';
-import type { Diagnostic } from '../model/validation/Diagnostics';
-import type { ProjectValidationResult, ValidProjectResult, ValidationResult } from '../model/validation/ModelValidator';
-import type { Attribute, Bounds, Id, Model, Node, Ref, Relation } from '../model/Types';
+
 import {
   RamenAnnotation,
   AnnotationProperty,

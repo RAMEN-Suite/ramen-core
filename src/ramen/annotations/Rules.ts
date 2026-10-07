@@ -1,10 +1,23 @@
 import { AnnotationProperties } from './Properties';
-import { DiagnosticPath, Diagnostics, type Diagnostic } from '../../model/validation/Diagnostics';
+import {
+  DiagnosticPath,
+  Diagnostics,
+  type Diagnostic,
+  ModelRef,
+  ProjectGraph,
+  type ResolvedElement,
+  type Bounds,
+  type Model,
+  type Node,
+  type Relation,
+  type Id,
+  type Ref,
+} from '../../model';
+
 import { ModelIdentifiers } from '../../model/graph/Identifiers';
-import { ModelRef } from '../../model/graph/References';
-import { ProjectGraph, type ResolvedElement } from '../../model/graph/ProjectGraph';
+
 import { Cardinality } from '../../model/validation/Cardinality';
-import type { Bounds, Model, Node, Relation, Id, Ref } from '../../model/Types';
+
 import { RamenAnnotation, AnnotationRelation } from './Definitions';
 import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
 

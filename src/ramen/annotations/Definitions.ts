@@ -1,5 +1,5 @@
-import type { Attribute, Bounds, Model, Id, Ref } from '../../model/Types';
-import type { RelationSelections } from '../../model/graph/RelationScope';
+import type { Attribute, Bounds, Model, Id, Ref, RelationSelections } from '../../model';
+
 import { RamenAnnotationSchemaValidator } from './Schema';
 import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat, type RamenModelDocument } from '../Document';
 

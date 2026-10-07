@@ -1,14 +1,28 @@
-import { ModelRelationScope } from '../../model/graph/RelationScope';
+import {
+  ModelRelationScope,
+  DiagnosticPath,
+  Diagnostics,
+  type Diagnostic,
+  EffectiveModel,
+  InstanceSchemaValidator,
+  InstanceValidator,
+  ProjectGraph,
+  type ResolvedElement,
+  ConstraintRegistry,
+  type ModelInstanceNode,
+  type ModelInstanceRelation,
+  type ProjectValidationResult,
+  type ValidationResult,
+  type Bounds,
+  type Attribute,
+  type Model,
+  type Node,
+  type Id,
+  type Ref,
+} from '../../model';
+
 import { AnnotationProperties } from '../annotations/Properties';
-import { DiagnosticPath, Diagnostics, type Diagnostic } from '../../model/validation/Diagnostics';
-import { EffectiveModel } from '../../model/graph/EffectiveModel';
-import { InstanceSchemaValidator } from '../../model/data/InstanceSchema';
-import { InstanceValidator } from '../../model/data/InstanceValidator';
-import { ProjectGraph, type ResolvedElement } from '../../model/graph/ProjectGraph';
-import { ConstraintRegistry } from '../../model/validation/Constraints';
-import type { ModelInstanceNode, ModelInstanceRelation } from '../../model/data/InstanceTypes';
-import type { ProjectValidationResult, ValidationResult } from '../../model/validation/ModelValidator';
-import type { Bounds, Attribute, Model, Node, Id, Ref } from '../../model/Types';
+
 import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions';
 import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex';
 import { RamenValidator } from '../validation/ModelValidator';

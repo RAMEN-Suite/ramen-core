@@ -1,7 +1,19 @@
 # Code of conduct
 
-Be respectful, give actionable feedback and keep technical disagreement focused on the work. Harassment, discrimination, threats, sharing private information and sustained disruption are unacceptable.
+## Our standards
 
-These expectations apply in issues, reviews, discussions and other spaces where someone represents RAMEN Core. Contributors remain responsible for reviewing their submissions, including AI-assisted code and documentation.
+We commit to a welcoming, harassment-free community. Be respectful, give actionable feedback, assume good intent while addressing harmful impact, and keep technical disagreement focused on the work.
 
-Report concerns privately through the contact options on the [maintainer's GitHub profile](https://github.com/sebenns). Maintainers will handle reports discreetly and may remove content or restrict participation when necessary.
+Unacceptable behaviour includes harassment, discrimination, sexualised attention, threats, doxxing, sustained disruption, and publishing another person's private information without permission.
+
+## Responsible use of AI
+
+AI-assisted contributions are welcome when they are reviewed and owned by the contributor. Do not use AI to impersonate another person, fabricate evidence or attribution, disclose confidential or personal information, overwhelm maintainers with unreviewed output, or evade licensing and authorship responsibilities. Clearly disclose material AI assistance when it affects provenance, security, licensing, or the reviewability of a contribution.
+
+Generated suggestions never excuse harmful conduct or transfer responsibility away from the person submitting them. Repository-specific implementation rules are documented in [Contributing](CONTRIBUTING.md#coding-conventions).
+
+## Scope and enforcement
+
+These expectations apply in repository discussions, reviews, issues, and other spaces where someone represents RAMEN Core.
+
+Report conduct concerns privately to the repository owner through the contact options on the [maintainer's GitHub profile](https://github.com/sebenns). Do not open a public issue containing sensitive details. Maintainers may edit or remove content and temporarily or permanently restrict participation when necessary. Reports will be reviewed with discretion and without retaliation.

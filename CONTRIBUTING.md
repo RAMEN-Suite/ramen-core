@@ -1,6 +1,6 @@
 # Contributing to RAMEN Core
 
-## Set up the repository
+## Start the repository
 
 ```bash
 nvm use
@@ -9,27 +9,47 @@ npm run prepare
 npm run build
 ```
 
-`.nvmrc` and `package.json` specify the development versions of Node.js and npm. Installation scripts are disabled in `.npmrc`, so run `prepare` explicitly to enable the commit hook. The release cooldown also follows Sushi Kit's installation policy.
+The repository pins its Node.js version in `.nvmrc` and its npm version in `package.json`. Installation scripts are disabled in `.npmrc`, so run `prepare` explicitly to enable the commit hook.
 
-## Find the code
+`src/model/` contains the generic RMF modeller. `src/ramen/` contains the RAMEN API and annotation rules. The RAMEN reference model and JSON schemas live in `src/resources/`. `tools/` contains repository-only generators and build checks.
 
-| Location          | Responsibility                                                       |
-| ----------------- | -------------------------------------------------------------------- |
-| `src/model`       | Generic RMF editing, graph resolution, validation and exchange       |
-| `src/ramen`       | RAMEN reference model integration and annotation rules               |
-| `src/resources`   | Versioned reference model and JSON schemas                           |
-| `test`            | Public API tests, failures, modelling scenarios and package consumer |
-| `docs`            | Markdown guides and documentation styling                            |
-| `tools`           | TypeScript generators and repository checks                          |
-| `dist/ramen-core` | Generated library files                                              |
-| `dist/api-doc`    | Generated TypeDoc website                                            |
+## Choose the relevant guide
 
-## Make a change
+| Task                             | Guide                                                             |
+| -------------------------------- | ----------------------------------------------------------------- |
+| Create or change generic models  | [RAMEN Model Format](docs/rmf/rmf.md)                             |
+| Work with the RAMEN model        | [Model with RAMEN](docs/ramen/ramen.md)                           |
+| Change constraints or evaluators | [Constraint languages](docs/constraint-languages.md)              |
+| Change validation                | [Validate Models and Data](docs/rmf/validation.md)                |
+| Change a schema                  | [JSON schemas](docs/schemas.md)                                   |
+| Use AI assistance                | [Responsible use of AI](CODE_OF_CONDUCT.md#responsible-use-of-ai) |
 
-1. Describe the consumer behaviour you want to change.
-2. Update the implementation, public API comments and relevant guide together.
-3. Add a focused test for the behaviour or failure boundary.
-4. Run focused checks while editing, then run `npm run verify` before review.
+## Change workflow
+
+1. Define the consumer-visible behaviour.
+2. Change implementation, public API documentation, examples and tests together.
+3. Run the narrowest relevant checks while editing.
+4. Regenerate schemas or diagnostic tables when affected, then inspect the relevant documentation pages.
+5. Run the repository gate before review.
+
+```bash
+npm run verify
+```
+
+Useful focused commands:
+
+| Command                    | Use                                                               |
+| -------------------------- | ----------------------------------------------------------------- |
+| `npm test`                 | Build, type-check and run the tests                               |
+| `npm run test:coverage`    | Run tests with a coverage report                                  |
+| `npm run lint`             | Check source, tests and tools                                     |
+| `npm run format:fix`       | Apply repository formatting                                       |
+| `npm run schema:generate`  | Regenerate project and exchange schemas                           |
+| `npm run docs:diagnostics` | Regenerate diagnostic tables from the code                        |
+| `npm run docs:serve`       | Browse guides and API reference at `http://127.0.0.1:5173`        |
+| `npm run package:check`    | Build, inspect and install the package in an independent consumer |
+
+`test`, `test:coverage` and `package:check` build the library first. Run `build` before standalone type checks from a fresh checkout. Generated library files go to `dist/ramen-core`; the documentation website goes to `dist/api-doc`.
 
 ### Coding conventions
 
@@ -48,43 +68,39 @@ Test public workflows and meaningful failures. Use modelling scenarios for conne
 
 Check diagnostic codes, severity and paths when those are part of the contract. Schema changes need accepted and rejected inputs. A packed consumer checks the shipped artefact independently of source imports.
 
-## Useful checks
+## Branches and commits
 
-| Command                   | Use                                                                      |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `npm test`                | Build, type-check and run tests                                          |
-| `npm run build`           | Refresh code, declarations and schemas                                   |
-| `npm run lint`            | Check source, tests and tooling                                          |
-| `npm run format:fix`      | Apply repository formatting                                              |
-| `npm run schema:generate` | Regenerate the RAMEN project schema                                      |
-| `npm run docs:serve`      | Browse TypeDoc at `http://127.0.0.1:5173`                                |
-| `npm run package:check`   | Build and install the tarball, then check runtime and TypeScript imports |
-| `npm run verify`          | Run the complete repository gate                                         |
-
-`test`, `test:coverage` and `package:check` build the library first. Run `build` before standalone type checks from a fresh checkout. The package consumer resolves runtime dependencies from the configured npm registry.
-
-## Commits and review
-
-Use Conventional Commits with a required scope: `model`, `tools`, `deps` or `release`. The commit hook checks the configured rules with Commitlint.
+Branch from the latest `main` and write [Conventional Commits](https://www.conventionalcommits.org):
 
 ```text
 fix(model): retain inherited relationship bounds
 docs(tools): explain contributor setup
 ```
 
-Keep commits focused. Explain the consumer impact and tests, and call out public API, model semantics or schema changes. Do not commit build output, coverage, editor configuration or local notes.
+Every commit requires a scope: `model`, `tools`, `deps` or `release`. The commit hook checks messages with Commitlint. Use the same convention for pull request titles.
 
-## Release handover
+Branch protection, CI checks and merge policy are maintained separately by the repository maintainers.
 
-`package.json` at the repository root is the single package manifest. `npm run build` writes library files to `dist/ramen-core`. `npm pack` uses the manifest's `files` list to include those files alongside the root README and licence. Source code, tools, Git hooks and the documentation website are excluded.
+## Dependencies
 
-Before the first release, the release maintainer should:
+The repository installs with install scripts disabled and a three-day release cooldown, both set in `.npmrc`. Respect those settings when updating dependencies. The package installation check resolves runtime dependencies from the configured npm registry.
 
-1. Confirm the GitHub repository and npm publishing permissions.
-2. Choose the version and release notes, then run `npm run verify` from a fresh checkout.
-3. Publish from the **repository root**, using the organisation's release process.
-4. Verify installation from npm and publish documentation and schema URLs separately.
+Keep UI frameworks, editor integration and database adapters in consuming tools or separate packages.
 
-The build does not publish, tag commits or deploy documentation. The package ships its schemas even before the canonical URLs are hosted. Contributor development versions are separate from the runtime compatibility policy that the release maintainer confirms.
+## Releases
+
+The release workflow is maintained separately. `package.json` at the repository root is the single package manifest. `npm run build` writes library files to `dist/ramen-core`; `npm pack` packages them from the repository root according to the manifest's `files` list.
+
+Before release, maintainers choose the version and release notes, run `npm run verify`, and verify installation from npm after publishing. Documentation and canonical schema URLs are published separately. The build itself does not publish, tag commits or deploy documentation.
+
+## Review checklist
+
+- Explain the consumer problem and the resulting behaviour.
+- Call out public API, model semantics, schema, dependency and package changes.
+- Include accepted and rejected examples when validation rules change.
+- Inspect the affected guides and include screenshots when documentation appearance changes.
+- Keep unrelated refactors out of the change.
+- Do not commit generated reports, coverage, build output or local configuration.
+- Review and take responsibility for AI-assisted contributions as described in the [Code of Conduct](CODE_OF_CONDUCT.md#responsible-use-of-ai).
 
 Contributions are licensed under the repository's MIT licence.

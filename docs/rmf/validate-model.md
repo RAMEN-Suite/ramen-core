@@ -54,7 +54,7 @@ console.log(model.validate().valid); // true
 
 ## Show findings beside one node
 
-{@link model.Modeller.validateNode | validateNode(document)} filters the complete model check to findings on that node, its ancestors and incident relationships. This helps an editor place a message beside a type:
+{@link model.Modeller.validateNode | validateNode(document)} filters the complete model check to findings on that node, its ancestors and incident relationships. Project-wide findings, such as inheritance cycles, remain visible because they prevent a safe resolved graph. This helps an editor place a message beside a type:
 
 ```ts
 import type { ValidationResult } from '@ramen-suite/core/model';

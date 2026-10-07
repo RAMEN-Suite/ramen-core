@@ -1,23 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, ModelRef, Modeller } from '@ramen-suite/core/model';
-import type {
-  Attribute,
-  AttributeInfo,
-  Classifier,
-  Constraint,
-  DataType,
-  Diagnostic,
-  EvolutionChange,
-  EvolutionReport,
-  Model,
-  ModelChange,
-  ModelRemovalPreview,
-  Node,
-  NodeRemovalPreview,
-  NodeLineageItem,
-  Relation,
-  WorkspaceElement,
+import {
+  DataTypes,
+  ModelRef,
+  Modeller,
+  type Attribute,
+  type AttributeInfo,
+  type Classifier,
+  type Constraint,
+  type DataType,
+  type Diagnostic,
+  type EvolutionChange,
+  type EvolutionReport,
+  type Model,
+  type ModelChange,
+  type ModelRemovalPreview,
+  type Node,
+  type NodeRemovalPreview,
+  type NodeLineageItem,
+  type Relation,
+  type WorkspaceElement,
+  type ValidationResult,
 } from '@ramen-suite/core/model';
 
 void test('element getters read local and imported definitions without exposing the draft', (): void => {
@@ -117,6 +120,7 @@ void test('model identity edits update exact imports and preserve declarations',
 
   const updated: Model = website.getModel();
   const imported: Model['imports'][number] | undefined = publication.getModel().imports[0];
+
   assert.equal(updated.name, 'Public Website');
   assert.equal(imported?.name, updated.name);
   assert.equal(imported?.modelUri, updated.$id);
@@ -140,6 +144,7 @@ void test('model removal previews descendants, rejects by default and cascades a
   const before: readonly string[] = [filing, website, publication, edition].map((model: Modeller): string => model.getModel().id);
 
   const preview: ModelRemovalPreview = filing.previewNextLevelRemoval(websiteId);
+
   assert.deepEqual(
     preview.models.map((model: { readonly id: string; readonly name: string }): string => model.name),
     ['Website', 'Publication'],
@@ -224,9 +229,23 @@ void test('node diagnostics include a rule on an incident relation', (): void =>
   const finding: Diagnostic | undefined = model
     .validateNode(document)
     .diagnostics.find((item: Diagnostic): boolean => item.code === 'CONSTRAINT_EXPRESSION_INVALID');
+
   assert.ok(finding);
   assert.ok(finding.path?.includes('/relations/0/constraints/0/expression'));
   assert.equal(finding.severity, 'error');
+});
+
+void test('node diagnostics retain project-wide inheritance errors and update after repair', (): void => {
+  const model: Modeller = Modeller.create('Filing');
+  const document: Node = model.createNode('Document').element;
+  const page: Node = model.createNode({ name: 'Page', refines: document }).element;
+  model.updateNode(document.id, { superTypes: [page.id] });
+  const invalid: ValidationResult = model.validateNode(page);
+
+  assert.equal(invalid.hasErrors, true);
+  assert.ok(invalid.diagnostics.some((item: Diagnostic): boolean => item.code === 'INHERITANCE_CYCLE' && item.path === '/'));
+  model.updateNode(document.id, { superTypes: [] });
+  assert.deepEqual(model.validateNode(page), { hasErrors: false, diagnostics: [] });
 });
 
 void test('strict node removal reports cross-level dependencies; cascade removes both branches', (): void => {
@@ -247,6 +266,7 @@ void test('strict node removal reports cross-level dependencies; cascade removes
   const before: readonly Model[] = base.getModels();
 
   const preview: NodeRemovalPreview = base.previewNodeRemoval(document.id);
+
   assert.deepEqual(
     preview.nodes.map((item: WorkspaceElement): string => item.elementId),
     [document.id, page.id, letter.id],
@@ -292,4 +312,33 @@ void test('an imported model is independent from the source workspace', (): void
     ['Source', 'Page'],
   );
   assert.equal(base.getModel().classifiers[0]?.name, 'Record');
+});
+
+void test('narrowing a base relation invalidates a warmed child and repair refreshes validation and suggestions', (): void => {
+  const base: Modeller = Modeller.create('Filing');
+  const document: Node = base.createNode('Document').element;
+  const folder: Node = base.createNode('Folder').element;
+  const relation: Relation = base.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
+  const website: Modeller = base.createNextLevel('Website');
+  const page: Node = website.createNode({ name: 'Page', refines: document }).element;
+  const section: Node = website.createNode({ name: 'Section', refines: folder }).element;
+  const applied: Relation = website.createRelation({ from: { node: page }, to: { node: section } }).element;
+
+  assert.equal(website.validate().valid, true);
+  assert.equal(website.suggestRelations(page, section).length > 0, true);
+  base.updateRelation(relation.id, { to: { ...relation.to, bounds: { lowerBound: 0, upperBound: 1 } } });
+  const finding: Diagnostic | undefined = website
+    .validate()
+    .diagnostics.find((item: Diagnostic): boolean => item.code === 'RELATION_BOUNDS_WIDENED');
+
+  assert.equal(website.validate().valid, false);
+  assert.equal(finding?.severity, 'error');
+  assert.equal(finding?.ref, applied.to.id);
+  assert.equal(finding?.path, `/models/${website.getModel().id}/relations/0/to/bounds`);
+  assert.throws((): unknown => website.suggestRelations(page, section), /invalid model/i);
+
+  website.updateRelation(applied.id, { to: { ...applied.to, bounds: { lowerBound: 0, upperBound: 1 } } });
+  assert.equal(website.validate().valid, true);
+  assert.equal(website.suggestRelations(page, section).length > 0, true);
+  assert.equal(Modeller.import(website.export()).validate().valid, true);
 });

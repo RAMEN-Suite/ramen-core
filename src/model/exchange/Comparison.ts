@@ -52,6 +52,7 @@ export class ModelEvolution {
       afterModels,
       (id: Id): readonly Diagnostic[] => validator.validateProject(id, afterModels).diagnostics,
     );
+
     return {
       beforeModelId,
       afterModelId,
@@ -61,16 +62,12 @@ export class ModelEvolution {
     };
   }
 
-  /** Validates each terminal model so diagnostics from sibling branches appear once. */
+  /** Validates terminal models and isolated cycles so every workspace component contributes diagnostics. */
   public static validateWorkspace(
     models: readonly Model[],
     validate: (modelId: Id) => readonly Diagnostic[],
   ): readonly Diagnostic[] {
-    const imported: Set<Id> = new Set<Id>(
-      models.flatMap((model: Model): Id[] => model.imports.map((entry): Id => entry.modelId)),
-    );
-    const leaves: readonly Model[] = models.filter((model: Model): boolean => !imported.has(model.id));
-    const roots: readonly Model[] = leaves.length > 0 ? leaves : models;
+    const roots: readonly Model[] = this.validationRoots(models);
     const diagnostics: Map<string, Diagnostic> = new Map<string, Diagnostic>();
 
     for (const model of roots) {
@@ -81,6 +78,35 @@ export class ModelEvolution {
     }
 
     return [...diagnostics.values()];
+  }
+
+  private static validationRoots(models: readonly Model[]): readonly Model[] {
+    const imported: ReadonlySet<Id> = new Set<Id>(
+      models.flatMap((model: Model): Id[] => model.imports.map((entry): Id => entry.modelId)),
+    );
+    const roots: Model[] = models.filter((model: Model): boolean => !imported.has(model.id));
+    const byId: ReadonlyMap<Id, Model> = new Map<Id, Model>(models.map((model: Model): [Id, Model] => [model.id, model]));
+    const covered: Set<Id> = new Set<Id>();
+
+    for (const root of roots) this.coverImports(root, byId, covered);
+    for (const model of models) {
+      if (covered.has(model.id)) continue;
+      roots.push(model);
+      this.coverImports(model, byId, covered);
+    }
+    return roots;
+  }
+
+  private static coverImports(root: Model, models: ReadonlyMap<Id, Model>, covered: Set<Id>): void {
+    const pending: Model[] = [root];
+    for (const model of pending) {
+      if (covered.has(model.id)) continue;
+      covered.add(model.id);
+      for (const entry of model.imports) {
+        const imported: Model | undefined = models.get(entry.modelId);
+        if (imported && !covered.has(imported.id)) pending.push(imported);
+      }
+    }
   }
 
   /** Reports element changes only; callers choose whether and how to validate the two states. */

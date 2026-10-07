@@ -32,6 +32,7 @@ export class NodeDiagnostics {
         (item: Classifier): boolean => item.kind === 'Node' && item.id === current.elementId,
       );
       const node: Node | undefined = classifier?.kind === 'Node' ? classifier : undefined;
+
       for (const ref of node?.superTypes ?? []) {
         const parent: ElementRef = ModelRef.isQualified(ref)
           ? { modelId: ModelRef.splitQualified(ref).modelId, elementId: ModelRef.localId(ref) }
@@ -42,15 +43,17 @@ export class NodeDiagnostics {
     return lineage;
   }
 
-  /** Keeps findings on the lineage, its relations and any domain-specific paths. */
+  /** Keeps project-wide findings and findings on the lineage, its relations and domain-specific paths. */
   public select(
     lineage: readonly ElementRef[],
     diagnostics: readonly Diagnostic[],
     extraPaths: readonly string[] = [],
   ): ValidationResult {
     const paths: readonly string[] = [...this.paths(lineage), ...extraPaths];
-    const selected: readonly Diagnostic[] = diagnostics.filter((item: Diagnostic): boolean =>
-      paths.some((path: string): boolean => item.path === path || item.path?.startsWith(`${path}/`) === true),
+    const selected: readonly Diagnostic[] = diagnostics.filter(
+      (item: Diagnostic): boolean =>
+        item.path === '/' ||
+        paths.some((path: string): boolean => item.path === path || item.path?.startsWith(`${path}/`) === true),
     );
     return { diagnostics: selected, hasErrors: selected.some((item: Diagnostic): boolean => item.severity === 'error') };
   }

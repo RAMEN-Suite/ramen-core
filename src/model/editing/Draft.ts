@@ -32,13 +32,11 @@ import {
   RelationRemovalPreview,
   WorkspaceElement,
 } from './Workspace';
-import { ConstraintOwners } from './ConstraintOwner';
-import type { ConstraintLocation, ConstraintOwnerInput } from './ConstraintOwner';
+import { ConstraintOwners, type ConstraintLocation, type ConstraintOwnerInput } from './ConstraintOwner';
 import { ModelRef } from '../graph/References';
 import type { RelationSelections } from '../graph/RelationScope';
 import type { ResolvedElement } from '../graph/ProjectGraph';
-import { DiagnosticPath } from '../validation/Diagnostics';
-import type { Diagnostic } from '../validation/Diagnostics';
+import { DiagnosticPath, type Diagnostic } from '../validation/Diagnostics';
 import { NodeDiagnostics } from '../validation/NodeDiagnostics';
 import { BuiltinDataTypes } from '../Builtins';
 import { ConstraintRegistry } from '../validation/Constraints';
@@ -211,7 +209,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.validation;
   }
 
-  /** Returns complete-project findings attached to a node, its ancestors or incident relations. */
+  /** Returns project-wide findings plus findings attached to a node, its ancestors or incident relations. */
   public validateNode(input: ElementInput): ValidationResult {
     const owner: ElementRef = this.resolveRef(input, 'node');
     const diagnostics: NodeDiagnostics = new NodeDiagnostics(this.validationInputs());
@@ -235,6 +233,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
     const reference: Ref = this.inputRef(type);
     let selected: BuiltinType | ResolvedElement<DataType>;
+
     if (BuiltinDataTypes.isBuiltin(reference)) {
       selected = reference;
     } else {
@@ -261,6 +260,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const owner: ElementRef = this.resolveRef(node, 'node');
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(result.graph, owner.modelId, owner.elementId);
     const attribute: Attribute | undefined = effective?.attributes.find((item: Attribute): boolean => item.name === name);
+
     if (!attribute) throw new Error(`Attribute '${name}' not found on node '${owner.elementId}'.`);
 
     return new InstanceValueValidator(registry).validateOneAttribute(result.graph, owner.modelId, attribute, value);
@@ -288,6 +288,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   public removeNextLevel(modelId: Id, options: { readonly cascade?: boolean } = {}): ModelRemovalPreview {
     const preview: ModelRemovalPreview = this.previewNextLevelRemoval(modelId);
     const blockers: readonly string[] = preview.models.slice(1).map((model): string => `${model.name} (${model.id})`);
+
     if (!options.cascade && blockers.length > 0) {
       throw new Error(`Cannot remove model '${modelId}': still used by ${blockers.join(', ')}.`);
     }
@@ -332,6 +333,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       ...preview.annotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
       ...preview.updatedAnnotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
     ];
+
     if (!options.cascade && blockers.length > 0) {
       throw new Error(`Cannot remove node '${node.name}' (${nodeId}): still used by ${blockers.join(', ')}.`);
     }
@@ -350,6 +352,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       };
       return this.cleanRemoval(remaining, preview);
     });
+
     this.workspace.updateMany(replacements);
 
     return this.change(node);
@@ -363,6 +366,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       typeId: this.attributeType(input),
       bounds: input.bounds ?? { lowerBound: 0, upperBound: 1 },
     });
+
     this.model = ModelEditor.addAttribute(this.model, nodeId, attribute);
     return this.change(attribute);
   }
@@ -484,6 +488,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       ...preview.relations.slice(1).map((item: WorkspaceElement): string => this.removalLabel(item, 'relation')),
       ...preview.updatedAnnotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
     ];
+
     if (!options.cascade && blockers.length > 0) {
       throw new Error(`Cannot remove relation '${relation.name}' (${relationId}): still used by ${blockers.join(', ')}.`);
     }
@@ -504,6 +509,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       };
       return this.cleanRemoval(remaining, removal);
     });
+
     this.workspace.updateMany(replacements);
 
     return this.change(relation);
@@ -515,6 +521,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     if (location.constraints.some((item: Constraint): boolean => item.id === rule.id)) {
       throw new Error(`Constraint already exists: '${rule.id}'.`);
     }
+
     const validation: ProjectValidationResult = this.replaceConstraints(location, [...location.constraints, rule]);
     return { element: structuredClone(rule), validation };
   }
@@ -634,6 +641,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       this.hasElement(model, reference, kind),
     );
     const owner: Model | undefined = matches[0];
+
     if (matches.length > 1) throw new Error(`Expected one ${kind} with id '${reference}', found ${matches.length}.`);
     return owner ? { modelId: owner.id, elementId: reference } : undefined;
   }
@@ -654,6 +662,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const selected: RelationSuggestion = connections.select(candidates, choice);
     const input: RelationInput = { refines: selected.ref, from: { nodeId: fromRef }, to: { nodeId: toRef } };
     const relation: Relation = this.newRelation(input);
+
     this.model = ModelEditor.addRelation(this.model, relation);
     return this.change(relation);
   }
@@ -691,10 +700,13 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   private removalLabel(item: WorkspaceElement, kind: 'node' | 'relation' | 'annotation'): string {
     const model: Model | undefined = this.workspace.get(item.modelId);
     let name: string = item.elementId;
+
     if (kind === 'node')
       name = model?.classifiers.find((entry: Classifier): boolean => entry.id === item.elementId)?.name ?? name;
+
     if (kind === 'relation')
       name = model?.relations.find((entry: Relation): boolean => entry.id === item.elementId)?.name ?? name;
+
     if (kind === 'annotation') name = this.annotationName(item);
     return `${kind} '${name}' (${item.elementId}) in model '${model?.name ?? item.modelId}'`;
   }
@@ -714,6 +726,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   private requireAttribute(nodeId: Id, attributeId: Id): Attribute {
     const node: Node = this.requireNode(nodeId);
     const attribute: Attribute | undefined = node.attributes.find((item: Attribute): boolean => item.id === attributeId);
+
     if (!attribute) throw new Error(`Attribute not found: '${attributeId}'.`);
     return attribute;
   }
@@ -746,6 +759,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const [fromInput, toInput]: readonly [RelationEndInput, RelationEndInput] = this.relationEndInputs(input);
     const from: ElementInput | undefined = fromInput.node ?? fromInput.nodeId;
     const to: ElementInput | undefined = toInput.node ?? toInput.nodeId;
+
     if (from === undefined || to === undefined) throw new Error('A relation requires source and target nodes or IDs.');
     return [this.nodeReference(from), this.nodeReference(to)];
   }
@@ -768,6 +782,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     if (input.refines !== undefined) {
       const reference: ElementRef = this.resolveRef(input.refines, 'relation');
       const base: Model | undefined = this.findModel(reference.modelId);
+
       if (!base) throw new Error(`Unknown model: '${reference.modelId}'.`);
       return ModelFactory.createRelation(base, base.id, { baseRelationId: reference.elementId, fromNodeId: from, toNodeId: to });
     }
@@ -843,6 +858,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
         choice.modelId,
         choice.relationId,
       );
+
       return ancestors.some((ancestor: ResolvedElement<Relation>): boolean =>
         roots.has(ModelRef.qualify(ancestor.modelId, ancestor.element.id)),
       );

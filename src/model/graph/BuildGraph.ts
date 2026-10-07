@@ -1,8 +1,9 @@
 import { walkGraph } from './Traversal';
 import { BuiltinDataTypes } from '../Builtins';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
-import { Classifier, Constraint, Model, Node, Relation, Id, Import, Ref } from '../Types';
+import { Classifier, Model, Node, Relation, Id, Import, Ref } from '../Types';
 import { ModelElementIndex } from './ElementIndex';
+import { ModelIdentifiers } from './Identifiers';
 import { ModelRef } from './References';
 import { ProjectGraph } from './ProjectGraph';
 import { ValidationCode } from '../validation/Codes';
@@ -153,69 +154,9 @@ function buildElementIndexes(state: GraphBuildState): void {
     const model: Model | undefined = state.modelsById.get(modelId);
 
     if (!model) continue;
-    const seen: Set<Id> = new Set<Id>();
-    const modelPath: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id);
-
-    model.classifiers.forEach((classifier: Classifier, index: number): void => {
-      registerClassifierIds(model.id, classifier, modelPath.property('classifiers').index(index), seen, state);
-    });
-    model.relations.forEach((relation: Relation, index: number): void => {
-      registerRelationIds(model.id, relation, modelPath.property('relations').index(index), seen, state);
-    });
+    state.diagnostics.push(...new ModelIdentifiers(model).getDiagnostics());
     state.indexesByModelId.set(modelId, new ModelElementIndex(model));
   }
-}
-
-function registerClassifierIds(
-  modelId: Id,
-  classifier: Classifier,
-  path: DiagnosticPath,
-  seen: Set<Id>,
-  state: GraphBuildState,
-): void {
-  registerId(modelId, classifier.id, path.property('id'), seen, state);
-  registerConstraintIds(modelId, classifier.constraints, path.property('constraints'), seen, state);
-  if (classifier.kind === 'Node') {
-    classifier.attributes.forEach((attribute, index: number): void => {
-      const attributePath: DiagnosticPath = path.property('attributes').index(index);
-      registerId(modelId, attribute.id, attributePath.property('id'), seen, state);
-      registerConstraintIds(modelId, attribute.constraints, attributePath.property('constraints'), seen, state);
-    });
-  } else {
-    classifier.literals?.forEach((literal, index: number): void => {
-      const literalPath: DiagnosticPath = path.property('literals').index(index);
-      registerId(modelId, literal.id, literalPath.property('id'), seen, state);
-      registerConstraintIds(modelId, literal.constraints, literalPath.property('constraints'), seen, state);
-    });
-  }
-}
-
-function registerRelationIds(modelId: Id, relation: Relation, path: DiagnosticPath, seen: Set<Id>, state: GraphBuildState): void {
-  registerId(modelId, relation.id, path.property('id'), seen, state);
-  registerId(modelId, relation.from.id, path.property('from').property('id'), seen, state);
-  registerId(modelId, relation.to.id, path.property('to').property('id'), seen, state);
-  registerConstraintIds(modelId, relation.constraints, path.property('constraints'), seen, state);
-  registerConstraintIds(modelId, relation.from.constraints, path.property('from').property('constraints'), seen, state);
-  registerConstraintIds(modelId, relation.to.constraints, path.property('to').property('constraints'), seen, state);
-}
-
-function registerConstraintIds(
-  modelId: Id,
-  constraints: readonly Constraint[] | undefined,
-  path: DiagnosticPath,
-  seen: Set<Id>,
-  state: GraphBuildState,
-): void {
-  constraints?.forEach((constraint: Constraint, index: number): void => {
-    registerId(modelId, constraint.id, path.index(index).property('id'), seen, state);
-  });
-}
-
-function registerId(modelId: Id, id: Id, path: DiagnosticPath, seen: Set<Id>, state: GraphBuildState): void {
-  if (seen.has(id)) {
-    state.diagnostics.push(error('DUPLICATE_ELEMENT_ID', `Duplicate element id '${id}' in model '${modelId}'.`, path));
-  }
-  seen.add(id);
 }
 
 function validateModelRefs(state: GraphBuildState): void {

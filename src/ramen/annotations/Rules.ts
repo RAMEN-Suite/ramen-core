@@ -1,5 +1,6 @@
 import { AnnotationProperties } from './Properties';
 import { DiagnosticPath, Diagnostics } from '../../model/validation/Diagnostics';
+import { ModelIdentifiers } from '../../model/graph/Identifiers';
 import { ModelRef } from '../../model/graph/References';
 import { ProjectGraph } from '../../model/graph/ProjectGraph';
 import { Cardinality } from '../../model/validation/Cardinality';
@@ -17,7 +18,7 @@ export enum RAMEN_VALIDATION_ERROR {
   BASE_MODEL_REQUIRED = 'RAMEN_BASE_MODEL_REQUIRED',
   /** The `annotations` section does not match its schema. */
   ANNOTATIONS_INVALID = 'RAMEN_ANNOTATIONS_INVALID',
-  /** Two annotation definitions in one model have the same ID. */
+  /** An annotation definition reuses an ID already declared in its model. */
   ANNOTATION_ID_DUPLICATE = 'RAMEN_ANNOTATION_ID_DUPLICATE',
   /** An annotation type name is empty. */
   ANNOTATION_TYPE_EMPTY = 'RAMEN_ANNOTATION_TYPE_EMPTY',
@@ -25,7 +26,7 @@ export enum RAMEN_VALIDATION_ERROR {
   ANNOTATION_TYPE_DUPLICATE = 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
   /** A type belongs to a node that does not refine RAMEN Annotation. */
   ANNOTATION_NODE_INVALID = 'RAMEN_ANNOTATION_NODE_INVALID',
-  /** A selected or type-owned property has an invalid reference, name or data type, or duplicates another property. */
+  /** A property has an invalid reference, name or data type, duplicates another property, or omits a required node property. */
   ANNOTATION_PROPERTY_INVALID = 'RAMEN_ANNOTATION_PROPERTY_INVALID',
   /** A selected relationship is missing, incompatible, repeated or overlaps another selected relationship. */
   ANNOTATION_RELATION_INVALID = 'RAMEN_ANNOTATION_RELATION_INVALID',
@@ -43,20 +44,37 @@ export class RamenAnnotationRules {
   public validate(graph: ProjectGraph, models: readonly Model[]): readonly Diagnostic[] {
     const annotations: AnnotationIndex = new AnnotationIndex(graph, models);
     const diagnostics: Diagnostic[] = [];
-    const identifiers: Set<string> = new Set<string>();
+    const identifiers: ReadonlyMap<Id, ModelIdentifiers> = new Map<Id, ModelIdentifiers>(
+      graph.getModels().map((model: Model): [Id, ModelIdentifiers] => [model.id, new ModelIdentifiers(model)]),
+    );
     const ownerTypes: Set<string> = new Set<string>();
 
     for (const resolved of annotations.getAll()) {
       this.validateAnnotation(graph, annotations, resolved, identifiers, ownerTypes, diagnostics);
     }
+    this.validateInheritedProperties(graph, annotations, diagnostics);
     return diagnostics;
+  }
+
+  private validateInheritedProperties(graph: ProjectGraph, annotations: AnnotationIndex, diagnostics: Diagnostic[]): void {
+    for (const owner of graph.getAvailableNodes(graph.getRootModel().id)) {
+      if (owner.element.superTypes.length === 0) continue;
+      for (const definition of annotations.getEffective(owner.modelId, owner.element.id)) {
+        const declared: ResolvedElement<Node> | undefined = graph.resolveNode(
+          definition.modelId,
+          definition.annotation.annotationId,
+        );
+        if (declared?.modelId === owner.modelId && declared.element.id === owner.element.id) continue;
+        diagnostics.push(...AnnotationProperties.validateRequired(graph, definition, owner));
+      }
+    }
   }
 
   private validateAnnotation(
     graph: ProjectGraph,
     annotations: AnnotationIndex,
     resolved: ResolvedAnnotation,
-    identifiers: Set<string>,
+    identifiers: ReadonlyMap<Id, ModelIdentifiers>,
     ownerTypes: Set<string>,
     diagnostics: Diagnostic[],
   ): void {
@@ -92,20 +110,17 @@ export class RamenAnnotationRules {
 
   private registerIdentifier(
     resolved: ResolvedAnnotation,
-    identifiers: Set<string>,
+    identifiers: ReadonlyMap<Id, ModelIdentifiers>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const identity: string = `${resolved.modelId}:${resolved.annotation.id}`;
-    if (identifiers.has(identity))
-      this.error(
-        diagnostics,
-        RAMEN_VALIDATION_ERROR.ANNOTATION_ID_DUPLICATE,
-        'Duplicate annotation identifier.',
-        path,
-        resolved.annotation.id,
-      );
-    identifiers.add(identity);
+    const index: ModelIdentifiers | undefined = identifiers.get(resolved.modelId);
+    if (!index) return;
+    diagnostics.push(...index.register(resolved.annotation, path, RAMEN_VALIDATION_ERROR.ANNOTATION_ID_DUPLICATE));
+    for (const [propertyIndex, property] of resolved.annotation.properties.entries()) {
+      if ('attributeId' in property) continue;
+      diagnostics.push(...index.register(property, path.property('properties').index(propertyIndex)));
+    }
   }
 
   private registerOwnerType(

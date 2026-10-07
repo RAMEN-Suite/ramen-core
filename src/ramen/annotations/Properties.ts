@@ -9,9 +9,11 @@ import { Cardinality } from '../../model/validation/Cardinality';
 import type { AnnotationProperty } from './Definitions';
 import type { ResolvedAnnotation } from './AnnotationIndex';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
+import { ConstraintRules } from '../../model/validation/ConstraintRules';
 
 /** Resolves node attribute selections and properties owned by an annotation type. */
 export class AnnotationProperties {
+  private static readonly constraints: ConstraintRules = new ConstraintRules();
   /** Combines the common RAMEN fields with properties permitted by the selected annotation type. */
   public static allowed(graph: ProjectGraph, definition: ResolvedAnnotation, owner: ResolvedElement<Node>): readonly Attribute[] {
     const common: readonly Attribute[] =
@@ -43,7 +45,7 @@ export class AnnotationProperties {
     const ids: Set<string> = new Set<string>();
     const nodeAttributes: readonly Attribute[] =
       EffectiveModel.resolveNode(graph, owner.modelId, owner.element.id)?.attributes ?? [];
-    for (const property of definition.annotation.properties) {
+    for (const [index, property] of definition.annotation.properties.entries()) {
       const attribute: Attribute | undefined = this.selected(graph, owner, property);
       if (!attribute || !this.isValid(graph, definition.modelId, attribute, 'attributeId' in property ? [] : nodeAttributes)) {
         diagnostics.push(
@@ -56,20 +58,48 @@ export class AnnotationProperties {
           this.error(definition, 'RAMEN_ANNOTATION_PROPERTY_INVALID', 'Property names and identifiers must be unique.'),
         );
       }
-      if (
-        !('attributeId' in property) &&
-        attribute.isKey &&
-        nodeAttributes.some((item: Attribute): boolean => item.isKey === true)
-      ) {
-        diagnostics.push(
-          this.error(definition, 'ATTRIBUTE_MULTIPLE_KEYS', 'An annotation property cannot add a second node key.'),
-        );
-      }
       diagnostics.push(...this.validateBounds(definition, attribute, property));
+      if (!('attributeId' in property)) {
+        diagnostics.push(...this.validateOwned(definition, attribute, nodeAttributes, index));
+      }
       names.add(attribute.name);
       ids.add(attribute.id);
     }
+    return [...diagnostics, ...this.validateRequired(graph, definition, owner)];
+  }
+
+  private static validateOwned(
+    definition: ResolvedAnnotation,
+    attribute: Attribute,
+    nodeAttributes: readonly Attribute[],
+    index: number,
+  ): readonly Diagnostic[] {
+    const diagnostics: Diagnostic[] = [...this.constraints.validate(attribute.constraints, this.path(definition).index(index))];
+    if (attribute.isKey && nodeAttributes.some((item: Attribute): boolean => item.isKey === true)) {
+      diagnostics.push(this.error(definition, 'ATTRIBUTE_MULTIPLE_KEYS', 'An annotation property cannot add a second node key.'));
+    }
     return diagnostics;
+  }
+
+  /** Required node properties cannot be excluded by a closed annotation definition. */
+  public static validateRequired(
+    graph: ProjectGraph,
+    definition: ResolvedAnnotation,
+    owner: ResolvedElement<Node>,
+  ): readonly Diagnostic[] {
+    const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, owner.modelId, owner.element.id)?.attributes ?? [];
+    const allowed: ReadonlySet<string> = new Set<string>(
+      this.allowed(graph, definition, owner).map((attribute: Attribute): string => attribute.name),
+    );
+    return attributes
+      .filter((attribute: Attribute): boolean => attribute.bounds.lowerBound > 0 && !allowed.has(attribute.name))
+      .map((attribute: Attribute): Diagnostic =>
+        this.error(
+          definition,
+          'RAMEN_ANNOTATION_PROPERTY_INVALID',
+          `Annotation '${definition.annotation.type}' must select required property '${attribute.name}' on '${owner.element.name}'.`,
+        ),
+      );
   }
 
   private static selected(
@@ -132,12 +162,16 @@ export class AnnotationProperties {
       code,
       message,
       ref: definition.annotation.id,
-      path: DiagnosticPath.root()
-        .property('models')
-        .property(definition.modelId)
-        .property('annotations')
-        .property(definition.annotation.id)
-        .property('properties'),
+      path: this.path(definition),
     });
+  }
+
+  private static path(definition: ResolvedAnnotation): DiagnosticPath {
+    return DiagnosticPath.root()
+      .property('models')
+      .property(definition.modelId)
+      .property('annotations')
+      .property(definition.annotation.id)
+      .property('properties');
   }
 }

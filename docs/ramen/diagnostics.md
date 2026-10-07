@@ -12,18 +12,18 @@ RAMEN returns the [generic RMF diagnostics](../rmf/diagnostics.md) and the addit
 
 <!-- diagnostics:model:start -->
 
-| Code                                | Meaning                                                                                                        |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `RAMEN_PROJECT_FORMAT_REQUIRED`     | The root model is not a RAMEN project document.                                                                |
-| `RAMEN_BASE_MODEL_REQUIRED`         | A RAMEN project does not import the RAMEN reference model.                                                     |
-| `RAMEN_ANNOTATIONS_INVALID`         | The `annotations` section does not match its schema.                                                           |
-| `RAMEN_ANNOTATION_ID_DUPLICATE`     | Two annotation definitions in one model have the same ID.                                                      |
-| `RAMEN_ANNOTATION_TYPE_EMPTY`       | An annotation type name is empty.                                                                              |
-| `RAMEN_ANNOTATION_TYPE_DUPLICATE`   | A type is declared twice for one Annotation node or redeclares an inherited type.                              |
-| `RAMEN_ANNOTATION_NODE_INVALID`     | A type belongs to a node that does not refine RAMEN Annotation.                                                |
-| `RAMEN_ANNOTATION_PROPERTY_INVALID` | A selected or type-owned property has an invalid reference, name or data type, or duplicates another property. |
-| `RAMEN_ANNOTATION_RELATION_INVALID` | A selected relationship is missing, incompatible, repeated or overlaps another selected relationship.          |
-| `RAMEN_ANNOTATION_BOUNDS_INVALID`   | A type's property or relationship bounds are invalid or widen their modelled bounds.                           |
+| Code                                | Meaning                                                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `RAMEN_PROJECT_FORMAT_REQUIRED`     | The root model is not a RAMEN project document.                                                                         |
+| `RAMEN_BASE_MODEL_REQUIRED`         | A RAMEN project does not import the RAMEN reference model.                                                              |
+| `RAMEN_ANNOTATIONS_INVALID`         | The `annotations` section does not match its schema.                                                                    |
+| `RAMEN_ANNOTATION_ID_DUPLICATE`     | An annotation definition reuses an ID already declared in its model.                                                    |
+| `RAMEN_ANNOTATION_TYPE_EMPTY`       | An annotation type name is empty.                                                                                       |
+| `RAMEN_ANNOTATION_TYPE_DUPLICATE`   | A type is declared twice for one Annotation node or redeclares an inherited type.                                       |
+| `RAMEN_ANNOTATION_NODE_INVALID`     | A type belongs to a node that does not refine RAMEN Annotation.                                                         |
+| `RAMEN_ANNOTATION_PROPERTY_INVALID` | A property has an invalid reference, name or data type, duplicates another property, or omits a required node property. |
+| `RAMEN_ANNOTATION_RELATION_INVALID` | A selected relationship is missing, incompatible, repeated or overlaps another selected relationship.                   |
+| `RAMEN_ANNOTATION_BOUNDS_INVALID`   | A type's property or relationship bounds are invalid or widen their modelled bounds.                                    |
 
 <!-- diagnostics:model:end -->
 

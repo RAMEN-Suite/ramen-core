@@ -107,6 +107,22 @@ export class ModelAdvisor {
     return lineage.map((item: ResolvedElement<Node>): NodeLineageItem => this.lineageItem(item, modelId));
   }
 
+  /** Finds one selected node that refines every other selected node. */
+  public getMostSpecificNode(modelId: Id, refs: readonly Ref[]): NodeLineageItem | undefined {
+    let mostSpecific: ResolvedElement<Node> | undefined;
+    for (const ref of refs) {
+      const node: ResolvedElement<Node> | undefined = this.resolveNode(modelId, ref);
+      if (!node) throw new Error(`Node not found: '${ref}'.`);
+      if (!mostSpecific || this.graph.isNodeSameOrSubtype(node, mostSpecific)) {
+        mostSpecific = node;
+      } else if (!this.graph.isNodeSameOrSubtype(mostSpecific, node)) {
+        return undefined;
+      }
+    }
+
+    return mostSpecific ? this.lineageItem(mostSpecific, modelId) : undefined;
+  }
+
   /**
    * Lists existing relationships with exactly these endpoint types, including permitted predecessor definitions.
    * Returns an empty list when no relationship matches. Unknown nodes are invalid inputs.

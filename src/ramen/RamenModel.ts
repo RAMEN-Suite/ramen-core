@@ -5,7 +5,12 @@ import { ModelFactory } from '../model/editing/Factory';
 import { ModelRef } from '../model/graph/References';
 import type { RelationSelection } from '../model/Advisor';
 import type { RelationSelections } from '../model/graph/RelationScope';
-import type { ConstraintRegistry } from '../model/validation/Constraints';
+import { ConstraintRegistry } from '../model/validation/Constraints';
+import { InstanceValueValidator } from '../model/data/InstanceValues';
+import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex';
+import { AnnotationProperties } from './annotations/Properties';
+import type { ResolvedElement } from '../model/graph/ProjectGraph';
+import type { Diagnostic } from '../model/validation/Diagnostics';
 import type { ProjectValidationResult, ValidProjectResult, ValidationResult } from '../model/validation/ModelValidator';
 import type { Attribute, Bounds, Id, Model, Node, Ref, Relation } from '../model/Types';
 import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions';
@@ -91,7 +96,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return new RamenAdvisor(result, this.validationInputs());
   }
 
-  protected selections(): RelationSelections {
+  protected override selections(): RelationSelections {
     return RamenAnnotations.relationSelections(this.validationInputs());
   }
 
@@ -164,7 +169,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /** Returns a detached snapshot of the current project model. */
-  public getModel(): RamenModelDocument {
+  public override getModel(): RamenModelDocument {
     return structuredClone(this.model) as RamenModelDocument;
   }
 
@@ -208,6 +213,44 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       : new RamenInstanceValidator();
 
     return validator.validate(this.model.id, this.validationInputs(), input);
+  }
+
+  /**
+   * Checks one property input for an annotation type without requiring recorded nodes or links.
+   * Throws if the type or property is unavailable. Cross-record rules require validateInstances().
+   */
+  public validateAnnotationValue(
+    node: ElementInput,
+    type: string,
+    name: string,
+    value: unknown,
+    constraints: ConstraintRegistry = ConstraintRegistry.createDefault(),
+  ): ValidationResult {
+    const project: ProjectValidationResult = this.validate();
+    if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
+
+    const reference: Ref = this.nodeReference(node);
+    const annotations: AnnotationIndex = new AnnotationIndex(project.graph, this.validationInputs());
+    const actual: ResolvedElement<Node> | undefined = project.graph.resolveNode(this.model.id, reference);
+    const selected: ResolvedAnnotation | undefined = annotations.findEffective(this.model.id, reference, type);
+    if (!actual || !selected) throw new Error(`Annotation type '${type}' not found on node '${reference}'.`);
+    const attribute: Attribute | undefined = AnnotationProperties.allowed(project.graph, selected, actual).find(
+      (item: Attribute): boolean => item.name === name,
+    );
+    if (!attribute) throw new Error(`Property '${name}' is not allowed for annotation '${type}'.`);
+
+    const result: ValidationResult = new InstanceValueValidator(constraints).validateOneAttribute(
+      project.graph,
+      actual.modelId,
+      attribute,
+      value,
+    );
+    if (name !== 'selector') return result;
+    const diagnostics: ValidationResult['diagnostics'] = [
+      ...result.diagnostics,
+      ...RamenInstanceValidator.validateSelector(value),
+    ];
+    return { diagnostics, hasErrors: diagnostics.some((item: Diagnostic): boolean => item.severity === 'error') };
   }
 
   /**
@@ -363,27 +406,27 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return { relationIds: [relationId], direction, bounds: { ...input.bounds } };
   }
 
-  protected annotationRemovals(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
+  protected override annotationRemovals(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
     return new AnnotationRemoval(this.workspace).removedByNodes(preview);
   }
 
-  protected nodeDiagnosticPaths(lineage: readonly ElementRef[]): readonly string[] {
+  protected override nodeDiagnosticPaths(lineage: readonly ElementRef[]): readonly string[] {
     return new AnnotationRemoval(this.workspace).diagnosticPaths(this.validationInputs(), lineage);
   }
 
-  protected annotationUpdates(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
+  protected override annotationUpdates(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
     return new AnnotationRemoval(this.workspace).updatedByRemoval(preview);
   }
 
-  protected annotationName(item: WorkspaceElement): string {
+  protected override annotationName(item: WorkspaceElement): string {
     return new AnnotationRemoval(this.workspace).name(item);
   }
 
-  protected cleanRemoval(model: Model, preview: NodeRemovalPreview): Model {
+  protected override cleanRemoval(model: Model, preview: NodeRemovalPreview): Model {
     return new AnnotationRemoval(this.workspace).clean(model, preview);
   }
 
-  protected onRemove(input: Removal): void {
+  protected override onRemove(input: Removal): void {
     this.model = new AnnotationRemoval(this.workspace).removeAttribute(this.model, input);
   }
 }

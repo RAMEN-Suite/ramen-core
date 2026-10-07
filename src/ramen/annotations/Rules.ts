@@ -11,16 +11,26 @@ import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
 export enum RAMEN_VALIDATION_ERROR {
-  BASE_MODEL_REQUIRED = 'RAMEN_BASE_MODEL_REQUIRED',
-  ANNOTATIONS_INVALID = 'RAMEN_ANNOTATIONS_INVALID',
-  ANNOTATION_ID_DUPLICATE = 'RAMEN_ANNOTATION_ID_DUPLICATE',
-  ANNOTATION_TYPE_EMPTY = 'RAMEN_ANNOTATION_TYPE_EMPTY',
-  ANNOTATION_TYPE_DUPLICATE = 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
-  ANNOTATION_NODE_INVALID = 'RAMEN_ANNOTATION_NODE_INVALID',
-  ANNOTATION_PROPERTY_INVALID = 'RAMEN_ANNOTATION_PROPERTY_INVALID',
-  ANNOTATION_RELATION_INVALID = 'RAMEN_ANNOTATION_RELATION_INVALID',
-  ANNOTATION_BOUNDS_INVALID = 'RAMEN_ANNOTATION_BOUNDS_INVALID',
+  /** The root model is not a RAMEN project document. */
   PROJECT_FORMAT_REQUIRED = 'RAMEN_PROJECT_FORMAT_REQUIRED',
+  /** A RAMEN project does not import the RAMEN reference model. */
+  BASE_MODEL_REQUIRED = 'RAMEN_BASE_MODEL_REQUIRED',
+  /** The `annotations` section does not match its schema. */
+  ANNOTATIONS_INVALID = 'RAMEN_ANNOTATIONS_INVALID',
+  /** Two annotation definitions in one model have the same ID. */
+  ANNOTATION_ID_DUPLICATE = 'RAMEN_ANNOTATION_ID_DUPLICATE',
+  /** An annotation type name is empty. */
+  ANNOTATION_TYPE_EMPTY = 'RAMEN_ANNOTATION_TYPE_EMPTY',
+  /** A type is declared twice for one Annotation node or redeclares an inherited type. */
+  ANNOTATION_TYPE_DUPLICATE = 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
+  /** A type belongs to a node that does not refine RAMEN Annotation. */
+  ANNOTATION_NODE_INVALID = 'RAMEN_ANNOTATION_NODE_INVALID',
+  /** A selected or type-owned property has an invalid reference, name or data type, or duplicates another property. */
+  ANNOTATION_PROPERTY_INVALID = 'RAMEN_ANNOTATION_PROPERTY_INVALID',
+  /** A selected relationship is missing, incompatible, repeated or overlaps another selected relationship. */
+  ANNOTATION_RELATION_INVALID = 'RAMEN_ANNOTATION_RELATION_INVALID',
+  /** A type's property or relationship bounds are invalid or widen their modelled bounds. */
+  ANNOTATION_BOUNDS_INVALID = 'RAMEN_ANNOTATION_BOUNDS_INVALID',
 }
 
 interface RelationIndex {

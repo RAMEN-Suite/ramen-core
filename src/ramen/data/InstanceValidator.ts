@@ -12,17 +12,22 @@ import type { ProjectValidationResult, ValidationResult } from '../../model/vali
 import type { ResolvedElement } from '../../model/graph/ProjectGraph';
 import type { Bounds, Attribute, Model, Node, Id, Ref } from '../../model/Types';
 import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions';
-import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
 import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex';
 import { RamenValidator } from '../validation/ModelValidator';
 
 /** Stable diagnostic codes emitted while validating RAMEN instances. */
 export enum RAMEN_INSTANCE_ERROR {
+  /** An Annotation record has no string `type`. */
   ANNOTATION_REQUIRED = 'RAMEN_INSTANCE_ANNOTATION_REQUIRED',
+  /** The declared `type` is unavailable for this Annotation node. */
   ANNOTATION_UNKNOWN = 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN',
+  /** The annotation record contains a property its type does not permit. */
   ANNOTATION_PROPERTY_NOT_ALLOWED = 'RAMEN_INSTANCE_ANNOTATION_PROPERTY_NOT_ALLOWED',
+  /** A supplied selector object has no non-empty `type`. */
   SELECTOR_TYPE_REQUIRED = 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED',
+  /** A link on this annotation is absent from its type's permitted relationships. */
   ANNOTATION_RELATION_NOT_ALLOWED = 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED',
+  /** Too few or too many links match a relationship rule of the annotation type. */
   ANNOTATION_RELATION_CARDINALITY = 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY',
 }
 
@@ -83,8 +88,8 @@ export class RamenInstanceValidator {
     node: ModelInstanceNode,
   ): readonly Attribute[] {
     const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, type.modelId, type.element.id)?.attributes ?? [];
-    if (typeof node.properties.type !== 'string') return attributes;
-    const definition: ResolvedAnnotation | undefined = annotations.findEffective(modelId, node.typeId, node.properties.type);
+    if (typeof node.properties['type'] !== 'string') return attributes;
+    const definition: ResolvedAnnotation | undefined = annotations.findEffective(modelId, node.typeId, node.properties['type']);
     if (!definition) return attributes;
     const byName: Map<string, Attribute> = new Map<string, Attribute>(
       attributes.map((item: Attribute): [string, Attribute] => [item.name, item]),
@@ -105,9 +110,10 @@ export class RamenInstanceValidator {
     const resolved: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, node.typeId);
     if (!resolved || !annotations.isAnnotationNode(resolved.modelId, resolved.element.id)) return;
     const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
-    const type: unknown = node.properties.type;
+    const type: unknown = node.properties['type'];
 
-    this.validateSelector(node, path, diagnostics);
+    const selectorPath: DiagnosticPath = path.property('properties').property('selector');
+    diagnostics.push(...RamenInstanceValidator.validateSelector(node.properties['selector'], selectorPath, node.id));
 
     if (typeof type !== 'string') {
       this.error(
@@ -136,19 +142,23 @@ export class RamenInstanceValidator {
     this.validateRelations(graph, selected, modelId, node, path, connected, diagnostics);
   }
 
-  private validateSelector(node: ModelInstanceNode, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
-    const selector: unknown = node.properties.selector;
-    if (selector === undefined || selector === null || typeof selector !== 'object' || Array.isArray(selector)) return;
-    const type: unknown = (selector as Record<string, unknown>).type;
-    if (typeof type === 'string' && type.trim().length > 0) return;
-
-    this.error(
-      diagnostics,
-      RAMEN_INSTANCE_ERROR.SELECTOR_TYPE_REQUIRED,
-      'Annotation selector must declare a non-empty type.',
-      path.property('properties').property('selector').property('type'),
-      node.id,
-    );
+  /** Checks the common selector contract. The selector's declared data type checks its Object shape. */
+  public static validateSelector(
+    selector: unknown,
+    path: DiagnosticPath = DiagnosticPath.root().property('value'),
+    ref?: Id,
+  ): readonly Diagnostic[] {
+    if (selector === undefined || selector === null || typeof selector !== 'object' || Array.isArray(selector)) return [];
+    const type: unknown = (selector as Record<string, unknown>)['type'];
+    if (typeof type === 'string' && type.trim().length > 0) return [];
+    return [
+      Diagnostics.error({
+        code: RAMEN_INSTANCE_ERROR.SELECTOR_TYPE_REQUIRED,
+        message: 'Annotation selector must declare a non-empty type.',
+        path: path.property('type'),
+        ref,
+      }),
+    ];
   }
 
   private validateProperties(
@@ -159,12 +169,8 @@ export class RamenInstanceValidator {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const common: readonly Attribute[] =
-      EffectiveModel.resolveNode(graph, RAMEN_MODEL.id, RAMEN_ELEMENT.ANNOTATION)?.attributes ?? [];
-    const selectedAttributes: readonly Attribute[] = AnnotationProperties.resolve(graph, selected, nodeType);
-    const allowedNames: Set<string> = new Set<string>(
-      [...common, ...selectedAttributes].map((attribute: Attribute): string => attribute.name),
-    );
+    const attributes: readonly Attribute[] = AnnotationProperties.allowed(graph, selected, nodeType);
+    const allowedNames: Set<string> = new Set<string>(attributes.map((attribute: Attribute): string => attribute.name));
     this.validateAllowedProperties(node, selected, allowedNames, path, diagnostics);
   }
 

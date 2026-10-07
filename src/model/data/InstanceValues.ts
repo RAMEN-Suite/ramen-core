@@ -16,7 +16,7 @@ import type { ValidationResult } from '../validation/ModelValidator';
 /** Validates instance properties against effective node attributes and constraints. */
 export class InstanceValueValidator {
   private readonly nodes: Map<string, EffectiveNode> = new Map<string, EffectiveNode>();
-  private readonly keys: Map<string, Map<unknown, Id>> = new Map<string, Map<unknown, Id>>();
+  private readonly keys: Map<string, Map<string, Id>> = new Map<string, Map<string, Id>>();
   private readonly values: ValueValidator;
 
   /** Creates a value validator with the supplied constraint languages. */
@@ -118,14 +118,15 @@ export class InstanceValueValidator {
       ),
     );
     const key: string = ModelRef.qualify(owner?.modelId ?? effective.modelId, attribute.id);
-    const values: Map<unknown, Id> = this.keys.get(key) ?? new Map<unknown, Id>();
-    const previous: Id | undefined = values.get(value);
+    const values: Map<string, Id> = this.keys.get(key) ?? new Map<string, Id>();
+    const valueKey: string = jsonValueKey(value);
+    const previous: Id | undefined = values.get(valueKey);
     if (previous !== undefined) {
       const message: string = `Key '${attribute.name}' duplicates the value on instance '${previous}'.`;
       diagnostics.push(this.error('INSTANCE_KEY_DUPLICATE', message, path, instanceId));
       return;
     }
-    values.set(value, instanceId);
+    values.set(valueKey, instanceId);
     this.keys.set(key, values);
   }
 

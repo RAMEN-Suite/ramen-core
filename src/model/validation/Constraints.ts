@@ -122,7 +122,7 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
   }
 
   private compile(expression: Record<string, unknown>): SchemaNode {
-    if (expression.$schema !== undefined && expression.$schema !== draft2020.$schema) {
+    if (expression['$schema'] !== undefined && expression['$schema'] !== draft2020.$schema) {
       throw new Error(`expected JSON Schema Draft 2020-12`);
     }
     const key: string = JSON.stringify(expression);

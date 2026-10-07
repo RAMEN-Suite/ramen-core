@@ -8,9 +8,20 @@ import type { Attribute, Node } from '../../model/Types';
 import { Cardinality } from '../../model/validation/Cardinality';
 import type { AnnotationProperty } from './Definitions';
 import type { ResolvedAnnotation } from './AnnotationIndex';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
 
 /** Resolves node attribute selections and properties owned by an annotation type. */
 export class AnnotationProperties {
+  /** Combines the common RAMEN fields with properties permitted by the selected annotation type. */
+  public static allowed(graph: ProjectGraph, definition: ResolvedAnnotation, owner: ResolvedElement<Node>): readonly Attribute[] {
+    const common: readonly Attribute[] =
+      EffectiveModel.resolveNode(graph, RAMEN_MODEL.id, RAMEN_ELEMENT.ANNOTATION)?.attributes ?? [];
+    const qualified: readonly Attribute[] = common.map((attribute: Attribute): Attribute =>
+      this.qualify(attribute, RAMEN_MODEL.id),
+    );
+    return [...qualified, ...this.resolve(graph, definition, owner)];
+  }
+
   public static resolve(graph: ProjectGraph, definition: ResolvedAnnotation, owner: ResolvedElement<Node>): readonly Attribute[] {
     const result: Attribute[] = [];
     for (const property of definition.annotation.properties) {

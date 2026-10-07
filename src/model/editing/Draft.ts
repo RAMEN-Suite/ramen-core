@@ -100,6 +100,39 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.validationInputs().map((model: Model): Model => structuredClone(model));
   }
 
+  /** Returns a detached local or imported node, or undefined when absent. Ambiguous local IDs require a qualified reference. */
+  public getNode(input: ElementInput): Node | undefined {
+    const owner: ElementRef | undefined = this.findRef(input, 'node');
+    if (!owner) return undefined;
+
+    const node: Node | undefined = this.findModel(owner.modelId)?.classifiers.find(
+      (item: Classifier): item is Node => item.kind === 'Node' && item.id === owner.elementId,
+    );
+    return node ? structuredClone(node) : undefined;
+  }
+
+  /** Returns a detached declared data type, or undefined when absent. Built-in types have no declaration. */
+  public getDataType(input: ElementInput): DataType | undefined {
+    const owner: ElementRef | undefined = this.findRef(input, 'dataType');
+    if (!owner) return undefined;
+
+    const dataType: DataType | undefined = this.findModel(owner.modelId)?.classifiers.find(
+      (item: Classifier): item is DataType => item.kind === 'DataType' && item.id === owner.elementId,
+    );
+    return dataType ? structuredClone(dataType) : undefined;
+  }
+
+  /** Returns a detached local or imported relation, or undefined when absent. */
+  public getRelation(input: ElementInput): Relation | undefined {
+    const owner: ElementRef | undefined = this.findRef(input, 'relation');
+    if (!owner) return undefined;
+
+    const relation: Relation | undefined = this.findModel(owner.modelId)?.relations.find(
+      (item: Relation): boolean => item.id === owner.elementId,
+    );
+    return relation ? structuredClone(relation) : undefined;
+  }
+
   /** Lists attributes visible on a local or imported node. */
   public getAttributes(node: ElementInput): readonly AttributeInfo[] {
     const owner: ElementRef = this.resolveRef(node, 'node');
@@ -109,6 +142,13 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   /** Returns the node's base-first refinement lineage. */
   public getNodeLineage(node: ElementInput): readonly NodeLineageItem[] {
     return this.getAdvisor().getNodeLineage(this.model.id, this.nodeReference(node));
+  }
+
+  /** Returns the node that refines every selected node, or undefined for separate branches. */
+  public getMostSpecificNode(nodes: readonly ElementInput[]): Node | undefined {
+    const refs: readonly Ref[] = nodes.map((node: ElementInput): Ref => this.nodeReference(node));
+    const selected: NodeLineageItem | undefined = this.getAdvisor().getMostSpecificNode(this.model.id, refs);
+    return selected ? this.getNode({ modelId: selected.modelId, elementId: selected.nodeId }) : undefined;
   }
 
   /**
@@ -574,19 +614,28 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   }
 
   protected resolveRef(input: ElementInput, kind: 'node' | 'relation' | 'dataType'): ElementRef {
+    const owner: ElementRef | undefined = this.findRef(input, kind);
+    if (owner) return owner;
+
+    const reference: Ref = this.inputRef(input);
+    if (ModelRef.isQualified(reference)) throw new Error(`Unknown ${kind}: '${reference}'.`);
+    throw new Error(`Expected one ${kind} with id '${reference}', found 0.`);
+  }
+
+  private findRef(input: ElementInput, kind: 'node' | 'relation' | 'dataType'): ElementRef | undefined {
     const reference: Ref = this.inputRef(input);
     if (ModelRef.isQualified(reference)) {
       const parts: { readonly modelId: Id; readonly refId: Id } = ModelRef.splitQualified(reference);
       const model: Model | undefined = this.findModel(parts.modelId);
-      if (!model || !this.hasElement(model, parts.refId, kind)) throw new Error(`Unknown ${kind}: '${reference}'.`);
-      return { modelId: parts.modelId, elementId: parts.refId };
+      return model && this.hasElement(model, parts.refId, kind) ? { modelId: parts.modelId, elementId: parts.refId } : undefined;
     }
+
     const matches: readonly Model[] = this.validationInputs().filter((model: Model): boolean =>
       this.hasElement(model, reference, kind),
     );
     const owner: Model | undefined = matches[0];
-    if (matches.length !== 1 || !owner) throw new Error(`Expected one ${kind} with id '${reference}', found ${matches.length}.`);
-    return { modelId: owner.id, elementId: reference };
+    if (matches.length > 1) throw new Error(`Expected one ${kind} with id '${reference}', found ${matches.length}.`);
+    return owner ? { modelId: owner.id, elementId: reference } : undefined;
   }
 
   protected connectBy(

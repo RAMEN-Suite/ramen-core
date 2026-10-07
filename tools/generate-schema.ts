@@ -111,7 +111,7 @@ function graphProperties(fileUri: string, ramen: boolean): Readonly<Record<strin
     },
   };
   if (ramen) {
-    properties.annotations = {
+    properties['annotations'] = {
       type: 'array',
       items: { $ref: '#/$defs/OwnedAnnotation' },
       description:
@@ -138,10 +138,10 @@ function graphSchema(input: FileInput): Schema {
     $defs: {
       ...definitions,
       Header: header(input.source, input.ramen),
-      OwnedNode: owned(definitions.Node),
-      OwnedDataType: owned(definitions.DataType),
-      OwnedRelation: owned(definitions.Relation),
-      ...(input.ramen ? { OwnedAnnotation: owned(definitions.RamenAnnotation) } : {}),
+      OwnedNode: owned(definitions['Node']),
+      OwnedDataType: owned(definitions['DataType']),
+      OwnedRelation: owned(definitions['Relation']),
+      ...(input.ramen ? { OwnedAnnotation: owned(definitions['RamenAnnotation']) } : {}),
     },
   };
 }

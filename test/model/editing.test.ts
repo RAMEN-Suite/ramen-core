@@ -39,6 +39,48 @@ void test('properties, data types and literals remain editable by stable ID', ()
   assert.deepEqual(model.getAttributes(document), []);
 });
 
+void test('removing the last literal restores the unrestricted base type, not other value types', (): void => {
+  const model: Modeller = Modeller.create('Filing');
+  const status: DataType = model.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
+  const draft: Literal = model.createLiteral(status.id, { name: 'Draft' }).element;
+
+  assert.equal(model.validateValue(status, 'Draft').hasErrors, false);
+  assert.equal(model.validateValue(status, 'Published').hasErrors, true);
+  model.removeLiteral(status.id, draft.id);
+
+  assert.equal(model.validateValue(status, 'Published').hasErrors, false);
+  assert.equal(model.validateValue(status, 1).hasErrors, true);
+  assert.equal(Modeller.import(model.export()).validateValue(status.id, 'Published').hasErrors, false);
+});
+
+void test('property flags survive inheritance and exchange without imposing history or sorting checks', (): void => {
+  const base: Modeller = Modeller.create('Filing');
+  const document: Node = base.createNode('Document').element;
+  const tags: Attribute = base.createAttribute(document, {
+    name: 'tags',
+    typeId: DataTypes.String,
+    bounds: { lowerBound: 0, upperBound: -1 },
+    isReadOnly: true,
+    isOrdered: false,
+    isUnique: false,
+  }).element;
+  const next: Modeller = base.createNextLevel('Website');
+  const page: Node = next.createNode({ name: 'Page', refines: document }).element;
+  const restored: Modeller = Modeller.import(next.export());
+  const owner: Node | undefined = restored.getNode(document.id);
+  const property: Attribute | undefined = owner?.attributes.find((item: Attribute): boolean => item.id === tags.id);
+
+  assert.equal(property?.isReadOnly, true);
+  assert.equal(property?.isOrdered, false);
+  assert.equal(property?.isUnique, false);
+  assert.equal(restored.validateAttributeValue(page, 'tags', ['published', 'draft', 'draft']).hasErrors, false);
+  assert.equal(restored.validateAttributeValue(page, 'tags', ['changed']).hasErrors, false);
+
+  base.updateAttribute(document.id, tags.id, { isUnique: true });
+  assert.equal(next.validateAttributeValue(page, 'tags', ['draft', 'draft']).hasErrors, true);
+  assert.equal(restored.validateAttributeValue(page, 'tags', ['draft', 'draft']).hasErrors, false);
+});
+
 void test('invalid element selections fail before changing the draft', (): void => {
   const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;

@@ -16,6 +16,7 @@ import {
   type NodeLineageItem,
   type NodeRemovalPreview,
   type ModelInstanceGraph,
+  type ModelInstanceNode,
   type ModelChange,
   type ModelRemovalPreview,
   type Model,
@@ -23,6 +24,7 @@ import {
   type RamenEvolutionReport,
   type Relation,
   type RelationRemovalPreview,
+  type ValidationResult,
   type WorkspaceElement,
 } from '@ramen-suite/core';
 
@@ -36,6 +38,54 @@ interface Edition {
   readonly imageHas: Relation;
   readonly refers: Relation;
 }
+
+function paragraphRecords(text: Node, textLink: Relation): ModelInstanceGraph {
+  const nodes: readonly ModelInstanceNode[] = [
+    { id: 'textRecord000001', typeId: text.id, properties: { uuid: '550e8400-e29b-41d4-a716-446655440001' } },
+    {
+      id: 'paragraphRecord1',
+      typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
+      properties: {
+        uuid: '550e8400-e29b-41d4-a716-446655440002',
+        type: 'p',
+        selector: { type: 'TextPositionSelector', start: 0, end: 12 },
+      },
+    },
+  ];
+  return {
+    nodes,
+    relations: [{ id: 'paragraphLink001', typeId: textLink.id, fromId: 'textRecord000001', toId: 'paragraphRecord1' }],
+  };
+}
+
+void test('an editor paragraph needs a declared text annotation but no entity reference or refined Annotation node', (): void => {
+  const model: RamenModel = RamenModel.create('Text edition');
+  const text: Node = model.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const image: Node = model.createNode({ name: 'Image', refines: RAMEN_ELEMENT.CONTENT }).element;
+  const textLink: Relation = model.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
+  model.hasAnnotation(image, RAMEN_ELEMENT.ANNOTATION);
+  const data: ModelInstanceGraph = paragraphRecords(text, textLink);
+  const undeclared: ValidationResult = model.validateInstances(data);
+
+  assert.ok(
+    undeclared.diagnostics.some((item: Diagnostic): boolean => item.code === 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN'),
+    JSON.stringify(undeclared.diagnostics),
+  );
+  assert.deepEqual(model.suggestAnnotationsForNode(text), []);
+  model.createAnnotation({
+    nodeId: RAMEN_ELEMENT.ANNOTATION,
+    type: 'p',
+    relations: [{ relation: textLink, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
+  });
+
+  assert.equal(model.validateInstances(data).hasErrors, false);
+  assert.deepEqual(
+    model.suggestAnnotationsForNode(text).map((item: AnnotationSuggestion): string => item.type),
+    ['p'],
+  );
+  assert.deepEqual(model.suggestAnnotationsForNode(image), []);
+  assert.equal(RamenModel.import(model.export()).validateInstances(data).hasErrors, false);
+});
 
 function edition(): Edition {
   const model: RamenModel = RamenModel.create('Edition');

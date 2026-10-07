@@ -73,6 +73,6 @@ Tools translate their own data into the instance graph and interpret selector de
 
 Run `npm run verify` for type checks, schema checks, lint, formatting, tests, documentation and package contents. Run `npm run docs:serve` to browse the guides and API reference locally.
 
-The build writes the publishable package to `dist/ramen-core` and the documentation to `dist/api-doc`. The package check installs a real tarball in a temporary consumer and checks its runtime exports, declarations and schemas.
+The build writes JavaScript, declarations and schemas to `dist/ramen-core`, and documentation to `dist/api-doc`. `npm pack` packages the library from the repository root using `files` and `exports` in `package.json`. The package check installs a real tarball in a temporary consumer and checks its runtime exports, declarations and schemas.
 
 See [Contributing](CONTRIBUTING.md) for setup, conventions and release handover, [Security](SECURITY.md) for vulnerability reports, and the [Code of Conduct](CODE_OF_CONDUCT.md) for participation guidelines. RAMEN Core uses the [MIT licence](LICENSE).

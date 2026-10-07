@@ -1,17 +1,18 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 interface PackedFile {
   readonly filename: string;
+  readonly files: readonly { readonly path: string }[];
 }
 
 interface InstalledPackage {
   readonly name: string;
   readonly private?: boolean;
-  readonly scripts?: Readonly<Record<string, string>>;
+  readonly type: string;
 }
 
 const root: string = fileURLToPath(new URL('../', import.meta.url));
@@ -19,17 +20,30 @@ const temporary: string = mkdtempSync(join(tmpdir(), 'ramen-package-'));
 const npm: string = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 try {
-  const packed: string = execFileSync(
-    npm,
-    ['pack', './dist/ramen-core', '--json', '--ignore-scripts', '--pack-destination', temporary],
-    {
-      cwd: root,
-      encoding: 'utf8',
-    },
-  );
+  const packed: string = execFileSync(npm, ['pack', '.', '--json', '--ignore-scripts', '--pack-destination', temporary], {
+    cwd: root,
+    encoding: 'utf8',
+  });
   const files: readonly PackedFile[] = JSON.parse(packed) as readonly PackedFile[];
   const file: PackedFile | undefined = files[0];
   if (!file) throw new Error('npm pack returned no package.');
+  const paths: readonly string[] = file.files.map((entry: { readonly path: string }): string => entry.path);
+  const unexpected: readonly string[] = paths.filter(
+    (path: string): boolean => !path.startsWith('dist/ramen-core/') && !['package.json', 'README.md', 'LICENSE'].includes(path),
+  );
+  if (unexpected.length > 0) throw new Error(`Unexpected package files: ${unexpected.join(', ')}`);
+  const schemas: readonly string[] = readdirSync(join(root, 'src/resources/schemas')).filter((name: string): boolean =>
+    name.endsWith('.schema.json'),
+  );
+  const required: readonly string[] = [
+    'package.json',
+    'README.md',
+    'LICENSE',
+    ...schemas.map((name: string): string => `dist/ramen-core/schemas/${name}`),
+  ];
+  const missing: readonly string[] = required.filter((path: string): boolean => !paths.includes(path));
+  if (missing.length > 0) throw new Error(`Missing package files: ${missing.join(', ')}`);
+
   const consumer: string = join(temporary, 'consumer');
   mkdirSync(consumer);
   writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
@@ -40,13 +54,13 @@ try {
   });
   const manifestPath: string = join(consumer, 'node_modules/@ramen-suite/core/package.json');
   const installed: InstalledPackage = JSON.parse(readFileSync(manifestPath, 'utf8')) as InstalledPackage;
-  if (installed.name !== '@ramen-suite/core' || installed.private || installed.scripts) {
-    throw new Error('The published manifest must identify RAMEN Core and exclude private development scripts.');
+  if (installed.name !== '@ramen-suite/core' || installed.private || installed.type !== 'module') {
+    throw new Error('The published manifest must identify RAMEN Core as a public ESM package.');
   }
 
   const example: string = readFileSync(join(root, 'test/package/consumer.ts'), 'utf8');
   writeFileSync(join(consumer, 'consumer.ts'), example);
-  execFileSync(process.execPath, ['--experimental-strip-types', 'consumer.ts'], { cwd: consumer, stdio: 'inherit' });
+  execFileSync(process.execPath, ['consumer.ts'], { cwd: consumer, stdio: 'inherit' });
   execFileSync(
     process.execPath,
     [

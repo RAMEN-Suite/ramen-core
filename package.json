@@ -1,7 +1,6 @@
 {
   "name": "@ramen-suite/core",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "engines": {
     "node": ">=26.3.0 <27",
@@ -12,7 +11,11 @@
   "description": "JSON model format and modelling kernel for the RAMEN suite",
   "sideEffects": false,
   "files": [
-    "dist/ramen-core"
+    "dist/ramen-core/index.js",
+    "dist/ramen-core/index.d.ts",
+    "dist/ramen-core/model",
+    "dist/ramen-core/ramen",
+    "dist/ramen-core/schemas"
   ],
   "exports": {
     ".": {
@@ -32,30 +35,23 @@
     }
   },
   "scripts": {
-    "build": "npm run build:types && npm run build:bundle && npm run build:package",
-    "build:bundle": "esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --external:json-schema-library --external:short-unique-id",
-    "build:package": "node --experimental-strip-types tools/package.ts",
-    "build:types": "tsc -p tsconfig.json",
-    "docs:build": "npm run docs:diagnostics && node --experimental-strip-types ./node_modules/typedoc/bin/typedoc",
-    "docs:diagnostics": "node --experimental-strip-types tools/generate-diagnostics.ts",
-    "docs:diagnostics:check": "node --experimental-strip-types tools/generate-diagnostics.ts --check",
-    "docs:serve": "npm run docs:build && concurrently --kill-others --names docs,server \"npm run docs:watch\" \"http-server dist/api-doc -a 127.0.0.1 -p 5173 -c-1\"",
-    "docs:watch": "node --experimental-strip-types ./node_modules/typedoc/bin/typedoc --watch --preserveWatchOutput",
+    "build": "tsc && esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --packages=external && node tools/copy-schemas.ts",
+    "docs:build": "npm run docs:diagnostics && typedoc",
+    "docs:diagnostics": "node tools/generate-diagnostics.ts",
+    "docs:diagnostics:check": "node tools/generate-diagnostics.ts --check",
+    "docs:serve": "npm run docs:build && concurrently --kill-others --names docs,server \"typedoc --watch --preserveWatchOutput\" \"http-server dist/api-doc -a 127.0.0.1 -p 5173 -c-1\"",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
     "lint": "eslint src test tools",
     "lint:fix": "eslint src test tools --fix",
-    "package:check": "node --experimental-strip-types tools/check-package.ts",
+    "package:check": "npm run build && node tools/check-package.ts",
     "prepare": "git config core.hooksPath .githooks",
-    "schema:check": "node --experimental-strip-types tools/generate-schema.ts --check",
-    "schema:generate": "node --experimental-strip-types tools/generate-schema.ts",
-    "test": "npm run typecheck:tests && node --experimental-strip-types --test test/**/*.test.ts",
-    "test:coverage": "npm run build && npm run typecheck:tests && node --experimental-strip-types --experimental-test-coverage --test-coverage-include='dist/ramen-core/**/*.js' --test test/**/*.test.ts",
-    "test:watch": "npm run typecheck:tests && node --experimental-strip-types --test --watch test/**/*.test.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
-    "typecheck:tools": "tsc -p tsconfig.tools.json --noEmit",
-    "verify": "npm run typecheck:tools && npm run schema:check && npm run build && npm run lint && npm run docs:diagnostics:check && npm run format && npm test && npm run docs:build && npm run package:check"
+    "schema:check": "node tools/generate-schema.ts --check",
+    "schema:generate": "node tools/generate-schema.ts",
+    "test": "npm run build && npm run typecheck && node --test \"test/**/*.test.ts\"",
+    "test:coverage": "npm run build && npm run typecheck && node --experimental-test-coverage --test-coverage-include=\"dist/ramen-core/**/*.js\" --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.tools.json",
+    "verify": "npm run schema:check && npm run docs:diagnostics:check && npm run lint && npm run format && npm test && npm run docs:build && node tools/check-package.ts"
   },
   "dependencies": {
     "json-schema-library": "11.4.0",
@@ -94,5 +90,8 @@
   "homepage": "https://github.com/RAMEN-Suite/ramen-core#readme",
   "bugs": {
     "url": "https://github.com/RAMEN-Suite/ramen-core/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

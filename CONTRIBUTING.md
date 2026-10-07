@@ -21,7 +21,7 @@ npm run build
 | `test`            | Public API tests, failures, modelling scenarios and package consumer |
 | `docs`            | Markdown guides and documentation styling                            |
 | `tools`           | TypeScript generators and repository checks                          |
-| `dist/ramen-core` | Generated publishable package                                        |
+| `dist/ramen-core` | Generated library files                                              |
 | `dist/api-doc`    | Generated TypeDoc website                                            |
 
 ## Make a change
@@ -50,19 +50,18 @@ Check diagnostic codes, severity and paths when those are part of the contract. 
 
 ## Useful checks
 
-| Command                   | Use                                                                |
-| ------------------------- | ------------------------------------------------------------------ |
-| `npm test`                | Type-check and run tests against the current build                 |
-| `npm run test:watch`      | Repeat tests while editing                                         |
-| `npm run build`           | Refresh code, declarations, schemas and package metadata           |
-| `npm run lint`            | Check source, tests and tooling                                    |
-| `npm run format:fix`      | Apply repository formatting                                        |
-| `npm run schema:generate` | Regenerate the RAMEN project schema                                |
-| `npm run docs:serve`      | Browse TypeDoc at `http://127.0.0.1:5173`                          |
-| `npm run package:check`   | Install the built tarball and check runtime and TypeScript imports |
-| `npm run verify`          | Run the complete repository gate                                   |
+| Command                   | Use                                                                      |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `npm test`                | Build, type-check and run tests                                          |
+| `npm run build`           | Refresh code, declarations and schemas                                   |
+| `npm run lint`            | Check source, tests and tooling                                          |
+| `npm run format:fix`      | Apply repository formatting                                              |
+| `npm run schema:generate` | Regenerate the RAMEN project schema                                      |
+| `npm run docs:serve`      | Browse TypeDoc at `http://127.0.0.1:5173`                                |
+| `npm run package:check`   | Build and install the tarball, then check runtime and TypeScript imports |
+| `npm run verify`          | Run the complete repository gate                                         |
 
-Run `build` before standalone test or package checks after source edits. `verify` does this automatically. The package consumer resolves runtime dependencies from the configured npm registry.
+`test`, `test:coverage` and `package:check` build the library first. Run `build` before standalone type checks from a fresh checkout. The package consumer resolves runtime dependencies from the configured npm registry.
 
 ## Commits and review
 
@@ -77,13 +76,13 @@ Keep commits focused. Explain the consumer impact and tests, and call out public
 
 ## Release handover
 
-The repository root stays private. `npm run build` creates the publishable `@ramen-suite/core` package in `dist/ramen-core`, with its own manifest, exports, declarations, schemas, README and licence. Development scripts and Git hooks are excluded from that manifest.
+`package.json` at the repository root is the single package manifest. `npm run build` writes library files to `dist/ramen-core`. `npm pack` uses the manifest's `files` list to include those files alongside the root README and licence. Source code, tools, Git hooks and the documentation website are excluded.
 
 Before the first release, the release maintainer should:
 
 1. Confirm the GitHub repository and npm publishing permissions.
 2. Choose the version and release notes, then run `npm run verify` from a fresh checkout.
-3. Publish **`dist/ramen-core`**, using the organisation's release process.
+3. Publish from the **repository root**, using the organisation's release process.
 4. Verify installation from npm and publish documentation and schema URLs separately.
 
 The build does not publish, tag commits or deploy documentation. The package ships its schemas even before the canonical URLs are hosted. Contributor development versions are separate from the runtime compatibility policy that the release maintainer confirms.

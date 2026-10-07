@@ -1,11 +1,12 @@
 ---
-title: Export a RAMEN Model
+route: ramen/export
+title: Export and Import
 group: RAMEN
 ---
 
-# Export a RAMEN Model
+# Export and Import
 
-{@link ramen.RamenModel.export | export()} writes the current model and its predecessors into one file, as in generic [Export and Import](../rmf/exchange.md). This example uses the [Edition model](ramen.md#create-an-edition-model):
+{@link ramen.RamenModel.export | export()} writes the Edition model, its base models and its annotation definitions into one JSON file. This continues the [Edition example](ramen.md#create-a-project-model):
 
 ```ts
 import type { RamenFile } from '@ramen-suite/core/ramen';
@@ -17,6 +18,6 @@ const parsed: unknown = JSON.parse(json);
 const restored: RamenModel = RamenModel.import(parsed);
 ```
 
-The file follows the [RAMEN file schema](https://ramen-schema.org/ramen/1.0.0/file.schema.json). Its `models` list identifies RAMEN and Edition. Nodes, relationships and annotation types appear once, each with a `modelId` that identifies its owner. Node `superTypes` preserve the refinement chain. After {@link ramen.RamenModel.import | import()}, {@link ramen.RamenModel.openLevel | openLevel()} can open a project predecessor for editing. The packaged RAMEN reference model is read-only.
+The file follows the [RAMEN file schema](https://ramen-schema.org/ramen/1.0.0/file.schema.json). Its `models` list identifies RAMEN and Edition. Each node, relationship and annotation type appears once with the `modelId` of its declaring model. Node `superTypes` preserve inheritance. The importing tool can read the complete model without assembling separate files.
 
-{@link ramen.RamenModel.getModel | edition.getModel()} returns only the current [RAMEN project document](https://ramen-schema.org/ramen/1.0.0/project.schema.json). Both schemas ship with `@ramen-suite/core` under `schemas/`.
+{@link ramen.RamenModel.import | import()} restores the levels. {@link ramen.RamenModel.openLevel | openLevel()} opens a project level for editing; the packaged RAMEN reference model stays read-only. {@link ramen.RamenModel.getModel | getModel()} returns only the current [project document](https://ramen-schema.org/ramen/1.0.0/project.schema.json). Both schemas also ship in `@ramen-suite/core/schemas/`.

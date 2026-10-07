@@ -1,4 +1,5 @@
 ---
+route: rmf/constraint-languages
 title: Constraint Languages
 group: RMF
 ---

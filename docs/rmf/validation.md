@@ -1,4 +1,5 @@
 ---
+route: rmf/validation
 title: Validate Models and Data
 group: RMF
 children:

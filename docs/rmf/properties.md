@@ -1,4 +1,5 @@
 ---
+route: rmf/properties
 title: Add Properties
 group: RMF
 ---
@@ -58,6 +59,8 @@ Each flag describes a different rule:
 | `isUnique`   | `true`  | Prevents repeated values in one record's multi-valued property.                                                            | With `false`, `['draft', 'draft']` is allowed. |
 | `isOrdered`  | `true`  | Array position carries meaning, although validation does not impose an order.                                              | `['draft', 'published']` keeps this sequence.  |
 | `isReadOnly` | `false` | Tells a tool to prevent changes to a recorded value after creation because validating one record cannot check its history. | A tool locks `reference` after creation.       |
+
+Object keys compare their JSON content, regardless of object member order. Array order within an Object value remains significant.
 
 For example, make `reference` a stable key and allow repeated tags whose order does not matter:
 

@@ -1,4 +1,5 @@
 ---
+route: rmf/nodes
 title: Create Nodes
 group: RMF
 ---
@@ -47,7 +48,16 @@ Page belongs to Website, while Document stays in Filing. Website can use Folder 
 
 ## Read a node definition
 
-The stored Node has an ID, name, supertypes and local attributes. Inherited attributes stay on their declaring node. {@link model.Modeller.getNodeLineage | getNodeLineage()} lists ancestors first:
+{@link model.Modeller.getNode | getNode()} reads a local or imported definition by ID. It returns a copy, or `undefined` when the ID is unknown:
+
+```ts
+const found: Node | undefined = website.getNode(document.id);
+console.log(found?.name); // 'Document'
+```
+
+If two imported models use the same local ID, pass a qualified reference such as `ModelRef.qualify(modelId, nodeId)`.
+
+The stored Node has a name, supertypes and local attributes. Inherited attributes stay on their declaring node. {@link model.Modeller.getNodeLineage | getNodeLineage()} lists ancestors first:
 
 ```ts
 const lineage: readonly NodeLineageItem[] = website.getNodeLineage(page);

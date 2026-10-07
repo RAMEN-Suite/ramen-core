@@ -4,6 +4,8 @@
   "tsconfig": "tsconfig.json",
   "out": "dist/api-doc",
   "name": "RAMEN Core",
+  "plugin": ["./tools/typedoc-router.ts"],
+  "router": "guides",
   "readme": "docs/rmf/rmf.md",
   "excludePrivate": true,
   "excludeProtected": true,
@@ -18,13 +20,11 @@
     "docs/rmf/exchange.md",
     "docs/rmf/model-changes.md",
     "docs/ramen/ramen.md",
-    "docs/ramen/data-types.md",
-    "docs/ramen/annotations.md",
-    "docs/ramen/validation.md",
-    "docs/ramen/export.md"
+    "docs/examples/website.md",
+    "docs/examples/correspondence-edition.md"
   ],
   "sortEntryPoints": false,
-  "groupOrder": ["RMF", "RAMEN", "Modules", "*"],
+  "groupOrder": ["RMF", "RAMEN", "Examples", "Modules", "*"],
   "navigation": {
     "includeGroups": true
   },

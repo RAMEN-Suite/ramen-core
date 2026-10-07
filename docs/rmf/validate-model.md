@@ -1,4 +1,5 @@
 ---
+route: rmf/validate-model
 title: Validate a Model
 group: RMF
 ---

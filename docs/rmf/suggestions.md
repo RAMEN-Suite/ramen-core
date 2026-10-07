@@ -1,4 +1,5 @@
 ---
+route: rmf/suggestions
 title: Request Suggestions
 group: RMF
 ---

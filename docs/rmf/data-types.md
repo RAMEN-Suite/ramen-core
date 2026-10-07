@@ -1,4 +1,5 @@
 ---
+route: rmf/data-types
 title: Add Data Types
 group: RMF
 ---
@@ -73,6 +74,18 @@ model.createAttribute(document, { name: 'published', type: publishedDate });
 The default evaluator recognises `uuid`, `date`, `date-time`, `email` and `uri`. A `uri` must be absolute. These are constraint expressions rather than new primitive types. [Add Constraints](constraints.md) covers custom evaluators, and [Request Suggestions](suggestions.md#choose-a-data-type) covers type pickers.
 
 Use `json-schema` when a data type needs standard value rules such as `minLength`, `minimum` or nested Object fields. [Constraint Languages](../constraint-languages.md) gives examples for every built-in base type.
+
+## Read a data type
+
+{@link model.Modeller.getDataType | getDataType()} reads a local or imported declaration by ID. It returns a copy, or `undefined` when the ID is unknown:
+
+```ts
+const current: DataType | undefined = model.getDataType(status.id);
+console.log(current?.name); // 'Status'
+```
+
+Built-in references such as `DataTypes.String` have no DataType declaration, so `getDataType(DataTypes.String)` returns `undefined`.
+If two imported models use the same local ID, pass a qualified reference.
 
 ## Update a data type
 

@@ -1,4 +1,5 @@
 ---
+route: rmf/model-changes
 title: Track Model Changes
 group: RMF
 ---

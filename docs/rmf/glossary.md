@@ -1,4 +1,5 @@
 ---
+route: rmf/glossary
 title: Glossary
 ---
 

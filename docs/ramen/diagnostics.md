@@ -1,13 +1,16 @@
 ---
-title: RAMEN Diagnostics
+route: ramen/diagnostics
+title: Read Diagnostics
 group: RAMEN
 ---
 
-# RAMEN Diagnostics
+# Read Diagnostics
 
 RAMEN returns the [generic RMF diagnostics](../rmf/diagnostics.md) and the additional codes below. Model codes describe invalid definitions. Data codes describe recorded annotations that do not follow a valid model. See [Validate RAMEN Data](validation.md) for an example.
 
 ## Model codes
+
+<!-- diagnostics:model:start -->
 
 | Code                                | Meaning                                                                                                        |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -22,7 +25,11 @@ RAMEN returns the [generic RMF diagnostics](../rmf/diagnostics.md) and the addit
 | `RAMEN_ANNOTATION_RELATION_INVALID` | A selected relationship is missing, incompatible, repeated or overlaps another selected relationship.          |
 | `RAMEN_ANNOTATION_BOUNDS_INVALID`   | A type's property or relationship bounds are invalid or widen their modelled bounds.                           |
 
+<!-- diagnostics:model:end -->
+
 ## Recorded-data codes
+
+<!-- diagnostics:data:start -->
 
 | Code                                             | Meaning                                                                      |
 | ------------------------------------------------ | ---------------------------------------------------------------------------- |
@@ -32,5 +39,7 @@ RAMEN returns the [generic RMF diagnostics](../rmf/diagnostics.md) and the addit
 | `RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED`          | A supplied selector object has no non-empty `type`.                          |
 | `RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED` | A link on this annotation is absent from its type's permitted relationships. |
 | `RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY` | Too few or too many links match a relationship rule of the annotation type.  |
+
+<!-- diagnostics:data:end -->
 
 Missing, malformed or wrongly typed property values still use the [generic data codes](../rmf/diagnostics.md#recorded-data-codes). A `person` annotation without its required Person link, for example, reports `RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY`.

@@ -1,4 +1,5 @@
 ---
+route: rmf/inheritance
 title: Refine by Inheritance
 group: RMF
 ---
@@ -22,7 +23,7 @@ Start with two types and a required title. The title rule checks every recorded 
 
 ```ts
 import { DataTypes, Modeller } from '@ramen-suite/core/model';
-import type { Attribute, Constraint, Node, Relation } from '@ramen-suite/core/model';
+import type { Attribute, Constraint, Node, NodeLineageItem, Relation } from '@ramen-suite/core/model';
 
 const filing: Modeller = Modeller.create('Filing');
 const document: Node = filing.createNode('Document').element;
@@ -110,16 +111,35 @@ ArticlePage inherits `title` from Document and `slug` from Page. NewsSite applie
 
 {@link model.Modeller.getNodeLineage | getNodeLineage(articlePage)} returns the ancestors in **base-first order**: Document, Page, ArticlePage. {@link model.Modeller.getAttributes | getAttributes(articlePage)} lists the inherited and local properties visible on ArticlePage.
 
+## Find the most specific types
+
+{@link model.Modeller.getMostSpecificNode | getMostSpecificNode()} accepts Nodes or the result of {@link model.Modeller.getNodeLineage | getNodeLineage()}. It returns the Node that refines all other candidates:
+
+```ts
+const lineage: readonly NodeLineageItem[] = news.getNodeLineage(articlePage);
+const selected: Node | undefined = news.getMostSpecificNode(lineage);
+console.log(selected?.name); // 'ArticlePage'
+```
+
+Passing the Nodes directly gives the same result:
+
+```ts
+const direct: Node | undefined = news.getMostSpecificNode([document, page, articlePage]);
+console.log(direct?.name); // 'ArticlePage'
+```
+
+An empty list returns `undefined`. So does a list containing unrelated branches, such as ArticlePage and Section: neither refines the other. This compares **model types**, not recorded objects.
+
 ## What follows a refinement?
 
-| Definition                   | On a refined node or relation                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Node properties              | Inherited with their data types, cardinalities, flags and constraints. Add new names without redeclaring inherited ones. |
-| Node constraints             | All ancestor and local rules are checked. {@link model.Modeller.getConstraints                                           | getConstraints(node)} returns only rules declared directly on that node. |
-| Data types and literals      | Reused through imports. They are not refined along the node inheritance chain.                                           |
-| Relationships in one model   | A relation's endpoint accepts subtypes of its declared node.                                                             |
-| Relationships in a new level | Apply each permitted predecessor relation explicitly. Endpoints and bounds may stay the same or become more specific.    |
-| Relation constraints         | A refined relation keeps ancestor rules and may add its own rules.                                                       |
+| Definition                   | On a refined node or relation                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Node properties              | Inherited with their data types, cardinalities, flags and constraints. Add new names without redeclaring inherited ones.           |
+| Node constraints             | All ancestor and local rules are checked. {@link model.Modeller.getConstraints} returns only rules declared directly on that node. |
+| Data types and literals      | Reused through imports. They are not refined along the node inheritance chain.                                                     |
+| Relationships in one model   | A relation's endpoint accepts subtypes of its declared node.                                                                       |
+| Relationships in a new level | Apply each permitted predecessor relation explicitly. Endpoints and bounds may stay the same or become more specific.              |
+| Relation constraints         | A refined relation keeps ancestor rules and may add its own rules.                                                                 |
 
 Each node and relation currently has **at most one direct supertype**. The chain must be acyclic. In a model with imports, every new node needs a parent. Reuse an imported node when no new type is needed. Model validation reports violations of these rules before export.
 

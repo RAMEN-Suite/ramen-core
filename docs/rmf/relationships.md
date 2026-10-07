@@ -1,4 +1,5 @@
 ---
+route: rmf/relationships
 title: Add Relationships
 group: RMF
 ---
@@ -55,6 +56,17 @@ website.createRelation({ refines: filedIn, from: { node: page }, to: { node: sec
 The new relation inherits `FILED_IN`'s name and bounds. Set `name` in {@link model.Modeller.createRelation | createRelation()} if the local relationship needs another name. You may narrow inherited bounds, but you cannot widen them. Use `nodeId` instead of `node` to pass an ID for either end. If you supply both, the Node object takes precedence. [Refine by Inheritance](inheritance.md) explains why each level must apply its own relationships.
 
 If several permitted relations connect the same node types, pass the intended one as `refines`. [Request Suggestions](suggestions.md#choose-a-relationship) shows how to present those choices in an editor.
+
+## Read a relationship
+
+{@link model.Modeller.getRelation | getRelation()} reads one known definition by ID, including an imported definition. It returns a copy or `undefined` if the ID is unknown:
+
+```ts
+const known: Relation | undefined = website.getRelation(filedIn.id);
+console.log(known?.name); // 'FILED_IN'
+```
+
+{@link model.Modeller.getRelations | getRelations(from, to)} instead lists all definitions matching two selected node types.
 
 ## Update a relationship
 

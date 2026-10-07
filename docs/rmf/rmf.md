@@ -1,4 +1,5 @@
 ---
+route: rmf/overview
 title: RAMEN Model Format
 group: RMF
 children:
@@ -31,6 +32,7 @@ You define which types, properties and relationships tools can use to collect da
 `Model`, `Node`, `Attribute` and `Relation` are data interfaces.
 Node objects hold definitions, and Modeller provides the editing methods.
 The [Glossary](glossary.md) distinguishes model levels, graphs, records and API results.
+The [RMF Model example](../examples/website.md) shows a complete two-level website model.
 
 ## Create a model
 

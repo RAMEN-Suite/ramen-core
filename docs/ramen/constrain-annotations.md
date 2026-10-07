@@ -1,13 +1,14 @@
 ---
-title: Constrain Annotations
+route: ramen/annotation-properties
+title: Add Properties
 group: RAMEN
 ---
 
-# Constrain Annotations
+# Add Properties
 
-An annotation property can use a custom {@link model.DataType | data type}. For a fixed list of values, declare **literals** as in [Add Data Types](../rmf/data-types.md): the generic validator checks them automatically. This example gives a separate `role` annotation a required `name`. [Add Constraints](../rmf/constraints.md) covers rules that need an expression or evaluator.
+An annotation type may declare properties that do not belong to the shared Annotation node. Here a separate `role` type has a required `name`. Its `RoleName` data type allows only three values.
 
-## Create the model
+## Allow a role annotation
 
 Define the nodes and relationships that `role` may use:
 
@@ -23,9 +24,9 @@ const textLink: Relation = media.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).e
 const personLink: Relation = media.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
 ```
 
-## Define RoleName
+## Limit the property values
 
-`RoleName` stores a string and permits three literals:
+Declare `RoleName` with three permitted string literals:
 
 ```ts
 import { DataTypes } from '@ramen-suite/core/model';
@@ -37,7 +38,7 @@ media.createLiteral(roleName.id, { name: 'Recipient', literal: 'recipient' });
 media.createLiteral(roleName.id, { name: 'Mentioned', literal: 'mentioned' });
 ```
 
-Declare `role` as its own annotation type. It is not a property of `person`:
+Now declare `role`. Its `name` property belongs only to this type, while `uuid`, `type` and `selector` remain on the shared Annotation node:
 
 ```ts
 media.createAnnotation({
@@ -51,7 +52,7 @@ media.createAnnotation({
 });
 ```
 
-## Check recorded roles
+## Check a recorded value
 
 The relevant properties of a recorded Role annotation are:
 
@@ -59,4 +60,4 @@ The relevant properties of a recorded Role annotation are:
 { "type": "role", "name": "sender" }
 ```
 
-In a complete data graph with the required Text and Person links, {@link ramen.RamenModel.validateInstances | media.validateInstances(data)} accepts `sender`. An `editor` value reports `INSTANCE_PROPERTY_LITERAL_INVALID`, while a missing `name` violates `1..1`. [Validate RAMEN Data](validation.md) shows the complete graph format.
+{@link ramen.RamenModel.validateAnnotationValue | validateAnnotationValue()} checks this input without recorded nodes or links. In a complete data graph with the required Text and Person links, {@link ramen.RamenModel.validateInstances | validateInstances()} also accepts `sender`. The literal check rejects `editor`, and omitting `name` violates `1..1`. See [Validate RAMEN Data](validation.md) for both checks and [Add Constraints](../rmf/constraints.md) for rules beyond a value list.

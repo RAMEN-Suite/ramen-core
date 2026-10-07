@@ -1,4 +1,5 @@
 ---
+route: rmf/diagnostics
 title: Read Diagnostics
 group: RMF
 ---
@@ -35,6 +36,8 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 
 ### Structure and references
 
+<!-- diagnostics:structure:start -->
+
 | Code                              | Meaning                                                      |
 | --------------------------------- | ------------------------------------------------------------ |
 | `SCHEMA_INVALID`                  | A model document does not match the RMF schema.              |
@@ -45,14 +48,18 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 | `IMPORTED_MODEL_URI_MISMATCH`     | An import's URI differs from the target model's URI.         |
 | `IMPORTED_VERSION_MISMATCH`       | An import's version differs from the target model's version. |
 | `IMPORT_CYCLE`                    | Model imports form a cycle.                                  |
-| `IMPORT_MODEL_ID_DUPLICATE`       | A model imports the same model more than once.               |
-| `IMPORT_SELF_NOT_ALLOWED`         | A model imports itself.                                      |
 | `INHERITANCE_CYCLE`               | Node or relationship refinements form a cycle.               |
 | `REFERENCE_MODEL_NOT_REACHABLE`   | A reference points to a model outside the owner's imports.   |
 | `ELEMENT_REFERENCE_NOT_FOUND`     | A referenced element does not exist.                         |
 | `ELEMENT_REFERENCE_KIND_MISMATCH` | A reference points to the wrong kind of element.             |
+| `IMPORT_MODEL_ID_DUPLICATE`       | A model imports the same model more than once.               |
+| `IMPORT_SELF_NOT_ALLOWED`         | A model imports itself.                                      |
+
+<!-- diagnostics:structure:end -->
 
 ### Nodes, properties and data types
+
+<!-- diagnostics:nodes:start -->
 
 | Code                                    | Meaning                                                              |
 | --------------------------------------- | -------------------------------------------------------------------- |
@@ -68,7 +75,11 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 | `DATATYPE_LITERAL_SERIALIZED_DUPLICATE` | Two literals produce the same stored string.                         |
 | `DATATYPE_LITERAL_VALUE_DUPLICATE`      | Two literals have the same numeric value.                            |
 
+<!-- diagnostics:nodes:end -->
+
 ### Relationships and constraints
+
+<!-- diagnostics:relations:start -->
 
 | Code                                       | Meaning                                                                     |
 | ------------------------------------------ | --------------------------------------------------------------------------- |
@@ -83,9 +94,13 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 | `CONSTRAINT_FORMAT_MISMATCH`               | A value does not match a declared string format.                            |
 | `CONSTRAINT_JSON_SCHEMA_MISMATCH`          | A value does not match a JSON Schema constraint.                            |
 
+<!-- diagnostics:relations:end -->
+
 ## Recorded-data codes
 
 These codes come from {@link model.Modeller.validateInstances | validateInstances(data)}. A tool must first translate its records into a `ModelInstanceGraph`.
+
+<!-- diagnostics:data:start -->
 
 | Code                                 | Meaning                                                                  |
 | ------------------------------------ | ------------------------------------------------------------------------ |
@@ -107,5 +122,7 @@ These codes come from {@link model.Modeller.validateInstances | validateInstance
 | `INSTANCE_RELATION_TO_NOT_FOUND`     | A link's target record is missing.                                       |
 | `INSTANCE_RELATION_END_TYPE_INVALID` | A linked record has an incompatible node type.                           |
 | `INSTANCE_CARDINALITY_INVALID`       | A property's or relationship's value count falls outside its bounds.     |
+
+<!-- diagnostics:data:end -->
 
 A constraint may supply its own `code`, and a custom evaluator may return its own diagnostics. Those codes are defined by the project or tool.

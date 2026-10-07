@@ -1,4 +1,5 @@
 ---
+route: rmf/preview-removal
 title: Preview a Removal
 group: RMF
 ---

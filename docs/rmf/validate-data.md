@@ -1,4 +1,5 @@
 ---
+route: rmf/validate-data
 title: Validate Data
 group: RMF
 ---

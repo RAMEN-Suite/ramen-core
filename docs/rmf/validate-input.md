@@ -1,4 +1,5 @@
 ---
+route: rmf/validate-input
 title: Check Input Values
 group: RMF
 ---

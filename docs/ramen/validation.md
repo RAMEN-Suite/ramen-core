@@ -1,4 +1,5 @@
 ---
+route: ramen/validation
 title: Validate RAMEN Data
 group: RAMEN
 children:
@@ -7,41 +8,42 @@ children:
 
 # Validate RAMEN Data
 
-First check the **data model**. Then check whether **recorded data** follow it. RAMEN adds annotation rules to the [generic RMF validation](../rmf/validation.md) and returns problems as [diagnostics](diagnostics.md).
+Validation checks two things: whether the project model is valid, and whether recorded data follow it. RAMEN adds annotation rules to [RMF validation](../rmf/validation.md). Problems appear as [diagnostics](diagnostics.md).
 
 ## Check the model
 
-This model allows a `person` annotation on Text. Each such annotation must refer to one Person:
+Continue from the [Media model](annotations.md), where `person` can annotate Text or Image and must refer to one Person:
 
 ```ts
-import type { Node, ProjectValidationResult, Relation } from '@ramen-suite/core/model';
-import { RAMEN_ELEMENT, RamenModel } from '@ramen-suite/core/ramen';
-
-const media: RamenModel = RamenModel.create('Media');
-const text: Node = media.createNode({ name: 'Text', refines: RAMEN_ELEMENT.CONTENT }).element;
-const person: Node = media.createNode({ name: 'Person', refines: RAMEN_ELEMENT.ENTITY }).element;
-
-const textLink: Relation = media.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
-const personLink: Relation = media.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
-
-media.createAnnotation({
-  nodeId: RAMEN_ELEMENT.ANNOTATION,
-  type: 'person',
-  relations: [
-    { relation: textLink, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } },
-    { relation: personLink, direction: 'outgoing', bounds: { lowerBound: 1, upperBound: 1 } },
-  ],
-});
+import type { ProjectValidationResult } from '@ramen-suite/core/model';
 
 const modelResult: ProjectValidationResult = media.validate();
-if (!modelResult.valid) console.log(modelResult.diagnostics);
+if (!modelResult.valid) {
+  console.log(modelResult.diagnostics);
+}
 ```
 
-{@link ramen.RamenModel.validate | validate()} checks the model's structure and RAMEN rules. An invalid model cannot be exported.
+{@link ramen.RamenModel.validate | validate()} checks the model definitions before export or data validation.
+
+## Check one input
+
+Use {@link ramen.RamenModel.validateAnnotationValue | validateAnnotationValue()} for a property of one annotation type. Continue from [Add Properties](constrain-annotations.md), where `role.name` uses the `RoleName` value list:
+
+```ts
+import type { ValidationResult } from '@ramen-suite/core/model';
+
+const valid: ValidationResult = media.validateAnnotationValue(RAMEN_ELEMENT.ANNOTATION, 'role', 'name', 'sender');
+const invalid: ValidationResult = media.validateAnnotationValue(RAMEN_ELEMENT.ANNOTATION, 'role', 'name', 'editor');
+
+console.log(valid.hasErrors); // false
+console.log(invalid.diagnostics); // INSTANCE_PROPERTY_LITERAL_INVALID
+```
+
+This checks the property's bounds, data type and constraints, including inherited annotation definitions. An unavailable type or property throws an error. You can pass a {@link model.ConstraintRegistry | ConstraintRegistry} as the last argument for custom evaluators. Links and uniqueness across records need a complete data graph.
 
 ## Check recorded data
 
-A tool supplies its records as a {@link model.ModelInstanceGraph | ModelInstanceGraph}. This graph contains a Text, its `person` annotation and the referenced Person. IDs are shortened for illustration:
+A tool supplies its records as a {@link model.ModelInstanceGraph | ModelInstanceGraph}. This example has one Text record, one `person` annotation and one Person record. The record IDs are short for readability:
 
 ```ts
 import type { Diagnostic, ModelInstanceGraph, ValidationResult } from '@ramen-suite/core/model';
@@ -79,7 +81,7 @@ const result: ValidationResult = media.validateInstances(data);
 console.log(result.diagnostics);
 ```
 
-Now remove the Person reference. The annotation still exists, but no longer satisfies its type rule:
+Remove the Person link and check again:
 
 ```ts
 const withoutReference: ModelInstanceGraph = { ...data, relations: data.relations.slice(0, 1) };
@@ -93,4 +95,4 @@ console.log(invalid.diagnostics.map((item: Diagnostic): string => item.code));
 
 ## Use data from a tool
 
-A tool translates its own records into `ModelInstanceGraph` before validation. RAMEN checks annotation types, allowed properties and links, and that `selector` has a `type`. The tool interprets selector details such as `start` and `end`. See [Constrain Annotations](constrain-annotations.md) for fixed value lists and [Add Constraints](../rmf/constraints.md) for custom checks.
+A tool translates its own records into `ModelInstanceGraph` before validation. RAMEN checks annotation types, allowed properties and links, and that `selector` has a `type`. The tool interprets selector details such as `start` and `end`. See [Add Properties](constrain-annotations.md) for fixed value lists and [Add Constraints](../rmf/constraints.md) for custom checks.

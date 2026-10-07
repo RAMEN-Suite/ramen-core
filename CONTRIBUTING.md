@@ -51,6 +51,8 @@ Useful focused commands:
 
 `test`, `test:coverage` and `package:check` build the library first. Run `build` before standalone type checks from a fresh checkout. Generated library files go to `dist/ramen-core`; the documentation website goes to `dist/api-doc`.
 
+`npm run docs:serve` builds and serves the documentation. For automatic rebuilds while editing, run `npm run docs:watch` in a second terminal and refresh the browser after changes.
+
 ### Coding conventions
 
 - Use strict TypeScript and BE for repository-owned names and text.

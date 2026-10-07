@@ -39,7 +39,7 @@
     "docs:build": "npm run docs:diagnostics && typedoc",
     "docs:diagnostics": "node tools/generate-diagnostics.ts",
     "docs:diagnostics:check": "node tools/generate-diagnostics.ts --check",
-    "docs:serve": "npm run docs:build && concurrently --kill-others --names docs,server \"typedoc --watch --preserveWatchOutput\" \"http-server dist/api-doc -a 127.0.0.1 -p 5173 -c-1\"",
+    "docs:serve": "npm run docs:build && http-server dist/api-doc -a 127.0.0.1 -p 5173 -c-1",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
     "lint": "eslint src test tools",
@@ -51,7 +51,8 @@
     "test": "npm run build && npm run typecheck && node --test \"test/**/*.test.ts\"",
     "test:coverage": "npm run build && npm run typecheck && node --experimental-test-coverage --test-coverage-include=\"dist/ramen-core/**/*.js\" --test \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.tools.json",
-    "verify": "npm run schema:check && npm run docs:diagnostics:check && npm run lint && npm run format && npm test && npm run docs:build && node tools/check-package.ts"
+    "verify": "npm run schema:check && npm run docs:diagnostics:check && npm run lint && npm run format && npm test && npm run docs:build && node tools/check-package.ts",
+    "docs:watch": "typedoc --watch --preserveWatchOutput"
   },
   "dependencies": {
     "json-schema-library": "11.4.0",
@@ -62,7 +63,6 @@
     "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.2",
-    "concurrently": "^10.0.5",
     "esbuild": "^0.25.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",

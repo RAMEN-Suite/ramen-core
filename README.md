@@ -88,7 +88,7 @@ npm ci
 npm run docs:serve
 ```
 
-Open `http://127.0.0.1:5173`. Changes to the guides and source documentation rebuild the site automatically.
+Open `http://127.0.0.1:5173`. For automatic rebuilds, run `npm run docs:watch` in a second terminal and refresh the browser after changes.
 
 ## Work on the package
 

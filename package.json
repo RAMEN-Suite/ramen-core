@@ -58,7 +58,7 @@
     "verify": "npm run typecheck:tools && npm run schema:check && npm run build && npm run lint && npm run docs:diagnostics:check && npm run format && npm test && npm run docs:build && npm run package:check"
   },
   "dependencies": {
-    "json-schema-library": "^11.0.4",
+    "json-schema-library": "11.4.0",
     "short-unique-id": "^5.3.2"
   },
   "devDependencies": {

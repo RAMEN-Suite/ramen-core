@@ -1,6 +1,7 @@
 import type { Constraint } from '../Types.js';
 import { JsonSchemaEvaluator, RegexEvaluator, FormatEvaluator } from './Constraints.js';
 import { DiagnosticPath, Diagnostics, type Diagnostic } from './Diagnostics.js';
+import { VALIDATION_ERROR } from './Codes.js';
 
 /** Checks constraint declarations before any recorded values are evaluated. */
 export class ConstraintRules {
@@ -20,7 +21,7 @@ export class ConstraintRules {
       if (!reason) return;
       diagnostics.push(
         Diagnostics.error({
-          code: 'CONSTRAINT_EXPRESSION_INVALID',
+          code: VALIDATION_ERROR.CONSTRAINT_EXPRESSION_INVALID,
           message: `Constraint '${rule.name}': ${reason}.`,
           path: path.property('constraints').index(index).property('expression'),
           ref: rule.id,

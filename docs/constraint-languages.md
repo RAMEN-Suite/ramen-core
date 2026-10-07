@@ -32,6 +32,8 @@ const code = model.createDataType({
 
 `regex` uses a JavaScript regular expression. Anchor it with `^` and `$` when the entire string must match.
 
+> Regex patterns, including JSON Schema `pattern` and `patternProperties`, can cause [ReDoS (OWASP)](https://community.owasp.org/attacks/Regular_expression_Denial_of_Service_-_ReDoS). Evaluation has no built-in timeout; untrusted patterns can be isolated in a [terminable worker (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Worker/terminate).
+
 ## Formats
 
 Use `format` for `uuid`, `date`, `date-time`, `email` or `uri`. A URI must be absolute:

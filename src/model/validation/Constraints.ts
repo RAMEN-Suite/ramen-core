@@ -101,6 +101,7 @@ export class ConstraintRegistry {
 /** Evaluates one value against a JSON Schema Draft 2020-12 constraint. */
 export class JsonSchemaEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'json-schema';
+  private static readonly cacheLimit: number = 128;
   private readonly schemas: Map<string, SchemaNode> = new Map<string, SchemaNode>();
 
   /** Returns the schema error, if an expression cannot be compiled. */
@@ -152,6 +153,11 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
       throwOnInvalidRef: true,
     });
 
+    // Bound retained schemas for long-lived validators, evicting the oldest entry.
+    if (this.schemas.size >= JsonSchemaEvaluator.cacheLimit) {
+      const oldest: string | undefined = this.schemas.keys().next().value;
+      if (oldest !== undefined) this.schemas.delete(oldest);
+    }
     this.schemas.set(key, schema);
     return schema;
   }
@@ -188,7 +194,7 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
   }
 }
 
-/** Evaluates `regex` constraints without executing arbitrary model expressions. */
+/** Evaluates string values against JavaScript regular expressions. */
 export class RegexEvaluator implements ConstraintEvaluator {
   public readonly language: string = 'regex';
 

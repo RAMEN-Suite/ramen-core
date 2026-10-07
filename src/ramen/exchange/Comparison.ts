@@ -1,8 +1,8 @@
-import { ModelEvolution, type EvolutionChange, type EvolutionReport, type Id, type Model } from '../../model';
+import { ModelEvolution, type EvolutionChange, type EvolutionReport, type Id, type Model } from '../../model/index.js';
 
-import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions';
-import { RamenModelFormat } from '../Document';
-import { RamenValidator } from '../validation/ModelValidator';
+import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions.js';
+import { RamenModelFormat } from '../Document.js';
+import { RamenValidator } from '../validation/ModelValidator.js';
 
 /** One added, removed, or changed RAMEN annotation definition. */
 export interface RamenAnnotationChange {

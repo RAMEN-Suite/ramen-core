@@ -1,8 +1,8 @@
-import { ModelRef, ProjectGraph, type ResolvedElement, type Model, type Node, type Id, type Ref } from '../../model';
+import { ModelRef, ProjectGraph, type ResolvedElement, type Model, type Node, type Id, type Ref } from '../../model/index.js';
 
-import { RamenAnnotation } from './Definitions';
-import { RamenModelFormat } from '../Document';
-import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
+import { RamenAnnotation } from './Definitions.js';
+import { RamenModelFormat } from '../Document.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel.js';
 
 /** Annotation definition resolved together with the model that declares it. */
 export interface ResolvedAnnotation {

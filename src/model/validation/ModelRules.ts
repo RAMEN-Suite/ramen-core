@@ -1,10 +1,10 @@
-import { Attribute, Constraint, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types';
-import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
-import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
-import { ModelRelationScope, RelationSelections } from '../graph/RelationScope';
-import { Cardinality } from './Cardinality';
-import { ValidationCode } from './Codes';
-import { ConstraintRules } from './ConstraintRules';
+import { Attribute, Constraint, DataType, Literal, Model, Node, Relation, Id, Import, RelationEnd, Ref } from '../Types.js';
+import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph.js';
+import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics.js';
+import { ModelRelationScope, RelationSelections } from '../graph/RelationScope.js';
+import { Cardinality } from './Cardinality.js';
+import { ValidationCode } from './Codes.js';
+import { ConstraintRules } from './ConstraintRules.js';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
 export class ModelRules {

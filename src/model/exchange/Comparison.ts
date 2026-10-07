@@ -1,7 +1,7 @@
-import type { Classifier, DataType, Id, Model } from '../Types';
-import type { Diagnostic } from '../validation/Diagnostics';
-import { ModelValidator } from '../validation/ModelValidator';
-import { jsonValueKey } from '../JsonValue';
+import type { Classifier, DataType, Id, Model } from '../Types.js';
+import type { Diagnostic } from '../validation/Diagnostics.js';
+import { ModelValidator } from '../validation/ModelValidator.js';
+import { jsonValueKey } from '../JsonValue.js';
 
 /** Model elements tracked across two versions by their stable identifiers. */
 export type EvolutionElement = 'model' | 'node' | 'dataType' | 'attribute' | 'literal' | 'relation';

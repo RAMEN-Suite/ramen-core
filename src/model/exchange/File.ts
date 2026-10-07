@@ -1,6 +1,6 @@
 import { compileSchema, SchemaNode } from 'json-schema-library';
-import type { Classifier, Id, Model, Relation } from '../Types';
-import { ModelValidator, ProjectValidationResult, ValidProjectResult } from '../validation/ModelValidator';
+import type { Classifier, Id, Model, Relation } from '../Types.js';
+import { ModelValidator, ProjectValidationResult, ValidProjectResult } from '../validation/ModelValidator.js';
 import fileSchema from '../../resources/schemas/model-file.schema.json';
 
 /** Original metadata of a model whose declarations live in the shared graph. */

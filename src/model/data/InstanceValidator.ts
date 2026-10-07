@@ -1,15 +1,15 @@
-import { ModelRelationScope } from '../graph/RelationScope';
-import { ProjectGraph } from '../graph/ProjectGraph';
-import { VALIDATION_ERROR } from '../validation/Codes';
-import { ConstraintRegistry } from '../validation/Constraints';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
-import { InstanceRelationValidator } from './InstanceRelations';
-import { InstanceSchemaValidator } from './InstanceSchema';
-import { InstanceValidationOptions, ModelInstanceGraph, ResolvedInstanceNode } from './InstanceTypes';
-import { InstanceValueValidator } from './InstanceValues';
-import type { ValidationResult } from '../validation/ModelValidator';
+import { ModelRelationScope } from '../graph/RelationScope.js';
+import { ProjectGraph } from '../graph/ProjectGraph.js';
+import { VALIDATION_ERROR } from '../validation/Codes.js';
+import { ConstraintRegistry } from '../validation/Constraints.js';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics.js';
+import { InstanceRelationValidator } from './InstanceRelations.js';
+import { InstanceSchemaValidator } from './InstanceSchema.js';
+import { InstanceValidationOptions, ModelInstanceGraph, ResolvedInstanceNode } from './InstanceTypes.js';
+import { InstanceValueValidator } from './InstanceValues.js';
+import type { ValidationResult } from '../validation/ModelValidator.js';
 
-export * from './InstanceTypes';
+export * from './InstanceTypes.js';
 
 /** Validates modelled objects and connections against effective RAMEN model format features. */
 export class InstanceValidator {

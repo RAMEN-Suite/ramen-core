@@ -1,6 +1,6 @@
-import type { Bounds, Constraint, Id, Literal, Ref } from '../Types';
-import type { ProjectValidationResult } from '../validation/ModelValidator';
-import type { CreateAttributeInput } from './Factory';
+import type { Bounds, Constraint, Id, Literal, Ref } from '../Types.js';
+import type { ProjectValidationResult } from '../validation/ModelValidator.js';
+import type { CreateAttributeInput } from './Factory.js';
 
 /** Model identity; omitted IDs and URIs are generated, and version defaults to 1.0.0. */
 export interface ModelInput {

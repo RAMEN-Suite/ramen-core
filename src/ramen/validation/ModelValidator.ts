@@ -9,14 +9,14 @@ import {
   VALIDATION_ERROR,
   type Model,
   type Id,
-} from '../../model';
+} from '../../model/index.js';
 
-import { RamenAnnotations } from '../annotations/Definitions';
-import { RamenModelFormat } from '../Document';
-import { RAMEN_MODEL } from '../ReferenceModel';
-import { RamenProjectSchemaValidator } from './ProjectSchema';
-import { RamenAnnotationRules, RAMEN_VALIDATION_ERROR } from '../annotations/Rules';
-export { RAMEN_VALIDATION_ERROR } from '../annotations/Rules';
+import { RamenAnnotations } from '../annotations/Definitions.js';
+import { RamenModelFormat } from '../Document.js';
+import { RAMEN_MODEL } from '../ReferenceModel.js';
+import { RamenProjectSchemaValidator } from './ProjectSchema.js';
+import { RamenAnnotationRules, RAMEN_VALIDATION_ERROR } from '../annotations/Rules.js';
+export { RAMEN_VALIDATION_ERROR } from '../annotations/Rules.js';
 
 /** Validates the RAMEN model format first and then the closed annotation definitions. */
 export class RamenValidator {

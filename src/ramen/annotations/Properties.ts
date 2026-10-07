@@ -1,4 +1,4 @@
-import { BuiltinDataTypes } from '../../model/Builtins';
+import { BuiltinDataTypes } from '../../model/Builtins.js';
 import {
   EffectiveModel,
   ModelRef,
@@ -9,13 +9,13 @@ import {
   type ResolvedElement,
   type Attribute,
   type Node,
-} from '../../model';
+} from '../../model/index.js';
 
-import { Cardinality } from '../../model/validation/Cardinality';
-import type { AnnotationProperty } from './Definitions';
-import type { ResolvedAnnotation } from './AnnotationIndex';
-import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
-import { ConstraintRules } from '../../model/validation/ConstraintRules';
+import { Cardinality } from '../../model/validation/Cardinality.js';
+import type { AnnotationProperty } from './Definitions.js';
+import type { ResolvedAnnotation } from './AnnotationIndex.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel.js';
+import { ConstraintRules } from '../../model/validation/ConstraintRules.js';
 
 /** Resolves node attribute selections and properties owned by an annotation type. */
 export class AnnotationProperties {

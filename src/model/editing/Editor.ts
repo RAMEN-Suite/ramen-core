@@ -1,4 +1,4 @@
-import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from '../Types';
+import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from '../Types.js';
 
 /** Editable node fields. */
 export type UpdateNodeInput = Partial<Pick<Node, 'name' | 'superTypes' | 'constraints' | 'ext'>>;

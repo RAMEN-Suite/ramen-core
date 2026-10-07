@@ -1,11 +1,11 @@
-import { RelationSelections } from '../graph/RelationScope';
-import { Model, Id } from '../Types';
-import { buildProjectGraph, ProjectGraphResult } from '../graph/BuildGraph';
-import { ProjectGraph } from '../graph/ProjectGraph';
-import { VALIDATION_ERROR } from './Codes';
-import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics';
-import { ModelRules } from './ModelRules';
-import { ModelSchemaValidator } from './ModelSchema';
+import { RelationSelections } from '../graph/RelationScope.js';
+import { Model, Id } from '../Types.js';
+import { buildProjectGraph, ProjectGraphResult } from '../graph/BuildGraph.js';
+import { ProjectGraph } from '../graph/ProjectGraph.js';
+import { VALIDATION_ERROR } from './Codes.js';
+import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics.js';
+import { ModelRules } from './ModelRules.js';
+import { ModelSchemaValidator } from './ModelSchema.js';
 
 /** Diagnostics and summarized error state produced by instance validation. */
 export interface ValidationResult {

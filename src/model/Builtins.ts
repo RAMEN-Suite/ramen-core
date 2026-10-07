@@ -1,4 +1,4 @@
-import { BuiltinType, TypeRef } from './Types';
+import { BuiltinType, TypeRef } from './Types.js';
 
 /**
  * Built-in data type references for attributes and custom data type bases.

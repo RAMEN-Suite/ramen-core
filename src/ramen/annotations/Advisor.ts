@@ -1,4 +1,4 @@
-import { AnnotationProperties } from './Properties';
+import { AnnotationProperties } from './Properties.js';
 import {
   ModelRelationScope,
   EffectiveModel,
@@ -13,13 +13,13 @@ import {
   type Relation,
   type Id,
   type Ref,
-} from '../../model';
+} from '../../model/index.js';
 
-import { Cardinality } from '../../model/validation/Cardinality';
+import { Cardinality } from '../../model/validation/Cardinality.js';
 
-import { AnnotationRelation } from './Definitions';
-import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel';
-import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
+import { AnnotationRelation } from './Definitions.js';
+import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel.js';
+import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex.js';
 
 /** Property that can be selected for an annotation definition. */
 export interface PropertyOption {

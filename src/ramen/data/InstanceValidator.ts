@@ -19,13 +19,13 @@ import {
   type Node,
   type Id,
   type Ref,
-} from '../../model';
+} from '../../model/index.js';
 
-import { AnnotationProperties } from '../annotations/Properties';
+import { AnnotationProperties } from '../annotations/Properties.js';
 
-import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions';
-import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex';
-import { RamenValidator } from '../validation/ModelValidator';
+import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions.js';
+import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex.js';
+import { RamenValidator } from '../validation/ModelValidator.js';
 
 /** Stable diagnostic codes emitted while validating RAMEN instances. */
 export enum RAMEN_INSTANCE_ERROR {

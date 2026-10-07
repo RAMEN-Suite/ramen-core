@@ -1,4 +1,4 @@
-import type { Id, QualifiedRef, Ref } from '../Types';
+import type { Id, QualifiedRef, Ref } from '../Types.js';
 
 const QUALIFIED_REF: RegExp = /^[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,}$/;
 

@@ -1,6 +1,6 @@
-import { ModelConnections, RelationChoice, RelationSelection } from './Connections';
-import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './Editor';
-import { ModelFactory, CreateModelInput, CreateDataTypeInput } from './Factory';
+import { ModelConnections, RelationChoice, RelationSelection } from './Connections.js';
+import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './Editor.js';
+import { ModelFactory, CreateModelInput, CreateDataTypeInput } from './Factory.js';
 import type {
   AttributeInput,
   ElementInput,
@@ -13,7 +13,7 @@ import type {
   RelationEndInput,
   RelationInput,
   Removal,
-} from './Inputs';
+} from './Inputs.js';
 import {
   ModelAdvisor,
   AttributeInfo,
@@ -23,7 +23,7 @@ import {
   NodeLineageItem,
   NodeRelationSuggestion,
   AttributeNameResult,
-} from '../Advisor';
+} from '../Advisor.js';
 import {
   ModelWorkspace,
   ModelRemovalPreview,
@@ -31,19 +31,19 @@ import {
   NodeRemovalPreview,
   RelationRemovalPreview,
   WorkspaceElement,
-} from './Workspace';
-import { ConstraintOwners, type ConstraintLocation, type ConstraintOwnerInput } from './ConstraintOwner';
-import { ModelRef } from '../graph/References';
-import type { RelationSelections } from '../graph/RelationScope';
-import type { ResolvedElement } from '../graph/ProjectGraph';
-import { DiagnosticPath, type Diagnostic } from '../validation/Diagnostics';
-import { NodeDiagnostics } from '../validation/NodeDiagnostics';
-import { BuiltinDataTypes } from '../Builtins';
-import { ConstraintRegistry } from '../validation/Constraints';
-import { ValueValidator } from '../data/ValueValidator';
-import { InstanceValueValidator } from '../data/InstanceValues';
-import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
-import type { ProjectValidationResult, ValidProjectResult, ValidationResult } from '../validation/ModelValidator';
+} from './Workspace.js';
+import { ConstraintOwners, type ConstraintLocation, type ConstraintOwnerInput } from './ConstraintOwner.js';
+import { ModelRef } from '../graph/References.js';
+import type { RelationSelections } from '../graph/RelationScope.js';
+import type { ResolvedElement } from '../graph/ProjectGraph.js';
+import { DiagnosticPath, type Diagnostic } from '../validation/Diagnostics.js';
+import { NodeDiagnostics } from '../validation/NodeDiagnostics.js';
+import { BuiltinDataTypes } from '../Builtins.js';
+import { ConstraintRegistry } from '../validation/Constraints.js';
+import { ValueValidator } from '../data/ValueValidator.js';
+import { InstanceValueValidator } from '../data/InstanceValues.js';
+import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel.js';
+import type { ProjectValidationResult, ValidProjectResult, ValidationResult } from '../validation/ModelValidator.js';
 import type {
   Attribute,
   Bounds,
@@ -58,7 +58,7 @@ import type {
   Ref,
   Relation,
   RelationEnd,
-} from '../Types';
+} from '../Types.js';
 
 /** Shared editing state for generic and domain-specific modelling facades. */
 export abstract class ModelDraft<A extends ModelAdvisor> {

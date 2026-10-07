@@ -1,4 +1,4 @@
-import { ModelDraft } from '../model/editing/Draft';
+import { ModelDraft } from '../model/editing/Draft.js';
 import {
   type NodeRemovalPreview,
   type WorkspaceElement,
@@ -24,13 +24,13 @@ import {
   type Node,
   type Ref,
   type Relation,
-} from '../model';
-import { ModelWorkspace } from '../model/editing/Workspace';
-import type { Removal } from '../model/editing/Inputs';
+} from '../model/index.js';
+import { ModelWorkspace } from '../model/editing/Workspace.js';
+import type { Removal } from '../model/editing/Inputs.js';
 
-import { InstanceValueValidator } from '../model/data/InstanceValues';
-import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex';
-import { AnnotationProperties } from './annotations/Properties';
+import { InstanceValueValidator } from '../model/data/InstanceValues.js';
+import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex.js';
+import { AnnotationProperties } from './annotations/Properties.js';
 
 import {
   RamenAnnotation,
@@ -38,16 +38,16 @@ import {
   AnnotationRelation,
   RamenAnnotations,
   type AttributeReference,
-} from './annotations/Definitions';
-import { AnnotationRemoval } from './annotations/Removal';
-import { RamenModelFormat, RamenModelDocument } from './Document';
-import { RAMEN_MODEL } from './ReferenceModel';
-import { RamenValidator } from './validation/ModelValidator';
-import { RamenInstanceValidator } from './data/InstanceValidator';
-import type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor';
-import { RamenAdvisor, AnnotationSuggestion } from './Advisor';
-import { RamenFiles, RamenFile } from './exchange/File';
-import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison';
+} from './annotations/Definitions.js';
+import { AnnotationRemoval } from './annotations/Removal.js';
+import { RamenModelFormat, RamenModelDocument } from './Document.js';
+import { RAMEN_MODEL } from './ReferenceModel.js';
+import { RamenValidator } from './validation/ModelValidator.js';
+import { RamenInstanceValidator } from './data/InstanceValidator.js';
+import type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor.js';
+import { RamenAdvisor, AnnotationSuggestion } from './Advisor.js';
+import { RamenFiles, RamenFile } from './exchange/File.js';
+import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison.js';
 
 /** Select a permitted relationship by its other endpoint and annotation-side cardinality. */
 export type AnnotationLink = {

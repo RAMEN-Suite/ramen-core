@@ -1,4 +1,4 @@
-import type { Attribute, Classifier, Constraint, DataType, Id, Literal, Model, Node, Relation, RelationEnd } from '../Types';
+import type { Attribute, Classifier, Constraint, DataType, Id, Literal, Model, Node, Relation, RelationEnd } from '../Types.js';
 
 /** Model element whose declared constraints can be read or edited. */
 export type ConstraintOwner = Node | Attribute | DataType | Literal | Relation | RelationEnd;

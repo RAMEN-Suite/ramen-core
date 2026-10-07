@@ -22,27 +22,27 @@
  *
  * @packageDocumentation
  */
-export * from './Types';
-export { DataTypes } from './Builtins';
-export * from './editing/Factory';
-export * from './editing/Editor';
-export * from './Names';
-export * from './graph/ProjectGraph';
-export * from './graph/BuildGraph';
-export * from './graph/References';
-export * from './graph/EffectiveModel';
-export * from './exchange/Comparison';
-export * from './validation/ModelValidator';
-export * from './validation/Constraints';
-export * from './data/InstanceValidator';
-export * from './data/InstanceSchema';
-export * from './validation/ModelSchema';
-export * from './validation/Diagnostics';
-export * from './validation/Codes';
-export * from './graph/RelationScope';
-export * from './Advisor';
-export * from './editing/Connections';
-export * from './Modeller';
+export * from './Types.js';
+export { DataTypes } from './Builtins.js';
+export * from './editing/Factory.js';
+export * from './editing/Editor.js';
+export * from './Names.js';
+export * from './graph/ProjectGraph.js';
+export * from './graph/BuildGraph.js';
+export * from './graph/References.js';
+export * from './graph/EffectiveModel.js';
+export * from './exchange/Comparison.js';
+export * from './validation/ModelValidator.js';
+export * from './validation/Constraints.js';
+export * from './data/InstanceValidator.js';
+export * from './data/InstanceSchema.js';
+export * from './validation/ModelSchema.js';
+export * from './validation/Diagnostics.js';
+export * from './validation/Codes.js';
+export * from './graph/RelationScope.js';
+export * from './Advisor.js';
+export * from './editing/Connections.js';
+export * from './Modeller.js';
 export type {
   ModelInput,
   ElementRef,
@@ -54,15 +54,15 @@ export type {
   LiteralInput,
   LiteralUpdate,
   ModelChange,
-} from './editing/Inputs';
+} from './editing/Inputs.js';
 export type {
   ModelRemovalPreview,
   ModelUpdate,
   NodeRemovalPreview,
   RelationRemovalPreview,
   WorkspaceElement,
-} from './editing/Workspace';
-export type { ConstraintOwner, ConstraintOwnerInput } from './editing/ConstraintOwner';
+} from './editing/Workspace.js';
+export type { ConstraintOwner, ConstraintOwnerInput } from './editing/ConstraintOwner.js';
 
-export { ModelFiles } from './exchange/File';
-export type { ModelFile, ModelHeader, Owned } from './exchange/File';
+export { ModelFiles } from './exchange/File.js';
+export type { ModelFile, ModelHeader, Owned } from './exchange/File.js';

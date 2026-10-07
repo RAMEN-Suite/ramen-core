@@ -1,9 +1,9 @@
-import { ModelRelationScope, RelationSelections } from './graph/RelationScope';
-import { ModelRef } from './graph/References';
-import { ProjectGraph, ResolvedElement } from './graph/ProjectGraph';
-import { BuiltinDataTypes } from './Builtins';
-import type { Bounds, BuiltinType, Attribute, DataType, Model, Node, Relation, Id, Ref } from './Types';
-import type { ValidProjectResult } from './validation/ModelValidator';
+import { ModelRelationScope, RelationSelections } from './graph/RelationScope.js';
+import { ModelRef } from './graph/References.js';
+import { ProjectGraph, ResolvedElement } from './graph/ProjectGraph.js';
+import { BuiltinDataTypes } from './Builtins.js';
+import type { Bounds, BuiltinType, Attribute, DataType, Model, Node, Relation, Id, Ref } from './Types.js';
+import type { ValidProjectResult } from './validation/ModelValidator.js';
 
 /** One local or imported node type that a new node can refine. */
 export interface NodeSuggestion {

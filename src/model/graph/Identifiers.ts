@@ -1,6 +1,6 @@
-import type { Constraint, Id, Model } from '../Types';
-import { VALIDATION_ERROR } from '../validation/Codes';
-import { DiagnosticPath, Diagnostics, type Diagnostic } from '../validation/Diagnostics';
+import type { Constraint, Id, Model } from '../Types.js';
+import { VALIDATION_ERROR } from '../validation/Codes.js';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from '../validation/Diagnostics.js';
 
 interface IdentifiedElement {
   readonly id: Id;

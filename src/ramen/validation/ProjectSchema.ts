@@ -1,8 +1,8 @@
-import { ModelSchemaValidator } from '../../model';
+import { ModelSchemaValidator } from '../../model/index.js';
 
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import schema from '../../resources/schemas/ramen-project.schema.json';
-import { RAMEN_PROJECT_SCHEMA_URI } from '../Document';
+import { RAMEN_PROJECT_SCHEMA_URI } from '../Document.js';
 
 /** Validates the standalone RAMEN project model document format. */
 export class RamenProjectSchemaValidator {

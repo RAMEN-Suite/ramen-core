@@ -1,12 +1,12 @@
-import { walkGraph } from './Traversal';
-import { BuiltinDataTypes } from '../Builtins';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
-import { Classifier, Model, Node, Relation, Id, Import, Ref } from '../Types';
-import { ModelElementIndex } from './ElementIndex';
-import { ModelIdentifiers } from './Identifiers';
-import { ModelRef } from './References';
-import { ProjectGraph } from './ProjectGraph';
-import { ValidationCode } from '../validation/Codes';
+import { walkGraph } from './Traversal.js';
+import { BuiltinDataTypes } from '../Builtins.js';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics.js';
+import { Classifier, Model, Node, Relation, Id, Import, Ref } from '../Types.js';
+import { ModelElementIndex } from './ElementIndex.js';
+import { ModelIdentifiers } from './Identifiers.js';
+import { ModelRef } from './References.js';
+import { ProjectGraph } from './ProjectGraph.js';
+import { ValidationCode } from '../validation/Codes.js';
 
 /** Root selection and available models used to build a project graph. */
 export interface ProjectGraphInput {

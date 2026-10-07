@@ -7,13 +7,13 @@ import {
   type Model,
   type Ref,
   type ElementRef,
-} from '../../model';
+} from '../../model/index.js';
 
-import { ModelWorkspace } from '../../model/editing/Workspace';
+import { ModelWorkspace } from '../../model/editing/Workspace.js';
 
-import type { Removal } from '../../model/editing/Inputs';
-import { RamenModelFormat, type RamenModelDocument } from '../Document';
-import { RamenAnnotations, type AnnotationProperty, type AnnotationRelation, type RamenAnnotation } from './Definitions';
+import type { Removal } from '../../model/editing/Inputs.js';
+import { RamenModelFormat, type RamenModelDocument } from '../Document.js';
+import { RamenAnnotations, type AnnotationProperty, type AnnotationRelation, type RamenAnnotation } from './Definitions.js';
 
 /** Tracks how generic node and relation removal affects RAMEN annotation definitions. */
 export class AnnotationRemoval {

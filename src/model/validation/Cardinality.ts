@@ -1,4 +1,4 @@
-import { Bounds } from '../Types';
+import { Bounds } from '../Types.js';
 
 /** Checks cardinality intervals and refinement. */
 export class Cardinality {

@@ -1,4 +1,4 @@
-import { AnnotationProperties } from './Properties';
+import { AnnotationProperties } from './Properties.js';
 import {
   DiagnosticPath,
   Diagnostics,
@@ -12,14 +12,14 @@ import {
   type Relation,
   type Id,
   type Ref,
-} from '../../model';
+} from '../../model/index.js';
 
-import { ModelIdentifiers } from '../../model/graph/Identifiers';
+import { ModelIdentifiers } from '../../model/graph/Identifiers.js';
 
-import { Cardinality } from '../../model/validation/Cardinality';
+import { Cardinality } from '../../model/validation/Cardinality.js';
 
-import { RamenAnnotation, AnnotationRelation } from './Definitions';
-import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex';
+import { RamenAnnotation, AnnotationRelation } from './Definitions.js';
+import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex.js';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
 export enum RAMEN_VALIDATION_ERROR {

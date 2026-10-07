@@ -1,6 +1,6 @@
-import type { Constraint } from '../Types';
-import { JsonSchemaEvaluator, RegexEvaluator, FormatEvaluator } from './Constraints';
-import { DiagnosticPath, Diagnostics, type Diagnostic } from './Diagnostics';
+import type { Constraint } from '../Types.js';
+import { JsonSchemaEvaluator, RegexEvaluator, FormatEvaluator } from './Constraints.js';
+import { DiagnosticPath, Diagnostics, type Diagnostic } from './Diagnostics.js';
 
 /** Checks constraint declarations before any recorded values are evaluated. */
 export class ConstraintRules {

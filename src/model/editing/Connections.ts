@@ -1,14 +1,14 @@
-import { ModelAdvisor, RelationSuggestion, RelationSelection } from '../Advisor';
-import { ModelFactory } from './Factory';
-import { ModelRef } from '../graph/References';
-import type { RelationSelections } from '../graph/RelationScope';
-import type { ValidProjectResult } from '../validation/ModelValidator';
-import type { Model, Node, Ref, Relation } from '../Types';
+import { ModelAdvisor, RelationSuggestion, RelationSelection } from '../Advisor.js';
+import { ModelFactory } from './Factory.js';
+import { ModelRef } from '../graph/References.js';
+import type { RelationSelections } from '../graph/RelationScope.js';
+import type { ValidProjectResult } from '../validation/ModelValidator.js';
+import type { Model, Node, Ref, Relation } from '../Types.js';
 
 /** A selected relation reference or an unchanged suggestion returned by the advisor. */
 export type RelationChoice = Ref | Pick<RelationSuggestion, 'ref'>;
 
-export type { RelationSelection } from '../Advisor';
+export type { RelationSelection } from '../Advisor.js';
 
 /** Creates relation refinements from a validated model snapshot without changing that snapshot. */
 export class ModelConnections {

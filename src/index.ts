@@ -1,2 +1,2 @@
-export * from './model/index';
-export * from './ramen/index';
+export * from './model/index.js';
+export * from './ramen/index.js';

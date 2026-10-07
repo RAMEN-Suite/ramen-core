@@ -1,9 +1,9 @@
-import { Bounds, Node, Relation, Id, Ref } from '../Types';
-import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
-import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes';
-import { ValidationCode } from '../validation/Codes';
-import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints';
+import { Bounds, Node, Relation, Id, Ref } from '../Types.js';
+import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph.js';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics.js';
+import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes.js';
+import { ValidationCode } from '../validation/Codes.js';
+import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints.js';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {

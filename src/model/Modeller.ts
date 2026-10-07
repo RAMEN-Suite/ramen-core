@@ -1,14 +1,14 @@
-import { ModelDraft } from './editing/Draft';
-import type { ModelInput } from './editing/Inputs';
-import { ModelAdvisor } from './Advisor';
-import { ModelFactory } from './editing/Factory';
-import { ModelValidator, ProjectValidationResult, ValidProjectResult, ValidationResult } from './validation/ModelValidator';
-import { InstanceValidator } from './data/InstanceValidator';
-import type { ConstraintRegistry } from './validation/Constraints';
-import { ModelFiles, ModelFile } from './exchange/File';
-import { ModelEvolution, EvolutionReport } from './exchange/Comparison';
-import { ModelWorkspace } from './editing/Workspace';
-import type { Id, Model } from './Types';
+import { ModelDraft } from './editing/Draft.js';
+import type { ModelInput } from './editing/Inputs.js';
+import { ModelAdvisor } from './Advisor.js';
+import { ModelFactory } from './editing/Factory.js';
+import { ModelValidator, ProjectValidationResult, ValidProjectResult, ValidationResult } from './validation/ModelValidator.js';
+import { InstanceValidator } from './data/InstanceValidator.js';
+import type { ConstraintRegistry } from './validation/Constraints.js';
+import { ModelFiles, ModelFile } from './exchange/File.js';
+import { ModelEvolution, EvolutionReport } from './exchange/Comparison.js';
+import { ModelWorkspace } from './editing/Workspace.js';
+import type { Id, Model } from './Types.js';
 
 /** Creates and refines generic models while retaining dependencies, validation and suggestions. */
 export class Modeller extends ModelDraft<ModelAdvisor> {

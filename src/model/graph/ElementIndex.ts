@@ -1,4 +1,4 @@
-import { DataType, Model, Node, Relation, Id } from '../Types';
+import { DataType, Model, Node, Relation, Id } from '../Types.js';
 
 /**
  * Builds constant-time lookup tables for the elements owned by one model.

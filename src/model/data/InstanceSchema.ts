@@ -1,6 +1,6 @@
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import schema from '../../resources/schemas/model-instances.schema.json';
-import { ModelInstanceGraph } from './InstanceTypes';
+import { ModelInstanceGraph } from './InstanceTypes.js';
 
 /** Canonical identifier of the supported model instance schema. */
 export const MODEL_INSTANCES_SCHEMA_URI: string = 'https://ramen-schema.org/model/1.0.0/instances.schema.json';

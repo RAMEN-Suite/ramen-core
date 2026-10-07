@@ -1,7 +1,7 @@
-import { BuiltinDataTypes } from '../Builtins';
-import { ModelRef } from './References';
-import { Attribute, Constraint, Node, Relation, Id } from '../Types';
-import { ProjectGraph, ResolvedElement } from './ProjectGraph';
+import { BuiltinDataTypes } from '../Builtins.js';
+import { ModelRef } from './References.js';
+import { Attribute, Constraint, Node, Relation, Id } from '../Types.js';
+import { ProjectGraph, ResolvedElement } from './ProjectGraph.js';
 
 /** Node together with the features inherited through its complete refinement chain. */
 export interface EffectiveNode {

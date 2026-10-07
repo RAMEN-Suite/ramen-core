@@ -8,11 +8,11 @@ import {
   type Ref,
   type ResolvedElement,
   type ValidProjectResult,
-} from '../model';
+} from '../model/index.js';
 
-import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions';
-import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex';
-import { AnnotationOptions, PropertyOption, RelationOption, AnnotationAdvisor } from './annotations/Advisor';
+import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions.js';
+import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex.js';
+import { AnnotationOptions, PropertyOption, RelationOption, AnnotationAdvisor } from './annotations/Advisor.js';
 export type {
   NodeSuggestion,
   DataTypeSuggestion,
@@ -22,7 +22,7 @@ export type {
   AttributeInfo,
   NodeRelationSuggestion,
   AttributeNameResult,
-} from '../model/Advisor';
+} from '../model/Advisor.js';
 
 /** One closed annotation variant declared by a reachable RAMEN model. */
 export interface AnnotationSuggestion {

@@ -1,6 +1,6 @@
-import { MODEL_SCHEMA_URI, type Model } from '../model';
+import { MODEL_SCHEMA_URI, type Model } from '../model/index.js';
 
-import type { RamenAnnotation } from './annotations/Definitions';
+import type { RamenAnnotation } from './annotations/Definitions.js';
 
 /** Schema identifier for project models that refine RAMEN. */
 export const RAMEN_PROJECT_SCHEMA_URI: string = 'https://ramen-schema.org/ramen/1.0.0/project.schema.json';

@@ -1,10 +1,10 @@
 import { compileSchema, SchemaNode } from 'json-schema-library';
-import type { ModelFile, Owned, Id, Model, ProjectValidationResult } from '../../model';
-import { FileParts } from '../../model/exchange/File';
+import type { ModelFile, Owned, Id, Model, ProjectValidationResult } from '../../model/index.js';
+import { FileParts } from '../../model/exchange/File.js';
 
-import { RamenValidator } from '../validation/ModelValidator';
-import { RamenModelFormat, type RamenModelDocument } from '../Document';
-import type { RamenAnnotation } from '../annotations/Definitions';
+import { RamenValidator } from '../validation/ModelValidator.js';
+import { RamenModelFormat, type RamenModelDocument } from '../Document.js';
+import type { RamenAnnotation } from '../annotations/Definitions.js';
 import fileSchema from '../../resources/schemas/ramen-file.schema.json';
 
 /** One RAMEN graph with original annotation declarations and retained inheritance. */

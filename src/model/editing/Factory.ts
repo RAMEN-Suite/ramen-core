@@ -11,11 +11,11 @@ import {
   Id,
   RelationEnd,
   TypeRef,
-} from '../Types';
-import { MODEL_SCHEMA_URI } from '../validation/ModelSchema';
+} from '../Types.js';
+import { MODEL_SCHEMA_URI } from '../validation/ModelSchema.js';
 import ShortUniqueId from 'short-unique-id';
-import { ModelRef } from '../graph/References';
-import { ModelElementIndex } from '../graph/ElementIndex';
+import { ModelRef } from '../graph/References.js';
+import { ModelElementIndex } from '../graph/ElementIndex.js';
 
 /** Values needed to create a model that imports a base model. */
 export interface CreateModelInput {

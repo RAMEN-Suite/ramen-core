@@ -1,4 +1,4 @@
-import type { Model } from '../model';
+import type { Model } from '../model/index.js';
 
 import ramenModel from '../resources/models/ramen.model.json';
 

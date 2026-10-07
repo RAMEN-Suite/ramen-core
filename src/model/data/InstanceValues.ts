@@ -1,15 +1,15 @@
-import { BuiltinDataTypes } from '../Builtins';
-import { ModelRef } from '../graph/References';
-import { Bounds, Attribute, BuiltinType, Constraint, DataType, Node, Id } from '../Types';
-import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel';
-import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph';
-import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints';
-import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics';
-import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes';
-import { ValidationCode } from '../validation/Codes';
-import { jsonValueKey } from '../JsonValue';
-import { ValueValidator, type ValueCheck } from './ValueValidator';
-import type { ValidationResult } from '../validation/ModelValidator';
+import { BuiltinDataTypes } from '../Builtins.js';
+import { ModelRef } from '../graph/References.js';
+import { Bounds, Attribute, BuiltinType, Constraint, DataType, Node, Id } from '../Types.js';
+import { EffectiveModel, EffectiveNode } from '../graph/EffectiveModel.js';
+import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph.js';
+import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints.js';
+import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics.js';
+import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes.js';
+import { ValidationCode } from '../validation/Codes.js';
+import { jsonValueKey } from '../JsonValue.js';
+import { ValueValidator, type ValueCheck } from './ValueValidator.js';
+import type { ValidationResult } from '../validation/ModelValidator.js';
 
 /** Validates instance properties against effective node attributes and constraints. */
 export class InstanceValueValidator {

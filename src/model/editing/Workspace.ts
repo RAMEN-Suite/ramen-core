@@ -1,5 +1,5 @@
-import type { Id, Model, Ref } from '../Types';
-import { ModelRef } from '../graph/References';
+import type { Id, Model, Ref } from '../Types.js';
+import { ModelRef } from '../graph/References.js';
 
 /** Identity of a declaration in the editable model workspace. */
 export interface WorkspaceElement {

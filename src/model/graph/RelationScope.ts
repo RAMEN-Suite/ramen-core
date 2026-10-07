@@ -1,7 +1,7 @@
-import type { Id, Ref, Model, Relation } from '../Types';
-import type { ProjectGraph, ResolvedElement } from './ProjectGraph';
-import { ModelRef } from './References';
-import { walkGraph } from './Traversal';
+import type { Id, Ref, Model, Relation } from '../Types.js';
+import type { ProjectGraph, ResolvedElement } from './ProjectGraph.js';
+import { ModelRef } from './References.js';
+import { walkGraph } from './Traversal.js';
 
 /** Extra explicit relation selections supplied by a language extension, grouped by model. */
 export type RelationSelections = ReadonlyMap<Id, readonly Ref[]>;

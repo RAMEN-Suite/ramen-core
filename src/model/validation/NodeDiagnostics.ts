@@ -1,8 +1,8 @@
-import type { Classifier, Id, Model, Node, Ref, Relation } from '../Types';
-import type { ElementRef } from '../editing/Inputs';
-import { ModelRef } from '../graph/References';
-import type { Diagnostic } from './Diagnostics';
-import type { ValidationResult } from './ModelValidator';
+import type { Classifier, Id, Model, Node, Ref, Relation } from '../Types.js';
+import type { ElementRef } from '../editing/Inputs.js';
+import { ModelRef } from '../graph/References.js';
+import type { Diagnostic } from './Diagnostics.js';
+import type { ValidationResult } from './ModelValidator.js';
 
 /** Finds model diagnostics relevant to a node, its ancestors and their incident relations. */
 export class NodeDiagnostics {

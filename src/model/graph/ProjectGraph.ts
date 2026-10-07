@@ -1,6 +1,6 @@
-import { DataType, Model, Node, Relation, Id, Ref } from '../Types';
-import { ModelElementIndex } from './ElementIndex';
-import { ModelRef, QualifiedParts } from './References';
+import { DataType, Model, Node, Relation, Id, Ref } from '../Types.js';
+import { ModelElementIndex } from './ElementIndex.js';
+import { ModelRef, QualifiedParts } from './References.js';
 
 interface ResolvedRef {
   readonly modelId: Id;

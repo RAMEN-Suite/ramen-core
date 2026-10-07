@@ -1,6 +1,6 @@
 import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
 import schema from '../../resources/schemas/model.schema.json';
-import { Model } from '../Types';
+import { Model } from '../Types.js';
 
 /** Canonical identifier of the supported RAMEN model format schema. */
 export const MODEL_SCHEMA_URI: string = 'https://ramen-schema.org/model/1.0.0/schema.json';

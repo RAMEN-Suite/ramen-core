@@ -18,16 +18,16 @@
  *
  * @packageDocumentation
  */
-export * from './ReferenceModel';
-export type { RamenAnnotation, AnnotationProperty, AttributeReference, AnnotationRelation } from './annotations/Definitions';
-export * from './Document';
-export type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor';
-export * from './RamenModel';
-export * from './exchange/Comparison';
-export * from './Advisor';
-export * from './annotations/Schema';
-export * from './validation/ProjectSchema';
-export * from './validation/ModelValidator';
-export * from './data/InstanceValidator';
+export * from './ReferenceModel.js';
+export type { RamenAnnotation, AnnotationProperty, AttributeReference, AnnotationRelation } from './annotations/Definitions.js';
+export * from './Document.js';
+export type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor.js';
+export * from './RamenModel.js';
+export * from './exchange/Comparison.js';
+export * from './Advisor.js';
+export * from './annotations/Schema.js';
+export * from './validation/ProjectSchema.js';
+export * from './validation/ModelValidator.js';
+export * from './data/InstanceValidator.js';
 
-export * from './exchange/File';
+export * from './exchange/File.js';

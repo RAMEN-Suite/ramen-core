@@ -60,6 +60,12 @@ import type {
   RelationEnd,
 } from '../Types.js';
 
+/** Additional effects supplied by a modelling language before an atomic removal. */
+export interface RemovalEffect {
+  readonly dependants: readonly string[];
+  readonly clean: (model: Model) => Model;
+}
+
 /** Shared editing state for generic and domain-specific modelling facades. */
 export abstract class ModelDraft<A extends ModelAdvisor> {
   protected readonly workspace: ModelWorkspace;
@@ -318,20 +324,18 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   public previewNodeRemoval(nodeId: Id): NodeRemovalPreview {
     this.requireNode(nodeId);
     const target: WorkspaceElement = { modelId: this.model.id, elementId: nodeId };
-    const preview: NodeRemovalPreview = this.workspace.previewNodeRemoval(target);
-    const withRemovals: NodeRemovalPreview = { ...preview, annotations: this.annotationRemovals(preview) };
-    return { ...withRemovals, updatedAnnotations: this.annotationUpdates(withRemovals) };
+    return this.workspace.previewNodeRemoval(target);
   }
 
   /** Removes an unused node, or atomically removes its dependent definitions with cascade. */
   public removeNode(nodeId: Id, options: { readonly cascade?: boolean } = {}): ModelChange<Node> {
     const node: Node = this.requireNode(nodeId);
-    const preview: NodeRemovalPreview = this.previewNodeRemoval(nodeId);
+    const preview: NodeRemovalPreview = this.workspace.previewNodeRemoval({ modelId: this.model.id, elementId: nodeId });
+    const effect: RemovalEffect = this.removalEffect(preview);
     const blockers: readonly string[] = [
       ...preview.nodes.slice(1).map((item: WorkspaceElement): string => this.removalLabel(item, 'node')),
       ...preview.relations.map((item: WorkspaceElement): string => this.removalLabel(item, 'relation')),
-      ...preview.annotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
-      ...preview.updatedAnnotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
+      ...effect.dependants,
     ];
 
     if (!options.cascade && blockers.length > 0) {
@@ -350,7 +354,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
         classifiers: model.classifiers.filter((item: Classifier): boolean => !nodeKeys.has(`${model.id}:${item.id}`)),
         relations: model.relations.filter((item: Relation): boolean => !relationKeys.has(`${model.id}:${item.id}`)),
       };
-      return this.cleanRemoval(remaining, preview);
+      return effect.clean(remaining);
     });
 
     this.workspace.updateMany(replacements);
@@ -471,34 +475,31 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.change(this.requireRelation(relationId));
   }
 
-  /** Shows relation refinements and annotation types affected by removal. */
+  /** Shows relation refinements affected by removal. */
   public previewRelationRemoval(relationId: Id): RelationRemovalPreview {
     this.requireRelation(relationId);
     const target: WorkspaceElement = { modelId: this.model.id, elementId: relationId };
-    const preview: RelationRemovalPreview = this.workspace.previewRelationRemoval(target);
-    const removal: NodeRemovalPreview = { nodes: [], relations: preview.relations, annotations: [], updatedAnnotations: [] };
-    return { ...preview, updatedAnnotations: this.annotationUpdates(removal) };
+    return this.workspace.previewRelationRemoval(target);
   }
 
   /** Removes an unused relation, or its dependants with explicit cascade. */
   public removeRelation(relationId: Id, options: { readonly cascade?: boolean } = {}): ModelChange<Relation> {
     const relation: Relation = this.requireRelation(relationId);
-    const preview: RelationRemovalPreview = this.previewRelationRemoval(relationId);
+    const preview: RelationRemovalPreview = this.workspace.previewRelationRemoval({
+      modelId: this.model.id,
+      elementId: relationId,
+    });
+    const removal: NodeRemovalPreview = { nodes: [], relations: preview.relations };
+    const effect: RemovalEffect = this.removalEffect(removal);
     const blockers: readonly string[] = [
       ...preview.relations.slice(1).map((item: WorkspaceElement): string => this.removalLabel(item, 'relation')),
-      ...preview.updatedAnnotations.map((item: WorkspaceElement): string => this.removalLabel(item, 'annotation')),
+      ...effect.dependants,
     ];
 
     if (!options.cascade && blockers.length > 0) {
       throw new Error(`Cannot remove relation '${relation.name}' (${relationId}): still used by ${blockers.join(', ')}.`);
     }
 
-    const removal: NodeRemovalPreview = {
-      nodes: [],
-      relations: preview.relations,
-      annotations: [],
-      updatedAnnotations: preview.updatedAnnotations,
-    };
     const relationKeys: ReadonlySet<string> = new Set<string>(
       preview.relations.map((item: WorkspaceElement): string => `${item.modelId}:${item.elementId}`),
     );
@@ -507,7 +508,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
         ...model,
         relations: model.relations.filter((item: Relation): boolean => !relationKeys.has(`${model.id}:${item.id}`)),
       };
-      return this.cleanRemoval(remaining, removal);
+      return effect.clean(remaining);
     });
 
     this.workspace.updateMany(replacements);
@@ -565,24 +566,12 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     /* Domain extensions may clean up references after an edit. */
   }
 
-  protected annotationRemovals(_preview: NodeRemovalPreview): readonly WorkspaceElement[] {
-    return [];
-  }
-
   protected nodeDiagnosticPaths(_lineage: readonly ElementRef[]): readonly string[] {
     return [];
   }
 
-  protected annotationUpdates(_preview: NodeRemovalPreview): readonly WorkspaceElement[] {
-    return [];
-  }
-
-  protected annotationName(item: WorkspaceElement): string {
-    return item.elementId;
-  }
-
-  protected cleanRemoval(model: Model, _preview: NodeRemovalPreview): Model {
-    return model;
+  protected removalEffect(_preview: NodeRemovalPreview): RemovalEffect {
+    return { dependants: [], clean: (model: Model): Model => model };
   }
 
   protected static options(input: ModelInput | string): CreateModelInput {
@@ -697,7 +686,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.updateRelation(parentId, { [location.kind]: { ...end, constraints } }).validation;
   }
 
-  private removalLabel(item: WorkspaceElement, kind: 'node' | 'relation' | 'annotation'): string {
+  private removalLabel(item: WorkspaceElement, kind: 'node' | 'relation'): string {
     const model: Model | undefined = this.workspace.get(item.modelId);
     let name: string = item.elementId;
 
@@ -707,7 +696,6 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     if (kind === 'relation')
       name = model?.relations.find((entry: Relation): boolean => entry.id === item.elementId)?.name ?? name;
 
-    if (kind === 'annotation') name = this.annotationName(item);
     return `${kind} '${name}' (${item.elementId}) in model '${model?.name ?? item.modelId}'`;
   }
 

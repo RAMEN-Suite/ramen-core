@@ -11,14 +11,11 @@ export interface WorkspaceElement {
 export interface NodeRemovalPreview {
   readonly nodes: readonly WorkspaceElement[];
   readonly relations: readonly WorkspaceElement[];
-  readonly annotations: readonly WorkspaceElement[];
-  readonly updatedAnnotations: readonly WorkspaceElement[];
 }
 
-/** Relations removed and annotation types changed by deleting a relation. */
+/** Relations affected by deleting a relation. */
 export interface RelationRemovalPreview {
   readonly relations: readonly WorkspaceElement[];
-  readonly updatedAnnotations: readonly WorkspaceElement[];
 }
 
 /** A model level and the later levels that depend on it. */
@@ -196,14 +193,14 @@ export class ModelWorkspace {
     const index: RemovalIndex = this.buildRemovalIndex();
     const nodes: WorkspaceElement[] = this.collectNodes(target, index.nodeChildren);
     const relations: WorkspaceElement[] = this.collectRelations(nodes, index);
-    return { nodes, relations, annotations: [], updatedAnnotations: [] };
+    return { nodes, relations };
   }
 
   /** Follows relation refinements across every model in this workspace. */
   public previewRelationRemoval(target: WorkspaceElement): RelationRemovalPreview {
     const index: RemovalIndex = this.buildRemovalIndex();
     const relations: WorkspaceElement[] = this.collectRelationClosure([target], index.relationChildren);
-    return { relations, updatedAnnotations: [] };
+    return { relations };
   }
 
   private buildRemovalIndex(): RemovalIndex {

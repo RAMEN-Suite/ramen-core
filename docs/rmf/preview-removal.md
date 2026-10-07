@@ -8,6 +8,8 @@ group: RMF
 
 Removing a model definition can affect later levels. {@link model.Modeller.previewNodeRemoval | previewNodeRemoval()} and {@link model.Modeller.previewRelationRemoval | previewRelationRemoval()} show the effects **without changing the model**.
 
+RMF previews list affected nodes and relationships. The RAMEN API extends these previews with annotation declarations that would be removed or changed.
+
 ## Preview a node
 
 Page refines Document. Removing Document would also remove Page:

@@ -15,10 +15,28 @@ import type { Removal } from '../../model/editing/Inputs.js';
 import { RamenModelFormat, type RamenModelDocument } from '../Document.js';
 import { RamenAnnotations, type AnnotationProperty, type AnnotationRelation, type RamenAnnotation } from './Definitions.js';
 
+/** Node removal plus annotation declarations removed or changed by the edit. */
+export interface RamenNodeRemovalPreview extends NodeRemovalPreview {
+  readonly annotations: readonly WorkspaceElement[];
+  readonly updatedAnnotations: readonly WorkspaceElement[];
+}
+
+/** Relation removal plus annotation declarations whose rules would change. */
+export interface RamenRelationRemovalPreview {
+  readonly relations: readonly WorkspaceElement[];
+  readonly updatedAnnotations: readonly WorkspaceElement[];
+}
+
 /** Tracks how generic node and relation removal affects RAMEN annotation definitions. */
 export class AnnotationRemoval {
   /** Uses the editable workspace so cross-level references are visible. */
   public constructor(private readonly workspace: ModelWorkspace) {}
+
+  /** Enriches a generic removal preview with its annotation effects. */
+  public preview(preview: NodeRemovalPreview): RamenNodeRemovalPreview {
+    const removed: RamenNodeRemovalPreview = { ...preview, annotations: this.removedByNodes(preview), updatedAnnotations: [] };
+    return { ...removed, updatedAnnotations: this.updatedByRemoval(removed) };
+  }
 
   /** Lists annotation definitions owned by nodes in a removal preview. */
   public removedByNodes(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
@@ -47,7 +65,7 @@ export class AnnotationRemoval {
   }
 
   /** Lists surviving definitions whose properties or relation rules would change. */
-  public updatedByRemoval(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
+  public updatedByRemoval(preview: RamenNodeRemovalPreview): readonly WorkspaceElement[] {
     const attributes: ReadonlySet<Ref> = this.keys(this.removedAttributes(preview));
     const removedRelations: ReadonlySet<Ref> = this.keys(preview.relations);
     const removed: ReadonlySet<Ref> = this.keys(preview.annotations);
@@ -72,7 +90,7 @@ export class AnnotationRemoval {
   }
 
   /** Removes invalid annotation references from one affected project model. */
-  public clean(model: Model, preview: NodeRemovalPreview): Model {
+  public clean(model: Model, preview: RamenNodeRemovalPreview): Model {
     if (!RamenModelFormat.isDocument(model)) return model;
     const attributes: ReadonlySet<Ref> = this.keys(this.removedAttributes(preview));
     const removedRelations: ReadonlySet<Ref> = this.keys(preview.relations);

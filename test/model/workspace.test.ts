@@ -267,6 +267,8 @@ void test('strict node removal reports cross-level dependencies; cascade removes
 
   const preview: NodeRemovalPreview = base.previewNodeRemoval(document.id);
 
+  assert.deepEqual(Object.keys(preview).sort(), ['nodes', 'relations']);
+
   assert.deepEqual(
     preview.nodes.map((item: WorkspaceElement): string => item.elementId),
     [document.id, page.id, letter.id],

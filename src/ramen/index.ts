@@ -31,3 +31,5 @@ export * from './validation/ModelValidator.js';
 export * from './data/InstanceValidator.js';
 
 export * from './exchange/File.js';
+
+export type { RamenNodeRemovalPreview, RamenRelationRemovalPreview } from './annotations/Removal.js';

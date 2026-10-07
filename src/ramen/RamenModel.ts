@@ -1,6 +1,7 @@
-import { ModelDraft } from '../model/editing/Draft.js';
+import { ModelDraft, type RemovalEffect } from '../model/editing/Draft.js';
 import {
   type NodeRemovalPreview,
+  type RelationRemovalPreview,
   type WorkspaceElement,
   type ElementInput,
   type ElementRef,
@@ -39,7 +40,7 @@ import {
   RamenAnnotations,
   type AttributeReference,
 } from './annotations/Definitions.js';
-import { AnnotationRemoval } from './annotations/Removal.js';
+import { AnnotationRemoval, type RamenNodeRemovalPreview, type RamenRelationRemovalPreview } from './annotations/Removal.js';
 import { RamenModelFormat, RamenModelDocument } from './Document.js';
 import { RAMEN_MODEL } from './ReferenceModel.js';
 import { RamenValidator } from './validation/ModelValidator.js';
@@ -341,6 +342,21 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return this.connectBy(annotation, target, undefined, this.family('REFERS_TO'));
   }
 
+  /** Shows nodes, relationships and annotation declarations affected by removing a node. */
+  public override previewNodeRemoval(nodeId: Id): RamenNodeRemovalPreview {
+    return new AnnotationRemoval(this.workspace).preview(super.previewNodeRemoval(nodeId));
+  }
+
+  /** Shows relationships and annotation declarations affected by removing a relationship. */
+  public override previewRelationRemoval(relationId: Id): RamenRelationRemovalPreview {
+    const preview: RelationRemovalPreview = super.previewRelationRemoval(relationId);
+    const details: RamenNodeRemovalPreview = new AnnotationRemoval(this.workspace).preview({
+      nodes: [],
+      relations: preview.relations,
+    });
+    return { ...preview, updatedAnnotations: details.updatedAnnotations };
+  }
+
   private annotationProperties(inputs: readonly AnnotationPropertyInput[]): readonly AnnotationProperty[] {
     return inputs.map((input: AnnotationPropertyInput): AnnotationProperty => {
       if ('attribute' in input) {
@@ -436,24 +452,20 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return { relationIds: [relationId], direction, bounds: { ...input.bounds } };
   }
 
-  protected override annotationRemovals(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
-    return new AnnotationRemoval(this.workspace).removedByNodes(preview);
-  }
-
   protected override nodeDiagnosticPaths(lineage: readonly ElementRef[]): readonly string[] {
     return new AnnotationRemoval(this.workspace).diagnosticPaths(this.validationInputs(), lineage);
   }
 
-  protected override annotationUpdates(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
-    return new AnnotationRemoval(this.workspace).updatedByRemoval(preview);
-  }
-
-  protected override annotationName(item: WorkspaceElement): string {
-    return new AnnotationRemoval(this.workspace).name(item);
-  }
-
-  protected override cleanRemoval(model: Model, preview: NodeRemovalPreview): Model {
-    return new AnnotationRemoval(this.workspace).clean(model, preview);
+  protected override removalEffect(preview: NodeRemovalPreview): RemovalEffect {
+    const removal: AnnotationRemoval = new AnnotationRemoval(this.workspace);
+    const details: RamenNodeRemovalPreview = removal.preview(preview);
+    const dependants: readonly string[] = [...details.annotations, ...details.updatedAnnotations].map(
+      (item: WorkspaceElement): string => {
+        const model: Model | undefined = this.workspace.get(item.modelId);
+        return `annotation '${removal.name(item)}' (${item.elementId}) in model '${model?.name ?? item.modelId}'`;
+      },
+    );
+    return { dependants, clean: (model: Model): Model => removal.clean(model, details) };
   }
 
   protected override onRemove(input: Removal): void {

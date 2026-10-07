@@ -14,7 +14,7 @@ import {
   type EvolutionChange,
   type Node,
   type NodeLineageItem,
-  type NodeRemovalPreview,
+  type RamenNodeRemovalPreview,
   type ModelInstanceGraph,
   type ModelInstanceNode,
   type ModelChange,
@@ -23,7 +23,7 @@ import {
   type RamenAnnotation,
   type RamenEvolutionReport,
   type Relation,
-  type RelationRemovalPreview,
+  type RamenRelationRemovalPreview,
   type ValidationResult,
   type WorkspaceElement,
 } from '@ramen-suite/core';
@@ -217,7 +217,7 @@ void test('cascading an Annotation node removes its types and all dependent link
   const note: RamenAnnotation = fixture.model.createAnnotation({ node: fixture.annotation, type: 'note' }).element;
   const next: RamenModel = fixture.model.createNextLevel('Publication');
   const review: Node = next.createNode({ name: 'ReviewAnnotation', refines: fixture.annotation }).element;
-  const preview: NodeRemovalPreview = fixture.model.previewNodeRemoval(fixture.annotation.id);
+  const preview: RamenNodeRemovalPreview = fixture.model.previewNodeRemoval(fixture.annotation.id);
 
   assert.deepEqual(
     preview.nodes.map((item: WorkspaceElement): string => item.elementId),
@@ -312,7 +312,7 @@ void test('removal preview names annotation types whose relationship rules will 
     ],
   }).element;
 
-  const preview: NodeRemovalPreview = fixture.model.previewNodeRemoval(fixture.person.id);
+  const preview: RamenNodeRemovalPreview = fixture.model.previewNodeRemoval(fixture.person.id);
 
   assert.deepEqual(preview.annotations, []);
   assert.deepEqual(
@@ -337,7 +337,7 @@ void test('relation removal rejects annotation changes until explicitly cascaded
   }).element;
   const before: readonly RamenAnnotation[] = fixture.model.getAnnotations();
 
-  const preview: RelationRemovalPreview = fixture.model.previewRelationRemoval(fixture.textHas.id);
+  const preview: RamenRelationRemovalPreview = fixture.model.previewRelationRemoval(fixture.textHas.id);
 
   assert.deepEqual(
     preview.relations.map((item: WorkspaceElement): string => item.elementId),

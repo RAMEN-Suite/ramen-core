@@ -17,6 +17,7 @@ interface InstalledPackage {
 
 const root: string = fileURLToPath(new URL('../', import.meta.url));
 const npmCli: string = process.env['npm_execpath'] ?? '';
+
 if (!npmCli) throw new Error('Run this check with npm run package:check.');
 
 function pack(destination: string): PackedFile {
@@ -30,7 +31,9 @@ function pack(destination: string): PackedFile {
   );
   const files: readonly PackedFile[] = JSON.parse(output) as readonly PackedFile[];
   const file: PackedFile | undefined = files[0];
+
   if (!file) throw new Error('npm pack returned no package.');
+
   return file;
 }
 
@@ -53,6 +56,7 @@ function checkContents(file: PackedFile): void {
 function install(tarball: string, consumer: string): void {
   mkdirSync(consumer);
   writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
+
   execFileSync(process.execPath, [npmCli, 'install', tarball, '--ignore-scripts', '--no-audit', '--no-fund'], {
     cwd: consumer,
     stdio: 'inherit',
@@ -65,26 +69,39 @@ function install(tarball: string, consumer: string): void {
   }
 }
 
-function checkConsumer(consumer: string): void {
+function compileConsumer(consumer: string): void {
   copyFileSync(join(root, 'test/package/consumer.ts'), join(consumer, 'consumer.ts'));
-  execFileSync(process.execPath, ['consumer.ts'], { cwd: consumer, stdio: 'inherit' });
+
   const config: object = {
-    compilerOptions: { noEmit: true, strict: true, resolveJsonModule: true, module: 'NodeNext', target: 'ES2022' },
+    compilerOptions: { strict: true, resolveJsonModule: true, module: 'NodeNext', target: 'ES2022' },
     include: ['consumer.ts'],
   };
   writeFileSync(join(consumer, 'tsconfig.json'), JSON.stringify(config));
+
   const compiler: string = join(root, 'node_modules/typescript/bin/tsc');
   execFileSync(process.execPath, [compiler, '-p', 'tsconfig.json'], { cwd: consumer, stdio: 'inherit' });
 }
 
+function runConsumer(consumer: string): void {
+  const runtimes: readonly string[] = process.argv.length > 2 ? process.argv.slice(2) : [process.execPath];
+
+  for (const runtime of runtimes) {
+    const version: string = execFileSync(runtime, ['--version'], { encoding: 'utf8' }).trim();
+    execFileSync(runtime, ['consumer.js'], { cwd: consumer, stdio: 'inherit' });
+    console.log(`Packed consumer passed on ${version}.`);
+  }
+}
+
 const temporary: string = mkdtempSync(join(tmpdir(), 'ramen-package-'));
+
 try {
   const file: PackedFile = pack(temporary);
   checkContents(file);
 
   const consumer: string = join(temporary, 'consumer');
   install(join(temporary, file.filename), consumer);
-  checkConsumer(consumer);
+  compileConsumer(consumer);
+  runConsumer(consumer);
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }

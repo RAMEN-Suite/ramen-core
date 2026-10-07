@@ -20,6 +20,8 @@ npm install @ramen-suite/core
 
 It provides ESM entry points, TypeScript declarations and [JSON schemas](docs/schemas.md). It has no UI framework dependency.
 
+Requires Node.js 22.14.0 or newer.
+
 | Import                        | Use                                     |
 | ----------------------------- | --------------------------------------- |
 | `@ramen-suite/core/model`     | Create and validate generic RMF models. |

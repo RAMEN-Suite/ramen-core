@@ -26,6 +26,7 @@ function enumEntries(path: string, name: string): readonly CodeEntry[] {
   if (!declaration) throw new Error(`Diagnostic enum '${name}' not found.`);
 
   let group: string = '';
+
   return declaration.members.map((member: ts.EnumMember): CodeEntry => {
     const comment: ts.JSDoc | undefined = ts
       .getJSDocCommentsAndTags(member)
@@ -38,13 +39,16 @@ function enumEntries(path: string, name: string): readonly CodeEntry[] {
     if (!initializer || !ts.isStringLiteral(initializer) || !meaning) {
       throw new Error(`Diagnostic '${member.name.getText(source)}' needs a string code and JSDoc meaning.`);
     }
+
     return { code: initializer.text, meaning, group };
   });
 }
 
 function table(entries: readonly CodeEntry[]): string {
   if (entries.length === 0) throw new Error('A diagnostic table cannot be empty.');
+
   const rows: readonly string[] = entries.map((entry: CodeEntry): string => `| \`${entry.code}\` | ${entry.meaning} |`);
+
   return ['| Code | Meaning |', '| --- | --- |', ...rows].join('\n');
 }
 
@@ -68,6 +72,7 @@ async function updateDocument(path: string, tables: readonly Table[], check: boo
   const updated: string = tables.reduce((document: string, section: Table): string => replaceTable(document, section), current);
   const options: prettier.Options | null = await prettier.resolveConfig(path);
   const formatted: string = await prettier.format(updated, { ...options, filepath: path });
+
   if (formatted === current) return false;
   if (check) return true;
 
@@ -77,6 +82,7 @@ async function updateDocument(path: string, tables: readonly Table[], check: boo
 
 async function main(): Promise<void> {
   const check: boolean = process.argv.includes('--check');
+
   const rmf: readonly CodeEntry[] = enumEntries(resource('src/model/validation/Codes.ts'), 'VALIDATION_ERROR');
   const ramenModel: readonly CodeEntry[] = enumEntries(resource('src/ramen/annotations/Rules.ts'), 'RAMEN_VALIDATION_ERROR');
   const ramenData: readonly CodeEntry[] = enumEntries(resource('src/ramen/data/InstanceValidator.ts'), 'RAMEN_INSTANCE_ERROR');

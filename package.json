@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=26.3.0 <27",
-    "npm": ">=11.16.0 <12"
+    "node": ">=22.14.0"
   },
   "packageManager": "npm@11.16.0",
   "license": "MIT",
@@ -13,6 +12,7 @@
   "files": [
     "dist/ramen-core/index.js",
     "dist/ramen-core/index.d.ts",
+    "dist/ramen-core/chunks",
     "dist/ramen-core/model",
     "dist/ramen-core/ramen",
     "dist/ramen-core/schemas"
@@ -35,11 +35,12 @@
     }
   },
   "scripts": {
-    "build": "tsc && esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --packages=external && node tools/copy-schemas.ts",
+    "build": "node tools/clean-build.ts && tsc && esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --splitting --chunk-names=chunks/[name]-[hash] --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --packages=external && node tools/copy-schemas.ts",
     "docs:build": "npm run docs:diagnostics && typedoc",
     "docs:diagnostics": "node tools/generate-diagnostics.ts",
     "docs:diagnostics:check": "node tools/generate-diagnostics.ts --check",
     "docs:serve": "npm run docs:build && http-server dist/api-doc -a 127.0.0.1 -p 5173 -c-1",
+    "docs:watch": "typedoc --watch --preserveWatchOutput",
     "format": "prettier --check . --ignore-unknown",
     "format:fix": "prettier --write . --ignore-unknown",
     "lint": "eslint src test tools",
@@ -51,8 +52,7 @@
     "test": "npm run build && npm run typecheck && node --test \"test/**/*.test.ts\"",
     "test:coverage": "npm run build && npm run typecheck && node --experimental-test-coverage --test-coverage-include=\"dist/ramen-core/**/*.js\" --test \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.tools.json",
-    "verify": "npm run schema:check && npm run docs:diagnostics:check && npm run lint && npm run format && npm test && npm run docs:build && node tools/check-package.ts",
-    "docs:watch": "typedoc --watch --preserveWatchOutput"
+    "verify": "npm run schema:check && npm run docs:diagnostics:check && npm run lint && npm run format && npm test && npm run docs:build && node tools/check-package.ts"
   },
   "dependencies": {
     "json-schema-library": "11.4.0",

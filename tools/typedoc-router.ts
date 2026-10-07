@@ -13,8 +13,10 @@ class GuideRouter extends KindRouter {
     if (typeof route !== 'string' || !ROUTE_PATTERN.test(route)) {
       throw new Error(`Document '${reflection.name}' needs a stable lowercase route in its frontmatter.`);
     }
+
     const existing: Reflection | undefined = this.usedRoutes.get(route);
     if (existing && existing !== reflection) throw new Error(`Guide route '${route}' is declared more than once.`);
+
     this.usedRoutes.set(route, reflection);
 
     return `guides/${route}`;

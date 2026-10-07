@@ -35,6 +35,7 @@ function resource(name: string): string {
 function rewriteRefs(value: unknown, prefix: string, replacement: string): unknown {
   if (Array.isArray(value)) return value.map((item: unknown): unknown => rewriteRefs(item, prefix, replacement));
   if (value === null || typeof value !== 'object') return value;
+
   const result: Record<string, unknown> = {};
   const entries: readonly [string, unknown][] = Object.entries(value);
 
@@ -43,8 +44,10 @@ function rewriteRefs(value: unknown, prefix: string, replacement: string): unkno
       result[key] = `${replacement}${entry.slice(prefix.length)}`;
       continue;
     }
+
     result[key] = rewriteRefs(entry, prefix, replacement);
   }
+
   return result;
 }
 
@@ -73,6 +76,7 @@ function projectSchema(): ModelSchema {
 
 function owned(definition: Schema | undefined): Schema {
   if (!definition?.required || !definition.properties) throw new Error('Owned elements require properties and required fields.');
+
   return {
     ...definition,
     required: [...definition.required, 'modelId'],
@@ -125,6 +129,7 @@ function graphProperties(fileUri: string, ramen: boolean): Readonly<Record<strin
         'Each annotation type is declared once. It can belong to a project while referring to the unchanged RAMEN Annotation node.',
     };
   }
+
   return properties;
 }
 
@@ -163,6 +168,7 @@ async function emit(name: string, schema: Schema): Promise<void> {
 
   if (existsSync(destination) && readFileSync(destination, 'utf8') === generated) return;
   if (process.argv.includes('--check')) throw new Error(`Outdated ${name}. Run npm run schema:generate.`);
+
   writeFileSync(destination, generated);
 }
 
@@ -173,4 +179,7 @@ const files: readonly FileInput[] = [
 ];
 
 await emit('ramen-project.schema.json', project);
-for (const file of files) await emit(file.name, graphSchema(file));
+
+for (const file of files) {
+  await emit(file.name, graphSchema(file));
+}

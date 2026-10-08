@@ -36,6 +36,8 @@ export enum VALIDATION_ERROR {
    * @group Nodes, properties and data types
    */
   NODE_REFINEMENT_REQUIRED = 'NODE_REFINEMENT_REQUIRED',
+  /** Distinct nodes declared or explicitly used in one model have the same name. */
+  NODE_NAME_DUPLICATE = 'NODE_NAME_DUPLICATE',
   /** A node lists more than one direct supertype. */
   NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED = 'NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED',
   /** A node declares the same property name twice. */

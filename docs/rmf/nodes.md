@@ -19,6 +19,8 @@ const folder: Node = filing.createNode('Folder').element;
 
 {@link model.Modeller.createNode | createNode()} generates the node's ID. `.element` returns the definition for later calls.
 
+Node names must be unique among nodes declared or explicitly used within a model, including relationship endpoints and RAMEN annotation definitions. A refinement on another model level may reuse its base's name, provided that level does not also use the base directly. `Annotation` and `TextAnnotation` may coexist; two distinct nodes named `Annotation` may not. Imports and inheritance references alone do not count as direct use. Validation reports conflicts as `NODE_NAME_DUPLICATE`.
+
 | Input         | Meaning                                                     | Example               |
 | ------------- | ----------------------------------------------------------- | --------------------- |
 | `name`        | Required name of the node type.                             | `Document`            |

@@ -5,6 +5,7 @@ import { ModelRelationScope, RelationSelections } from '../graph/RelationScope.j
 import { Cardinality } from './Cardinality.js';
 import { ValidationCode } from './Codes.js';
 import { ConstraintRules } from './ConstraintRules.js';
+import { NodeNames } from './NodeNames.js';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
 export class ModelRules {
@@ -55,6 +56,7 @@ export class ModelRules {
 
   private validateModel(graph: ProjectGraph, model: Model, diagnostics: Diagnostic[]): void {
     this.validateImports(model, diagnostics);
+    diagnostics.push(...new NodeNames(graph, model).getDiagnostics());
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
       this.validateConstraints(classifier.constraints, path, diagnostics);

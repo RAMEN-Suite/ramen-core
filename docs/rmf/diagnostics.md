@@ -63,19 +63,20 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 
 <!-- diagnostics:nodes:start -->
 
-| Code                                    | Meaning                                                              |
-| --------------------------------------- | -------------------------------------------------------------------- |
-| `NODE_REFINEMENT_REQUIRED`              | A new node in a model with imports does not refine an existing node. |
-| `NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED`  | A node lists more than one direct supertype.                         |
-| `ATTRIBUTE_NAME_DUPLICATE`              | A node declares the same property name twice.                        |
-| `ATTRIBUTE_NAME_SHADOWS_SUPERTYPE`      | A local property reuses an inherited name.                           |
-| `ATTRIBUTE_BOUNDS_INVALID`              | A property's cardinality bounds are incoherent.                      |
-| `ATTRIBUTE_MULTIPLE_KEYS`               | A node has more than one key, including inherited keys.              |
-| `ATTRIBUTE_KEY_BOUNDS_INVALID`          | A key property's bounds are not `1..1`.                              |
-| `DATATYPE_LITERAL_TYPE_INVALID`         | A literal does not fit its data type's base type.                    |
-| `DATATYPE_LITERAL_NAME_DUPLICATE`       | Two literals have the same name.                                     |
-| `DATATYPE_LITERAL_SERIALIZED_DUPLICATE` | Two literals produce the same stored string.                         |
-| `DATATYPE_LITERAL_VALUE_DUPLICATE`      | Two literals have the same numeric value.                            |
+| Code                                    | Meaning                                                                     |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| `NODE_REFINEMENT_REQUIRED`              | A new node in a model with imports does not refine an existing node.        |
+| `NODE_NAME_DUPLICATE`                   | Distinct nodes declared or explicitly used in one model have the same name. |
+| `NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED`  | A node lists more than one direct supertype.                                |
+| `ATTRIBUTE_NAME_DUPLICATE`              | A node declares the same property name twice.                               |
+| `ATTRIBUTE_NAME_SHADOWS_SUPERTYPE`      | A local property reuses an inherited name.                                  |
+| `ATTRIBUTE_BOUNDS_INVALID`              | A property's cardinality bounds are incoherent.                             |
+| `ATTRIBUTE_MULTIPLE_KEYS`               | A node has more than one key, including inherited keys.                     |
+| `ATTRIBUTE_KEY_BOUNDS_INVALID`          | A key property's bounds are not `1..1`.                                     |
+| `DATATYPE_LITERAL_TYPE_INVALID`         | A literal does not fit its data type's base type.                           |
+| `DATATYPE_LITERAL_NAME_DUPLICATE`       | Two literals have the same name.                                            |
+| `DATATYPE_LITERAL_SERIALIZED_DUPLICATE` | Two literals produce the same stored string.                                |
+| `DATATYPE_LITERAL_VALUE_DUPLICATE`      | Two literals have the same numeric value.                                   |
 
 <!-- diagnostics:nodes:end -->
 

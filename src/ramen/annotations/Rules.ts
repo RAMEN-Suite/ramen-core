@@ -17,6 +17,7 @@ import {
 import { ModelIdentifiers } from '../../model/graph/Identifiers.js';
 
 import { Cardinality } from '../../model/validation/Cardinality.js';
+import { NodeNames } from '../../model/validation/NodeNames.js';
 
 import { RamenAnnotation, AnnotationRelation } from './Definitions.js';
 import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex.js';
@@ -59,8 +60,21 @@ export class RamenAnnotationRules {
       graph.getModels().map((model: Model): [Id, ModelIdentifiers] => [model.id, new ModelIdentifiers(model)]),
     );
     const ownerTypes: Set<string> = new Set<string>();
+    const nodeNames: ReadonlyMap<Id, NodeNames> = new Map<Id, NodeNames>(
+      graph.getModels().map((model: Model): [Id, NodeNames] => [model.id, new NodeNames(graph, model)]),
+    );
 
     for (const resolved of annotations.getAll()) {
+      const names: NodeNames | undefined = nodeNames.get(resolved.modelId);
+      if (names) {
+        diagnostics.push(
+          ...names.register(
+            resolved.annotation.annotationId,
+            this.path(resolved.modelId, resolved.annotation.id).property('annotationId'),
+            resolved.annotation.id,
+          ),
+        );
+      }
       this.validateAnnotation(graph, annotations, resolved, identifiers, ownerTypes, diagnostics);
     }
 

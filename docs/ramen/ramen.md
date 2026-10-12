@@ -26,7 +26,7 @@ The {@link ramen.RAMEN_MODEL | reference model} has four node types:
 | `Entity`     | Person, Place        |
 | `Annotation` | Annotation           |
 
-It offers `PART_OF`, `HAS_ANNOTATION` and `REFERS_TO` relationships. Every node has a required `uuid`. Collection and Entity also have `label`. Annotation has `type` and an optional `selector`.
+It offers `PART_OF`, `HAS_ANNOTATION` and `REFERS_TO` relationships. `REFERS_TO` connects Annotation to Collection, Content or Entity, including their refinements. Every node has a required `uuid`. Collection and Entity also have `label`. Annotation has `type` and an optional `selector`.
 
 ## Create a project model
 

@@ -337,7 +337,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return this.connectBy(subject, annotation, undefined, this.family('HAS_ANNOTATION'));
   }
 
-  /** Creates a RAMEN REFERS_TO relation when the node types permit it. */
+  /** Connects an Annotation to a Collection, Content or Entity, including their refinements. */
   public refersTo(annotation: ElementInput, target: ElementInput): ModelChange<Relation> {
     return this.connectBy(annotation, target, undefined, this.family('REFERS_TO'));
   }

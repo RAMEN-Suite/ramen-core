@@ -400,28 +400,6 @@
         },
         "id": "421b47ea683a1a02"
       }
-    },
-    {
-      "kind": "Relation",
-      "id": "K7rB3m2Xv8qL0sP6tN1y",
-      "superTypes": [],
-      "name": "REFERS_TO",
-      "from": {
-        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "bounds": {
-          "lowerBound": 0,
-          "upperBound": -1
-        },
-        "id": "c4f94b4b334e4c1e"
-      },
-      "to": {
-        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
-        "bounds": {
-          "lowerBound": 0,
-          "upperBound": -1
-        },
-        "id": "97e03b1a1f4fe685"
-      }
     }
   ],
   "ext": {}

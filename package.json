@@ -12,7 +12,6 @@
   "files": [
     "dist/ramen-core/index.js",
     "dist/ramen-core/index.d.ts",
-    "dist/ramen-core/chunks",
     "dist/ramen-core/model",
     "dist/ramen-core/ramen",
     "dist/ramen-core/schemas"
@@ -35,7 +34,7 @@
     }
   },
   "scripts": {
-    "build": "node tools/clean-build.ts && tsc && esbuild src/index.ts src/model/index.ts src/ramen/index.ts --bundle --splitting --chunk-names=chunks/[name]-[hash] --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --packages=external && node tools/copy-schemas.ts",
+    "build": "node tools/clean-build.ts && tsc && esbuild \"src/**/*.ts\" --bundle --external:*.js --format=esm --platform=neutral --outdir=dist/ramen-core --outbase=src --packages=external && node tools/copy-schemas.ts",
     "docs:build": "npm run docs:diagnostics && typedoc",
     "docs:diagnostics": "node tools/generate-diagnostics.ts",
     "docs:diagnostics:check": "node tools/generate-diagnostics.ts --check",

@@ -3,6 +3,7 @@ import { copyFileSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { build, type BuildResult } from 'esbuild';
 
 interface PackedFile {
   readonly filename: string;
@@ -13,6 +14,7 @@ interface InstalledPackage {
   readonly name: string;
   readonly private?: boolean;
   readonly type: string;
+  readonly sideEffects?: boolean;
 }
 
 const root: string = fileURLToPath(new URL('../', import.meta.url));
@@ -51,6 +53,15 @@ function checkContents(file: PackedFile): void {
   const required: readonly string[] = [...documents, ...schemas.map((name: string): string => `dist/ramen-core/schemas/${name}`)];
   const missing: readonly string[] = required.filter((path: string): boolean => !paths.has(path));
   if (missing.length > 0) throw new Error(`Missing package files: ${missing.join(', ')}`);
+
+  const missingModules: readonly string[] = [...paths]
+    .filter((path: string): boolean => path.endsWith('.d.ts'))
+    .map((path: string): string => path.replace(/\.d\.ts$/, '.js'))
+    .filter((path: string): boolean => !paths.has(path));
+  if (missingModules.length > 0) throw new Error(`Missing runtime modules: ${missingModules.join(', ')}`);
+  if ([...paths].some((path: string): boolean => path.startsWith('dist/ramen-core/chunks/'))) {
+    throw new Error('The package must preserve modules rather than publish generated shared chunks.');
+  }
 }
 
 function install(tarball: string, consumer: string): void {
@@ -64,8 +75,13 @@ function install(tarball: string, consumer: string): void {
 
   const manifestPath: string = join(consumer, 'node_modules/@ramen-suite/core/package.json');
   const installed: InstalledPackage = JSON.parse(readFileSync(manifestPath, 'utf8')) as InstalledPackage;
-  if (installed.name !== '@ramen-suite/core' || installed.private || installed.type !== 'module') {
-    throw new Error('The published manifest must identify RAMEN Core as a public ESM package.');
+  if (
+    installed.name !== '@ramen-suite/core' ||
+    installed.private ||
+    installed.type !== 'module' ||
+    installed.sideEffects !== false
+  ) {
+    throw new Error('The published manifest must identify RAMEN Core as a public, side-effect-free ESM package.');
   }
 }
 
@@ -82,14 +98,56 @@ function compileConsumer(consumer: string): void {
   execFileSync(process.execPath, [compiler, '-p', 'tsconfig.json'], { cwd: consumer, stdio: 'inherit' });
 }
 
-function runConsumer(consumer: string): void {
+function runConsumer(consumer: string, entry: string = 'consumer.js'): void {
   const runtimes: readonly string[] = process.argv.length > 2 ? process.argv.slice(2) : [process.execPath];
 
   for (const runtime of runtimes) {
     const version: string = execFileSync(runtime, ['--version'], { encoding: 'utf8' }).trim();
-    execFileSync(runtime, ['consumer.js'], { cwd: consumer, stdio: 'inherit' });
-    console.log(`Packed consumer passed on ${version}.`);
+    execFileSync(runtime, [entry], { cwd: consumer, stdio: 'inherit' });
+    console.log(`Packed ${entry} consumer passed on ${version}.`);
   }
+}
+
+async function bundleBrowserConsumer(consumer: string): Promise<void> {
+  const result: BuildResult = await build({
+    absWorkingDir: consumer,
+    entryPoints: ['consumer.ts'],
+    outfile: 'browser-consumer.js',
+    bundle: true,
+    platform: 'browser',
+    format: 'esm',
+    target: 'es2022',
+    logLevel: 'silent',
+  });
+  if (result.warnings.length > 0) throw new Error(`Browser bundle warnings: ${JSON.stringify(result.warnings)}`);
+  runConsumer(consumer, 'browser-consumer.js');
+}
+
+async function checkTreeShaking(consumer: string): Promise<void> {
+  const result: BuildResult = await build({
+    stdin: {
+      contents: "export { DataTypes } from '@ramen-suite/core';",
+      resolveDir: consumer,
+    },
+    bundle: true,
+    platform: 'browser',
+    format: 'esm',
+    write: false,
+    metafile: true,
+    logLevel: 'silent',
+  });
+  if (result.warnings.length > 0) throw new Error(`Tree-shaking warnings: ${JSON.stringify(result.warnings)}`);
+  if (!result.metafile) throw new Error('Missing tree-shaking metadata.');
+  const retained: readonly string[] = Object.values(result.metafile.outputs).flatMap((output): string[] =>
+    Object.entries(output.inputs)
+      .filter(([, input]): boolean => input.bytesInOutput > 0)
+      .map(([path]): string => path.replaceAll('\\', '/')),
+  );
+  const modules: readonly string[] = retained.filter((path: string): boolean => path !== '<stdin>');
+  if (modules.length !== 1 || !modules[0]?.endsWith('/dist/ramen-core/model/Builtins.js')) {
+    throw new Error(`A DataTypes import retained unrelated code: ${retained.join(', ')}`);
+  }
+  console.log('Browser tree shaking retained only the built-in data types.');
 }
 
 const temporary: string = mkdtempSync(join(tmpdir(), 'ramen-package-'));
@@ -102,6 +160,8 @@ try {
   install(join(temporary, file.filename), consumer);
   compileConsumer(consumer);
   runConsumer(consumer);
+  await bundleBrowserConsumer(consumer);
+  await checkTreeShaking(consumer);
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }

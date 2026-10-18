@@ -96,9 +96,9 @@ Open `http://127.0.0.1:5173`. For automatic rebuilds, run `npm run docs:watch` i
 
 Run `npm run verify` for type checks, schema checks, lint, formatting, tests, documentation and package contents.
 
-The build writes JavaScript, declarations and schemas to `dist/ramen-core`, and documentation to `dist/api-doc`. `npm pack` packages the library from the repository root using `files` and `exports` in `package.json`. The JavaScript keeps the source module structure: root, Model and RAMEN entry points share the same module instances. esbuild embeds local JSON resources while leaving JavaScript imports and external dependencies intact. There are no generated shared chunks; consumers perform bundling and tree shaking with `sideEffects: false`.
+The build writes ESM modules, TypeScript declarations and schemas to `dist/ramen-core`, and documentation to `dist/api-doc`. `npm pack` packages the library using the public entry points defined in `package.json`.
 
-The package check installs a real tarball in a temporary consumer and checks its runtime exports, declarations, schemas and class identities. It also bundles and runs a browser-targeted consumer, rejects bundler warnings and verifies that a small import excludes unrelated model and RAMEN code.
+The package check installs a real tarball and verifies its exports, types, schemas, shared class identities and browser bundling.
 
 ## Contribute
 

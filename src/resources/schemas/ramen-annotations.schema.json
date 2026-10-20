@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ramen-schema.org/ramen/1.0.0/annotations.schema.json",
   "title": "RAMEN Annotation Definitions",
-  "description": "Project-defined annotation types. Each type selects the properties and modelled relations allowed for data carrying its type value.",
+  "description": "Project-defined annotation shapes with their own properties and permitted modelled relations.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -39,15 +39,8 @@
       }
     },
     "AnnotationProperty": {
-      "description": "An attribute reference or a property declared only for this annotation type.",
-      "oneOf": [
-        {
-          "$ref": "#/$defs/AnnotationPropertyReference"
-        },
-        {
-          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute"
-        }
-      ]
+      "description": "A property declared only for this annotation type. Shared node properties apply automatically.",
+      "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute"
     },
     "AnnotationRelation": {
       "type": "object",
@@ -59,7 +52,9 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "$ref": "#/$defs/Ref" },
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
           "description": "References to modelled relations counted together. Their endpoint types determine which nodes can be connected."
         },
         "direction": {
@@ -93,7 +88,7 @@
         },
         "properties": {
           "type": "array",
-          "description": "Properties selected from the node or declared here for this type. Common RAMEN attributes stay available.",
+          "description": "Properties owned by this type. Node properties, including inherited ones, apply automatically and cannot be redeclared here.",
           "items": {
             "$ref": "#/$defs/AnnotationProperty"
           },
@@ -106,22 +101,6 @@
             "$ref": "#/$defs/AnnotationRelation"
           },
           "default": []
-        }
-      }
-    },
-    "AnnotationPropertyReference": {
-      "type": "object",
-      "description": "Allows one attribute declared on the owning Annotation node, optionally with narrower cardinality.",
-      "required": ["attributeId"],
-      "additionalProperties": false,
-      "properties": {
-        "attributeId": {
-          "$ref": "#/$defs/Ref",
-          "description": "Reference to an attribute available on the owning Annotation node."
-        },
-        "bounds": {
-          "$ref": "#/$defs/Bounds",
-          "description": "Optional type-specific cardinality; the attribute's modelled cardinality applies when omitted."
         }
       }
     }

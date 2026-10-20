@@ -19,7 +19,7 @@
  * @packageDocumentation
  */
 export * from './ReferenceModel.js';
-export type { RamenAnnotation, AnnotationProperty, AttributeReference, AnnotationRelation } from './annotations/Definitions.js';
+export type { RamenAnnotation, AnnotationProperty, AnnotationRelation } from './annotations/Definitions.js';
 export * from './Document.js';
 export type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor.js';
 export * from './RamenModel.js';

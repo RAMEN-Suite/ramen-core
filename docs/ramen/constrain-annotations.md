@@ -8,9 +8,9 @@ group: RAMEN
 
 An annotation type may declare properties that do not belong to the shared Annotation node. Here a separate `role` type has a required `name`. Its `RoleName` data type allows only three values.
 
-A type must select every required property on its Annotation node. This also applies to inherited types when a node is refined. Optional node properties may be left out. Invalid JSON Schema expressions on type-owned properties are reported during model validation.
+All properties on the Annotation node and its ancestors apply automatically to every annotation shape, including optional fields. A shape adds its own properties and cannot redeclare a shared name. Separate shapes may independently use the same property name with different data types or constraints. Invalid JSON Schema expressions on shape-owned properties are reported during model validation.
 
-Annotation definitions, their own properties and constraints share the owning model's ID space. Each declaration needs a unique ID. Several annotation types may reference the same existing node attribute.
+Annotation definitions, their own properties and constraints share the owning model's ID space. Each declaration needs a unique ID. Deleting a shape leaves shared node properties intact.
 
 ## Allow a role annotation
 

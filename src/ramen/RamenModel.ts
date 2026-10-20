@@ -28,19 +28,12 @@ import {
   type Relation,
 } from '../model/index.js';
 import { ModelWorkspace } from '../model/editing/Workspace.js';
-import type { Removal } from '../model/editing/Inputs.js';
 
 import { InstanceValueValidator } from '../model/data/InstanceValues.js';
 import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex.js';
 import { AnnotationProperties } from './annotations/Properties.js';
 
-import {
-  RamenAnnotation,
-  AnnotationProperty,
-  AnnotationRelation,
-  RamenAnnotations,
-  type AttributeReference,
-} from './annotations/Definitions.js';
+import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions.js';
 import { AnnotationRemoval, type RamenNodeRemovalPreview, type RamenRelationRemovalPreview } from './annotations/Removal.js';
 import { RamenModelFormat, RamenModelDocument } from './Document.js';
 import { RAMEN_MODEL } from './ReferenceModel.js';
@@ -69,11 +62,8 @@ export interface AnnotationRelationGroupInput {
   readonly bounds: Bounds;
 }
 
-/** Select an existing attribute or declare a property owned only by this annotation type. */
-export type AnnotationPropertyInput =
-  | AnnotationProperty
-  | AttributeInput
-  | (Omit<AttributeReference, 'attributeId'> & { readonly attribute: Attribute; readonly attributeId?: Ref });
+/** Declare a property owned only by this annotation type. */
+export type AnnotationPropertyInput = AnnotationProperty | AttributeInput;
 
 /** Select relationships by objects, IDs or endpoints. */
 export type AnnotationRelationInput =
@@ -359,31 +349,13 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
 
   private annotationProperties(inputs: readonly AnnotationPropertyInput[]): readonly AnnotationProperty[] {
     return inputs.map((input: AnnotationPropertyInput): AnnotationProperty => {
-      if ('attribute' in input) {
-        const attributeId: Ref = this.attributeReference(input.attribute);
-        return { attributeId, ...(input.bounds ? { bounds: { ...input.bounds } } : {}) };
-      }
-      if ('attributeId' in input || 'id' in input) return structuredClone(input);
+      if ('id' in input) return structuredClone(input);
       return ModelFactory.createAttribute({
         ...input,
         typeId: this.attributeType(input),
         bounds: input.bounds ?? { lowerBound: 0, upperBound: 1 },
       });
     });
-  }
-
-  private attributeReference(attribute: Attribute): Ref {
-    const owners: readonly Model[] = this.validationInputs().filter((model: Model): boolean =>
-      model.classifiers.some(
-        (classifier): boolean =>
-          classifier.kind === 'Node' && classifier.attributes.some((item: Attribute): boolean => item.id === attribute.id),
-      ),
-    );
-    const owner: Model | undefined = owners[0];
-
-    if (owners.length !== 1 || !owner)
-      throw new Error(`Expected one attribute with id '${attribute.id}', found ${owners.length}.`);
-    return owner.id === this.model.id ? attribute.id : ModelRef.qualify(owner.id, attribute.id);
   }
 
   private annotationRelations(owner: ElementInput, inputs: readonly AnnotationRelationInput[]): readonly AnnotationRelation[] {
@@ -466,9 +438,5 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       },
     );
     return { dependants, clean: (model: Model): Model => removal.clean(model, details) };
-  }
-
-  protected override onRemove(input: Removal): void {
-    this.model = new AnnotationRemoval(this.workspace).removeAttribute(this.model, input);
   }
 }

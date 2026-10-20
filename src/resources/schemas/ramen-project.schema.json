@@ -289,11 +289,8 @@
       "properties": { "lowerBound": { "type": "integer", "minimum": 0 }, "upperBound": { "type": "integer", "minimum": -1 } }
     },
     "RamenAnnotationProperty": {
-      "description": "An attribute reference or a property declared only for this annotation type.",
-      "oneOf": [
-        { "$ref": "#/$defs/RamenAnnotationPropertyReference" },
-        { "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute" }
-      ]
+      "description": "A property declared only for this annotation type. Shared node properties apply automatically.",
+      "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute"
     },
     "RamenAnnotationRelation": {
       "type": "object",
@@ -339,7 +336,7 @@
         },
         "properties": {
           "type": "array",
-          "description": "Properties selected from the node or declared here for this type. Common RAMEN attributes stay available.",
+          "description": "Properties owned by this type. Node properties, including inherited ones, apply automatically and cannot be redeclared here.",
           "items": { "$ref": "#/$defs/RamenAnnotationProperty" },
           "default": []
         },
@@ -348,22 +345,6 @@
           "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
           "items": { "$ref": "#/$defs/RamenAnnotationRelation" },
           "default": []
-        }
-      }
-    },
-    "RamenAnnotationPropertyReference": {
-      "type": "object",
-      "description": "Allows one attribute declared on the owning Annotation node, optionally with narrower cardinality.",
-      "required": ["attributeId"],
-      "additionalProperties": false,
-      "properties": {
-        "attributeId": {
-          "$ref": "#/$defs/RamenRef",
-          "description": "Reference to an attribute available on the owning Annotation node."
-        },
-        "bounds": {
-          "$ref": "#/$defs/RamenBounds",
-          "description": "Optional type-specific cardinality; the attribute's modelled cardinality applies when omitted."
         }
       }
     }

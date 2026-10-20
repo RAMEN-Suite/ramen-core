@@ -42,7 +42,7 @@ console.log(types.map((choice: AnnotationSuggestion): string => choice.type));
 
 ## Suggest options for another type
 
-{@link ramen.RamenModel.suggestAnnotationOptions | suggestAnnotationOptions(annotation)} shows shared node properties and modelled relationships that a new annotation type could select:
+{@link ramen.RamenModel.suggestAnnotationOptions | suggestAnnotationOptions(annotation)} shows the automatically shared node properties and modelled relationships available for a new annotation shape:
 
 ```ts
 import type { AnnotationOptions, PropertyOption, RelationOption } from '@ramen-suite/core/ramen';
@@ -58,7 +58,7 @@ console.log(options?.relations.map((relation: RelationOption): string => relatio
 
 ## Read a selected type
 
-After a user chooses `person`, {@link ramen.RamenModel.getRelationsForAnnotation | getRelationsForAnnotation(annotation, type)} shows its selected relationships and cardinalities. {@link ramen.RamenModel.getAttributesForAnnotation | getAttributesForAnnotation(annotation, type)} shows its selected or type-owned properties:
+After a user chooses `person`, {@link ramen.RamenModel.getRelationsForAnnotation | getRelationsForAnnotation(annotation, type)} shows its selected relationships and cardinalities. {@link ramen.RamenModel.getAttributesForAnnotation | getAttributesForAnnotation(annotation, type)} shows its automatically shared and shape-owned properties:
 
 ```ts
 const relations: readonly RelationOption[] = media.getRelationsForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'person');

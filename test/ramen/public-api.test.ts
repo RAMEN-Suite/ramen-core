@@ -73,7 +73,10 @@ void test('RAMEN annotation queries distinguish possible choices from a declared
     ['persName'],
   );
   assert.ok(edition.getAdvisor() instanceof RamenAdvisor);
-  assert.deepEqual(properties, []);
+  assert.deepEqual(
+    properties.map((item: PropertyOption): string => item.name),
+    ['selector', 'type', 'uuid'],
+  );
   assert.equal(relations.length, 2);
 
   renameAndRemoveType(edition, type, text);
@@ -91,22 +94,23 @@ void test('RAMEN can load a project and create a later level from its detached m
   assert.equal(later.validate().valid, true);
 });
 
-void test('annotation input checks resolve inherited type-owned properties and selected node attributes', (): void => {
+void test('annotation input checks resolve inherited shape properties and automatically shared node attributes', (): void => {
   const edition: RamenModel = RamenModel.create('Edition');
   const annotation: Node = edition.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const roleName: DataType = edition.createDataType({ name: 'RoleName', baseType: DataTypes.String }).element;
   edition.createLiteral(roleName.id, { name: 'Sender', literal: 'sender' });
-  const label: Attribute = edition.createAttribute(annotation, { name: 'label', typeId: DataTypes.String }).element;
+  const label: Attribute = edition.createAttribute(annotation, {
+    name: 'label',
+    typeId: DataTypes.String,
+    bounds: { lowerBound: 1, upperBound: 1 },
+  }).element;
   const capitalised: Constraint = { id: 'capitalLabelRule1', name: 'Capitalised', language: 'regex', expression: '^[A-Z]' };
 
   edition.updateAttribute(annotation.id, label.id, { constraints: [capitalised] });
   edition.createAnnotation({
     node: annotation,
     type: 'role',
-    properties: [
-      { name: 'name', type: roleName, bounds: { lowerBound: 1, upperBound: 1 } },
-      { attribute: label, bounds: { lowerBound: 1, upperBound: 1 } },
-    ],
+    properties: [{ name: 'name', type: roleName, bounds: { lowerBound: 1, upperBound: 1 } }],
   });
 
   const next: RamenModel = edition.createNextLevel('Research');

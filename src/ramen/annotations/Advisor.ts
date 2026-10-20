@@ -18,10 +18,9 @@ import {
 import { Cardinality } from '../../model/validation/Cardinality.js';
 
 import { AnnotationRelation } from './Definitions.js';
-import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel.js';
 import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex.js';
 
-/** Property that can be selected for an annotation definition. */
+/** Effective property shared by the node or owned by its annotation shape. */
 export interface PropertyOption {
   readonly modelId: Id;
   readonly attributeId: Id;
@@ -68,7 +67,7 @@ export class AnnotationAdvisor {
     private readonly annotations: AnnotationIndex,
   ) {}
 
-  /** Lists property choices and relations available for a new annotation type. */
+  /** Lists automatically shared properties and relation choices for a new annotation shape. */
   public suggestOptions(modelId: Id, annotationNodeId: Id): AnnotationOptions | undefined {
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual || !this.annotations.isAnnotationNode(actual.modelId, actual.element.id)) return undefined;
@@ -78,26 +77,21 @@ export class AnnotationAdvisor {
     };
   }
 
-  /** Returns the effective properties and relations selected by one annotation type. */
+  /** Returns the shared and shape-owned properties and selected relations of one annotation type. */
   public getTypeInfo(modelId: Id, annotationNodeId: Id, type: string): AnnotationOptions | undefined {
     const definition: ResolvedAnnotation | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
     if (!definition) return undefined;
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual) return undefined;
     return {
-      properties: this.selectedPropertyOptions(modelId, actual, definition),
+      properties: [...this.propertyOptions(modelId, actual), ...this.ownedPropertyOptions(modelId, definition)],
       relations: this.selectedRelationOptions(modelId, actual, definition),
     };
   }
 
-  private selectedPropertyOptions(
-    contextModelId: Id,
-    actual: ResolvedElement<Node>,
-    definition: ResolvedAnnotation,
-  ): readonly PropertyOption[] {
-    const lineage: readonly ResolvedElement<Node>[] = [actual, ...this.graph.getNodeAncestors(actual.modelId, actual.element.id)];
-    return AnnotationProperties.resolve(this.graph, definition, actual).map((attribute: Attribute): PropertyOption => {
-      const modelId: Id = this.attributeOwner(lineage, attribute.id)?.modelId ?? definition.modelId;
+  private ownedPropertyOptions(contextModelId: Id, definition: ResolvedAnnotation): readonly PropertyOption[] {
+    return AnnotationProperties.resolve(definition).map((attribute: Attribute): PropertyOption => {
+      const modelId: Id = definition.modelId;
       return {
         modelId,
         attributeId: attribute.id,
@@ -114,10 +108,8 @@ export class AnnotationAdvisor {
   private propertyOptions(contextModelId: Id, actual: ResolvedElement<Node>): readonly PropertyOption[] {
     const effective: EffectiveNode | undefined = EffectiveModel.resolveNode(this.graph, actual.modelId, actual.element.id);
     if (!effective) return [];
-    const commonIds: ReadonlySet<Id> = this.commonAnnotationAttributeIds();
 
     return effective.attributes
-      .filter((attribute: Attribute): boolean => !commonIds.has(attribute.id))
       .map((attribute: Attribute): PropertyOption => {
         const owner: ResolvedElement<Node> = this.attributeOwner(effective.lineage, attribute.id) ?? actual;
         return {
@@ -217,15 +209,6 @@ export class AnnotationAdvisor {
       ModelRef.isQualified(ref) ? ref : ModelRef.qualify(modelId, ref),
     );
     return { ...selected, relationIds };
-  }
-
-  private commonAnnotationAttributeIds(): ReadonlySet<Id> {
-    const annotation: EffectiveNode | undefined = EffectiveModel.resolveNode(
-      this.graph,
-      RAMEN_MODEL.id,
-      RAMEN_ELEMENT.ANNOTATION,
-    );
-    return new Set<Id>(annotation?.attributes.map((attribute: Attribute): Id => attribute.id) ?? []);
   }
 
   private attributeOwner(lineage: readonly ResolvedElement<Node>[], attributeId: Id): ResolvedElement<Node> | undefined {

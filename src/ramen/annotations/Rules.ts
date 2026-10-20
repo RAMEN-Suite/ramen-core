@@ -38,7 +38,7 @@ export enum RAMEN_VALIDATION_ERROR {
   ANNOTATION_TYPE_DUPLICATE = 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
   /** A type belongs to a node that does not refine RAMEN Annotation. */
   ANNOTATION_NODE_INVALID = 'RAMEN_ANNOTATION_NODE_INVALID',
-  /** A property has an invalid reference, name or data type, duplicates another property, or omits a required node property. */
+  /** A property has an invalid reference, name or data type, duplicates another property, or conflicts with a shared node property. */
   ANNOTATION_PROPERTY_INVALID = 'RAMEN_ANNOTATION_PROPERTY_INVALID',
   /** A selected relationship is missing, incompatible, repeated or overlaps another selected relationship. */
   ANNOTATION_RELATION_INVALID = 'RAMEN_ANNOTATION_RELATION_INVALID',
@@ -91,7 +91,7 @@ export class RamenAnnotationRules {
           definition.annotation.annotationId,
         );
         if (declared?.modelId === owner.modelId && declared.element.id === owner.element.id) continue;
-        diagnostics.push(...AnnotationProperties.validateRequired(graph, definition, owner));
+        diagnostics.push(...AnnotationProperties.validate(graph, definition, owner));
       }
     }
   }
@@ -146,7 +146,6 @@ export class RamenAnnotationRules {
     if (!index) return;
     diagnostics.push(...index.register(resolved.annotation, path, RAMEN_VALIDATION_ERROR.ANNOTATION_ID_DUPLICATE));
     for (const [propertyIndex, property] of resolved.annotation.properties.entries()) {
-      if ('attributeId' in property) continue;
       diagnostics.push(...index.register(property, path.property('properties').index(propertyIndex)));
     }
   }

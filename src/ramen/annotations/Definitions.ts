@@ -3,14 +3,8 @@ import type { Attribute, Bounds, Model, Id, Ref, RelationSelections } from '../.
 import { RamenAnnotationSchemaValidator } from './Schema.js';
 import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat, type RamenModelDocument } from '../Document.js';
 
-/** Attribute selected for one closed RAMEN annotation definition. */
-export interface AttributeReference {
-  readonly attributeId: Ref;
-  readonly bounds?: Bounds;
-}
-
-/** An existing node attribute or a property declared directly by this type. */
-export type AnnotationProperty = AttributeReference | Attribute;
+/** Property declared directly by one annotation type. */
+export type AnnotationProperty = Attribute;
 
 /** Relations counted together for one closed RAMEN annotation definition. */
 export interface AnnotationRelation {

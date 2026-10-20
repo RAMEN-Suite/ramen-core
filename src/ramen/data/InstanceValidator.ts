@@ -108,7 +108,7 @@ export class RamenInstanceValidator {
       attributes.map((item: Attribute): [string, Attribute] => [item.name, item]),
     );
 
-    for (const item of AnnotationProperties.resolve(graph, definition, type)) byName.set(item.name, item);
+    for (const item of AnnotationProperties.resolve(definition)) byName.set(item.name, item);
     return [...byName.values()];
   }
 

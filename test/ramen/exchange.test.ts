@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DataTypes, type Node } from '@ramen-suite/core/model';
-import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel, type RamenAnnotation, type RamenFile } from '@ramen-suite/core/ramen';
+import { RAMEN_ELEMENT, RAMEN_MODEL, RamenModel, type AnnotationShape, type RamenFile } from '@ramen-suite/core/ramen';
 
 void test('RAMEN import rejects property ID collisions introduced in an otherwise valid file', (): void => {
   const model: RamenModel = RamenModel.create('Edition');
   const node: Node = model.createNode({ name: 'Annotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
-  model.createAnnotation({ node, type: 'note', properties: [{ name: 'value', typeId: DataTypes.String }] });
+  model.createAnnotationShape({ node, type: 'note', properties: [{ name: 'value', typeId: DataTypes.String }] });
   const file: RamenFile = model.export();
   const tampered: RamenFile = {
     ...file,
@@ -22,7 +22,7 @@ void test('RAMEN import rejects property ID collisions introduced in an otherwis
 
 void test('RAMEN import rejects annotation owners that are absent or use the generic format', (): void => {
   const model: RamenModel = RamenModel.create('Edition');
-  model.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
+  model.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note' });
   const file: RamenFile = model.export();
   const invalidOwners: readonly string[] = ['missingOwner0001', RAMEN_MODEL.id];
 
@@ -40,13 +40,13 @@ void test('RAMEN import rejects annotation owners that are absent or use the gen
 
 void test('equal local property IDs in different model levels remain distinct during exchange', (): void => {
   const model: RamenModel = RamenModel.create('Edition');
-  const first: RamenAnnotation = model.createAnnotation({
+  const first: AnnotationShape = model.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'note',
     properties: [{ id: 'sharedProperty01', name: 'value', typeId: DataTypes.String, bounds: { lowerBound: 0, upperBound: 1 } }],
   }).element;
   const next: RamenModel = model.createNextLevel('Research');
-  const second: RamenAnnotation = next.createAnnotation({
+  const second: AnnotationShape = next.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
     properties: [{ id: 'sharedProperty01', name: 'value', typeId: DataTypes.Integer, bounds: { lowerBound: 0, upperBound: 1 } }],

@@ -19,8 +19,8 @@ import { ModelIdentifiers } from '../../model/graph/Identifiers.js';
 import { Cardinality } from '../../model/validation/Cardinality.js';
 import { NodeNames } from '../../model/validation/NodeNames.js';
 
-import { RamenAnnotation, AnnotationRelation } from './Definitions.js';
-import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex.js';
+import { AnnotationShape, AnnotationShapeRelation } from './Definitions.js';
+import { AnnotationIndex, ResolvedAnnotationShape } from './AnnotationIndex.js';
 
 /** Stable diagnostic codes emitted while validating RAMEN project models. */
 export enum RAMEN_VALIDATION_ERROR {
@@ -32,7 +32,7 @@ export enum RAMEN_VALIDATION_ERROR {
   ANNOTATIONS_INVALID = 'RAMEN_ANNOTATIONS_INVALID',
   /** An annotation definition reuses an ID already declared in its model. */
   ANNOTATION_ID_DUPLICATE = 'RAMEN_ANNOTATION_ID_DUPLICATE',
-  /** An annotation type name is empty. */
+  /** An annotation shape name is empty. */
   ANNOTATION_TYPE_EMPTY = 'RAMEN_ANNOTATION_TYPE_EMPTY',
   /** A type is declared twice for one Annotation node or redeclares an inherited type. */
   ANNOTATION_TYPE_DUPLICATE = 'RAMEN_ANNOTATION_TYPE_DUPLICATE',
@@ -51,8 +51,8 @@ interface RelationIndex {
   readonly ancestors: Set<string>;
 }
 
-/** Applies only the additional rules of RAMEN annotation definitions. */
-export class RamenAnnotationRules {
+/** Applies only the additional rules of RAMEN annotation shapes. */
+export class AnnotationShapeRules {
   public validate(graph: ProjectGraph, models: readonly Model[]): readonly Diagnostic[] {
     const annotations: AnnotationIndex = new AnnotationIndex(graph, models);
     const diagnostics: Diagnostic[] = [];
@@ -99,12 +99,12 @@ export class RamenAnnotationRules {
   private validateAnnotation(
     graph: ProjectGraph,
     annotations: AnnotationIndex,
-    resolved: ResolvedAnnotation,
+    resolved: ResolvedAnnotationShape,
     identifiers: ReadonlyMap<Id, ModelIdentifiers>,
     ownerTypes: Set<string>,
     diagnostics: Diagnostic[],
   ): void {
-    const definition: RamenAnnotation = resolved.annotation;
+    const definition: AnnotationShape = resolved.annotation;
     const path: DiagnosticPath = this.path(resolved.modelId, definition.id);
 
     this.registerIdentifier(resolved, identifiers, path, diagnostics);
@@ -125,7 +125,7 @@ export class RamenAnnotationRules {
       this.error(
         diagnostics,
         RAMEN_VALIDATION_ERROR.ANNOTATION_TYPE_EMPTY,
-        'Annotation type must not be empty.',
+        'Annotation shape must not be empty.',
         path,
         definition.id,
       );
@@ -137,7 +137,7 @@ export class RamenAnnotationRules {
   }
 
   private registerIdentifier(
-    resolved: ResolvedAnnotation,
+    resolved: ResolvedAnnotationShape,
     identifiers: ReadonlyMap<Id, ModelIdentifiers>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -152,7 +152,7 @@ export class RamenAnnotationRules {
 
   private registerOwnerType(
     modelId: Id,
-    definition: RamenAnnotation,
+    definition: AnnotationShape,
     owner: ResolvedElement<Node>,
     ownerTypes: Set<string>,
     path: DiagnosticPath,
@@ -163,7 +163,7 @@ export class RamenAnnotationRules {
       this.error(
         diagnostics,
         RAMEN_VALIDATION_ERROR.ANNOTATION_TYPE_DUPLICATE,
-        `Annotation type '${definition.type}' is declared more than once for '${owner.element.name}'.`,
+        `Annotation shape '${definition.type}' is declared more than once for '${owner.element.name}'.`,
         path,
         definition.id,
       );
@@ -172,7 +172,7 @@ export class RamenAnnotationRules {
 
   private validateRelations(
     graph: ProjectGraph,
-    resolved: ResolvedAnnotation,
+    resolved: ResolvedAnnotationShape,
     owner: ResolvedElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
@@ -185,9 +185,9 @@ export class RamenAnnotationRules {
 
   private validateRelation(
     graph: ProjectGraph,
-    resolved: ResolvedAnnotation,
+    resolved: ResolvedAnnotationShape,
     owner: ResolvedElement<Node>,
-    requirement: AnnotationRelation,
+    requirement: AnnotationShapeRelation,
     seen: RelationIndex,
     diagnostics: Diagnostic[],
   ): void {
@@ -217,7 +217,7 @@ export class RamenAnnotationRules {
   private overlaps(
     graph: ProjectGraph,
     relations: readonly (ResolvedElement<Relation> | undefined)[],
-    direction: AnnotationRelation['direction'],
+    direction: AnnotationShapeRelation['direction'],
     seen: RelationIndex,
   ): boolean {
     let overlap: boolean = false;
@@ -243,8 +243,8 @@ export class RamenAnnotationRules {
   }
 
   private validateRelationShape(
-    resolved: ResolvedAnnotation,
-    requirement: AnnotationRelation,
+    resolved: ResolvedAnnotationShape,
+    requirement: AnnotationShapeRelation,
     relation: ResolvedElement<Relation> | undefined,
     modelledBounds: Bounds | undefined,
     validEndpoint: boolean,
@@ -284,16 +284,16 @@ export class RamenAnnotationRules {
   private validateInheritedType(
     graph: ProjectGraph,
     annotations: AnnotationIndex,
-    resolved: ResolvedAnnotation,
+    resolved: ResolvedAnnotationShape,
     owner: ResolvedElement<Node>,
     diagnostics: Diagnostic[],
   ): void {
-    const inherited: ResolvedAnnotation | undefined = this.findInheritedAnnotation(graph, annotations, resolved, owner);
+    const inherited: ResolvedAnnotationShape | undefined = this.findInheritedAnnotation(graph, annotations, resolved, owner);
     if (!inherited) return;
     this.error(
       diagnostics,
       RAMEN_VALIDATION_ERROR.ANNOTATION_TYPE_DUPLICATE,
-      `Annotation type '${resolved.annotation.type}' is already inherited from an ancestor.`,
+      `Annotation shape '${resolved.annotation.type}' is already inherited from an ancestor.`,
       this.path(resolved.modelId, resolved.annotation.id).property('type'),
       resolved.annotation.id,
     );
@@ -302,9 +302,9 @@ export class RamenAnnotationRules {
   private findInheritedAnnotation(
     graph: ProjectGraph,
     annotations: AnnotationIndex,
-    current: ResolvedAnnotation,
+    current: ResolvedAnnotationShape,
     owner: ResolvedElement<Node>,
-  ): ResolvedAnnotation | undefined {
+  ): ResolvedAnnotationShape | undefined {
     for (const candidate of annotations.getApplicable(current.modelId, current.annotation.annotationId)) {
       if (candidate.annotation.type !== current.annotation.type) continue;
       if (candidate.modelId === current.modelId) {

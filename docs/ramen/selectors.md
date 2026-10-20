@@ -6,7 +6,7 @@ group: RAMEN
 
 # Use Selectors
 
-`HAS_ANNOTATION` connects a recorded annotation to Text, Image or another permitted node. An optional `selector` points to a **part** of that node. The same annotation type can be used on different kinds of content.
+`HAS_ANNOTATION` connects a recorded annotation to Text, Image or another permitted node. An optional `selector` points to a **part** of that node. The same annotation shape can be used on different kinds of content.
 
 ## Select part of a text
 

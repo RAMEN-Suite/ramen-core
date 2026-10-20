@@ -131,9 +131,9 @@ function graphProperties(fileUri: string, ramen: boolean): Readonly<Record<strin
   if (ramen) {
     properties['annotations'] = {
       type: 'array',
-      items: { $ref: '#/$defs/OwnedAnnotation' },
+      items: { $ref: '#/$defs/OwnedAnnotationShape' },
       description:
-        'Each annotation type is declared once. It can belong to a project while referring to the unchanged RAMEN Annotation node.',
+        'Each annotation shape is declared once. It can belong to a project while referring to the unchanged RAMEN Annotation node.',
     };
   }
 
@@ -163,7 +163,7 @@ function graphSchema(input: FileInput): Schema {
       OwnedNode: owned(definitions['Node']),
       OwnedDataType: owned(definitions['DataType']),
       OwnedRelation: owned(definitions['Relation']),
-      ...(input.ramen ? { OwnedAnnotation: owned(definitions['RamenAnnotation']) } : {}),
+      ...(input.ramen ? { OwnedAnnotationShape: owned(definitions['RamenAnnotationShape']) } : {}),
     },
   };
 }

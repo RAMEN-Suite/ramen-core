@@ -11,7 +11,7 @@ import {
 import { ModelWorkspace } from '../../model/editing/Workspace.js';
 
 import { RamenModelFormat, type RamenModelDocument } from '../Document.js';
-import { RamenAnnotations, type AnnotationRelation, type RamenAnnotation } from './Definitions.js';
+import { AnnotationShapes, type AnnotationShapeRelation, type AnnotationShape } from './Definitions.js';
 
 /** Node removal plus annotation declarations removed or changed by the edit. */
 export interface RamenNodeRemovalPreview extends NodeRemovalPreview {
@@ -25,7 +25,7 @@ export interface RamenRelationRemovalPreview {
   readonly updatedAnnotations: readonly WorkspaceElement[];
 }
 
-/** Tracks how generic node and relation removal affects RAMEN annotation definitions. */
+/** Tracks how generic node and relation removal affects RAMEN annotation shapes. */
 export class AnnotationRemoval {
   /** Uses the editable workspace so cross-level references are visible. */
   public constructor(private readonly workspace: ModelWorkspace) {}
@@ -36,13 +36,13 @@ export class AnnotationRemoval {
     return { ...removed, updatedAnnotations: this.updatedByRemoval(removed) };
   }
 
-  /** Lists annotation definitions owned by nodes in a removal preview. */
+  /** Lists annotation shapes owned by nodes in a removal preview. */
   public removedByNodes(preview: NodeRemovalPreview): readonly WorkspaceElement[] {
     const nodes: ReadonlySet<Ref> = this.keys(preview.nodes);
     return this.workspace
       .all()
       .flatMap((model: Model): WorkspaceElement[] =>
-        RamenAnnotations.get(model).flatMap((annotation: RamenAnnotation): WorkspaceElement[] =>
+        AnnotationShapes.get(model).flatMap((annotation: AnnotationShape): WorkspaceElement[] =>
           nodes.has(this.referenceKey(annotation.annotationId, model.id))
             ? [{ modelId: model.id, elementId: annotation.id }]
             : [],
@@ -54,7 +54,7 @@ export class AnnotationRemoval {
   public diagnosticPaths(models: readonly Model[], lineage: readonly ElementRef[]): readonly string[] {
     const nodes: ReadonlySet<Ref> = this.keys(lineage);
     return models.flatMap((model: Model): string[] =>
-      RamenAnnotations.get(model).flatMap((annotation: RamenAnnotation): string[] =>
+      AnnotationShapes.get(model).flatMap((annotation: AnnotationShape): string[] =>
         nodes.has(this.referenceKey(annotation.annotationId, model.id))
           ? [`/models/${model.id}/annotations/${annotation.id}`]
           : [],
@@ -68,7 +68,7 @@ export class AnnotationRemoval {
     const removed: ReadonlySet<Ref> = this.keys(preview.annotations);
 
     return this.workspace.all().flatMap((model: Model): WorkspaceElement[] =>
-      RamenAnnotations.get(model).flatMap((annotation: RamenAnnotation): WorkspaceElement[] => {
+      AnnotationShapes.get(model).flatMap((annotation: AnnotationShape): WorkspaceElement[] => {
         if (removed.has(ModelRef.qualify(model.id, annotation.id))) return [];
         if (!this.usesRemoved(annotation, model.id, removedRelations)) return [];
         return [{ modelId: model.id, elementId: annotation.id }];
@@ -76,12 +76,12 @@ export class AnnotationRemoval {
     );
   }
 
-  /** Provides a readable annotation type for a generic removal error. */
+  /** Provides a readable annotation shape for a generic removal error. */
   public name(item: WorkspaceElement): string {
     const model: Model | undefined = this.workspace.get(item.modelId);
     if (!model) return item.elementId;
     return (
-      RamenAnnotations.get(model).find((annotation: RamenAnnotation): boolean => annotation.id === item.elementId)?.type ??
+      AnnotationShapes.get(model).find((annotation: AnnotationShape): boolean => annotation.id === item.elementId)?.type ??
       item.elementId
     );
   }
@@ -91,12 +91,12 @@ export class AnnotationRemoval {
     if (!RamenModelFormat.isDocument(model)) return model;
     const removedRelations: ReadonlySet<Ref> = this.keys(preview.relations);
     const removed: ReadonlySet<Ref> = this.keys(preview.annotations);
-    const annotations: RamenAnnotation[] = RamenAnnotations.get(model).flatMap(
-      (annotation: RamenAnnotation): RamenAnnotation[] => {
+    const annotations: AnnotationShape[] = AnnotationShapes.get(model).flatMap(
+      (annotation: AnnotationShape): AnnotationShape[] => {
         if (removed.has(ModelRef.qualify(model.id, annotation.id))) return [];
 
-        const relations: readonly AnnotationRelation[] = annotation.relations.flatMap(
-          (relation: AnnotationRelation): AnnotationRelation[] => {
+        const relations: readonly AnnotationShapeRelation[] = annotation.relations.flatMap(
+          (relation: AnnotationShapeRelation): AnnotationShapeRelation[] => {
             const relationIds: readonly Ref[] = relation.relationIds.filter(
               (ref: Ref): boolean => !removedRelations.has(this.referenceKey(ref, model.id)),
             );
@@ -110,8 +110,8 @@ export class AnnotationRemoval {
     return cleaned;
   }
 
-  private usesRemoved(annotation: RamenAnnotation, modelId: Id, relations: ReadonlySet<Ref>): boolean {
-    const relation: boolean = annotation.relations.some((item: AnnotationRelation): boolean =>
+  private usesRemoved(annotation: AnnotationShape, modelId: Id, relations: ReadonlySet<Ref>): boolean {
+    const relation: boolean = annotation.relations.some((item: AnnotationShapeRelation): boolean =>
       item.relationIds.some((ref: Ref): boolean => relations.has(this.referenceKey(ref, modelId))),
     );
     return relation;

@@ -17,8 +17,8 @@ import {
 
 import { Cardinality } from '../../model/validation/Cardinality.js';
 
-import { AnnotationRelation } from './Definitions.js';
-import { AnnotationIndex, ResolvedAnnotation } from './AnnotationIndex.js';
+import { AnnotationShapeRelation } from './Definitions.js';
+import { AnnotationIndex, ResolvedAnnotationShape } from './AnnotationIndex.js';
 
 /** Effective property shared by the node or owned by its annotation shape. */
 export interface PropertyOption {
@@ -53,7 +53,7 @@ export interface RelationOption {
 }
 
 /** Complete creation options for an annotation definition. */
-export interface AnnotationOptions {
+export interface AnnotationShapeOptions {
   readonly properties: readonly PropertyOption[];
   readonly relations: readonly RelationOption[];
 }
@@ -68,7 +68,7 @@ export class AnnotationAdvisor {
   ) {}
 
   /** Lists automatically shared properties and relation choices for a new annotation shape. */
-  public suggestOptions(modelId: Id, annotationNodeId: Id): AnnotationOptions | undefined {
+  public suggestOptions(modelId: Id, annotationNodeId: Id): AnnotationShapeOptions | undefined {
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual || !this.annotations.isAnnotationNode(actual.modelId, actual.element.id)) return undefined;
     return {
@@ -77,9 +77,9 @@ export class AnnotationAdvisor {
     };
   }
 
-  /** Returns the shared and shape-owned properties and selected relations of one annotation type. */
-  public getTypeInfo(modelId: Id, annotationNodeId: Id, type: string): AnnotationOptions | undefined {
-    const definition: ResolvedAnnotation | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
+  /** Returns the shared and shape-owned properties and selected relations of one annotation shape. */
+  public getTypeInfo(modelId: Id, annotationNodeId: Id, type: string): AnnotationShapeOptions | undefined {
+    const definition: ResolvedAnnotationShape | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
     if (!definition) return undefined;
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual) return undefined;
@@ -89,7 +89,7 @@ export class AnnotationAdvisor {
     };
   }
 
-  private ownedPropertyOptions(contextModelId: Id, definition: ResolvedAnnotation): readonly PropertyOption[] {
+  private ownedPropertyOptions(contextModelId: Id, definition: ResolvedAnnotationShape): readonly PropertyOption[] {
     return AnnotationProperties.resolve(definition).map((attribute: Attribute): PropertyOption => {
       const modelId: Id = definition.modelId;
       return {
@@ -176,18 +176,18 @@ export class AnnotationAdvisor {
   private selectedRelationOptions(
     modelId: Id,
     actual: ResolvedElement<Node>,
-    definition: ResolvedAnnotation,
+    definition: ResolvedAnnotationShape,
   ): readonly RelationOption[] {
     const selected: RelationOption[] = [];
     for (const choice of this.relationOptions(modelId, actual)) {
-      const requirement: AnnotationRelation | undefined = this.findRequirement(choice, definition);
+      const requirement: AnnotationShapeRelation | undefined = this.findRequirement(choice, definition);
       if (!requirement) continue;
       selected.push(this.applyRequirement(choice, requirement, definition.modelId));
     }
     return selected;
   }
 
-  private findRequirement(choice: RelationOption, definition: ResolvedAnnotation): AnnotationRelation | undefined {
+  private findRequirement(choice: RelationOption, definition: ResolvedAnnotationShape): AnnotationShapeRelation | undefined {
     for (const requirement of definition.annotation.relations) {
       if (requirement.direction !== choice.direction) continue;
       const matches: boolean = requirement.relationIds.some((ref: Ref): boolean =>
@@ -198,7 +198,7 @@ export class AnnotationAdvisor {
     return undefined;
   }
 
-  private applyRequirement(choice: RelationOption, requirement: AnnotationRelation, modelId: Id): RelationOption {
+  private applyRequirement(choice: RelationOption, requirement: AnnotationShapeRelation, modelId: Id): RelationOption {
     const selected: RelationOption = {
       ...choice,
       suggestedBounds: { ...requirement.bounds },

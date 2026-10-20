@@ -4,10 +4,10 @@ import {
   RAMEN_ELEMENT,
   RamenAdvisor,
   RamenModel,
-  type AnnotationOptions,
-  type AnnotationSuggestion,
+  type AnnotationShapeOptions,
+  type AnnotationShapeSuggestion,
   type PropertyOption,
-  type RamenAnnotation,
+  type AnnotationShape,
   type RelationOption,
 } from '@ramen-suite/core/ramen';
 import {
@@ -24,16 +24,16 @@ import {
   type ValidationResult,
 } from '@ramen-suite/core/model';
 
-function renameAndRemoveType(edition: RamenModel, type: RamenAnnotation, text: Node): void {
-  edition.updateAnnotation(type.id, { type: 'person' });
+function renameAndRemoveType(edition: RamenModel, type: AnnotationShape, text: Node): void {
+  edition.updateAnnotationShape(type.id, { type: 'person' });
   assert.deepEqual(
-    edition.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION).map((item: AnnotationSuggestion): string => item.type),
+    edition.suggestAnnotationShapes(RAMEN_ELEMENT.ANNOTATION).map((item: AnnotationShapeSuggestion): string => item.type),
     ['person'],
   );
 
-  edition.removeAnnotation(type.id);
-  assert.deepEqual(edition.getAnnotations(), []);
-  assert.deepEqual(edition.suggestAnnotationsForNode(text), []);
+  edition.removeAnnotationShape(type.id);
+  assert.deepEqual(edition.getAnnotationShapes(), []);
+  assert.deepEqual(edition.suggestAnnotationShapesForNode(text), []);
   assert.equal(edition.validate().valid, true);
 }
 
@@ -44,13 +44,13 @@ void test('RAMEN annotation queries distinguish possible choices from a declared
   const carrier: Relation = edition.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
   const reference: Relation = edition.refersTo(RAMEN_ELEMENT.ANNOTATION, person).element;
 
-  const before: AnnotationOptions | undefined = edition.suggestAnnotationOptions(RAMEN_ELEMENT.ANNOTATION);
+  const before: AnnotationShapeOptions | undefined = edition.suggestAnnotationShapeOptions(RAMEN_ELEMENT.ANNOTATION);
 
   assert.ok(before);
   assert.ok(before.relations.some((item: RelationOption): boolean => item.targetName === 'Text'));
   assert.ok(before.relations.some((item: RelationOption): boolean => item.targetName === 'Person'));
 
-  const type: RamenAnnotation = edition.createAnnotation({
+  const type: AnnotationShape = edition.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'persName',
     relations: [
@@ -59,17 +59,17 @@ void test('RAMEN annotation queries distinguish possible choices from a declared
     ],
   }).element;
 
-  const onAnnotation: readonly AnnotationSuggestion[] = edition.suggestAnnotations(RAMEN_ELEMENT.ANNOTATION);
-  const onText: readonly AnnotationSuggestion[] = edition.suggestAnnotationsForNode(text, RAMEN_ELEMENT.ANNOTATION);
-  const properties: readonly PropertyOption[] = edition.getAttributesForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'persName');
-  const relations: readonly RelationOption[] = edition.getRelationsForAnnotation(RAMEN_ELEMENT.ANNOTATION, 'persName');
+  const onAnnotation: readonly AnnotationShapeSuggestion[] = edition.suggestAnnotationShapes(RAMEN_ELEMENT.ANNOTATION);
+  const onText: readonly AnnotationShapeSuggestion[] = edition.suggestAnnotationShapesForNode(text, RAMEN_ELEMENT.ANNOTATION);
+  const properties: readonly PropertyOption[] = edition.getPropertiesForAnnotationShape(RAMEN_ELEMENT.ANNOTATION, 'persName');
+  const relations: readonly RelationOption[] = edition.getRelationsForAnnotationShape(RAMEN_ELEMENT.ANNOTATION, 'persName');
 
   assert.deepEqual(
-    onAnnotation.map((item: AnnotationSuggestion): string => item.type),
+    onAnnotation.map((item: AnnotationShapeSuggestion): string => item.type),
     ['persName'],
   );
   assert.deepEqual(
-    onText.map((item: AnnotationSuggestion): string => item.type),
+    onText.map((item: AnnotationShapeSuggestion): string => item.type),
     ['persName'],
   );
   assert.ok(edition.getAdvisor() instanceof RamenAdvisor);
@@ -107,7 +107,7 @@ void test('annotation input checks resolve inherited shape properties and automa
   const capitalised: Constraint = { id: 'capitalLabelRule1', name: 'Capitalised', language: 'regex', expression: '^[A-Z]' };
 
   edition.updateAttribute(annotation.id, label.id, { constraints: [capitalised] });
-  edition.createAnnotation({
+  edition.createAnnotationShape({
     node: annotation,
     type: 'role',
     properties: [{ name: 'name', type: roleName, bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -157,7 +157,7 @@ void test('annotation input checks use custom evaluators and report invalid mode
   const edition: RamenModel = RamenModel.create('Edition');
   const annotation: Node = edition.createNode({ name: 'Annotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const roleName: DataType = edition.createDataType({ name: 'RoleName', baseType: DataTypes.String }).element;
-  edition.createAnnotation({ node: annotation, type: 'role', properties: [{ name: 'name', type: roleName }] });
+  edition.createAnnotationShape({ node: annotation, type: 'role', properties: [{ name: 'name', type: roleName }] });
 
   const rule: Constraint = { id: 'customRoleRule01', name: 'Custom role', language: 'example:role', expression: 'sender' };
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();

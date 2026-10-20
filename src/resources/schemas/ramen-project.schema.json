@@ -40,7 +40,7 @@
       "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it.",
       "properties": { "ramen": false }
     },
-    "annotations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotation" }, "default": [] }
+    "annotations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationShape" }, "default": [] }
   },
   "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modelling rather than full behavioural or reflective semantics.",
   "$defs": {
@@ -288,13 +288,13 @@
       "additionalProperties": false,
       "properties": { "lowerBound": { "type": "integer", "minimum": 0 }, "upperBound": { "type": "integer", "minimum": -1 } }
     },
-    "RamenAnnotationProperty": {
-      "description": "A property declared only for this annotation type. Shared node properties apply automatically.",
+    "RamenAnnotationShapeProperty": {
+      "description": "A property declared only for this annotation shape. Shared node properties apply automatically.",
       "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute"
     },
-    "RamenAnnotationRelation": {
+    "RamenAnnotationShapeRelation": {
       "type": "object",
-      "description": "Selects one or more modelled relations for this annotation type. Their matches share one cardinality interval.",
+      "description": "Selects one or more modelled relations for this annotation shape. Their matches share one cardinality interval.",
       "required": ["relationIds", "direction", "bounds"],
       "additionalProperties": false,
       "properties": {
@@ -315,7 +315,7 @@
         }
       }
     },
-    "RamenAnnotation": {
+    "RamenAnnotationShape": {
       "type": "object",
       "description": "One closed type value scoped to an Annotation node and inherited by refinements of that node.",
       "required": ["id", "annotationId", "type", "properties", "relations"],
@@ -337,13 +337,13 @@
         "properties": {
           "type": "array",
           "description": "Properties owned by this type. Node properties, including inherited ones, apply automatically and cannot be redeclared here.",
-          "items": { "$ref": "#/$defs/RamenAnnotationProperty" },
+          "items": { "$ref": "#/$defs/RamenAnnotationShapeProperty" },
           "default": []
         },
         "relations": {
           "type": "array",
           "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
-          "items": { "$ref": "#/$defs/RamenAnnotationRelation" },
+          "items": { "$ref": "#/$defs/RamenAnnotationShapeRelation" },
           "default": []
         }
       }

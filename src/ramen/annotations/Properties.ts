@@ -12,14 +12,18 @@ import {
 } from '../../model/index.js';
 
 import { Cardinality } from '../../model/validation/Cardinality.js';
-import type { ResolvedAnnotation } from './AnnotationIndex.js';
+import type { ResolvedAnnotationShape } from './AnnotationIndex.js';
 import { ConstraintRules } from '../../model/validation/ConstraintRules.js';
 
 /** Combines shared node properties with independently owned annotation shape properties. */
 export class AnnotationProperties {
   private static readonly constraints: ConstraintRules = new ConstraintRules();
   /** Node properties always apply; the selected shape adds its own declarations. */
-  public static allowed(graph: ProjectGraph, definition: ResolvedAnnotation, owner: ResolvedElement<Node>): readonly Attribute[] {
+  public static allowed(
+    graph: ProjectGraph,
+    definition: ResolvedAnnotationShape,
+    owner: ResolvedElement<Node>,
+  ): readonly Attribute[] {
     const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, owner.modelId, owner.element.id)?.attributes ?? [];
     return [
       ...attributes.map((attribute: Attribute): Attribute => this.qualify(attribute, owner.modelId)),
@@ -27,13 +31,13 @@ export class AnnotationProperties {
     ];
   }
 
-  public static resolve(definition: ResolvedAnnotation): readonly Attribute[] {
+  public static resolve(definition: ResolvedAnnotationShape): readonly Attribute[] {
     return definition.annotation.properties.map((attribute: Attribute): Attribute => this.qualify(attribute, definition.modelId));
   }
 
   public static validate(
     graph: ProjectGraph,
-    definition: ResolvedAnnotation,
+    definition: ResolvedAnnotationShape,
     owner: ResolvedElement<Node>,
   ): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
@@ -69,7 +73,7 @@ export class AnnotationProperties {
   }
 
   private static validateOwned(
-    definition: ResolvedAnnotation,
+    definition: ResolvedAnnotationShape,
     attribute: Attribute,
     nodeAttributes: readonly Attribute[],
     index: number,
@@ -81,7 +85,7 @@ export class AnnotationProperties {
     return diagnostics;
   }
 
-  private static validateBounds(definition: ResolvedAnnotation, attribute: Attribute): readonly Diagnostic[] {
+  private static validateBounds(definition: ResolvedAnnotationShape, attribute: Attribute): readonly Diagnostic[] {
     if (Cardinality.areBoundsCoherent(attribute.bounds) && !this.hasInvalidKeyBounds(attribute, attribute.bounds)) return [];
     return [
       this.error(
@@ -111,7 +115,7 @@ export class AnnotationProperties {
     return { ...attribute, typeId };
   }
 
-  private static error(definition: ResolvedAnnotation, code: string, message: string): Diagnostic {
+  private static error(definition: ResolvedAnnotationShape, code: string, message: string): Diagnostic {
     return Diagnostics.error({
       code,
       message,
@@ -120,7 +124,7 @@ export class AnnotationProperties {
     });
   }
 
-  private static path(definition: ResolvedAnnotation): DiagnosticPath {
+  private static path(definition: ResolvedAnnotationShape): DiagnosticPath {
     return DiagnosticPath.root()
       .property('models')
       .property(definition.modelId)

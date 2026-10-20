@@ -11,14 +11,14 @@ import {
   type Id,
 } from '../../model/index.js';
 
-import { RamenAnnotations } from '../annotations/Definitions.js';
+import { AnnotationShapes } from '../annotations/Definitions.js';
 import { RamenModelFormat } from '../Document.js';
 import { RAMEN_MODEL } from '../ReferenceModel.js';
 import { RamenProjectSchemaValidator } from './ProjectSchema.js';
-import { RamenAnnotationRules, RAMEN_VALIDATION_ERROR } from '../annotations/Rules.js';
+import { AnnotationShapeRules, RAMEN_VALIDATION_ERROR } from '../annotations/Rules.js';
 export { RAMEN_VALIDATION_ERROR } from '../annotations/Rules.js';
 
-/** Validates the RAMEN model format first and then the closed annotation definitions. */
+/** Validates the RAMEN model format first and then the closed annotation shapes. */
 export class RamenValidator {
   public constructor(private readonly models: ModelValidator = new ModelValidator()) {}
 
@@ -33,13 +33,13 @@ export class RamenValidator {
     const result: ProjectValidationResult = this.models.validateModels(
       rootModelId,
       normalised,
-      RamenAnnotations.relationSelections(inputs),
+      AnnotationShapes.relationSelections(inputs),
     );
     if (!result.valid) return result;
     const requirements: readonly Diagnostic[] = this.validateRequirements(rootModelId, inputs, result.graph);
     if (requirements.length > 0) return { valid: false, hasErrors: true, diagnostics: requirements };
 
-    const diagnostics: readonly Diagnostic[] = new RamenAnnotationRules().validate(result.graph, inputs as readonly Model[]);
+    const diagnostics: readonly Diagnostic[] = new AnnotationShapeRules().validate(result.graph, inputs as readonly Model[]);
     if (diagnostics.length === 0) return result;
     return { valid: false, hasErrors: true, diagnostics: [...result.diagnostics, ...diagnostics] };
   }
@@ -87,7 +87,7 @@ export class RamenValidator {
         return;
       }
       if (RamenProjectSchemaValidator.isValid(input)) return;
-      const code: string = RamenAnnotations.hasValidSection(input)
+      const code: string = AnnotationShapes.hasValidSection(input)
         ? VALIDATION_ERROR.SCHEMA_INVALID
         : RAMEN_VALIDATION_ERROR.ANNOTATIONS_INVALID;
 

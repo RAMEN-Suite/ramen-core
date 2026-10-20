@@ -61,7 +61,7 @@ const annotationPerson: Relation = edition.refersTo(RAMEN_ELEMENT.ANNOTATION, pe
 const annotationPlace: Relation = edition.refersTo(RAMEN_ELEMENT.ANNOTATION, place).element;
 ```
 
-{@link ramen.RamenModel.partOf | partOf()}, {@link ramen.RamenModel.hasAnnotation | hasAnnotation()} and {@link ramen.RamenModel.refersTo | refersTo()} create **allowed relationship definitions**. They do not connect recorded Text or Person objects. [Annotation types](annotations.md) can choose among these definitions.
+{@link ramen.RamenModel.partOf | partOf()}, {@link ramen.RamenModel.hasAnnotation | hasAnnotation()} and {@link ramen.RamenModel.refersTo | refersTo()} create **allowed relationship definitions**. They do not connect recorded Text or Person objects. [Annotation shapes](annotations.md) can choose among these definitions.
 
 For a relationship with different bounds or other RMF options, use {@link model.Modeller.createRelation | createRelation()}. [Add Relationships](../rmf/relationships.md) explains its options.
 
@@ -78,4 +78,4 @@ if (!result.valid) {
 }
 ```
 
-Edition is valid without annotation types, but a tool cannot record an annotation until the project [declares its type](annotations.md). Continue with [validation](validation.md) when you have recorded data, then [export](export.md) the model for tools. [Track Changes](model-changes.md) compares model revisions.
+Edition is valid without annotation shapes, but a tool cannot record an annotation until the project [declares its type](annotations.md). Continue with [validation](validation.md) when you have recorded data, then [export](export.md) the model for tools. [Track Changes](model-changes.md) compares model revisions.

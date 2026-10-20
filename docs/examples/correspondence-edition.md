@@ -10,7 +10,7 @@ An edition defines its vocabulary on top of RAMEN. This model has letters with w
 
 ```ts
 import { DataTypes, RAMEN_ELEMENT, RamenModel } from '@ramen-suite/core';
-import type { AnnotationRelationInput, DataType, Node, Relation } from '@ramen-suite/core';
+import type { AnnotationShapeRelationInput, DataType, Node, Relation } from '@ramen-suite/core';
 
 const edition: RamenModel = RamenModel.create('Correspondence edition');
 const letter: Node = edition.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION }).element;
@@ -28,40 +28,40 @@ const personLink: Relation = edition.refersTo(RAMEN_ELEMENT.ANNOTATION, person).
 const placeLink: Relation = edition.refersTo(RAMEN_ELEMENT.ANNOTATION, place).element;
 ```
 
-The imported Annotation node can be used without refining it. Each annotation type selects its own allowed properties and relationships:
+The imported Annotation node can be used without refining it. Each annotation shape selects its own allowed properties and relationships:
 
 ```ts
-const onText: AnnotationRelationInput = {
+const onText: AnnotationShapeRelationInput = {
   relation: carrier,
   direction: 'incoming',
   bounds: { lowerBound: 1, upperBound: 1 },
 };
-const toPerson: AnnotationRelationInput = {
+const toPerson: AnnotationShapeRelationInput = {
   relation: personLink,
   direction: 'outgoing',
   bounds: { lowerBound: 1, upperBound: 1 },
 };
-const toPlace: AnnotationRelationInput = {
+const toPlace: AnnotationShapeRelationInput = {
   relation: placeLink,
   direction: 'outgoing',
   bounds: { lowerBound: 1, upperBound: 1 },
 };
 
-edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'persName', relations: [onText, toPerson] });
-edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'placeName', relations: [onText, toPlace] });
-edition.createAnnotation({
+edition.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'persName', relations: [onText, toPerson] });
+edition.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'placeName', relations: [onText, toPlace] });
+edition.createAnnotationShape({
   nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'date',
   properties: [{ name: 'when', typeId: RAMEN_ELEMENT.DATE, bounds: { lowerBound: 1, upperBound: 1 } }],
   relations: [onText],
 });
-edition.createAnnotation({
+edition.createAnnotationShape({
   nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'hi',
   properties: [{ name: 'rendition', typeId: DataTypes.String }],
   relations: [onText],
 });
-edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note', relations: [onText] });
+edition.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note', relations: [onText] });
 ```
 
 A separate `role` annotation uses a custom data type with fixed values:
@@ -71,7 +71,7 @@ const roleName: DataType = edition.createDataType({ name: 'RoleName', baseType: 
 edition.createLiteral(roleName.id, { name: 'Sender', literal: 'sender' });
 edition.createLiteral(roleName.id, { name: 'Recipient', literal: 'recipient' });
 
-edition.createAnnotation({
+edition.createAnnotationShape({
   nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'role',
   properties: [{ name: 'name', type: roleName, bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -79,7 +79,7 @@ edition.createAnnotation({
 });
 ```
 
-An additional level can specialise Person while continuing to use the existing Letter, Witness, Text, Place and Annotation types:
+An additional level can specialise Person while continuing to use the existing Letter, Witness, Text, Place and Annotation shapes:
 
 ```ts
 const research: RamenModel = edition.createNextLevel('Research edition');

@@ -6,14 +6,14 @@ import {
   RAMEN_ELEMENT,
   RAMEN_MODEL,
   RamenModel,
-  type AnnotationSuggestion,
-  type AnnotationRelationInput,
+  type AnnotationShapeSuggestion,
+  type AnnotationShapeRelationInput,
   type Classifier,
   type DataType,
   type Node,
   type NodeLineageItem,
   type RamenFile,
-  type RamenAnnotation,
+  type AnnotationShape,
   type Relation,
   type RelationSelection,
   type Diagnostic,
@@ -63,10 +63,10 @@ function createEdition(): Edition {
 function declareRole(
   edition: RamenModel,
   roleName: DataType,
-  carrier: AnnotationRelationInput,
-  personLink: AnnotationRelationInput,
+  carrier: AnnotationShapeRelationInput,
+  personLink: AnnotationShapeRelationInput,
 ): void {
-  edition.createAnnotation({
+  edition.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'role',
     properties: [{ name: 'name', type: roleName, bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -82,43 +82,43 @@ function declareTypes(fixture: Edition): void {
   edition.createLiteral(roleName.id, { name: 'Recipient', literal: 'recipient' });
 
   // These are type declarations, not six additional Annotation nodes.
-  const carrier: AnnotationRelationInput = {
+  const carrier: AnnotationShapeRelationInput = {
     relation: fixture.carrier,
     direction: 'incoming',
     bounds: { lowerBound: 1, upperBound: 1 },
   };
-  const personLink: AnnotationRelationInput = {
+  const personLink: AnnotationShapeRelationInput = {
     relation: fixture.personLink,
     direction: 'outgoing',
     bounds: { lowerBound: 1, upperBound: 1 },
   };
-  const placeLink: AnnotationRelationInput = {
+  const placeLink: AnnotationShapeRelationInput = {
     relation: fixture.placeLink,
     direction: 'outgoing',
     bounds: { lowerBound: 1, upperBound: 1 },
   };
 
-  const textOrImage: AnnotationRelationInput = {
+  const textOrImage: AnnotationShapeRelationInput = {
     relations: [fixture.carrier, fixture.imageCarrier],
     direction: 'incoming',
     bounds: { lowerBound: 1, upperBound: 1 },
   };
 
-  edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'persName', relations: [textOrImage, personLink] });
-  edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'placeName', relations: [carrier, placeLink] });
+  edition.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'persName', relations: [textOrImage, personLink] });
+  edition.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'placeName', relations: [carrier, placeLink] });
   declareDate(edition, carrier);
-  edition.createAnnotation({
+  edition.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'hi',
     properties: [{ name: 'rendition', typeId: DataTypes.String }],
     relations: [carrier],
   });
-  edition.createAnnotation({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note', relations: [carrier] });
+  edition.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'note', relations: [carrier] });
   declareRole(edition, roleName, carrier, personLink);
 }
 
-function declareDate(edition: RamenModel, carrier: AnnotationRelationInput): void {
-  edition.createAnnotation({
+function declareDate(edition: RamenModel, carrier: AnnotationShapeRelationInput): void {
+  edition.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'date',
     properties: [{ name: 'when', typeId: RAMEN_ELEMENT.DATE, bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -126,25 +126,25 @@ function declareDate(edition: RamenModel, carrier: AnnotationRelationInput): voi
   });
 }
 
-void test('RAMEN scenario: a correspondence edition models witnesses and six annotation types', (): void => {
+void test('RAMEN scenario: a correspondence edition models witnesses and six annotation shapes', (): void => {
   const fixture: Edition = createEdition();
   const edition: RamenModel = fixture.model;
 
   declareTypes(fixture);
 
   assert.equal(edition.validate().valid, true);
-  assert.equal(edition.getAnnotations().length, 6);
+  assert.equal(edition.getAnnotationShapes().length, 6);
   assert.equal(edition.getModel().classifiers.filter((item: Classifier): boolean => item.kind === 'Node').length, 6);
   assert.deepEqual(
     edition
-      .suggestAnnotationsForNode(fixture.text)
-      .map((item: AnnotationSuggestion): string => item.type)
+      .suggestAnnotationShapesForNode(fixture.text)
+      .map((item: AnnotationShapeSuggestion): string => item.type)
       .sort(),
     ['date', 'hi', 'note', 'persName', 'placeName', 'role'],
   );
-  assert.deepEqual(edition.suggestAnnotationsForNode(fixture.letter), []);
+  assert.deepEqual(edition.suggestAnnotationShapesForNode(fixture.letter), []);
   assert.deepEqual(
-    edition.suggestAnnotationsForNode(fixture.image).map((item: AnnotationSuggestion): string => item.type),
+    edition.suggestAnnotationShapesForNode(fixture.image).map((item: AnnotationShapeSuggestion): string => item.type),
     ['persName'],
   );
   assert.equal(edition.getRelations(fixture.text, fixture.witness).length, 1);
@@ -170,8 +170,8 @@ void test('RAMEN scenario: a correspondence edition models witnesses and six ann
   );
   assert.equal(specificLink.name, 'REFERS_TO');
   assert.equal(research.validate().valid, true);
-  assert.equal(research.suggestAnnotationsForNode(fixture.text).length, 6);
-  assert.equal(edition.getAnnotations().length, 6);
+  assert.equal(research.suggestAnnotationShapesForNode(fixture.text).length, 6);
+  assert.equal(edition.getAnnotationShapes().length, 6);
 });
 
 function checkExchange(edition: RamenModel): void {
@@ -179,35 +179,35 @@ function checkExchange(edition: RamenModel): void {
   const restored: RamenModel = RamenModel.import(exchanged);
 
   assert.equal(exchanged.models.length, 2);
-  assert.equal(restored.getAnnotations().length, 6);
+  assert.equal(restored.getAnnotationShapes().length, 6);
   assert.equal(restored.validate().valid, true);
 }
 
 void test('RAMEN scenario: an editor revises annotation vocabulary before using the model', (): void => {
   const fixture: Edition = createEdition();
   const edition: RamenModel = fixture.model;
-  const onText: AnnotationRelationInput = {
+  const onText: AnnotationShapeRelationInput = {
     relation: fixture.carrier,
     direction: 'incoming',
     bounds: { lowerBound: 1, upperBound: 1 },
   };
 
-  const draft: RamenAnnotation = edition.createAnnotation({
+  const draft: AnnotationShape = edition.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
     relations: [onText],
   }).element;
-  const discarded: RamenAnnotation = edition.createAnnotation({
+  const discarded: AnnotationShape = edition.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'temporary',
     relations: [onText],
   }).element;
 
-  edition.updateAnnotation(draft.id, { type: 'note' });
-  edition.removeAnnotation(discarded.id);
+  edition.updateAnnotationShape(draft.id, { type: 'note' });
+  edition.removeAnnotationShape(discarded.id);
 
   assert.deepEqual(
-    edition.suggestAnnotationsForNode(fixture.text).map((item: AnnotationSuggestion): string => item.type),
+    edition.suggestAnnotationShapesForNode(fixture.text).map((item: AnnotationShapeSuggestion): string => item.type),
     ['note'],
   );
   assert.equal(edition.validate().valid, true);
@@ -291,7 +291,7 @@ function expectFinding(result: ValidationResult, code: string, path: string): vo
   assert.equal(finding.path, path);
 }
 
-void test('RAMEN scenario: recorded letters validate all six annotation types on text and image', (): void => {
+void test('RAMEN scenario: recorded letters validate all six annotation shapes on text and image', (): void => {
   const fixture: Edition = createEdition();
   declareTypes(fixture);
   const data: ModelInstanceGraph = recordedEdition(fixture);

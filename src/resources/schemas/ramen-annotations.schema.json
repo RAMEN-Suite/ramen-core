@@ -9,7 +9,7 @@
     "annotations": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/Annotation"
+        "$ref": "#/$defs/AnnotationShape"
       },
       "default": []
     }
@@ -38,13 +38,13 @@
         }
       }
     },
-    "AnnotationProperty": {
-      "description": "A property declared only for this annotation type. Shared node properties apply automatically.",
+    "AnnotationShapeProperty": {
+      "description": "A property declared only for this annotation shape. Shared node properties apply automatically.",
       "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Attribute"
     },
-    "AnnotationRelation": {
+    "AnnotationShapeRelation": {
       "type": "object",
-      "description": "Selects one or more modelled relations for this annotation type. Their matches share one cardinality interval.",
+      "description": "Selects one or more modelled relations for this annotation shape. Their matches share one cardinality interval.",
       "required": ["relationIds", "direction", "bounds"],
       "additionalProperties": false,
       "properties": {
@@ -67,7 +67,7 @@
         }
       }
     },
-    "Annotation": {
+    "AnnotationShape": {
       "type": "object",
       "description": "One closed type value scoped to an Annotation node and inherited by refinements of that node.",
       "required": ["id", "annotationId", "type", "properties", "relations"],
@@ -90,7 +90,7 @@
           "type": "array",
           "description": "Properties owned by this type. Node properties, including inherited ones, apply automatically and cannot be redeclared here.",
           "items": {
-            "$ref": "#/$defs/AnnotationProperty"
+            "$ref": "#/$defs/AnnotationShapeProperty"
           },
           "default": []
         },
@@ -98,7 +98,7 @@
           "type": "array",
           "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
           "items": {
-            "$ref": "#/$defs/AnnotationRelation"
+            "$ref": "#/$defs/AnnotationShapeRelation"
           },
           "default": []
         }

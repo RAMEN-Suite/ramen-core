@@ -6,7 +6,7 @@ group: RAMEN
 
 # Add Properties
 
-An annotation type may declare properties that do not belong to the shared Annotation node. Here a separate `role` type has a required `name`. Its `RoleName` data type allows only three values.
+An annotation shape may declare properties that do not belong to the shared Annotation node. Here a separate `role` type has a required `name`. Its `RoleName` data type allows only three values.
 
 All properties on the Annotation node and its ancestors apply automatically to every annotation shape, including optional fields. A shape adds its own properties and cannot redeclare a shared name. Separate shapes may independently use the same property name with different data types or constraints. Invalid JSON Schema expressions on shape-owned properties are reported during model validation.
 
@@ -45,7 +45,7 @@ media.createLiteral(roleName.id, { name: 'Mentioned', literal: 'mentioned' });
 Now declare `role`. Its `name` property belongs only to this type, while `uuid`, `type` and `selector` remain on the shared Annotation node:
 
 ```ts
-media.createAnnotation({
+media.createAnnotationShape({
   nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'role',
   properties: [{ name: 'name', type: roleName, bounds: { lowerBound: 1, upperBound: 1 } }],

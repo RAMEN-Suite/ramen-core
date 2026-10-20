@@ -6,9 +6,9 @@ import {
   RAMEN_MODEL,
   RamenModel,
   type Attribute,
-  type AnnotationProperty,
-  type AnnotationUpdate,
-  type AnnotationSuggestion,
+  type AnnotationShapeProperty,
+  type AnnotationShapeUpdate,
+  type AnnotationShapeSuggestion,
   type DataType,
   type Diagnostic,
   type EvolutionChange,
@@ -20,7 +20,7 @@ import {
   type ModelChange,
   type ModelRemovalPreview,
   type Model,
-  type RamenAnnotation,
+  type AnnotationShape,
   type RamenEvolutionReport,
   type Relation,
   type RamenRelationRemovalPreview,
@@ -71,8 +71,8 @@ void test('an editor paragraph needs a declared text annotation but no entity re
     undeclared.diagnostics.some((item: Diagnostic): boolean => item.code === 'RAMEN_INSTANCE_ANNOTATION_UNKNOWN'),
     JSON.stringify(undeclared.diagnostics),
   );
-  assert.deepEqual(model.suggestAnnotationsForNode(text), []);
-  model.createAnnotation({
+  assert.deepEqual(model.suggestAnnotationShapesForNode(text), []);
+  model.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'p',
     relations: [{ relation: textLink, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -80,10 +80,10 @@ void test('an editor paragraph needs a declared text annotation but no entity re
 
   assert.equal(model.validateInstances(data).hasErrors, false);
   assert.deepEqual(
-    model.suggestAnnotationsForNode(text).map((item: AnnotationSuggestion): string => item.type),
+    model.suggestAnnotationShapesForNode(text).map((item: AnnotationShapeSuggestion): string => item.type),
     ['p'],
   );
-  assert.deepEqual(model.suggestAnnotationsForNode(image), []);
+  assert.deepEqual(model.suggestAnnotationShapesForNode(image), []);
   assert.equal(RamenModel.import(model.export()).validateInstances(data).hasErrors, false);
 });
 
@@ -100,9 +100,9 @@ function edition(): Edition {
   return { model, text, image, annotation, person, textHas, imageHas, refers };
 }
 
-void test('one annotation type can select text or image attachment and a Person reference', (): void => {
+void test('one annotation shape can select text or image attachment and a Person reference', (): void => {
   const fixture: Edition = edition();
-  const person: RamenAnnotation = fixture.model.createAnnotation({
+  const person: AnnotationShape = fixture.model.createAnnotationShape({
     node: fixture.annotation,
     type: 'person',
     relations: [
@@ -113,11 +113,11 @@ void test('one annotation type can select text or image attachment and a Person 
 
   assert.equal(fixture.model.validate().valid, true);
   assert.deepEqual(
-    fixture.model.suggestAnnotationsForNode(fixture.text).map((item: AnnotationSuggestion): string => item.type),
+    fixture.model.suggestAnnotationShapesForNode(fixture.text).map((item: AnnotationShapeSuggestion): string => item.type),
     ['person'],
   );
   assert.deepEqual(
-    fixture.model.suggestAnnotationsForNode(fixture.image).map((item: AnnotationSuggestion): string => item.type),
+    fixture.model.suggestAnnotationShapesForNode(fixture.image).map((item: AnnotationShapeSuggestion): string => item.type),
     ['person'],
   );
   assert.equal(person.relations[0]?.relationIds.length, 2);
@@ -125,19 +125,23 @@ void test('one annotation type can select text or image attachment and a Person 
 
 void test('invalid annotation selections leave the project unchanged', (): void => {
   const fixture: Edition = edition();
-  const note: RamenAnnotation = fixture.model.createAnnotation({ node: fixture.annotation, type: 'note' }).element;
-  const before: readonly RamenAnnotation[] = fixture.model.getAnnotations();
+  const note: AnnotationShape = fixture.model.createAnnotationShape({ node: fixture.annotation, type: 'note' }).element;
+  const before: readonly AnnotationShape[] = fixture.model.getAnnotationShapes();
   const missing: Relation = { ...fixture.refers, id: 'missingRelation01' };
-  const invalid: AnnotationUpdate = {
+  const invalid: AnnotationShapeUpdate = {
     relations: [{ relation: missing, direction: 'outgoing', bounds: { lowerBound: 0, upperBound: 1 } }],
   };
 
   assert.throws(
-    (): ModelChange<RamenAnnotation> => fixture.model.createAnnotation({ node: fixture.annotation, type: 'person', ...invalid }),
+    (): ModelChange<AnnotationShape> =>
+      fixture.model.createAnnotationShape({ node: fixture.annotation, type: 'person', ...invalid }),
     /Expected one relation/,
   );
-  assert.throws((): ModelChange<RamenAnnotation> => fixture.model.updateAnnotation(note.id, invalid), /Expected one relation/);
-  assert.deepEqual(fixture.model.getAnnotations(), before);
+  assert.throws(
+    (): ModelChange<AnnotationShape> => fixture.model.updateAnnotationShape(note.id, invalid),
+    /Expected one relation/,
+  );
+  assert.deepEqual(fixture.model.getAnnotationShapes(), before);
   assert.equal(fixture.model.validate().valid, true);
 });
 
@@ -147,14 +151,14 @@ void test('RAMEN snapshot compares annotation and sibling level changes together
   const editionLevel: RamenModel = fixture.model.createNextLevel('Print Edition');
   const before: RamenModel = website.snapshot();
 
-  fixture.model.createAnnotation({ node: fixture.annotation, type: 'person' });
+  fixture.model.createAnnotationShape({ node: fixture.annotation, type: 'person' });
   const text: Node = editionLevel.createNode({ name: 'PrintedText', refines: fixture.text }).element;
   const report: RamenEvolutionReport = before.compareTo(website);
 
   assert.equal(report.annotationChanges.length, 1);
-  assert.equal(report.annotationChanges[0]?.annotationId, fixture.model.getAnnotations()[0]?.id);
+  assert.equal(report.annotationChanges[0]?.annotationId, fixture.model.getAnnotationShapes()[0]?.id);
   assert.ok(report.changes.some((change: EvolutionChange): boolean => change.elementId === text.id));
-  assert.deepEqual(before.openLevel(fixture.model.getModel().id).getAnnotations(), []);
+  assert.deepEqual(before.openLevel(fixture.model.getModel().id).getAnnotationShapes(), []);
 });
 
 void test('RAMEN project levels share generic update and strict removal rules', (): void => {
@@ -185,12 +189,14 @@ void test('RAMEN project levels share generic update and strict removal rules', 
 void test('a deleted annotation-owned data type becomes a repairable diagnostic', (): void => {
   const fixture: Edition = edition();
   const level: DataType = fixture.model.createDataType({ name: 'Level', baseType: DataTypes.String }).element;
-  const note: RamenAnnotation = fixture.model.createAnnotation({
+  const note: AnnotationShape = fixture.model.createAnnotationShape({
     node: fixture.annotation,
     type: 'note',
     properties: [{ name: 'level', type: level }],
   }).element;
-  const property: Attribute | undefined = note.properties.find((item: AnnotationProperty): item is Attribute => 'typeId' in item);
+  const property: Attribute | undefined = note.properties.find(
+    (item: AnnotationShapeProperty): item is Attribute => 'typeId' in item,
+  );
 
   assert.ok(property);
 
@@ -208,13 +214,13 @@ void test('a deleted annotation-owned data type becomes a repairable diagnostic'
   );
 
   const repaired: Attribute = { ...property, typeId: DataTypes.String };
-  fixture.model.updateAnnotation(note.id, { properties: [repaired] });
+  fixture.model.updateAnnotationShape(note.id, { properties: [repaired] });
   assert.equal(fixture.model.validate().valid, true);
 });
 
 void test('cascading an Annotation node removes its types and all dependent links across levels', (): void => {
   const fixture: Edition = edition();
-  const note: RamenAnnotation = fixture.model.createAnnotation({ node: fixture.annotation, type: 'note' }).element;
+  const note: AnnotationShape = fixture.model.createAnnotationShape({ node: fixture.annotation, type: 'note' }).element;
   const next: RamenModel = fixture.model.createNextLevel('Publication');
   const review: Node = next.createNode({ name: 'ReviewAnnotation', refines: fixture.annotation }).element;
   const preview: RamenNodeRemovalPreview = fixture.model.previewNodeRemoval(fixture.annotation.id);
@@ -227,7 +233,7 @@ void test('cascading an Annotation node removes its types and all dependent link
   assert.throws((): ModelChange<Node> => fixture.model.removeNode(fixture.annotation.id), /still used by/);
 
   fixture.model.removeNode(fixture.annotation.id, { cascade: true });
-  assert.equal(fixture.model.getAnnotations().length, 0);
+  assert.equal(fixture.model.getAnnotationShapes().length, 0);
   assert.equal(fixture.model.getModel().relations.length, 0);
   assert.equal(next.getModel().classifiers.length, 0);
   assert.equal(fixture.model.validate().valid, true);
@@ -235,7 +241,7 @@ void test('cascading an Annotation node removes its types and all dependent link
 });
 
 function personRecords(fixture: Edition): ModelInstanceGraph {
-  fixture.model.createAnnotation({
+  fixture.model.createAnnotationShape({
     node: fixture.annotation,
     type: 'person',
     relations: [{ relation: fixture.textHas, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
@@ -301,9 +307,9 @@ void test('a selector accepts an object with a type and rejects an incomplete ob
   assert.equal(fixture.model.validateInstances(invalidSelector).hasErrors, true);
 });
 
-void test('removal preview names annotation types whose relationship rules will change', (): void => {
+void test('removal preview names annotation shapes whose relationship rules will change', (): void => {
   const fixture: Edition = edition();
-  const person: RamenAnnotation = fixture.model.createAnnotation({
+  const person: AnnotationShape = fixture.model.createAnnotationShape({
     node: fixture.annotation,
     type: 'person',
     relations: [
@@ -321,13 +327,13 @@ void test('removal preview names annotation types whose relationship rules will 
   );
 
   fixture.model.removeNode(fixture.person.id, { cascade: true });
-  assert.equal(fixture.model.getAnnotations()[0]?.relations.length, 1);
+  assert.equal(fixture.model.getAnnotationShapes()[0]?.relations.length, 1);
   assert.equal(fixture.model.validate().valid, true);
 });
 
 void test('relation removal rejects annotation changes until explicitly cascaded', (): void => {
   const fixture: Edition = edition();
-  const person: RamenAnnotation = fixture.model.createAnnotation({
+  const person: AnnotationShape = fixture.model.createAnnotationShape({
     node: fixture.annotation,
     type: 'person',
     relations: [
@@ -335,7 +341,7 @@ void test('relation removal rejects annotation changes until explicitly cascaded
       { relation: fixture.refers, direction: 'outgoing', bounds: { lowerBound: 0, upperBound: 1 } },
     ],
   }).element;
-  const before: readonly RamenAnnotation[] = fixture.model.getAnnotations();
+  const before: readonly AnnotationShape[] = fixture.model.getAnnotationShapes();
 
   const preview: RamenRelationRemovalPreview = fixture.model.previewRelationRemoval(fixture.textHas.id);
 
@@ -348,12 +354,12 @@ void test('relation removal rejects annotation changes until explicitly cascaded
     [person.id],
   );
   assert.throws((): ModelChange<Relation> => fixture.model.removeRelation(fixture.textHas.id), /still used by/);
-  assert.deepEqual(fixture.model.getAnnotations(), before);
+  assert.deepEqual(fixture.model.getAnnotationShapes(), before);
 
   fixture.model.removeRelation(fixture.textHas.id, { cascade: true });
-  assert.deepEqual(fixture.model.getAnnotations()[0]?.relations[0]?.relationIds, [fixture.imageHas.id]);
-  assert.deepEqual(fixture.model.suggestAnnotationsForNode(fixture.text), []);
-  assert.equal(fixture.model.suggestAnnotationsForNode(fixture.image).length, 1);
+  assert.deepEqual(fixture.model.getAnnotationShapes()[0]?.relations[0]?.relationIds, [fixture.imageHas.id]);
+  assert.deepEqual(fixture.model.suggestAnnotationShapesForNode(fixture.text), []);
+  assert.equal(fixture.model.suggestAnnotationShapesForNode(fixture.image).length, 1);
   assert.equal(fixture.model.validate().valid, true);
 });
 

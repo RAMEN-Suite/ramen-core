@@ -22,7 +22,7 @@ Declare a type on this new node:
 ```ts
 import { DataTypes } from '@ramen-suite/core/model';
 
-media.createAnnotation({
+media.createAnnotationShape({
   node: textAnnotation,
   type: 'unclearReading',
   properties: [{ name: 'reason', typeId: DataTypes.String }],
@@ -40,7 +40,7 @@ The same model can also have an ImageAnnotation node and a `damage` type:
 const imageAnnotation: Node = media.createNode({ name: 'ImageAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
 const imageAnnotationLink: Relation = media.hasAnnotation(image, imageAnnotation).element;
 
-media.createAnnotation({
+media.createAnnotationShape({
   node: imageAnnotation,
   type: 'damage',
   properties: [{ name: 'severity', typeId: DataTypes.String }],

@@ -4,12 +4,12 @@ import { FileParts } from '../../model/exchange/File.js';
 
 import { RamenValidator } from '../validation/ModelValidator.js';
 import { RamenModelFormat, type RamenModelDocument } from '../Document.js';
-import type { RamenAnnotation } from '../annotations/Definitions.js';
+import type { AnnotationShape } from '../annotations/Definitions.js';
 import fileSchema from '../../resources/schemas/ramen-file.schema.json';
 
 /** One RAMEN graph with original annotation declarations and retained inheritance. */
 export interface RamenFile extends ModelFile {
-  readonly annotations: readonly Owned<RamenAnnotation>[];
+  readonly annotations: readonly Owned<AnnotationShape>[];
 }
 
 /** Adds RAMEN annotation declarations to generic single-file exchange. */
@@ -30,9 +30,9 @@ export class RamenFiles {
 
     const file: RamenFile = structuredClone({
       ...FileParts.merge(id, core, fileSchema.$id, project),
-      annotations: selected.flatMap((model: Model): Owned<RamenAnnotation>[] =>
+      annotations: selected.flatMap((model: Model): Owned<AnnotationShape>[] =>
         RamenModelFormat.isDocument(model)
-          ? model.annotations.map((item: RamenAnnotation): Owned<RamenAnnotation> => ({ ...item, modelId: model.id }))
+          ? model.annotations.map((item: AnnotationShape): Owned<AnnotationShape> => ({ ...item, modelId: model.id }))
           : [],
       ),
     });
@@ -48,13 +48,13 @@ export class RamenFiles {
       RamenModelFormat.isDocument(model) ? ({ ...model, annotations: [] } as RamenModelDocument) : model,
     );
     const owners: ReadonlyMap<Id, Model> = new Map<Id, Model>(models.map((model: Model): [Id, Model] => [model.id, model]));
-    const groups: Map<Id, RamenAnnotation[]> = new Map<Id, RamenAnnotation[]>();
+    const groups: Map<Id, AnnotationShape[]> = new Map<Id, AnnotationShape[]>();
 
     for (const entry of file.annotations) {
-      const { modelId, ...annotation }: Owned<RamenAnnotation> = entry;
+      const { modelId, ...annotation }: Owned<AnnotationShape> = entry;
       const owner: Model | undefined = owners.get(modelId);
       if (!RamenModelFormat.isDocument(owner)) throw new Error(`Invalid annotation owner: '${modelId}'.`);
-      const group: RamenAnnotation[] = groups.get(modelId) ?? [];
+      const group: AnnotationShape[] = groups.get(modelId) ?? [];
       group.push(structuredClone(annotation));
       groups.set(modelId, group);
       owner.annotations = group;

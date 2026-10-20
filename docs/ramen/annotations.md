@@ -11,7 +11,7 @@ children:
 
 # Use Annotations
 
-An **Annotation node** contains fields shared by annotations. An **annotation type** selects the properties and relationships for one kind of annotation, such as `person`. RAMEN has no fixed type list: each project declares the types it uses.
+An **Annotation node** contains fields shared by annotations. An **annotation shape** adds its own properties and defines permitted relationships for one kind of annotation, such as `person`. RAMEN has no fixed type list: each project declares the types it uses.
 
 Names may come from a vocabulary such as [TEI's persName](https://tei-c.org/release/doc/tei-p5-doc/en/html/ref-persName.html), but the project defines the rules behind each name. Recorded annotations with undeclared types, properties or links fail validation.
 
@@ -40,16 +40,16 @@ const personLink: Relation = media.refersTo(RAMEN_ELEMENT.ANNOTATION, person).el
 const placeLink: Relation = media.refersTo(RAMEN_ELEMENT.ANNOTATION, place).element;
 ```
 
-Text and Image each have a `HAS_ANNOTATION` definition. Annotation can refer to Person or Place. These definitions do not yet say which annotation type may use them.
+Text and Image each have a `HAS_ANNOTATION` definition. Annotation can refer to Person or Place. These definitions do not yet say which annotation shape may use them.
 
 ## Declare `person`
 
 Declare `person` with **at least one** Text or Image attachment and exactly one Person reference:
 
 ```ts
-import type { RamenAnnotation } from '@ramen-suite/core/ramen';
+import type { AnnotationShape } from '@ramen-suite/core/ramen';
 
-const personType: RamenAnnotation = media.createAnnotation({
+const personType: AnnotationShape = media.createAnnotationShape({
   nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'person',
   relations: [
@@ -66,7 +66,7 @@ The grouped `relations` count Text and Image attachments **together**. At least 
 For example, `place` can require a Text attachment and one Place reference:
 
 ```ts
-media.createAnnotation({
+media.createAnnotationShape({
   node: RAMEN_ELEMENT.ANNOTATION,
   type: 'place',
   relations: [
@@ -78,6 +78,6 @@ media.createAnnotation({
 
 Neither type permits a link to the other entity. Tools can [suggest which types](suggest-annotations.md) fit a selected Text or Image.
 
-{@link ramen.RamenModel.getAnnotations | getAnnotations()} lists declarations made on this project level. Use {@link ramen.RamenModel.updateAnnotation | updateAnnotation()} or {@link ramen.RamenModel.removeAnnotation | removeAnnotation()} with the declaration's ID, such as `personType.id`, to change or remove one.
+{@link ramen.RamenModel.getAnnotationShapes | getAnnotationShapes()} lists declarations made on this project level. Use {@link ramen.RamenModel.updateAnnotationShape | updateAnnotationShape()} or {@link ramen.RamenModel.removeAnnotationShape | removeAnnotationShape()} with the declaration's ID, such as `personType.id`, to change or remove one.
 
 Next, [Add Properties](constrain-annotations.md) adds a type-owned property. [Use Selectors](selectors.md) shows how a recorded annotation can point to part of Text or Image. [Refine Nodes](refine-annotations.md) separates node families when a project needs that distinction. [Suggestions](suggest-annotations.md) shows the choices a tool can offer.

@@ -1,27 +1,27 @@
 import { ModelRef, ProjectGraph, type ResolvedElement, type Model, type Node, type Id, type Ref } from '../../model/index.js';
 
-import { RamenAnnotation } from './Definitions.js';
+import { AnnotationShape } from './Definitions.js';
 import { RamenModelFormat } from '../Document.js';
 import { RAMEN_ELEMENT, RAMEN_MODEL } from '../ReferenceModel.js';
 
 /** Annotation definition resolved together with the model that declares it. */
-export interface ResolvedAnnotation {
+export interface ResolvedAnnotationShape {
   readonly modelId: Id;
-  readonly annotation: RamenAnnotation;
+  readonly annotation: AnnotationShape;
 }
 
 /** Resolves RAMEN annotations and their inheritance over a validated project graph. */
 export class AnnotationIndex {
-  private readonly annotationsByNode: Map<Ref, ResolvedAnnotation[]> = new Map<Ref, ResolvedAnnotation[]>();
-  private readonly annotationsByModel: ReadonlyMap<Id, readonly RamenAnnotation[]>;
+  private readonly annotationsByNode: Map<Ref, ResolvedAnnotationShape[]> = new Map<Ref, ResolvedAnnotationShape[]>();
+  private readonly annotationsByModel: ReadonlyMap<Id, readonly AnnotationShape[]>;
 
   /** Indexes annotations from every reachable model. */
   public constructor(
     private readonly graph: ProjectGraph,
     models: readonly Model[],
   ) {
-    this.annotationsByModel = new Map<Id, readonly RamenAnnotation[]>(
-      models.map((model: Model): [Id, readonly RamenAnnotation[]] => [
+    this.annotationsByModel = new Map<Id, readonly AnnotationShape[]>(
+      models.map((model: Model): [Id, readonly AnnotationShape[]] => [
         model.id,
         RamenModelFormat.isDocument(model) ? structuredClone(model.annotations) : [],
       ]),
@@ -29,28 +29,28 @@ export class AnnotationIndex {
     for (const definition of this.getAll()) this.indexDefinition(definition);
   }
 
-  private indexDefinition(definition: ResolvedAnnotation): void {
+  private indexDefinition(definition: ResolvedAnnotationShape): void {
     const node: ResolvedElement<Node> | undefined = this.graph.resolveNode(
       definition.modelId,
       definition.annotation.annotationId,
     );
     if (!node) return;
     const key: Ref = ModelRef.qualify(node.modelId, node.element.id);
-    const definitions: ResolvedAnnotation[] = this.annotationsByNode.get(key) ?? [];
+    const definitions: ResolvedAnnotationShape[] = this.annotationsByNode.get(key) ?? [];
 
     definitions.push(definition);
     this.annotationsByNode.set(key, definitions);
   }
 
   /** Returns annotations declared directly by one model. */
-  public getDeclared(modelId: Id): readonly RamenAnnotation[] {
+  public getDeclared(modelId: Id): readonly AnnotationShape[] {
     return this.annotationsByModel.get(modelId) ?? [];
   }
 
-  /** Returns all reachable annotation definitions with their owning models. */
-  public getAll(): readonly ResolvedAnnotation[] {
-    return this.graph.getModels().flatMap((model: Model): ResolvedAnnotation[] =>
-      this.getDeclared(model.id).map((annotation: RamenAnnotation): ResolvedAnnotation => ({
+  /** Returns all reachable annotation shapes with their owning models. */
+  public getAll(): readonly ResolvedAnnotationShape[] {
+    return this.graph.getModels().flatMap((model: Model): ResolvedAnnotationShape[] =>
+      this.getDeclared(model.id).map((annotation: AnnotationShape): ResolvedAnnotationShape => ({
         modelId: model.id,
         annotation: annotation,
       })),
@@ -58,7 +58,7 @@ export class AnnotationIndex {
   }
 
   /** Returns declarations applicable to a node from the selected model's point of view. */
-  public getApplicable(modelId: Id, nodeRef: Ref): readonly ResolvedAnnotation[] {
+  public getApplicable(modelId: Id, nodeRef: Ref): readonly ResolvedAnnotationShape[] {
     const node: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, nodeRef);
     if (!node) return [];
     const lineage: readonly ResolvedElement<Node>[] = [node, ...this.graph.getNodeAncestors(node.modelId, node.element.id)];
@@ -67,17 +67,17 @@ export class AnnotationIndex {
       ...this.graph.getTransitiveImports(modelId).map((model: Model): Id => model.id),
     ]);
 
-    return lineage.flatMap((owner: ResolvedElement<Node>): ResolvedAnnotation[] => {
+    return lineage.flatMap((owner: ResolvedElement<Node>): ResolvedAnnotationShape[] => {
       const key: Ref = ModelRef.qualify(owner.modelId, owner.element.id);
-      return (this.annotationsByNode.get(key) ?? []).filter((definition: ResolvedAnnotation): boolean =>
+      return (this.annotationsByNode.get(key) ?? []).filter((definition: ResolvedAnnotationShape): boolean =>
         visible.has(definition.modelId),
       );
     });
   }
 
   /** Returns the effective closed annotation variants available to one Annotation node. */
-  public getEffective(modelId: Id, nodeRef: Ref): readonly ResolvedAnnotation[] {
-    const result: Map<string, ResolvedAnnotation> = new Map<string, ResolvedAnnotation>();
+  public getEffective(modelId: Id, nodeRef: Ref): readonly ResolvedAnnotationShape[] {
+    const result: Map<string, ResolvedAnnotationShape> = new Map<string, ResolvedAnnotationShape>();
 
     for (const candidate of this.getApplicable(modelId, nodeRef)) {
       if (!result.has(candidate.annotation.type)) result.set(candidate.annotation.type, candidate);
@@ -86,9 +86,9 @@ export class AnnotationIndex {
   }
 
   /** Finds one effective annotation variant by its serialised `type` value. */
-  public findEffective(modelId: Id, nodeRef: Ref, type: string): ResolvedAnnotation | undefined {
+  public findEffective(modelId: Id, nodeRef: Ref, type: string): ResolvedAnnotationShape | undefined {
     return this.getEffective(modelId, nodeRef).find(
-      (candidate: ResolvedAnnotation): boolean => candidate.annotation.type === type,
+      (candidate: ResolvedAnnotationShape): boolean => candidate.annotation.type === type,
     );
   }
 

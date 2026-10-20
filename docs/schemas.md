@@ -10,11 +10,11 @@ The package includes six JSON schemas. Use a **file schema** for export and impo
 
 ## Model documents
 
-| Schema                                                                                        | Purpose                                                                                                                                                          |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [model.schema.json](https://ramen-schema.org/model/1.0.0/schema.json)                         | One generic RMF model level, including its nodes, data types, properties, relationships and imports. Matches {@link model.Modeller.getModel                      | getModel()}. |
-| [ramen-project.schema.json](https://ramen-schema.org/ramen/1.0.0/project.schema.json)         | One RAMEN project level. Adds annotation definitions to the generic model structure. Matches {@link ramen.RamenModel.getModel                                    | getModel()}. |
-| [ramen-annotations.schema.json](https://ramen-schema.org/ramen/1.0.0/annotations.schema.json) | The `annotations` section and its reusable definitions. Included in the RAMEN project schema. It describes permitted annotation types, not recorded annotations. |
+| Schema                                                                                        | Purpose                                                                                                                                                           |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [model.schema.json](https://ramen-schema.org/model/1.0.0/schema.json)                         | One generic RMF model level, including its nodes, data types, properties, relationships and imports. Matches {@link model.Modeller.getModel                       | getModel()}. |
+| [ramen-project.schema.json](https://ramen-schema.org/ramen/1.0.0/project.schema.json)         | One RAMEN project level. Adds annotation definitions to the generic model structure. Matches {@link ramen.RamenModel.getModel                                     | getModel()}. |
+| [ramen-annotations.schema.json](https://ramen-schema.org/ramen/1.0.0/annotations.schema.json) | The `annotations` section and its reusable definitions. Included in the RAMEN project schema. It describes permitted annotation shapes, not recorded annotations. |
 
 ## Exchange files
 
@@ -31,7 +31,7 @@ See [RMF export and import](rmf/exchange.md) and [RAMEN export and import](ramen
 | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | [model-instances.schema.json](https://ramen-schema.org/model/1.0.0/instances.schema.json) | An instance graph with recorded nodes, property values and relationships. The same structure is used for RMF and RAMEN data validation. |
 
-The instance schema checks the graph's JSON structure. Checking values, permitted relationships and annotation types against a particular model requires the library's [data validation](rmf/validation.md).
+The instance schema checks the graph's JSON structure. Checking values, permitted relationships and annotation shapes against a particular model requires the library's [data validation](rmf/validation.md).
 
 ## Package paths and identifiers
 

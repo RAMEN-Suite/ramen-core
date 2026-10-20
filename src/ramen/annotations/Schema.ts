@@ -6,8 +6,8 @@ import schema from '../../resources/schemas/ramen-annotations.schema.json';
 /** Canonical identifier of the reusable RAMEN annotation definition schema. */
 export const RAMEN_ANNOTATION_SCHEMA_URI: string = 'https://ramen-schema.org/ramen/1.0.0/annotations.schema.json';
 
-/** Validates an object containing RAMEN annotation definitions. */
-export class RamenAnnotationSchemaValidator {
+/** Validates an object containing RAMEN annotation shapes. */
+export class AnnotationShapeSchemaValidator {
   private static readonly schemaNode: SchemaNode = compileSchema(schema, { remote: ModelSchemaValidator.getSchemaNode() });
 
   /** Returns the compiled, versioned RAMEN JSON Schema node. */

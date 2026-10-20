@@ -1,26 +1,26 @@
 import { ModelEvolution, type EvolutionChange, type EvolutionReport, type Id, type Model } from '../../model/index.js';
 
-import { RamenAnnotation, RamenAnnotations } from '../annotations/Definitions.js';
+import { AnnotationShape, AnnotationShapes } from '../annotations/Definitions.js';
 import { RamenModelFormat } from '../Document.js';
 import { RamenValidator } from '../validation/ModelValidator.js';
 
 /** One added, removed, or changed RAMEN annotation definition. */
-export interface RamenAnnotationChange {
+export interface AnnotationShapeChange {
   readonly action: 'added' | 'removed' | 'changed';
   readonly modelId: Id;
   readonly annotationId: Id;
-  readonly before?: RamenAnnotation;
-  readonly after?: RamenAnnotation;
+  readonly before?: AnnotationShape;
+  readonly after?: AnnotationShape;
 }
 
 /** Generic element changes plus separately identifiable RAMEN annotation changes. */
 export interface RamenEvolutionReport extends EvolutionReport {
-  readonly annotationChanges: readonly RamenAnnotationChange[];
+  readonly annotationChanges: readonly AnnotationShapeChange[];
 }
 
 interface AnnotationRecord {
   readonly modelId: Id;
-  readonly annotation: RamenAnnotation;
+  readonly annotation: AnnotationShape;
 }
 
 /** Compares two complete RAMEN project states without guessing data migrations. */
@@ -57,11 +57,11 @@ export class RamenEvolution {
   private static compareAnnotations(
     beforeModels: readonly Model[],
     afterModels: readonly Model[],
-  ): readonly RamenAnnotationChange[] {
+  ): readonly AnnotationShapeChange[] {
     const before: ReadonlyMap<string, AnnotationRecord> = this.index(beforeModels);
     const after: ReadonlyMap<string, AnnotationRecord> = this.index(afterModels);
     const keys: readonly string[] = [...new Set<string>([...before.keys(), ...after.keys()])].sort();
-    const annotationChanges: RamenAnnotationChange[] = [];
+    const annotationChanges: AnnotationShapeChange[] = [];
 
     for (const key of keys) {
       const oldRecord: AnnotationRecord | undefined = before.get(key);
@@ -86,7 +86,7 @@ export class RamenEvolution {
     const records: Map<string, AnnotationRecord> = new Map<string, AnnotationRecord>();
 
     for (const model of models) {
-      for (const annotation of RamenAnnotations.get(model)) {
+      for (const annotation of AnnotationShapes.get(model)) {
         records.set(`${model.id}:${annotation.id}`, { modelId: model.id, annotation: annotation });
       }
     }

@@ -27,7 +27,7 @@ if (!modelResult.valid) {
 
 ## Check one input
 
-Use {@link ramen.RamenModel.validateAnnotationValue | validateAnnotationValue()} for a property of one annotation type. Continue from [Add Properties](constrain-annotations.md), where `role.name` uses the `RoleName` value list:
+Use {@link ramen.RamenModel.validateAnnotationValue | validateAnnotationValue()} for a property of one annotation shape. Continue from [Add Properties](constrain-annotations.md), where `role.name` uses the `RoleName` value list:
 
 ```ts
 import type { ValidationResult } from '@ramen-suite/core/model';
@@ -39,7 +39,7 @@ console.log(valid.hasErrors); // false
 console.log(invalid.diagnostics); // INSTANCE_PROPERTY_LITERAL_INVALID
 ```
 
-This checks the property's bounds, data type and constraints, including inherited annotation definitions. An unavailable type or property throws an error. You can pass a {@link model.ConstraintRegistry | ConstraintRegistry} as the last argument for custom evaluators. Links and uniqueness across records need a complete data graph.
+This checks the property's bounds, data type and constraints, including inherited annotation shapes. An unavailable type or property throws an error. You can pass a {@link model.ConstraintRegistry | ConstraintRegistry} as the last argument for custom evaluators. Links and uniqueness across records need a complete data graph.
 
 ## Check recorded data
 
@@ -91,8 +91,8 @@ console.log(invalid.diagnostics.map((item: Diagnostic): string => item.code));
 // ['RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY']
 ```
 
-`typeId` points to a model definition, while `properties.type` chooses the annotation type. The graph needs no model ID because `media` supplies it.
+`typeId` points to a model definition, while `properties.type` chooses the annotation shape. The graph needs no model ID because `media` supplies it.
 
 ## Use data from a tool
 
-A tool translates its own records into `ModelInstanceGraph` before validation. RAMEN checks annotation types, allowed properties and links, and that `selector` has a `type`. The tool interprets selector details such as `start` and `end`. See [Add Properties](constrain-annotations.md) for fixed value lists and [Add Constraints](../rmf/constraints.md) for custom checks.
+A tool translates its own records into `ModelInstanceGraph` before validation. RAMEN checks annotation shapes, allowed properties and links, and that `selector` has a `type`. The tool interprets selector details such as `start` and `end`. See [Add Properties](constrain-annotations.md) for fixed value lists and [Add Constraints](../rmf/constraints.md) for custom checks.

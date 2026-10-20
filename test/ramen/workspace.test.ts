@@ -4,8 +4,8 @@ import { DataTypes, type Constraint, type DataType, type Node, type Relation } f
 import {
   RAMEN_ELEMENT,
   RamenModel,
-  type AnnotationSuggestion,
-  type RamenAnnotation,
+  type AnnotationShapeSuggestion,
+  type AnnotationShape,
   type RamenFile,
 } from '@ramen-suite/core/ramen';
 
@@ -14,7 +14,7 @@ interface Edition {
   readonly text: Node;
   readonly image: Node;
   readonly imageLink: Relation;
-  readonly note: RamenAnnotation;
+  readonly note: AnnotationShape;
   readonly label: DataType;
 }
 
@@ -34,7 +34,7 @@ function createEdition(): Edition {
 
   model.createLiteral(label.id, { name: 'Short', literal: 'short' });
   model.createLiteral(label.id, { name: 'Long', literal: 'long' });
-  const note: RamenAnnotation = model.createAnnotation({
+  const note: AnnotationShape = model.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'note',
     properties: [{ name: 'label', type: label }],
@@ -45,7 +45,7 @@ function createEdition(): Edition {
 }
 
 function annotationTypes(model: RamenModel, node: Node): readonly string[] {
-  return model.suggestAnnotationsForNode(node).map((item: AnnotationSuggestion): string => item.type);
+  return model.suggestAnnotationShapesForNode(node).map((item: AnnotationShapeSuggestion): string => item.type);
 }
 
 function jsonContent(value: unknown): unknown {
@@ -65,7 +65,7 @@ void test('base annotation edits refresh warmed sibling suggestions while a snap
   }
   const before: RamenModel = research.snapshot();
 
-  edition.model.updateAnnotation(edition.note.id, {
+  edition.model.updateAnnotationShape(edition.note.id, {
     type: 'caption',
     relations: [{ relation: edition.imageLink, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } }],
   });
@@ -100,7 +100,7 @@ void test('RAMEN roundtrip preserves reused nodes, a refined Annotation, literal
   assert.equal(restored.validateAnnotationValue(annotation, 'note', 'label', 'short').hasErrors, false);
   assert.equal(restored.validateAnnotationValue(annotation, 'note', 'label', 'other').hasErrors, true);
 
-  restored.openLevel(edition.model.getModel().id).removeAnnotation(edition.note.id);
+  restored.openLevel(edition.model.getModel().id).removeAnnotationShape(edition.note.id);
   assert.deepEqual(annotationTypes(restored, edition.text), []);
   assert.deepEqual(annotationTypes(research, edition.text), ['note']);
   assert.deepEqual(research.export(), file);

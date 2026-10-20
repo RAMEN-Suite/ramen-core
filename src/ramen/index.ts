@@ -10,7 +10,7 @@
  * | --- | --- |
  * | Create and refine RAMEN models | {@link RamenModel} |
  * | Request permitted relations and annotations | {@link RamenAdvisor} |
- * | Describe annotation properties and relations | {@link RamenAnnotation} |
+ * | Describe annotation properties and relations | {@link AnnotationShape} |
  * | Validate existing RAMEN models | {@link RamenValidator} |
  * | Validate captured RAMEN data | {@link RamenInstanceValidator} |
  * | Import and export RAMEN model files | {@link RamenFiles} |
@@ -19,9 +19,9 @@
  * @packageDocumentation
  */
 export * from './ReferenceModel.js';
-export type { RamenAnnotation, AnnotationProperty, AnnotationRelation } from './annotations/Definitions.js';
+export type { AnnotationShape, AnnotationShapeProperty, AnnotationShapeRelation } from './annotations/Definitions.js';
 export * from './Document.js';
-export type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor.js';
+export type { AnnotationShapeOptions, PropertyOption, RelationOption } from './annotations/Advisor.js';
 export * from './RamenModel.js';
 export * from './exchange/Comparison.js';
 export * from './Advisor.js';

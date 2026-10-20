@@ -10,9 +10,9 @@ import {
   type ValidProjectResult,
 } from '../model/index.js';
 
-import { RamenAnnotations, AnnotationRelation } from './annotations/Definitions.js';
-import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex.js';
-import { AnnotationOptions, PropertyOption, RelationOption, AnnotationAdvisor } from './annotations/Advisor.js';
+import { AnnotationShapes, AnnotationShapeRelation } from './annotations/Definitions.js';
+import { AnnotationIndex, ResolvedAnnotationShape } from './annotations/AnnotationIndex.js';
+import { AnnotationShapeOptions, PropertyOption, RelationOption, AnnotationAdvisor } from './annotations/Advisor.js';
 export type {
   NodeSuggestion,
   DataTypeSuggestion,
@@ -25,7 +25,7 @@ export type {
 } from '../model/Advisor.js';
 
 /** One closed annotation variant declared by a reachable RAMEN model. */
-export interface AnnotationSuggestion {
+export interface AnnotationShapeSuggestion {
   readonly modelId: Id;
   readonly annotationId: Id;
   readonly ownerNodeId: Ref;
@@ -40,45 +40,45 @@ export class RamenAdvisor extends ModelAdvisor {
 
   /** Creates a RAMEN advisor for a validated snapshot. */
   public constructor(result: ValidProjectResult, models: readonly Model[]) {
-    super(result, RamenAnnotations.relationSelections(models));
+    super(result, AnnotationShapes.relationSelections(models));
     this.annotations = new AnnotationIndex(result.graph, models);
     this.annotationAdvisor = new AnnotationAdvisor(result.graph, this.relations, this.annotations);
   }
 
-  /** Lists properties available for one annotation type, including its own declarations. */
-  public getAttributesForAnnotation(modelId: Id, nodeId: Id, type: string): readonly PropertyOption[] {
+  /** Lists properties available for one annotation shape, including its own declarations. */
+  public getPropertiesForAnnotationShape(modelId: Id, nodeId: Id, type: string): readonly PropertyOption[] {
     return this.annotationAdvisor.getTypeInfo(modelId, nodeId, type)?.properties ?? [];
   }
 
-  /** Lists the modelled relations permitted by one effective annotation type. */
-  public getRelationsForAnnotation(modelId: Id, annotationNodeId: Id, type: string): readonly RelationOption[] {
+  /** Lists the modelled relations permitted by one effective annotation shape. */
+  public getRelationsForAnnotationShape(modelId: Id, annotationNodeId: Id, type: string): readonly RelationOption[] {
     return this.annotationAdvisor.getTypeInfo(modelId, annotationNodeId, type)?.relations ?? [];
   }
 
   /** Lists all reachable annotations, or only the effective variants of one Annotation node. */
-  public suggestAnnotations(modelId: Id, annotationNodeId?: Id): readonly AnnotationSuggestion[] {
+  public suggestAnnotationShapes(modelId: Id, annotationNodeId?: Id): readonly AnnotationShapeSuggestion[] {
     const visibleModels: ReadonlySet<Id> = new Set<Id>([
       modelId,
       ...this.importedModels(modelId).map((model: Model): Id => model.id),
     ]);
-    const candidates: readonly ResolvedAnnotation[] = annotationNodeId
+    const candidates: readonly ResolvedAnnotationShape[] = annotationNodeId
       ? this.annotations.getEffective(modelId, annotationNodeId)
-      : this.annotations.getAll().filter((candidate: ResolvedAnnotation): boolean => visibleModels.has(candidate.modelId));
+      : this.annotations.getAll().filter((candidate: ResolvedAnnotationShape): boolean => visibleModels.has(candidate.modelId));
 
     return candidates
-      .map((candidate: ResolvedAnnotation): AnnotationSuggestion => this.annotationSuggestion(modelId, candidate))
-      .sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number => left.type.localeCompare(right.type));
+      .map((candidate: ResolvedAnnotationShape): AnnotationShapeSuggestion => this.annotationSuggestion(modelId, candidate))
+      .sort((left: AnnotationShapeSuggestion, right: AnnotationShapeSuggestion): number => left.type.localeCompare(right.type));
   }
 
   /** Lists effective annotation variants attachable to one local or imported node through modelled relations. */
-  public suggestAnnotationsForNode(modelId: Id, nodeId: Id, annotationNodeId?: Ref): readonly AnnotationSuggestion[] {
+  public suggestAnnotationShapesForNode(modelId: Id, nodeId: Id, annotationNodeId?: Ref): readonly AnnotationShapeSuggestion[] {
     const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
     const selected: ResolvedElement<Node> | undefined = annotationNodeId
       ? this.resolveNode(modelId, annotationNodeId)
       : undefined;
     if (annotationNodeId && !selected) return [];
-    const result: Map<string, AnnotationSuggestion> = new Map<string, AnnotationSuggestion>();
+    const result: Map<string, AnnotationShapeSuggestion> = new Map<string, AnnotationShapeSuggestion>();
 
     for (const relation of this.nodeRelationSuggestions(modelId, actual)) {
       if (relation.direction !== 'outgoing') continue;
@@ -89,13 +89,13 @@ export class RamenAdvisor extends ModelAdvisor {
       }
     }
 
-    return [...result.values()].sort((left: AnnotationSuggestion, right: AnnotationSuggestion): number =>
+    return [...result.values()].sort((left: AnnotationShapeSuggestion, right: AnnotationShapeSuggestion): number =>
       left.type.localeCompare(right.type),
     );
   }
 
   /** Lists valid property, relation, target and cardinality options for a new annotation definition. */
-  public suggestAnnotationOptions(modelId: Id, annotationNodeId: Id): AnnotationOptions | undefined {
+  public suggestAnnotationShapeOptions(modelId: Id, annotationNodeId: Id): AnnotationShapeOptions | undefined {
     return this.annotationAdvisor.suggestOptions(modelId, annotationNodeId);
   }
 
@@ -111,12 +111,12 @@ export class RamenAdvisor extends ModelAdvisor {
     modelId: Id,
     targetId: Id,
     relation: NodeRelationSuggestion,
-  ): readonly AnnotationSuggestion[] {
+  ): readonly AnnotationShapeSuggestion[] {
     return this.annotations
       .getEffective(modelId, targetId)
-      .filter((definition: ResolvedAnnotation): boolean =>
+      .filter((definition: ResolvedAnnotationShape): boolean =>
         definition.annotation.relations.some(
-          (requirement: AnnotationRelation): boolean =>
+          (requirement: AnnotationShapeRelation): boolean =>
             requirement.direction === 'incoming' &&
             requirement.bounds.upperBound !== 0 &&
             requirement.relationIds.some((ref: Ref): boolean =>
@@ -124,10 +124,10 @@ export class RamenAdvisor extends ModelAdvisor {
             ),
         ),
       )
-      .map((definition: ResolvedAnnotation): AnnotationSuggestion => this.annotationSuggestion(modelId, definition));
+      .map((definition: ResolvedAnnotationShape): AnnotationShapeSuggestion => this.annotationSuggestion(modelId, definition));
   }
 
-  private annotationSuggestion(modelId: Id, definition: ResolvedAnnotation): AnnotationSuggestion {
+  private annotationSuggestion(modelId: Id, definition: ResolvedAnnotationShape): AnnotationShapeSuggestion {
     return {
       modelId: definition.modelId,
       annotationId: definition.annotation.id,

@@ -23,8 +23,8 @@ import {
 
 import { AnnotationProperties } from '../annotations/Properties.js';
 
-import { RamenAnnotations, AnnotationRelation } from '../annotations/Definitions.js';
-import { AnnotationIndex, ResolvedAnnotation } from '../annotations/AnnotationIndex.js';
+import { AnnotationShapes, AnnotationShapeRelation } from '../annotations/Definitions.js';
+import { AnnotationIndex, ResolvedAnnotationShape } from '../annotations/AnnotationIndex.js';
 import { RamenValidator } from '../validation/ModelValidator.js';
 
 /** Stable diagnostic codes emitted while validating RAMEN instances. */
@@ -39,11 +39,11 @@ export enum RAMEN_INSTANCE_ERROR {
   SELECTOR_TYPE_REQUIRED = 'RAMEN_INSTANCE_SELECTOR_TYPE_REQUIRED',
   /** A link on this annotation is absent from its type's permitted relationships. */
   ANNOTATION_RELATION_NOT_ALLOWED = 'RAMEN_INSTANCE_ANNOTATION_RELATION_NOT_ALLOWED',
-  /** Too few or too many links match a relationship rule of the annotation type. */
+  /** Too few or too many links match a relationship rule of the annotation shape. */
   ANNOTATION_RELATION_CARDINALITY = 'RAMEN_INSTANCE_ANNOTATION_RELATION_CARDINALITY',
 }
 
-/** Validates a complete instance graph against the RAMEN model format and closed annotation definitions. */
+/** Validates a complete instance graph against the RAMEN model format and closed annotation shapes. */
 export class RamenInstanceValidator {
   public constructor(
     private readonly projects: RamenValidator = new RamenValidator(),
@@ -61,7 +61,7 @@ export class RamenInstanceValidator {
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
     const annotations: AnnotationIndex = new AnnotationIndex(project.graph, models);
     const base: ValidationResult = this.instances.validate(project.graph, input, {
-      relations: new ModelRelationScope(project.graph, RamenAnnotations.relationSelections(models)).available(rootModelId),
+      relations: new ModelRelationScope(project.graph, AnnotationShapes.relationSelections(models)).available(rootModelId),
       attributes: (type: ResolvedElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
         this.effectiveAttributes(project.graph, annotations, rootModelId, type, node),
     });
@@ -102,7 +102,11 @@ export class RamenInstanceValidator {
   ): readonly Attribute[] {
     const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, type.modelId, type.element.id)?.attributes ?? [];
     if (typeof node.properties['type'] !== 'string') return attributes;
-    const definition: ResolvedAnnotation | undefined = annotations.findEffective(modelId, node.typeId, node.properties['type']);
+    const definition: ResolvedAnnotationShape | undefined = annotations.findEffective(
+      modelId,
+      node.typeId,
+      node.properties['type'],
+    );
     if (!definition) return attributes;
     const byName: Map<string, Attribute> = new Map<string, Attribute>(
       attributes.map((item: Attribute): [string, Attribute] => [item.name, item]),
@@ -140,12 +144,12 @@ export class RamenInstanceValidator {
 
       return;
     }
-    const selected: ResolvedAnnotation | undefined = annotations.findEffective(modelId, node.typeId, type);
+    const selected: ResolvedAnnotationShape | undefined = annotations.findEffective(modelId, node.typeId, type);
     if (!selected) {
       this.error(
         diagnostics,
         RAMEN_INSTANCE_ERROR.ANNOTATION_UNKNOWN,
-        `Annotation type '${type}' is not available for '${resolved.element.name}'.`,
+        `Annotation shape '${type}' is not available for '${resolved.element.name}'.`,
         path.property('properties').property('type'),
         node.id,
       );
@@ -179,7 +183,7 @@ export class RamenInstanceValidator {
   private validateProperties(
     graph: ProjectGraph,
     nodeType: ResolvedElement<Node>,
-    selected: ResolvedAnnotation,
+    selected: ResolvedAnnotationShape,
     node: ModelInstanceNode,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -191,7 +195,7 @@ export class RamenInstanceValidator {
 
   private validateAllowedProperties(
     node: ModelInstanceNode,
-    selected: ResolvedAnnotation,
+    selected: ResolvedAnnotationShape,
     allowedNames: ReadonlySet<string>,
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
@@ -210,15 +214,15 @@ export class RamenInstanceValidator {
 
   private validateRelations(
     graph: ProjectGraph,
-    selected: ResolvedAnnotation,
+    selected: ResolvedAnnotationShape,
     modelId: Id,
     node: ModelInstanceNode,
     path: DiagnosticPath,
     connected: readonly ModelInstanceRelation[],
     diagnostics: Diagnostic[],
   ): void {
-    const requirements: readonly AnnotationRelation[] = selected.annotation.relations;
-    const counts: ReadonlyMap<AnnotationRelation, number> = this.countRelations(
+    const requirements: readonly AnnotationShapeRelation[] = selected.annotation.relations;
+    const counts: ReadonlyMap<AnnotationShapeRelation, number> = this.countRelations(
       graph,
       selected,
       modelId,
@@ -243,14 +247,14 @@ export class RamenInstanceValidator {
 
   private countRelations(
     graph: ProjectGraph,
-    selected: ResolvedAnnotation,
+    selected: ResolvedAnnotationShape,
     modelId: Id,
     node: ModelInstanceNode,
     connected: readonly ModelInstanceRelation[],
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
-  ): ReadonlyMap<AnnotationRelation, number> {
-    const counts: Map<AnnotationRelation, number> = new Map<AnnotationRelation, number>();
+  ): ReadonlyMap<AnnotationShapeRelation, number> {
+    const counts: Map<AnnotationShapeRelation, number> = new Map<AnnotationShapeRelation, number>();
     for (const relation of connected) {
       let allowed: boolean = false;
       for (const requirement of selected.annotation.relations) {
@@ -269,7 +273,7 @@ export class RamenInstanceValidator {
     return counts;
   }
 
-  private hasDirection(requirement: AnnotationRelation, relation: ModelInstanceRelation, nodeId: Id): boolean {
+  private hasDirection(requirement: AnnotationShapeRelation, relation: ModelInstanceRelation, nodeId: Id): boolean {
     return requirement.direction === 'outgoing' ? relation.fromId === nodeId : relation.toId === nodeId;
   }
 

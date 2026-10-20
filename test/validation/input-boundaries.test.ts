@@ -12,7 +12,7 @@ import {
   type ProjectValidationResult,
   type ValidationResult,
 } from '@ramen-suite/core/model';
-import { RamenModel, RamenAnnotationSchemaValidator, RamenProjectSchemaValidator } from '@ramen-suite/core/ramen';
+import { RamenModel, AnnotationShapeSchemaValidator, RamenProjectSchemaValidator } from '@ramen-suite/core/ramen';
 
 void test('untrusted JSON shapes fail at the model, exchange and recorded-data boundaries', (): void => {
   const model: Modeller = Modeller.create('Filing');
@@ -38,7 +38,7 @@ void test('all public schema guards reject a missing root document', (): void =>
   const validators: readonly {
     readonly isValid: (input: unknown) => boolean;
     readonly assertValid: (input: unknown) => void;
-  }[] = [ModelSchemaValidator, InstanceSchemaValidator, RamenProjectSchemaValidator, RamenAnnotationSchemaValidator];
+  }[] = [ModelSchemaValidator, InstanceSchemaValidator, RamenProjectSchemaValidator, AnnotationShapeSchemaValidator];
 
   for (const validator of validators) {
     assert.equal(validator.isValid(undefined), false);

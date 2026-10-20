@@ -30,17 +30,22 @@ import {
 import { ModelWorkspace } from '../model/editing/Workspace.js';
 
 import { InstanceValueValidator } from '../model/data/InstanceValues.js';
-import { AnnotationIndex, ResolvedAnnotation } from './annotations/AnnotationIndex.js';
+import { AnnotationIndex, ResolvedAnnotationShape } from './annotations/AnnotationIndex.js';
 import { AnnotationProperties } from './annotations/Properties.js';
 
-import { RamenAnnotation, AnnotationProperty, AnnotationRelation, RamenAnnotations } from './annotations/Definitions.js';
+import {
+  AnnotationShape,
+  AnnotationShapeProperty,
+  AnnotationShapeRelation,
+  AnnotationShapes,
+} from './annotations/Definitions.js';
 import { AnnotationRemoval, type RamenNodeRemovalPreview, type RamenRelationRemovalPreview } from './annotations/Removal.js';
 import { RamenModelFormat, RamenModelDocument } from './Document.js';
 import { RAMEN_MODEL } from './ReferenceModel.js';
 import { RamenValidator } from './validation/ModelValidator.js';
 import { RamenInstanceValidator } from './data/InstanceValidator.js';
-import type { AnnotationOptions, PropertyOption, RelationOption } from './annotations/Advisor.js';
-import { RamenAdvisor, AnnotationSuggestion } from './Advisor.js';
+import type { AnnotationShapeOptions, PropertyOption, RelationOption } from './annotations/Advisor.js';
+import { RamenAdvisor, AnnotationShapeSuggestion } from './Advisor.js';
 import { RamenFiles, RamenFile } from './exchange/File.js';
 import { RamenEvolution, RamenEvolutionReport } from './exchange/Comparison.js';
 
@@ -49,26 +54,26 @@ export type AnnotationLink = {
   readonly bounds: Bounds;
 } & ({ readonly from: ElementInput; readonly to?: never } | { readonly to: ElementInput; readonly from?: never });
 
-/** Apply a selected relationship to an annotation type with its own cardinality. */
+/** Apply a selected relationship to an annotation shape with its own cardinality. */
 export interface AnnotationConnection {
   readonly connection: RelationSelection;
   readonly bounds: Bounds;
 }
 
 /** Count selected relations under one cardinality rule. */
-export interface AnnotationRelationGroupInput {
+export interface AnnotationShapeRelationGroupInput {
   readonly relations: readonly Relation[];
   readonly direction: 'outgoing' | 'incoming';
   readonly bounds: Bounds;
 }
 
-/** Declare a property owned only by this annotation type. */
-export type AnnotationPropertyInput = AnnotationProperty | AttributeInput;
+/** Declare a property owned only by this annotation shape. */
+export type AnnotationShapePropertyInput = AnnotationShapeProperty | AttributeInput;
 
 /** Select relationships by objects, IDs or endpoints. */
-export type AnnotationRelationInput =
-  | AnnotationRelation
-  | AnnotationRelationGroupInput
+export type AnnotationShapeRelationInput =
+  | AnnotationShapeRelation
+  | AnnotationShapeRelationGroupInput
   | {
       readonly relation: Relation;
       readonly relationId?: Ref;
@@ -80,17 +85,17 @@ export type AnnotationRelationInput =
   | AnnotationConnection;
 
 /** Select the Annotation node by object or ID; the object takes precedence. */
-export type AnnotationInput = {
+export type AnnotationShapeInput = {
   readonly type: string;
-  readonly properties?: readonly AnnotationPropertyInput[];
-  readonly relations?: readonly AnnotationRelationInput[];
+  readonly properties?: readonly AnnotationShapePropertyInput[];
+  readonly relations?: readonly AnnotationShapeRelationInput[];
 } & ({ readonly node: Node; readonly nodeId?: Ref } | { readonly node?: Node; readonly nodeId: Ref });
 
 /** Editable fields of a locally declared annotation definition. */
-export interface AnnotationUpdate {
+export interface AnnotationShapeUpdate {
   readonly type?: string;
-  readonly properties?: readonly AnnotationPropertyInput[];
-  readonly relations?: readonly AnnotationRelationInput[];
+  readonly properties?: readonly AnnotationShapePropertyInput[];
+  readonly relations?: readonly AnnotationShapeRelationInput[];
 }
 
 /** Adds the RAMEN vocabulary and annotation rules to shared generic editing. */
@@ -113,7 +118,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   protected override selections(): RelationSelections {
-    return RamenAnnotations.relationSelections(this.validationInputs());
+    return AnnotationShapes.relationSelections(this.validationInputs());
   }
 
   private family(name: string): readonly Ref[] {
@@ -173,7 +178,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return new RamenModel(this.getModel(), [], this.workspace.snapshot(), true);
   }
 
-  /** Exports a single RAMEN graph. Annotation types and inherited declarations are stored once. */
+  /** Exports a single RAMEN graph. Annotation shapes and inherited declarations are stored once. */
   public export(project: ProjectMetadata | undefined = this.getProjectMetadata()): RamenFile {
     return RamenFiles.write(this.model.id, this.validationInputs(), project);
   }
@@ -188,37 +193,37 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return structuredClone(this.model) as RamenModelDocument;
   }
 
-  /** Returns the closed annotation variants declared directly by the project model. */
-  public getAnnotations(): readonly RamenAnnotation[] {
-    return RamenAnnotations.get(this.model);
+  /** Returns the annotation shapes declared directly by the project model. */
+  public getAnnotationShapes(): readonly AnnotationShape[] {
+    return AnnotationShapes.get(this.model);
   }
 
-  /** Lists the properties selected or declared by one annotation type. */
-  public getAttributesForAnnotation(annotation: ElementInput, type: string): readonly PropertyOption[] {
-    return this.getAdvisor().getAttributesForAnnotation(this.model.id, this.nodeReference(annotation), type);
+  /** Lists all shared and shape-owned properties of one annotation shape. */
+  public getPropertiesForAnnotationShape(annotation: ElementInput, type: string): readonly PropertyOption[] {
+    return this.getAdvisor().getPropertiesForAnnotationShape(this.model.id, this.nodeReference(annotation), type);
   }
 
-  /** Lists current-level relations allowed by one annotation type, including its cardinality rules. */
-  public getRelationsForAnnotation(node: ElementInput, type: string): readonly RelationOption[] {
-    return this.getAdvisor().getRelationsForAnnotation(this.model.id, this.nodeReference(node), type);
+  /** Lists current-level relations allowed by one annotation shape, including its cardinality rules. */
+  public getRelationsForAnnotationShape(node: ElementInput, type: string): readonly RelationOption[] {
+    return this.getAdvisor().getRelationsForAnnotationShape(this.model.id, this.nodeReference(node), type);
   }
 
-  /** Lists annotation definitions available on a local or imported node. */
-  public suggestAnnotations(annotation: ElementInput): readonly AnnotationSuggestion[] {
+  /** Lists annotation shapes available on a local or imported node. */
+  public suggestAnnotationShapes(annotation: ElementInput): readonly AnnotationShapeSuggestion[] {
     const owner: ElementRef = this.resolveRef(annotation, 'node');
     const reference: Id = owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
-    return this.getAdvisor().suggestAnnotations(this.model.id, reference);
+    return this.getAdvisor().suggestAnnotationShapes(this.model.id, reference);
   }
 
-  /** Lists annotation types allowed on a carrier, optionally for one chosen Annotation node. */
-  public suggestAnnotationsForNode(node: ElementInput, annotation?: ElementInput): readonly AnnotationSuggestion[] {
+  /** Lists annotation shapes allowed on a carrier, optionally for one chosen Annotation node. */
+  public suggestAnnotationShapesForNode(node: ElementInput, annotation?: ElementInput): readonly AnnotationShapeSuggestion[] {
     const target: Id | undefined = annotation ? this.nodeReference(annotation) : undefined;
-    return this.getAdvisor().suggestAnnotationsForNode(this.model.id, this.nodeReference(node), target);
+    return this.getAdvisor().suggestAnnotationShapesForNode(this.model.id, this.nodeReference(node), target);
   }
 
-  /** Lists properties and selected model relations available when declaring an annotation type. */
-  public suggestAnnotationOptions(node: ElementInput): AnnotationOptions | undefined {
-    return this.getAdvisor().suggestAnnotationOptions(this.model.id, this.nodeReference(node));
+  /** Lists properties and selected model relations available when declaring an annotation shape. */
+  public suggestAnnotationShapeOptions(node: ElementInput): AnnotationShapeOptions | undefined {
+    return this.getAdvisor().suggestAnnotationShapeOptions(this.model.id, this.nodeReference(node));
   }
 
   /** Validates a complete data graph against this RAMEN model. */
@@ -231,7 +236,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /**
-   * Checks one property input for an annotation type without requiring recorded nodes or links.
+   * Checks one property input for an annotation shape without requiring recorded nodes or links.
    * Throws if the type or property is unavailable. Cross-record rules require validateInstances().
    */
   public validateAnnotationValue(
@@ -247,8 +252,8 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     const reference: Ref = this.nodeReference(node);
     const annotations: AnnotationIndex = new AnnotationIndex(project.graph, this.validationInputs());
     const actual: ResolvedElement<Node> | undefined = project.graph.resolveNode(this.model.id, reference);
-    const selected: ResolvedAnnotation | undefined = annotations.findEffective(this.model.id, reference, type);
-    if (!actual || !selected) throw new Error(`Annotation type '${type}' not found on node '${reference}'.`);
+    const selected: ResolvedAnnotationShape | undefined = annotations.findEffective(this.model.id, reference, type);
+    if (!actual || !selected) throw new Error(`Annotation shape '${type}' not found on node '${reference}'.`);
     const attribute: Attribute | undefined = AnnotationProperties.allowed(project.graph, selected, actual).find(
       (item: Attribute): boolean => item.name === name,
     );
@@ -269,14 +274,14 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /**
-   * Declares an annotation variant. Relationship selections refer to existing allowed definitions; declaring an annotation never creates relations.
+   * Declares an annotation shape. Relationship selections refer to existing allowed definitions; declaring a shape never creates relations.
    * Throws on unavailable or ambiguous selections without changing the model. Object selections are stored as references.
    */
-  public createAnnotation(input: AnnotationInput): ModelChange<RamenAnnotation> {
+  public createAnnotationShape(input: AnnotationShapeInput): ModelChange<AnnotationShape> {
     const annotationNode: ElementInput | undefined = input.node ?? input.nodeId;
     if (annotationNode === undefined) throw new Error('Select an Annotation node.');
     const owner: ElementRef = this.resolveRef(annotationNode, 'node');
-    const annotation: RamenAnnotation = {
+    const annotation: AnnotationShape = {
       id: ModelFactory.createIdentifier(),
       annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
       type: input.type,
@@ -284,36 +289,36 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       relations: this.annotationRelations(annotationNode, input.relations ?? []),
     };
 
-    this.model = RamenAnnotations.add(this.model, annotation);
+    this.model = AnnotationShapes.add(this.model, annotation);
     return this.change(annotation);
   }
 
-  /** Updates a local annotation, resolving endpoint selections or preserving supplied references, then validates the project. */
-  public updateAnnotation(annotationId: Id, input: AnnotationUpdate): ModelChange<RamenAnnotation> {
-    const current: RamenAnnotation | undefined = this.getAnnotations().find(
-      (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
+  /** Updates a local annotation shape, resolving endpoint selections or preserving supplied references, then validates the project. */
+  public updateAnnotationShape(annotationId: Id, input: AnnotationShapeUpdate): ModelChange<AnnotationShape> {
+    const current: AnnotationShape | undefined = this.getAnnotationShapes().find(
+      (annotation: AnnotationShape): boolean => annotation.id === annotationId,
     );
     if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
 
-    const annotation: RamenAnnotation = {
+    const annotation: AnnotationShape = {
       ...current,
       type: input.type ?? current.type,
       properties: this.annotationProperties(input.properties ?? current.properties),
       relations: this.annotationRelations(current.annotationId, input.relations ?? current.relations),
     };
 
-    this.model = RamenAnnotations.update(this.model, annotationId, annotation);
+    this.model = AnnotationShapes.update(this.model, annotationId, annotation);
     return this.change(annotation);
   }
 
   /** Removes a locally declared annotation and validates the complete project. */
-  public removeAnnotation(annotationId: Id): ModelChange<RamenAnnotation> {
-    const current: RamenAnnotation | undefined = this.getAnnotations().find(
-      (annotation: RamenAnnotation): boolean => annotation.id === annotationId,
+  public removeAnnotationShape(annotationId: Id): ModelChange<AnnotationShape> {
+    const current: AnnotationShape | undefined = this.getAnnotationShapes().find(
+      (annotation: AnnotationShape): boolean => annotation.id === annotationId,
     );
 
     if (!current) throw new Error(`Annotation not found: '${annotationId}'.`);
-    this.model = RamenAnnotations.remove(this.model, annotationId);
+    this.model = AnnotationShapes.remove(this.model, annotationId);
     return this.change(current);
   }
 
@@ -347,8 +352,8 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return { ...preview, updatedAnnotations: details.updatedAnnotations };
   }
 
-  private annotationProperties(inputs: readonly AnnotationPropertyInput[]): readonly AnnotationProperty[] {
-    return inputs.map((input: AnnotationPropertyInput): AnnotationProperty => {
+  private annotationProperties(inputs: readonly AnnotationShapePropertyInput[]): readonly AnnotationShapeProperty[] {
+    return inputs.map((input: AnnotationShapePropertyInput): AnnotationShapeProperty => {
       if ('id' in input) return structuredClone(input);
       return ModelFactory.createAttribute({
         ...input,
@@ -358,8 +363,11 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     });
   }
 
-  private annotationRelations(owner: ElementInput, inputs: readonly AnnotationRelationInput[]): readonly AnnotationRelation[] {
-    return inputs.map((input: AnnotationRelationInput): AnnotationRelation => {
+  private annotationRelations(
+    owner: ElementInput,
+    inputs: readonly AnnotationShapeRelationInput[],
+  ): readonly AnnotationShapeRelation[] {
+    return inputs.map((input: AnnotationShapeRelationInput): AnnotationShapeRelation => {
       if ('relations' in input) {
         return {
           relationIds: input.relations.map((relation: Relation): Ref => this.relationReference(relation)),
@@ -404,7 +412,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return selected;
   }
 
-  private connectionRule(owner: ElementInput, input: AnnotationConnection): AnnotationRelation {
+  private connectionRule(owner: ElementInput, input: AnnotationConnection): AnnotationShapeRelation {
     const reference: ElementRef = this.resolveRef(owner, 'node');
     const node: Ref = ModelRef.qualify(reference.modelId, reference.elementId);
     const connection: RelationSelection = input.connection;

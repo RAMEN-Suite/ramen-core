@@ -6,20 +6,20 @@ group: RAMEN
 
 # Track Changes
 
-Use {@link ramen.RamenModel.snapshot | snapshot()} before editing a RAMEN model and {@link ramen.RamenModel.compareTo | compareTo()} afterward. The report includes generic model changes and changes to annotation definitions. [Track Model Changes](../rmf/model-changes.md) explains the generic report.
+Use {@link ramen.RamenModel.snapshot | snapshot()} before editing a RAMEN model and {@link ramen.RamenModel.compareTo | compareTo()} afterward. The report includes generic model changes and changes to annotation shapes. [Track Model Changes](../rmf/model-changes.md) explains the generic report.
 
 ## Compare an Edition model
 
-Continue from the [Edition model](ramen.md#create-a-project-model). Save its current state, then add a `person` annotation type and a property on Letter:
+Continue from the [Edition model](ramen.md#create-a-project-model). Save its current state, then add a `person` annotation shape and a property on Letter:
 
 ```ts
 import { DataTypes } from '@ramen-suite/core/model';
 import type { Attribute } from '@ramen-suite/core/model';
-import type { RamenAnnotation, RamenModel } from '@ramen-suite/core/ramen';
+import type { AnnotationShape, RamenModel } from '@ramen-suite/core/ramen';
 
 const before: RamenModel = edition.snapshot();
 
-const personType: RamenAnnotation = edition.createAnnotation({
+const personType: AnnotationShape = edition.createAnnotationShape({
   node: RAMEN_ELEMENT.ANNOTATION,
   type: 'person',
   relations: [
@@ -35,14 +35,14 @@ Read the two kinds of changes separately:
 
 ```ts
 import type { EvolutionChange } from '@ramen-suite/core/model';
-import type { RamenAnnotationChange, RamenEvolutionReport } from '@ramen-suite/core/ramen';
+import type { AnnotationShapeChange, RamenEvolutionReport } from '@ramen-suite/core/ramen';
 
 const report: RamenEvolutionReport = before.compareTo(edition);
 const titleChange: EvolutionChange | undefined = report.changes.find(
   (change: EvolutionChange): boolean => change.elementId === title.id,
 );
-const typeChange: RamenAnnotationChange | undefined = report.annotationChanges.find(
-  (change: RamenAnnotationChange): boolean => change.annotationId === personType.id,
+const typeChange: AnnotationShapeChange | undefined = report.annotationChanges.find(
+  (change: AnnotationShapeChange): boolean => change.annotationId === personType.id,
 );
 
 console.log(titleChange?.action); // 'added'

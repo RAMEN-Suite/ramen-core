@@ -28,6 +28,17 @@ const json: string = JSON.stringify(file, null, 2);
 
 `website.export()` includes Website and Filing. It does not include an unrelated sibling model. Export checks the model first and throws if its definitions are invalid. Use [Validate a Model](validate-model.md) to show findings before export.
 
+Project information is separate from model-level names. Pass `{ name, description }` to `export()` to include it under `file.project`. `Modeller.import(file)` retains this information; `getProjectMetadata()` returns a detached copy, and subsequent exports, level selection and snapshots preserve it. `RamenModel` provides the same API. Supplying metadata to an export changes that file only; it does not rename model levels or modify the workspace.
+
+```ts
+const projectFile: ModelFile = website.export({
+  name: 'Website project',
+  description: 'Shared models for the editorial website.',
+});
+const restored: Modeller = Modeller.import(projectFile);
+console.log(restored.getProjectMetadata()?.name); // Website project
+```
+
 ## Understand the file
 
 The file has one list of model headers and shared lists of declarations:

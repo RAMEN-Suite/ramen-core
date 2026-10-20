@@ -20,7 +20,10 @@ if (!(RootModeller.create('Root identity') instanceof Modeller)) {
 const model: Modeller = Modeller.create('Package consumer');
 const document: Node = model.createNode('Document').element;
 model.createAttribute(document, { name: 'title', typeId: DataTypes.String });
-const file: ModelFile = model.export();
+const file: ModelFile = model.export({ name: 'Independent project title', description: 'Preserved project description.' });
+if (Modeller.import(file).getProjectMetadata()?.name !== file.project?.name) {
+  throw new Error('Project metadata must survive package exchange independently of model names.');
+}
 
 if (file.$schema !== schema.$id || !Modeller.import(file).validate().valid) {
   throw new Error('The installed RMF package cannot exchange a model using its packaged schema.');

@@ -1,4 +1,5 @@
 import type { Id, Model, Ref } from '../Types.js';
+import type { ProjectMetadata } from '../exchange/File.js';
 import { ModelRef } from '../graph/References.js';
 
 /** Identity of a declaration in the editable model workspace. */
@@ -59,9 +60,15 @@ function append(index: Map<string, WorkspaceElement[]>, key: string, item: Works
 export class ModelWorkspace {
   private readonly models: Map<Id, Model> = new Map<Id, Model>();
   private revision: number = 0;
+  private readonly project: ProjectMetadata | undefined;
 
-  public constructor(models: readonly Model[]) {
+  public constructor(models: readonly Model[], project?: ProjectMetadata) {
+    this.project = structuredClone(project);
     for (const model of models) this.add(model);
+  }
+
+  public getProjectMetadata(): ProjectMetadata | undefined {
+    return structuredClone(this.project);
   }
 
   public get version(): number {
@@ -78,7 +85,7 @@ export class ModelWorkspace {
 
   /** Copies every model into an independent editable workspace. */
   public snapshot(): ModelWorkspace {
-    return new ModelWorkspace(this.all());
+    return new ModelWorkspace(this.all(), this.project);
   }
 
   public add(model: Model): void {

@@ -1,5 +1,5 @@
 import { compileSchema, SchemaNode } from 'json-schema-library';
-import type { ModelFile, Owned, Id, Model, ProjectValidationResult } from '../../model/index.js';
+import type { ModelFile, Owned, Id, Model, ProjectMetadata, ProjectValidationResult } from '../../model/index.js';
 import { FileParts } from '../../model/exchange/File.js';
 
 import { RamenValidator } from '../validation/ModelValidator.js';
@@ -17,7 +17,7 @@ export class RamenFiles {
   private static readonly schema: SchemaNode = compileSchema(fileSchema);
 
   /** Validates and merges the project. Every declaration appears once, under its original model identity. */
-  public static write(id: Id, models: readonly Model[]): RamenFile {
+  public static write(id: Id, models: readonly Model[], project?: ProjectMetadata): RamenFile {
     const result: ProjectValidationResult = new RamenValidator().validateProject(id, models);
     FileParts.assertValid(result);
     const reachable: ReadonlySet<Id> = new Set<Id>(result.graph.getModels().map((model: Model): Id => model.id));
@@ -28,14 +28,16 @@ export class RamenFiles {
       return rest;
     });
 
-    return structuredClone({
-      ...FileParts.merge(id, core, fileSchema.$id),
+    const file: RamenFile = structuredClone({
+      ...FileParts.merge(id, core, fileSchema.$id, project),
       annotations: selected.flatMap((model: Model): Owned<RamenAnnotation>[] =>
         RamenModelFormat.isDocument(model)
           ? model.annotations.map((item: RamenAnnotation): Owned<RamenAnnotation> => ({ ...item, modelId: model.id }))
           : [],
       ),
     });
+    FileParts.assertSchema(this.schema, file);
+    return file;
   }
 
   /** Checks JSON shape, declaration ownership, references and RAMEN semantics before restoring models. */

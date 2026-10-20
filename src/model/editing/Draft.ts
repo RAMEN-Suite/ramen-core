@@ -33,6 +33,7 @@ import {
   WorkspaceElement,
 } from './Workspace.js';
 import { ConstraintOwners, type ConstraintLocation, type ConstraintOwnerInput } from './ConstraintOwner.js';
+import type { ProjectMetadata } from '../exchange/File.js';
 import { ModelRef } from '../graph/References.js';
 import type { RelationSelections } from '../graph/RelationScope.js';
 import type { ResolvedElement } from '../graph/ProjectGraph.js';
@@ -92,6 +93,11 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
 
   protected get dependencies(): ReadonlyMap<Id, Model> {
     return this.workspace.dependenciesOf(this.modelId);
+  }
+
+  /** Returns detached project information, independently of the selected model level. */
+  public getProjectMetadata(): ProjectMetadata | undefined {
+    return this.workspace.getProjectMetadata();
   }
 
   /** Returns a detached snapshot of the current project model. */

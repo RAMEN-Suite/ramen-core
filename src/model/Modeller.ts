@@ -5,7 +5,7 @@ import { ModelFactory } from './editing/Factory.js';
 import { ModelValidator, ProjectValidationResult, ValidProjectResult, ValidationResult } from './validation/ModelValidator.js';
 import { InstanceValidator } from './data/InstanceValidator.js';
 import type { ConstraintRegistry } from './validation/Constraints.js';
-import { ModelFiles, ModelFile } from './exchange/File.js';
+import { ModelFiles, ModelFile, type ProjectMetadata } from './exchange/File.js';
 import { ModelEvolution, EvolutionReport } from './exchange/Comparison.js';
 import { ModelWorkspace } from './editing/Workspace.js';
 import type { Id, Model } from './Types.js';
@@ -38,13 +38,11 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
   /** Loads a shared graph and restores its project context without a consumer-side model selection. */
   public static import(input: unknown): Modeller {
     const models: readonly Model[] = ModelFiles.read(input);
-    const id: Id = (input as ModelFile).id;
+    const file: ModelFile = input as ModelFile;
+    const id: Id = file.id;
     const model: Model | undefined = models.find((item: Model): boolean => item.id === id);
     if (!model) throw new Error('Exported model not found.');
-    return Modeller.load(
-      model,
-      models.filter((item: Model): boolean => item.id !== id),
-    );
+    return new Modeller(model, [], new ModelWorkspace(models, file.project), true);
   }
 
   /** Creates another level in the same editable model workspace. */
@@ -66,8 +64,8 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
   }
 
   /** Exports one graph with retained inheritance, original IDs and declaration ownership. */
-  public export(): ModelFile {
-    return ModelFiles.write(this.model.id, this.validationInputs());
+  public export(project: ProjectMetadata | undefined = this.getProjectMetadata()): ModelFile {
+    return ModelFiles.write(this.model.id, this.validationInputs(), project);
   }
 
   /** Reports changes across both complete workspaces without migrating captured data. */

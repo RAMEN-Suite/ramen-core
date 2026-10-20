@@ -9,11 +9,18 @@ export type ModelHeader = Omit<Model, 'classifiers' | 'relations'>;
 /** Declaration with its original model identity; nested elements keep the same owner. */
 export type Owned<T> = T & { readonly modelId: Id };
 
+/** Project information independent of the names of individual model levels. */
+export interface ProjectMetadata {
+  readonly name: string;
+  readonly description: string;
+}
+
 /** A single graph containing declarations from every reachable model, without copying inherited features. */
 export interface ModelFile {
   readonly $schema: string;
   /** Identity of the exported project; also identifies its metadata in models. */
   readonly id: Id;
+  readonly project?: ProjectMetadata;
   readonly models: readonly ModelHeader[];
   readonly classifiers: readonly Owned<Classifier>[];
   readonly relations: readonly Owned<Relation>[];
@@ -24,10 +31,12 @@ export class ModelFiles {
   private static readonly schema: SchemaNode = compileSchema(fileSchema);
 
   /** Validates and combines one project and its dependencies into a detached graph document. */
-  public static write(id: Id, models: readonly Model[]): ModelFile {
+  public static write(id: Id, models: readonly Model[], project?: ProjectMetadata): ModelFile {
     const result: ProjectValidationResult = new ModelValidator().validateProject(id, models);
     FileParts.assertValid(result);
-    return FileParts.merge(id, result.graph.getModels(), fileSchema.$id);
+    const file: ModelFile = FileParts.merge(id, result.graph.getModels(), fileSchema.$id, project);
+    FileParts.assertSchema(this.schema, file);
+    return file;
   }
 
   /** Validates untrusted JSON and restores all original model declarations. */
@@ -43,10 +52,11 @@ export class ModelFiles {
 
 /** @internal Shared transport operations; language-specific checks belong to their validators. */
 export class FileParts {
-  public static merge(id: Id, models: readonly Model[], schema: string): ModelFile {
+  public static merge(id: Id, models: readonly Model[], schema: string, project?: ProjectMetadata): ModelFile {
     return structuredClone({
       $schema: schema,
       id,
+      ...(project !== undefined ? { project } : {}),
       models: models.map((model: Model): ModelHeader => {
         const { classifiers: _classifiers, relations: _relations, ...header }: Model = model;
         return header;

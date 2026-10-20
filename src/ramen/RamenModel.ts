@@ -10,6 +10,7 @@ import {
   type ModelChange,
   ModelFactory,
   ModelRef,
+  type ProjectMetadata,
   type RelationSelection,
   type RelationSelections,
   ConstraintRegistry,
@@ -155,13 +156,12 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   /** Restores an editable project from a shared graph and validates every model level. */
   public static import(input: unknown): RamenModel {
     const models: readonly Model[] = RamenFiles.read(input);
-    const id: Id = (input as RamenFile).id;
+    const file: RamenFile = input as RamenFile;
+    const id: Id = file.id;
     const model: Model | undefined = models.find((item: Model): boolean => item.id === id);
     if (!model) throw new Error('Exported RAMEN model not found.');
-    return RamenModel.load(
-      model,
-      models.filter((item: Model): boolean => item.id !== id),
-    );
+    if (!RamenModelFormat.isDocument(model)) throw new Error('Expected a RAMEN project model.');
+    return new RamenModel(model, [], new ModelWorkspace(models, file.project), true);
   }
 
   /** Creates another level in the same editable model workspace. */
@@ -184,8 +184,8 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   /** Exports a single RAMEN graph. Annotation types and inherited declarations are stored once. */
-  public export(): RamenFile {
-    return RamenFiles.write(this.model.id, this.validationInputs());
+  public export(project: ProjectMetadata | undefined = this.getProjectMetadata()): RamenFile {
+    return RamenFiles.write(this.model.id, this.validationInputs(), project);
   }
 
   /** Compares complete RAMEN workspaces and includes validation findings from both states. */

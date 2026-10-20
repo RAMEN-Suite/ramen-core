@@ -65,4 +65,4 @@ export type {
 export type { ConstraintOwner, ConstraintOwnerInput } from './editing/ConstraintOwner.js';
 
 export { ModelFiles } from './exchange/File.js';
-export type { ModelFile, ModelHeader, Owned } from './exchange/File.js';
+export type { ModelFile, ModelHeader, Owned, ProjectMetadata } from './exchange/File.js';

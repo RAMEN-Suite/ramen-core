@@ -107,6 +107,13 @@ function graphProperties(fileUri: string, ramen: boolean): Readonly<Record<strin
       $ref: '#/$defs/Id',
       description: 'Identity of the exported project, matching one model header. Its context preserves relation restrictions.',
     },
+    project: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['name', 'description'],
+      properties: { name: { type: 'string', minLength: 1 }, description: { type: 'string' } },
+      description: 'Project name and description, independent of individual model level names.',
+    },
     models: {
       type: 'array',
       minItems: 1,

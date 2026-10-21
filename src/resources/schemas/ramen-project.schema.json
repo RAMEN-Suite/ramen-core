@@ -40,6 +40,7 @@
       "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it.",
       "properties": { "ramen": false }
     },
+    "description": { "$ref": "#/$defs/Description" },
     "annotations": { "type": "array", "items": { "$ref": "#/$defs/RamenAnnotationShape" }, "default": [] }
   },
   "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modelling rather than full behavioural or reflective semantics.",
@@ -119,7 +120,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this constraint; it has no RMF validation semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Classifier": { "oneOf": [{ "$ref": "#/$defs/Node" }, { "$ref": "#/$defs/DataType" }] },
@@ -146,7 +148,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "DataType": {
@@ -174,7 +177,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Literal": {
@@ -199,7 +203,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this literal; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Attribute": {
@@ -238,7 +243,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this attribute; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Relation": {
@@ -259,7 +265,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "RelationEnd": {
@@ -279,6 +286,11 @@
           "default": {}
         }
       }
+    },
+    "Description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Optional plain-text documentation of a definition. It does not constrain captured data."
     },
     "RamenId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,}$" },
     "RamenRef": { "type": "string", "pattern": "^(?:[A-Za-z0-9_-]{16,}|[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,})$" },
@@ -345,7 +357,8 @@
           "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
           "items": { "$ref": "#/$defs/RamenAnnotationShapeRelation" },
           "default": []
-        }
+        },
+        "description": { "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Description" }
       }
     }
   }

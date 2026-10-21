@@ -1,3 +1,4 @@
+import { ModelDescriptions } from '../Descriptions.js';
 import type { Id, Model, Ref } from '../Types.js';
 import type { ProjectMetadata } from '../exchange/File.js';
 import { ModelRef } from '../graph/References.js';
@@ -27,6 +28,7 @@ export interface ModelRemovalPreview {
 /** Identity fields that can change without replacing a model's declarations. */
 export interface ModelUpdate {
   readonly name?: string;
+  readonly description?: string;
   readonly uri?: string;
   readonly version?: string;
 }
@@ -90,19 +92,19 @@ export class ModelWorkspace {
 
   public add(model: Model): void {
     if (this.models.has(model.id)) throw new Error(`Model already exists: '${model.id}'.`);
-    this.models.set(model.id, structuredClone(model));
+    this.models.set(model.id, ModelDescriptions.copy(model));
     this.revision += 1;
   }
 
   public update(model: Model): void {
     if (!this.models.has(model.id)) throw new Error(`Model not found: '${model.id}'.`);
-    this.models.set(model.id, structuredClone(model));
+    this.models.set(model.id, ModelDescriptions.copy(model));
     this.revision += 1;
   }
 
   /** Publishes a complete edit only after every replacement has been prepared. */
   public updateMany(models: readonly Model[]): void {
-    const replacements: readonly Model[] = models.map((model: Model): Model => structuredClone(model));
+    const replacements: readonly Model[] = models.map((model: Model): Model => ModelDescriptions.copy(model));
     for (const model of replacements) {
       if (!this.models.has(model.id)) throw new Error(`Model not found: '${model.id}'.`);
     }
@@ -118,6 +120,7 @@ export class ModelWorkspace {
     const updated: Model = {
       ...current,
       name: patch.name ?? current.name,
+      ...('description' in patch ? { description: patch.description } : {}),
       $id: patch.uri ?? current.$id,
       version: patch.version ?? current.version,
     };
@@ -132,7 +135,7 @@ export class ModelWorkspace {
     });
 
     this.updateMany(replacements);
-    return structuredClone(updated);
+    return ModelDescriptions.copy(updated);
   }
 
   /** Shows a level and all transitive importing levels in removal order. */

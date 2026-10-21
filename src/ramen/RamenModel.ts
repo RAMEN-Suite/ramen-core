@@ -87,6 +87,7 @@ export type AnnotationShapeRelationInput =
 /** Select the Annotation node by object or ID; the object takes precedence. */
 export type AnnotationShapeInput = {
   readonly type: string;
+  readonly description?: string;
   readonly properties?: readonly AnnotationShapePropertyInput[];
   readonly relations?: readonly AnnotationShapeRelationInput[];
 } & ({ readonly node: Node; readonly nodeId?: Ref } | { readonly node?: Node; readonly nodeId: Ref });
@@ -94,6 +95,7 @@ export type AnnotationShapeInput = {
 /** Editable fields of a locally declared annotation definition. */
 export interface AnnotationShapeUpdate {
   readonly type?: string;
+  readonly description?: string;
   readonly properties?: readonly AnnotationShapePropertyInput[];
   readonly relations?: readonly AnnotationShapeRelationInput[];
 }
@@ -285,6 +287,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       id: ModelFactory.createIdentifier(),
       annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
       type: input.type,
+      description: input.description,
       properties: this.annotationProperties(input.properties ?? []),
       relations: this.annotationRelations(annotationNode, input.relations ?? []),
     };
@@ -303,6 +306,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     const annotation: AnnotationShape = {
       ...current,
       type: input.type ?? current.type,
+      ...('description' in input ? { description: input.description } : {}),
       properties: this.annotationProperties(input.properties ?? current.properties),
       relations: this.annotationRelations(current.annotationId, input.relations ?? current.relations),
     };

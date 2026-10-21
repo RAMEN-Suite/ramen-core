@@ -116,7 +116,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this constraint; it has no RMF validation semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Classifier": { "oneOf": [{ "$ref": "#/$defs/Node" }, { "$ref": "#/$defs/DataType" }] },
@@ -143,7 +144,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "DataType": {
@@ -171,7 +173,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Literal": {
@@ -196,7 +199,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this literal; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Attribute": {
@@ -235,7 +239,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this attribute; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Relation": {
@@ -256,7 +261,8 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
           "default": {}
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "RelationEnd": {
@@ -276,6 +282,11 @@
           "default": {}
         }
       }
+    },
+    "Description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Optional plain-text documentation of a definition. It does not constrain captured data."
     },
     "RamenId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,}$" },
     "RamenRef": { "type": "string", "pattern": "^(?:[A-Za-z0-9_-]{16,}|[A-Za-z0-9_-]{16,}:[A-Za-z0-9_-]{16,})$" },
@@ -342,7 +353,8 @@
           "description": "Complete allowlist of incoming and outgoing relations for this type. Omitted relations are not available to data using it.",
           "items": { "$ref": "#/$defs/RamenAnnotationShapeRelation" },
           "default": []
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "Header": {
@@ -373,7 +385,8 @@
           "default": {},
           "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it.",
           "properties": { "ramen": false }
-        }
+        },
+        "description": { "$ref": "#/$defs/Description" }
       }
     },
     "OwnedNode": {
@@ -400,6 +413,7 @@
           "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
           "default": {}
         },
+        "description": { "$ref": "#/$defs/Description" },
         "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
       }
     },
@@ -429,6 +443,7 @@
           "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
           "default": {}
         },
+        "description": { "$ref": "#/$defs/Description" },
         "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
       }
     },
@@ -451,6 +466,7 @@
           "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
           "default": {}
         },
+        "description": { "$ref": "#/$defs/Description" },
         "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
       }
     },
@@ -485,6 +501,7 @@
           "items": { "$ref": "#/$defs/RamenAnnotationShapeRelation" },
           "default": []
         },
+        "description": { "$ref": "#/$defs/Description" },
         "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
       }
     }

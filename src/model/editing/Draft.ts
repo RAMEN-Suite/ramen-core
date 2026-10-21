@@ -1,3 +1,4 @@
+import { ModelDescriptions } from '../Descriptions.js';
 import { ModelConnections, RelationChoice, RelationSelection } from './Connections.js';
 import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './Editor.js';
 import { ModelFactory, CreateModelInput, CreateDataTypeInput } from './Factory.js';
@@ -425,7 +426,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   /** Adds one named literal to a local data type. */
   public createLiteral(dataTypeId: Id, input: LiteralInput): ModelChange<Literal> {
     const dataType: DataType = this.requireDataType(dataTypeId);
-    const literal: Literal = ModelFactory.createLiteral(input.name, input.literal, input.value);
+    const literal: Literal = ModelFactory.createLiteral(input.name, input.literal, input.value, input.description);
     const literals: [Literal, ...Literal[]] = [literal, ...(dataType.literals ?? [])];
 
     this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals: literals });
@@ -436,7 +437,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   public updateLiteral(dataTypeId: Id, literalId: Id, input: LiteralUpdate): ModelChange<Literal> {
     const dataType: DataType = this.requireDataType(dataTypeId);
     const current: Literal = this.requireLiteral(dataType, literalId);
-    const literal: Literal = { ...current, ...structuredClone(input) };
+    const literal: Literal = ModelDescriptions.copy({ ...current, ...structuredClone(input) });
     const literals: [Literal, ...Literal[]] = (dataType.literals ?? []).map((item: Literal): Literal =>
       item.id === literalId ? literal : item,
     ) as [Literal, ...Literal[]];
@@ -464,6 +465,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const configured: Relation = {
       ...relation,
       name: input.name ?? relation.name,
+      description: input.description,
       constraints: structuredClone([...(input.constraints ?? relation.constraints ?? [])]),
       from: this.configureRelationEnd(relation.from, fromInput),
       to: this.configureRelationEnd(relation.to, toInput),
@@ -530,7 +532,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     }
 
     const validation: ProjectValidationResult = this.replaceConstraints(location, [...location.constraints, rule]);
-    return { element: structuredClone(rule), validation };
+    return { element: ModelDescriptions.copy(rule), validation };
   }
 
   /** Updates one rule by ID on a local element while preserving its other rules. */
@@ -547,7 +549,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       item.id === ruleId ? updated : item,
     );
     const validation: ProjectValidationResult = this.replaceConstraints(location, rules);
-    return { element: structuredClone(updated), validation };
+    return { element: ModelDescriptions.copy(updated), validation };
   }
 
   /** Removes one rule by ID from a local element while preserving its other rules. */
@@ -583,7 +585,13 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   protected static options(input: ModelInput | string): CreateModelInput {
     const values: ModelInput = typeof input === 'string' ? { name: input } : input;
     const id: Id = values.id ?? ModelFactory.createIdentifier();
-    return { id, name: values.name, uri: values.uri ?? `urn:rmf:model:${id}`, version: values.version ?? '1.0.0' };
+    return {
+      id,
+      name: values.name,
+      description: values.description,
+      uri: values.uri ?? `urn:rmf:model:${id}`,
+      version: values.version ?? '1.0.0',
+    };
   }
 
   protected nodeReference(nodeId: ElementInput): Id {
@@ -592,7 +600,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   }
 
   protected change<T>(element: T): ModelChange<T> {
-    return { element: structuredClone(element), validation: this.validate() };
+    return { element: ModelDescriptions.copy(element), validation: this.validate() };
   }
 
   protected validationInputs(): readonly Model[] {
@@ -735,7 +743,11 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const constraints: Constraint[] = structuredClone([...(input.constraints ?? [])]);
     if (input.refines !== undefined) {
       const base: ElementRef = this.resolveRef(input.refines, 'node');
-      const node: Node = ModelFactory.createNode(base.modelId, { name: input.name, baseNodeId: base.elementId });
+      const node: Node = ModelFactory.createNode(base.modelId, {
+        name: input.name,
+        description: input.description,
+        baseNodeId: base.elementId,
+      });
       return { ...node, constraints: constraints };
     }
     if (this.model.imports.length > 0) throw new Error('Select a node to refine from the imported models.');
@@ -743,6 +755,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       kind: 'Node',
       id: ModelFactory.createIdentifier(),
       name: input.name,
+      description: input.description,
       superTypes: [],
       attributes: [],
       constraints: constraints,
@@ -788,6 +801,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       kind: 'Relation',
       id: ModelFactory.createIdentifier(),
       name: input.name,
+      description: input.description,
       superTypes: [],
       constraints: [],
       from: ModelFactory.createRelationEnd(from, defaultBounds),

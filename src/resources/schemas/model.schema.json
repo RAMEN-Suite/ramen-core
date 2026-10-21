@@ -57,6 +57,9 @@
       "additionalProperties": true,
       "default": {},
       "description": "Opaque tool metadata. It does not change RMF model semantics and consumers may ignore it."
+    },
+    "description": {
+      "$ref": "#/$defs/Description"
     }
   },
   "$comment": "RAMEN model format: JSON-first structural metamodel inspired by MOF/Ecore, focused on data modelling rather than full behavioural or reflective semantics.",
@@ -191,6 +194,9 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this constraint; it has no RMF validation semantics.",
           "default": {}
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
         }
       }
     },
@@ -247,6 +253,9 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this node; it has no RMF model semantics.",
           "default": {}
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
         }
       }
     },
@@ -289,6 +298,9 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this data type; it has no RMF model semantics.",
           "default": {}
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
         }
       }
     },
@@ -324,6 +336,9 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this literal; it has no RMF model semantics.",
           "default": {}
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
         }
       }
     },
@@ -377,6 +392,9 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this attribute; it has no RMF model semantics.",
           "default": {}
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
         }
       }
     },
@@ -422,6 +440,9 @@
           "additionalProperties": true,
           "description": "Opaque tool metadata for this relation; it has no RMF model semantics.",
           "default": {}
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
         }
       }
     },
@@ -454,6 +475,11 @@
           "default": {}
         }
       }
+    },
+    "Description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Optional plain-text documentation of a definition. It does not constrain captured data."
     }
   }
 }

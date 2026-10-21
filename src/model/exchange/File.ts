@@ -1,3 +1,4 @@
+import { ModelDescriptions } from '../Descriptions.js';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import type { Classifier, Id, Model, Relation } from '../Types.js';
 import { ModelValidator, ProjectValidationResult, ValidProjectResult } from '../validation/ModelValidator.js';
@@ -53,7 +54,7 @@ export class ModelFiles {
 /** @internal Shared transport operations; language-specific checks belong to their validators. */
 export class FileParts {
   public static merge(id: Id, models: readonly Model[], schema: string, project?: ProjectMetadata): ModelFile {
-    return structuredClone({
+    return ModelDescriptions.copy({
       $schema: schema,
       id,
       ...(project !== undefined ? { project } : {}),
@@ -86,7 +87,7 @@ export class FileParts {
       const { modelId, ...relation }: Owned<Relation> = entry;
       this.owner(models, modelId).relations.push(relation);
     }
-    return structuredClone([...models.values()]);
+    return [...models.values()].map((model: Model): Model => ModelDescriptions.copy(model));
   }
 
   private static owner(models: ReadonlyMap<Id, Model>, id: Id): Model {

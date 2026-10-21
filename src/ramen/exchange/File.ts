@@ -1,3 +1,4 @@
+import { ModelDescriptions } from '../../model/Descriptions.js';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import type { ModelFile, Owned, Id, Model, ProjectMetadata, ProjectValidationResult } from '../../model/index.js';
 import { FileParts } from '../../model/exchange/File.js';
@@ -28,7 +29,7 @@ export class RamenFiles {
       return rest;
     });
 
-    const file: RamenFile = structuredClone({
+    const file: RamenFile = ModelDescriptions.copy({
       ...FileParts.merge(id, core, fileSchema.$id, project),
       annotations: selected.flatMap((model: Model): Owned<AnnotationShape>[] =>
         RamenModelFormat.isDocument(model)
@@ -57,7 +58,7 @@ export class RamenFiles {
       const group: AnnotationShape[] = groups.get(modelId) ?? [];
       group.push(structuredClone(annotation));
       groups.set(modelId, group);
-      owner.annotations = group;
+      owner.annotations = ModelDescriptions.copy(group);
     }
 
     FileParts.assertValid(new RamenValidator().validateProject(file.id, models), models.length);

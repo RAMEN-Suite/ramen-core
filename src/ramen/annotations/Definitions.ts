@@ -1,5 +1,6 @@
-import type { Attribute, Bounds, Model, Id, Ref, RelationSelections } from '../../model/index.js';
+import type { Attribute, Bounds, Model, Id, Ref, RelationSelections, DescribedDefinition } from '../../model/index.js';
 
+import { ModelDescriptions } from '../../model/Descriptions.js';
 import { AnnotationShapeSchemaValidator } from './Schema.js';
 import { RAMEN_PROJECT_SCHEMA_URI, RamenModelFormat, type RamenModelDocument } from '../Document.js';
 
@@ -14,7 +15,7 @@ export interface AnnotationShapeRelation {
 }
 
 /** Shape attached to an Annotation node. */
-export interface AnnotationShape {
+export interface AnnotationShape extends DescribedDefinition {
   readonly id: Id;
   readonly annotationId: Ref;
   readonly type: string;
@@ -41,7 +42,7 @@ export class AnnotationShapes {
     if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) return [];
     const document: RamenModelDocument = model as RamenModelDocument;
     return AnnotationShapeSchemaValidator.isValid({ annotations: document.annotations })
-      ? structuredClone(document.annotations)
+      ? ModelDescriptions.copy(document.annotations)
       : [];
   }
 
@@ -85,6 +86,7 @@ export class AnnotationShapes {
 
   private static write<T extends Model>(model: T, annotations: readonly AnnotationShape[]): T {
     if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) throw new Error('Annotation definitions require a RAMEN project model.');
+    annotations = ModelDescriptions.copy(annotations);
     if (!AnnotationShapeSchemaValidator.isValid({ annotations: annotations })) {
       throw new Error('Invalid annotation shapes.');
     }

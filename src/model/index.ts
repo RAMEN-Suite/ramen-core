@@ -23,6 +23,7 @@
  * @packageDocumentation
  */
 export * from './Types.js';
+export { DESCRIPTION_MAX_LENGTH } from './Descriptions.js';
 export { DataTypes } from './Builtins.js';
 export * from './editing/Factory.js';
 export * from './editing/Editor.js';

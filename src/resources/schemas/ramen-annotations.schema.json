@@ -101,6 +101,9 @@
             "$ref": "#/$defs/AnnotationShapeRelation"
           },
           "default": []
+        },
+        "description": {
+          "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Description"
         }
       }
     }

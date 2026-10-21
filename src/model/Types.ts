@@ -1,3 +1,8 @@
+/** Optional plain-text documentation of a definition, limited to 2,000 Unicode code points. */
+export interface DescribedDefinition {
+  description?: string;
+}
+
 /** Classifier kinds that can be declared by a RAMEN model. */
 export type Classifier = Node | DataType;
 /** Stable identifier of a model or model element. */
@@ -12,7 +17,7 @@ export type BuiltinType = 'String' | 'Boolean' | 'Integer' | 'Float' | 'Object';
 export type TypeRef = Ref;
 
 /** Versioned RMF model containing classifiers, relations, and imports. */
-export interface Model {
+export interface Model extends DescribedDefinition {
   $schema: string;
   $id: string;
   id: Id;
@@ -35,7 +40,7 @@ export interface Import {
 }
 
 /** Node classifier whose attributes and supertypes describe modelled objects. */
-export interface Node {
+export interface Node extends DescribedDefinition {
   kind: 'Node';
   id: Id;
   name: string;
@@ -46,7 +51,7 @@ export interface Node {
 }
 
 /** Typed structural feature owned by a node. */
-export interface Attribute {
+export interface Attribute extends DescribedDefinition {
   id: Id;
   name: string;
   typeId: TypeRef;
@@ -66,7 +71,7 @@ export interface Bounds {
 }
 
 /** A rule declared in the model and evaluated against captured data by its named language. */
-export interface Constraint {
+export interface Constraint extends DescribedDefinition {
   id: Id;
   name: string;
   language: string;
@@ -78,7 +83,7 @@ export interface Constraint {
 }
 
 /** Named value domain; Object-based types are opaque values without modelled members or relationships. */
-export interface DataType {
+export interface DataType extends DescribedDefinition {
   kind: 'DataType';
   id: Id;
   name: string;
@@ -90,7 +95,7 @@ export interface DataType {
 }
 
 /** Named literal of a declared data type. */
-export interface Literal {
+export interface Literal extends DescribedDefinition {
   id: Id;
   name: string;
   value?: number;
@@ -100,7 +105,7 @@ export interface Literal {
 }
 
 /** Typed connection between two node ends. */
-export interface Relation {
+export interface Relation extends DescribedDefinition {
   kind: 'Relation';
   id: Id;
   superTypes: Ref[];

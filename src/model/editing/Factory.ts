@@ -14,6 +14,7 @@ import {
 } from '../Types.js';
 import { MODEL_SCHEMA_URI } from '../validation/ModelSchema.js';
 import ShortUniqueId from 'short-unique-id';
+import { ModelDescriptions } from '../Descriptions.js';
 import { ModelRef } from '../graph/References.js';
 import { ModelElementIndex } from '../graph/ElementIndex.js';
 
@@ -22,18 +23,21 @@ export interface CreateModelInput {
   readonly uri: string;
   readonly id: string;
   readonly name: string;
+  readonly description?: string;
   readonly version: string;
 }
 
 /** Values needed to create a node that refines a base node. */
 export interface CreateNodeInput {
   readonly name: string;
+  readonly description?: string;
   readonly baseNodeId: Id;
 }
 
 /** Values needed to create a node attribute. */
 export interface CreateAttributeInput {
   readonly name: string;
+  readonly description?: string;
   readonly typeId: TypeRef;
   readonly bounds: Bounds;
 
@@ -47,6 +51,7 @@ export interface CreateAttributeInput {
 /** Values needed to create a relation that refines a base relation. */
 export interface CreateRelationInput {
   readonly baseRelationId: Id;
+  readonly description?: string;
   readonly fromNodeId: Id;
   readonly toNodeId: Id;
 }
@@ -54,6 +59,7 @@ export interface CreateRelationInput {
 /** Values needed to create a named data type and its value rules. */
 export interface CreateDataTypeInput {
   readonly name: string;
+  readonly description?: string;
   readonly baseType: BuiltinType;
   readonly constraints?: readonly Constraint[];
 }
@@ -68,18 +74,19 @@ export interface ConnectedNode {
 export class ModelFactory {
   /** Creates a new generic base model without imports. */
   public static createRootModel(input: CreateModelInput): Model {
-    return {
+    return ModelDescriptions.copy({
       $schema: MODEL_SCHEMA_URI,
       $id: input.uri,
       id: input.id,
       version: input.version,
       kind: 'Model',
       name: input.name,
+      description: input.description,
       imports: [],
       classifiers: [],
       relations: [],
       ext: {},
-    };
+    });
   }
 
   /** Creates an empty model with an exact import of the supplied base model. */
@@ -100,22 +107,24 @@ export class ModelFactory {
 
   /** Creates a node with a qualified reference to its base node. */
   public static createNode(baseId: Id, input: CreateNodeInput): Node {
-    return {
+    return ModelDescriptions.copy({
       kind: 'Node',
       id: this.createIdentifier(),
       name: input.name,
+      description: input.description,
       superTypes: [ModelRef.qualify(baseId, input.baseNodeId)],
       attributes: [],
       constraints: [],
       ext: {},
-    };
+    });
   }
 
   /** Creates an attribute with the requested type, bounds, and feature flags. */
   public static createAttribute(input: CreateAttributeInput): Attribute {
-    return {
+    return ModelDescriptions.copy({
       id: this.createIdentifier(),
       name: input.name,
+      description: input.description,
       typeId: input.typeId,
       bounds: { ...input.bounds },
       isKey: input.isKey ?? false,
@@ -124,19 +133,20 @@ export class ModelFactory {
       isOrdered: input.isOrdered ?? true,
       constraints: structuredClone([...(input.constraints ?? [])]),
       ext: {},
-    };
+    });
   }
 
   /** Creates a data type without literals and with optional value rules. */
   public static createDataType(input: CreateDataTypeInput): DataType {
-    return {
+    return ModelDescriptions.copy({
       kind: 'DataType',
       id: this.createIdentifier(),
       name: input.name,
+      description: input.description,
       baseType: input.baseType,
       constraints: structuredClone([...(input.constraints ?? [])]),
       ext: {},
-    };
+    });
   }
 
   /** Creates a relation whose end bounds are copied from a base relation. */
@@ -145,16 +155,17 @@ export class ModelFactory {
     const baseRelation: Relation | undefined = baseIndex.relationsById.get(input.baseRelationId);
 
     if (!baseRelation) throw new Error(`Base relation not found: ${input.baseRelationId}`);
-    return {
+    return ModelDescriptions.copy({
       kind: 'Relation',
       id: this.createIdentifier(),
       superTypes: [ModelRef.qualify(baseId, input.baseRelationId)],
       name: baseRelation.name,
+      description: input.description,
       from: this.refineEnd(baseRelation.from, input.fromNodeId),
       to: this.refineEnd(baseRelation.to, input.toNodeId),
       constraints: [],
       ext: {},
-    };
+    });
   }
 
   private static refineEnd(base: RelationEnd, nodeId: Id): RelationEnd {
@@ -215,15 +226,16 @@ export class ModelFactory {
   }
 
   /** Creates a named data type literal with optional serialised and numeric values. */
-  public static createLiteral(name: string, literal?: string, value?: number): Literal {
-    return {
+  public static createLiteral(name: string, literal?: string, value?: number, description?: string): Literal {
+    return ModelDescriptions.copy({
       id: this.createIdentifier(),
       name: name,
+      description,
       literal: literal,
       value: value,
       constraints: [],
       ext: {},
-    };
+    });
   }
 
   /** Creates a relation end for a node and cardinality. */

@@ -1,11 +1,14 @@
+import { ModelDescriptions } from '../Descriptions.js';
 import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from '../Types.js';
 
 /** Editable node fields. */
-export type UpdateNodeInput = Partial<Pick<Node, 'name' | 'superTypes' | 'constraints' | 'ext'>>;
+export type UpdateNodeInput = Partial<Pick<Node, 'name' | 'description' | 'superTypes' | 'constraints' | 'ext'>>;
 /** Editable data type fields. */
-export type UpdateDataTypeInput = Partial<Pick<DataType, 'name' | 'baseType' | 'literals' | 'constraints' | 'ext'>>;
+export type UpdateDataTypeInput = Partial<
+  Pick<DataType, 'name' | 'description' | 'baseType' | 'literals' | 'constraints' | 'ext'>
+>;
 /** Editable relation fields. */
-export type UpdateRelationInput = Partial<Pick<Relation, 'name' | 'from' | 'to' | 'constraints' | 'ext'>>;
+export type UpdateRelationInput = Partial<Pick<Relation, 'name' | 'description' | 'from' | 'to' | 'constraints' | 'ext'>>;
 /** Editable attribute fields. */
 export type UpdateAttributeInput = Partial<Omit<Attribute, 'id'>>;
 
@@ -13,7 +16,7 @@ export type UpdateAttributeInput = Partial<Omit<Attribute, 'id'>>;
 export class ModelEditor {
   /** Returns a model with the classifier appended. */
   public static addClassifier(model: Model, classifier: Classifier): Model {
-    return { ...model, classifiers: [...model.classifiers, structuredClone(classifier)] };
+    return { ...model, classifiers: [...model.classifiers, ModelDescriptions.copy(classifier)] };
   }
 
   /** Returns a model without the classifier, or throws when it does not exist. */
@@ -35,7 +38,7 @@ export class ModelEditor {
       if (classifier.id !== nodeId) return classifier;
 
       found = true;
-      return { ...classifier, ...structuredClone(patch) };
+      return ModelDescriptions.copy({ ...classifier, ...structuredClone(patch) });
     });
 
     if (!found) throw new Error(`Node not found: ${nodeId}`);
@@ -52,7 +55,7 @@ export class ModelEditor {
       if (collection.id !== dataTypeId) return collection;
 
       found = true;
-      return { ...collection, ...structuredClone(patch) };
+      return ModelDescriptions.copy({ ...collection, ...structuredClone(patch) });
     });
 
     if (!found) throw new Error(`DataType not found: ${dataTypeId}`);
@@ -61,7 +64,7 @@ export class ModelEditor {
 
   /** Returns a model with the relation appended. */
   public static addRelation(model: Model, relation: Relation): Model {
-    return { ...model, relations: [...model.relations, structuredClone(relation)] };
+    return { ...model, relations: [...model.relations, ModelDescriptions.copy(relation)] };
   }
 
   /** Applies a partial update to a relation without mutating the source model. */
@@ -72,7 +75,7 @@ export class ModelEditor {
     const patched: Relation[] = relations.map((relation: Relation): Relation => {
       if (relation.id !== relationId) return relation;
       found = true;
-      return { ...relation, ...structuredClone(patch) };
+      return ModelDescriptions.copy({ ...relation, ...structuredClone(patch) });
     });
 
     if (!found) throw new Error(`Relation not found: ${relationId}`);
@@ -82,7 +85,7 @@ export class ModelEditor {
   /** Adds an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
   public static addAttribute(model: Model, nodeId: Id, attribute: Attribute): Model {
     const node: Node = this.requireNode(model, nodeId);
-    return this.replaceNode(model, { ...node, attributes: [...node.attributes, structuredClone(attribute)] });
+    return this.replaceNode(model, { ...node, attributes: [...node.attributes, ModelDescriptions.copy(attribute)] });
   }
 
   /** Updates an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
@@ -92,7 +95,7 @@ export class ModelEditor {
       throw new Error(`Attribute not found: '${attributeId}'`);
 
     const attributes: Attribute[] = node.attributes.map((attribute: Attribute): Attribute =>
-      attribute.id === attributeId ? { ...attribute, ...structuredClone(patch) } : attribute,
+      attribute.id === attributeId ? ModelDescriptions.copy({ ...attribute, ...structuredClone(patch) }) : attribute,
     );
     return this.replaceNode(model, { ...node, attributes });
   }

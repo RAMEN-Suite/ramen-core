@@ -5,17 +5,20 @@
   "version": "1.0.0",
   "kind": "Model",
   "name": "RAMEN",
+  "description": "Base model for digital editions, defining collections, content, entities and annotations and the relations between them.",
   "imports": [],
   "classifiers": [
     {
       "kind": "DataType",
       "id": "Q9mT2aL7vK0pX4sN1cDz",
       "name": "UUID",
+      "description": "A universally unique identifier represented as a string.",
       "baseType": "String",
       "constraints": [
         {
           "id": "K8tKZTPud1b5JDZV",
           "name": "Valid UUID",
+          "description": "Checks that the string has UUID format.",
           "language": "format",
           "expression": "uuid",
           "message": "Value must be a UUID."
@@ -26,11 +29,13 @@
       "kind": "DataType",
       "id": "WdlVlvh7jqs6DEUC",
       "name": "Date",
+      "description": "A calendar date in RFC 3339 full-date format, such as 2026-10-21.",
       "baseType": "String",
       "constraints": [
         {
           "id": "YdW8qnQHAtYBiAN8",
           "name": "Valid date",
+          "description": "Checks that the string is an RFC 3339 calendar date.",
           "language": "format",
           "expression": "date",
           "message": "Value must be an RFC 3339 full-date."
@@ -41,11 +46,13 @@
       "kind": "DataType",
       "id": "mXhHHuR4mQoDq31D",
       "name": "DateTime",
+      "description": "A date and time in RFC 3339 date-time format, including a UTC offset.",
       "baseType": "String",
       "constraints": [
         {
           "id": "VWUbg6WMufCNlIo4",
           "name": "Valid date-time",
+          "description": "Checks that the string is an RFC 3339 date and time.",
           "language": "format",
           "expression": "date-time",
           "message": "Value must be an RFC 3339 date-time."
@@ -56,11 +63,13 @@
       "kind": "DataType",
       "id": "T3YiJGOy7M7g1lTQ",
       "name": "URI",
+      "description": "An absolute Uniform Resource Identifier used to identify a resource.",
       "baseType": "String",
       "constraints": [
         {
           "id": "3UrCtNdlE5qh9RDe",
           "name": "Valid URI",
+          "description": "Checks that the string is an absolute URI.",
           "language": "format",
           "expression": "uri",
           "message": "Value must be an absolute URI."
@@ -71,11 +80,13 @@
       "kind": "DataType",
       "id": "DJRorIpghXJGAi41",
       "name": "Email",
+      "description": "An email address represented as a string.",
       "baseType": "String",
       "constraints": [
         {
           "id": "L65BaGOJP4W9lUKQ",
           "name": "Valid email",
+          "description": "Checks that the string has email address format.",
           "language": "format",
           "expression": "email",
           "message": "Value must be an email address."
@@ -86,16 +97,19 @@
       "kind": "DataType",
       "id": "selectorDataType01",
       "name": "Selector",
+      "description": "A JSON object identifying a part of an annotated resource. RAMEN requires a non-empty type; the consuming tool interprets the remaining fields.",
       "baseType": "Object"
     },
     {
       "kind": "Node",
       "id": "aP3xK8nV1qR6tY2uZ9wB",
       "name": "Collection",
+      "description": "A group of resources in an edition, such as a letter or book. Collections can contain content and other collections.",
       "superTypes": [],
       "attributes": [
         {
           "name": "uuid",
+          "description": "The required, read-only unique identifier of this record.",
           "typeId": "Q9mT2aL7vK0pX4sN1cDz",
           "bounds": {
             "lowerBound": 1,
@@ -107,6 +121,7 @@
         },
         {
           "name": "label",
+          "description": "The human-readable name of this record.",
           "typeId": "String",
           "bounds": {
             "lowerBound": 1,
@@ -120,10 +135,12 @@
       "kind": "Node",
       "id": "n7Vb2Qx0Lm9P3sT6yK1h",
       "name": "Entity",
+      "description": "A person, place or other entity described in an edition. Annotations can refer to entities.",
       "superTypes": [],
       "attributes": [
         {
           "name": "uuid",
+          "description": "The required, read-only unique identifier of this record.",
           "typeId": "Q9mT2aL7vK0pX4sN1cDz",
           "bounds": {
             "lowerBound": 1,
@@ -135,6 +152,7 @@
         },
         {
           "name": "label",
+          "description": "The human-readable name of this record.",
           "typeId": "String",
           "bounds": {
             "lowerBound": 1,
@@ -148,10 +166,12 @@
       "kind": "Node",
       "id": "Z4kq1M8sV0bN2xR7pT6u",
       "name": "Content",
+      "description": "The text, image or other content of a resource. Content can belong to a collection and carry annotations.",
       "superTypes": [],
       "attributes": [
         {
           "name": "uuid",
+          "description": "The required, read-only unique identifier of this record.",
           "typeId": "Q9mT2aL7vK0pX4sN1cDz",
           "bounds": {
             "lowerBound": 1,
@@ -167,10 +187,12 @@
       "kind": "Node",
       "id": "m2Xv8qL0sP6tN1yK7rB3",
       "name": "Annotation",
+      "description": "An annotation attached to a resource. Its type selects an annotation shape; shared properties apply to every shape on this node.",
       "superTypes": [],
       "attributes": [
         {
           "name": "uuid",
+          "description": "The required, read-only unique identifier of this record.",
           "typeId": "Q9mT2aL7vK0pX4sN1cDz",
           "bounds": {
             "lowerBound": 1,
@@ -182,6 +204,7 @@
         },
         {
           "name": "type",
+          "description": "The name of the annotation shape that defines the properties and permitted relations of this annotation.",
           "typeId": "String",
           "bounds": {
             "lowerBound": 1,
@@ -192,6 +215,7 @@
         },
         {
           "name": "selector",
+          "description": "Optionally identifies the annotated part of a resource, such as a text span or image region. The object must contain a non-empty type.",
           "typeId": "selectorDataType01",
           "bounds": {
             "lowerBound": 0,
@@ -208,6 +232,7 @@
       "id": "V7pQ2xL9mR0sT6yK1nB3",
       "superTypes": [],
       "name": "PART_OF",
+      "description": "Places a collection within a collection.",
       "from": {
         "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
         "bounds": {
@@ -230,6 +255,7 @@
       "id": "K0mT3aL7vQ9pX4sN1cDz",
       "superTypes": [],
       "name": "PART_OF",
+      "description": "Places a content item within a collection.",
       "from": {
         "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
         "bounds": {
@@ -252,6 +278,7 @@
       "id": "sT6yK1nB3xV7pQ2L9mR0",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
+      "description": "Attaches an annotation to a collection.",
       "from": {
         "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
         "bounds": {
@@ -274,6 +301,7 @@
       "id": "pX4sN1cDzK0mT3aL7vQ9",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
+      "description": "Attaches an annotation to a content item.",
       "from": {
         "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
         "bounds": {
@@ -296,6 +324,7 @@
       "id": "Q2yT6vL9mR0sT6yK1nB3",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
+      "description": "Attaches an annotation to an entity.",
       "from": {
         "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
         "bounds": {
@@ -318,6 +347,7 @@
       "id": "xL9mR0sT6yK1nB3xV7pQ",
       "superTypes": [],
       "name": "HAS_ANNOTATION",
+      "description": "Attaches an annotation to an annotation.",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
         "bounds": {
@@ -340,6 +370,7 @@
       "id": "tN1yK7rB3m2Xv8qL0sP6",
       "superTypes": [],
       "name": "REFERS_TO",
+      "description": "Links an annotation to a collection that it refers to.",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
         "bounds": {
@@ -362,6 +393,7 @@
       "id": "vQ9pX4sN1cDzK0mT3aL7",
       "superTypes": [],
       "name": "REFERS_TO",
+      "description": "Links an annotation to a content item that it refers to.",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
         "bounds": {
@@ -384,6 +416,7 @@
       "id": "mR0sT6yK1nB3xV7pQ2xL9",
       "superTypes": [],
       "name": "REFERS_TO",
+      "description": "Links an annotation to an entity that it refers to.",
       "from": {
         "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
         "bounds": {

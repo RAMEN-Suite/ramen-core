@@ -84,7 +84,7 @@ async function main(): Promise<void> {
   const check: boolean = process.argv.includes('--check');
 
   const rmf: readonly CodeEntry[] = enumEntries(resource('src/model/validation/Codes.ts'), 'VALIDATION_ERROR');
-  const ramenModel: readonly CodeEntry[] = enumEntries(resource('src/ramen/annotations/Rules.ts'), 'RAMEN_VALIDATION_ERROR');
+  const ramenModel: readonly CodeEntry[] = enumEntries(resource('src/ramen/validation/Codes.ts'), 'RAMEN_VALIDATION_ERROR');
   const ramenData: readonly CodeEntry[] = enumEntries(resource('src/ramen/data/InstanceValidator.ts'), 'RAMEN_INSTANCE_ERROR');
   const rmfTables: readonly Table[] = [
     { marker: 'structure', entries: rmf.filter((entry: CodeEntry): boolean => entry.group === 'Structure and references') },

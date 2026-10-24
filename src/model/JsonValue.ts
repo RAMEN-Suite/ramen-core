@@ -14,3 +14,10 @@ function canonical(value: unknown): unknown {
       .map((key: string): [string, unknown] => [key, canonical(record[key])]),
   );
 }
+
+/** @internal Freezes a detached JSON tree before sharing it between consumers. */
+export function freezeJson<T>(value: T): T {
+  if (typeof value !== 'object' || value === null || Object.isFrozen(value)) return value;
+  for (const nested of Object.values(value)) freezeJson(nested);
+  return Object.freeze(value);
+}

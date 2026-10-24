@@ -1,0 +1,428 @@
+{
+  "$schema": "https://ramen-schema.org/model/1.0.0/schema.json",
+  "$id": "https://ramen-schema.org/ramen/1.0.0/model.json",
+  "id": "lW611f30a2ky4276g3l8N",
+  "version": "1.0.0",
+  "kind": "Model",
+  "name": "RAMEN",
+  "imports": [],
+  "classifiers": [
+    {
+      "kind": "DataType",
+      "id": "Q9mT2aL7vK0pX4sN1cDz",
+      "name": "UUID",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "K8tKZTPud1b5JDZV",
+          "name": "Valid UUID",
+          "language": "format",
+          "expression": "uuid",
+          "message": "Value must be a UUID."
+        }
+      ]
+    },
+    {
+      "kind": "DataType",
+      "id": "WdlVlvh7jqs6DEUC",
+      "name": "Date",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "YdW8qnQHAtYBiAN8",
+          "name": "Valid date",
+          "language": "format",
+          "expression": "date",
+          "message": "Value must be an RFC 3339 full-date."
+        }
+      ]
+    },
+    {
+      "kind": "DataType",
+      "id": "mXhHHuR4mQoDq31D",
+      "name": "DateTime",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "VWUbg6WMufCNlIo4",
+          "name": "Valid date-time",
+          "language": "format",
+          "expression": "date-time",
+          "message": "Value must be an RFC 3339 date-time."
+        }
+      ]
+    },
+    {
+      "kind": "DataType",
+      "id": "T3YiJGOy7M7g1lTQ",
+      "name": "URI",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "3UrCtNdlE5qh9RDe",
+          "name": "Valid URI",
+          "language": "format",
+          "expression": "uri",
+          "message": "Value must be an absolute URI."
+        }
+      ]
+    },
+    {
+      "kind": "DataType",
+      "id": "DJRorIpghXJGAi41",
+      "name": "Email",
+      "baseType": "String",
+      "constraints": [
+        {
+          "id": "L65BaGOJP4W9lUKQ",
+          "name": "Valid email",
+          "language": "format",
+          "expression": "email",
+          "message": "Value must be an email address."
+        }
+      ]
+    },
+    {
+      "kind": "DataType",
+      "id": "selectorDataType01",
+      "name": "Selector",
+      "baseType": "Object"
+    },
+    {
+      "kind": "Node",
+      "id": "aP3xK8nV1qR6tY2uZ9wB",
+      "name": "Collection",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": {
+            "lowerBound": 1,
+            "upperBound": 1
+          },
+          "isKey": true,
+          "isReadOnly": true,
+          "id": "efe3cc0f99a3fd9a"
+        },
+        {
+          "name": "label",
+          "typeId": "String",
+          "bounds": {
+            "lowerBound": 1,
+            "upperBound": 1
+          },
+          "id": "8c3cef32d4648158"
+        }
+      ]
+    },
+    {
+      "kind": "Node",
+      "id": "n7Vb2Qx0Lm9P3sT6yK1h",
+      "name": "Entity",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": {
+            "lowerBound": 1,
+            "upperBound": 1
+          },
+          "isKey": true,
+          "isReadOnly": true,
+          "id": "fb10d46599e686d5"
+        },
+        {
+          "name": "label",
+          "typeId": "String",
+          "bounds": {
+            "lowerBound": 1,
+            "upperBound": 1
+          },
+          "id": "954699e0badc0d96"
+        }
+      ]
+    },
+    {
+      "kind": "Node",
+      "id": "Z4kq1M8sV0bN2xR7pT6u",
+      "name": "Content",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": {
+            "lowerBound": 1,
+            "upperBound": 1
+          },
+          "isKey": true,
+          "isReadOnly": true,
+          "id": "0838eb93a8dcfd4f"
+        }
+      ]
+    },
+    {
+      "kind": "Node",
+      "id": "m2Xv8qL0sP6tN1yK7rB3",
+      "name": "Annotation",
+      "superTypes": [],
+      "attributes": [
+        {
+          "name": "uuid",
+          "typeId": "Q9mT2aL7vK0pX4sN1cDz",
+          "bounds": {
+            "lowerBound": 1,
+            "upperBound": 1
+          },
+          "isKey": true,
+          "isReadOnly": true,
+          "id": "40dee5e6d8fb2dfb"
+        },
+        {
+          "name": "type",
+          "typeId": "String",
+          "bounds": {
+            "lowerBound": 1,
+            "upperBound": 1
+          },
+          "constraints": [],
+          "id": "474ec2797fdb07af"
+        },
+        {
+          "name": "selector",
+          "typeId": "selectorDataType01",
+          "bounds": {
+            "lowerBound": 0,
+            "upperBound": 1
+          },
+          "id": "annotationSelector01"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "kind": "Relation",
+      "id": "V7pQ2xL9mR0sT6yK1nB3",
+      "superTypes": [],
+      "name": "PART_OF",
+      "from": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "11882a4a1a1a92f0"
+      },
+      "to": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "5296ec802aed7bb1"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "K0mT3aL7vQ9pX4sN1cDz",
+      "superTypes": [],
+      "name": "PART_OF",
+      "from": {
+        "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "ed2832e9484cc9ee"
+      },
+      "to": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "357d8ae975078df2"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "sT6yK1nB3xV7pQ2L9mR0",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "f203ff8cc45e18d6"
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "4a61755cb3d9a650"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "pX4sN1cDzK0mT3aL7vQ9",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "e8124ac0f6affeeb"
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "9d1fb8a998d44055"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "Q2yT6vL9mR0sT6yK1nB3",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "01eff83f221ab3ff"
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "09d895defd083d74"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "xL9mR0sT6yK1nB3xV7pQ",
+      "superTypes": [],
+      "name": "HAS_ANNOTATION",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "f782e8c214c6de2a"
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "e8762d26b8de4a64"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "tN1yK7rB3m2Xv8qL0sP6",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "c7eb6cb19894f86b"
+      },
+      "to": {
+        "nodeId": "aP3xK8nV1qR6tY2uZ9wB",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "5a3c92c63ec68015"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "vQ9pX4sN1cDzK0mT3aL7",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "c1ce93334b435f1a"
+      },
+      "to": {
+        "nodeId": "Z4kq1M8sV0bN2xR7pT6u",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "ec5e8fa8a5ccc88c"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "mR0sT6yK1nB3xV7pQ2xL9",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "828ed555908f66ce"
+      },
+      "to": {
+        "nodeId": "n7Vb2Qx0Lm9P3sT6yK1h",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "421b47ea683a1a02"
+      }
+    },
+    {
+      "kind": "Relation",
+      "id": "K7rB3m2Xv8qL0sP6tN1y",
+      "superTypes": [],
+      "name": "REFERS_TO",
+      "from": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "c4f94b4b334e4c1e"
+      },
+      "to": {
+        "nodeId": "m2Xv8qL0sP6tN1yK7rB3",
+        "bounds": {
+          "lowerBound": 0,
+          "upperBound": -1
+        },
+        "id": "97e03b1a1f4fe685"
+      }
+    }
+  ],
+  "ext": {}
+}

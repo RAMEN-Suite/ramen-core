@@ -1,3 +1,4 @@
+import { freezeJson } from '../model/JsonValue.js';
 import type { Model } from '../model/index.js';
 
 import ramenModel from '../resources/models/ramen.model.json';
@@ -6,7 +7,7 @@ import ramenModel from '../resources/models/ramen.model.json';
 export const RAMEN_MODEL_URI: string = 'https://ramen-schema.org/ramen/1.0.0/model.json';
 
 /** Versioned RAMEN reference model used as the base for project models. */
-export const RAMEN_MODEL: Model = ramenModel as Model;
+export const RAMEN_MODEL: Readonly<Model> = freezeJson(ramenModel as Model);
 
 /** Stable element identifiers from the versioned RAMEN reference model. */
 export const RAMEN_ELEMENT: Readonly<{
@@ -20,7 +21,7 @@ export const RAMEN_ELEMENT: Readonly<{
   ENTITY: string;
   CONTENT: string;
   ANNOTATION: string;
-}> = {
+}> = Object.freeze({
   UUID: 'Q9mT2aL7vK0pX4sN1cDz',
   DATE: 'WdlVlvh7jqs6DEUC',
   DATE_TIME: 'mXhHHuR4mQoDq31D',
@@ -31,4 +32,4 @@ export const RAMEN_ELEMENT: Readonly<{
   ENTITY: 'n7Vb2Qx0Lm9P3sT6yK1h',
   CONTENT: 'Z4kq1M8sV0bN2xR7pT6u',
   ANNOTATION: 'm2Xv8qL0sP6tN1yK7rB3',
-};
+});

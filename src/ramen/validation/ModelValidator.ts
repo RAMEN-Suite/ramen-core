@@ -13,10 +13,12 @@ import {
 
 import { AnnotationShapes } from '../annotations/Definitions.js';
 import { RamenModelFormat } from '../Document.js';
+import { RamenReferenceValidator } from './ReferenceModel.js';
 import { RAMEN_MODEL } from '../ReferenceModel.js';
 import { RamenProjectSchemaValidator } from './ProjectSchema.js';
-import { AnnotationShapeRules, RAMEN_VALIDATION_ERROR } from '../annotations/Rules.js';
-export { RAMEN_VALIDATION_ERROR } from '../annotations/Rules.js';
+import { AnnotationShapeRules } from '../annotations/Rules.js';
+import { RAMEN_VALIDATION_ERROR } from './Codes.js';
+export { RAMEN_VALIDATION_ERROR } from './Codes.js';
 
 /** Validates the RAMEN model format first and then the closed annotation shapes. */
 export class RamenValidator {
@@ -60,7 +62,8 @@ export class RamenValidator {
       ];
     }
 
-    if (!graph.getModels().some((model: Model): boolean => model.id === RAMEN_MODEL.id)) {
+    const reference: Model | undefined = graph.getModel(RAMEN_MODEL.id);
+    if (!reference) {
       return [
         Diagnostics.error({
           code: RAMEN_VALIDATION_ERROR.BASE_MODEL_REQUIRED,
@@ -71,7 +74,7 @@ export class RamenValidator {
       ];
     }
 
-    return [];
+    return RamenReferenceValidator.validate(reference);
   }
 
   private validateDocuments(inputs: readonly unknown[]): readonly Diagnostic[] {

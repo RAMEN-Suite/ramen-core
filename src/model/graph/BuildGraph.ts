@@ -1,3 +1,4 @@
+import { freezeJson } from '../JsonValue.js';
 import { walkGraph } from './Traversal.js';
 import { BuiltinDataTypes } from '../Builtins.js';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics.js';
@@ -85,14 +86,8 @@ function registerModels(models: readonly Model[], state: GraphBuildState): void 
       state.diagnostics.push(error('DUPLICATE_MODEL_ID', `Duplicate model id: '${model.id}'.`, DiagnosticPath.root()));
       continue;
     }
-    state.modelsById.set(model.id, deepFreeze(structuredClone(model)));
+    state.modelsById.set(model.id, freezeJson(structuredClone(model)));
   }
-}
-
-function deepFreeze<T>(value: T): T {
-  if (typeof value !== 'object' || value === null || Object.isFrozen(value)) return value;
-  for (const nestedValue of Object.values(value)) deepFreeze(nestedValue);
-  return Object.freeze(value);
 }
 
 function resolveImports(rootModelId: Id, state: GraphBuildState): void {

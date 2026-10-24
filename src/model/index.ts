@@ -65,5 +65,6 @@ export type {
 } from './editing/Workspace.js';
 export type { ConstraintOwner, ConstraintOwnerInput } from './editing/ConstraintOwner.js';
 
+export { UnsupportedModelFormatError } from './exchange/Errors.js';
 export { ModelFiles } from './exchange/File.js';
 export type { ModelFile, ModelHeader, Owned, ProjectMetadata } from './exchange/File.js';

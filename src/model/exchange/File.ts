@@ -1,3 +1,4 @@
+import { UnsupportedModelFormatError } from './Errors.js';
 import { ModelDescriptions } from '../Descriptions.js';
 import { compileSchema, SchemaNode } from 'json-schema-library';
 import type { Classifier, Id, Model, Relation } from '../Types.js';
@@ -97,6 +98,11 @@ export class FileParts {
   }
 
   public static assertSchema(schema: SchemaNode, input: unknown): void {
+    const expected: unknown = schema.schema['$id'];
+    const actual: unknown = typeof input === 'object' && input !== null && '$schema' in input ? input.$schema : undefined;
+    if (typeof actual === 'string' && typeof expected === 'string' && actual !== expected) {
+      throw new UnsupportedModelFormatError(actual, expected);
+    }
     const result: ReturnType<SchemaNode['validate']> = schema.validate(input ?? null);
     if (!result.valid) throw new Error(`Invalid model file: ${result.errors.map((error): string => error.message).join('\n')}`);
   }

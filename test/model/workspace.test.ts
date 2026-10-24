@@ -13,6 +13,7 @@ import {
   type EvolutionChange,
   type EvolutionReport,
   type Model,
+  type ModelHeader,
   type ModelChange,
   type ModelRemovalPreview,
   type Node,
@@ -343,4 +344,20 @@ void test('narrowing a base relation invalidates a warmed child and repair refre
   assert.equal(website.validate().valid, true);
   assert.equal(website.suggestRelations(page, section).length > 0, true);
   assert.equal(Modeller.import(website.export()).validate().valid, true);
+});
+
+void test('export selects predecessors while snapshots retain sibling and descendant levels', (): void => {
+  const base: Modeller = Modeller.create('Filing');
+  const document: Node = base.createNode('Document').element;
+  const website: Modeller = base.createNextLevel('Website');
+  website.createNode({ name: 'Page', refines: document });
+  const edition: Modeller = base.createNextLevel('Edition');
+  edition.createNode({ name: 'Letter', refines: document });
+  const publication: Modeller = website.createNextLevel('Publication');
+
+  const exportedIds: readonly string[] = website.export().models.map((model: ModelHeader): string => model.id);
+  assert.deepEqual(new Set<string>(exportedIds), new Set<string>([base.getModel().id, website.getModel().id]));
+  const snapshot: Modeller = website.snapshot();
+  assert.equal(snapshot.openLevel(edition.getModel().id).getModel().name, 'Edition');
+  assert.equal(snapshot.openLevel(publication.getModel().id).getModel().name, 'Publication');
 });

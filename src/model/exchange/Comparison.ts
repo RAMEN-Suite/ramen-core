@@ -47,10 +47,12 @@ export class ModelEvolution {
     const beforeDiagnostics: readonly Diagnostic[] = this.validateWorkspace(
       beforeModels,
       (id: Id): readonly Diagnostic[] => validator.validateProject(id, beforeModels).diagnostics,
+      beforeModelId,
     );
     const afterDiagnostics: readonly Diagnostic[] = this.validateWorkspace(
       afterModels,
       (id: Id): readonly Diagnostic[] => validator.validateProject(id, afterModels).diagnostics,
+      afterModelId,
     );
 
     return {
@@ -66,12 +68,15 @@ export class ModelEvolution {
   public static validateWorkspace(
     models: readonly Model[],
     validate: (modelId: Id) => readonly Diagnostic[],
+    rootModelId?: Id,
   ): readonly Diagnostic[] {
     const roots: readonly Model[] = this.validationRoots(models);
     const diagnostics: Map<string, Diagnostic> = new Map<string, Diagnostic>();
+    const ids: Id[] = roots.map((model: Model): Id => model.id);
+    if (rootModelId !== undefined && !models.some((model: Model): boolean => model.id === rootModelId)) ids.push(rootModelId);
 
-    for (const model of roots) {
-      for (const diagnostic of validate(model.id)) {
+    for (const id of ids) {
+      for (const diagnostic of validate(id)) {
         const key: string = JSON.stringify(diagnostic);
         diagnostics.set(key, diagnostic);
       }

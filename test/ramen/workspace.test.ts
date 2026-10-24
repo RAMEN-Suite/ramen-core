@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, type Constraint, type DataType, type Node, type Relation } from '@ramen-suite/core/model';
+import { DataTypes, type Constraint, type Diagnostic, type DataType, type Node, type Relation } from '@ramen-suite/core/model';
 import {
   RAMEN_ELEMENT,
   RamenModel,
+  RamenEvolution,
+  type RamenEvolutionReport,
   type AnnotationShapeSuggestion,
   type AnnotationShape,
   type RamenFile,
@@ -104,4 +106,11 @@ void test('RAMEN roundtrip preserves reused nodes, a refined Annotation, literal
   assert.deepEqual(annotationTypes(restored, edition.text), []);
   assert.deepEqual(annotationTypes(research, edition.text), ['note']);
   assert.deepEqual(research.export(), file);
+});
+
+void test('RAMEN comparison reports missing selected roots', (): void => {
+  const model: RamenModel = RamenModel.create('Edition');
+  const report: RamenEvolutionReport = RamenEvolution.compare('missingBefore0001', model.getModels(), 'missingAfter00001', []);
+  assert.ok(report.beforeDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'PROJECT_ROOT_NOT_FOUND'));
+  assert.ok(report.afterDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'PROJECT_ROOT_NOT_FOUND'));
 });

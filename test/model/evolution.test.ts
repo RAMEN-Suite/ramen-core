@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   DataTypes,
   Modeller,
+  ModelEvolution,
   type DataType,
   type Diagnostic,
   type EvolutionReport,
@@ -46,4 +47,11 @@ void test('workspace comparison reports shared dependency errors once across sib
   assert.deepEqual(report.beforeDiagnostics, []);
   assert.equal(errors.length, 1);
   assert.equal(errors[0]?.ref, status.id);
+});
+
+void test('comparison reports missing before and after roots even for empty workspaces', (): void => {
+  const model: Model = Modeller.create('Example').getModel();
+  const report: EvolutionReport = ModelEvolution.compare('missingBefore0001', [model], 'missingAfter00001', []);
+  assert.ok(report.beforeDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'PROJECT_ROOT_NOT_FOUND'));
+  assert.ok(report.afterDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.code === 'PROJECT_ROOT_NOT_FOUND'));
 });

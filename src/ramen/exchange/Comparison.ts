@@ -45,10 +45,12 @@ export class RamenEvolution {
       beforeDiagnostics: ModelEvolution.validateWorkspace(
         beforeModels,
         (id: Id) => validator.validateProject(id, beforeModels).diagnostics,
+        beforeModelId,
       ),
       afterDiagnostics: ModelEvolution.validateWorkspace(
         afterModels,
         (id: Id) => validator.validateProject(id, afterModels).diagnostics,
+        afterModelId,
       ),
       annotationChanges: this.compareAnnotations(beforeModels, afterModels),
     };

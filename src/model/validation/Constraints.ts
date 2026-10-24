@@ -5,6 +5,9 @@ import { VALIDATION_ERROR } from './Codes.js';
 import type { ProjectGraph } from '../graph/ProjectGraph.js';
 import type { ModelInstanceGraph } from '../data/InstanceTypes.js';
 
+const URI_INVALID_CHARACTERS: RegExp = /[^a-zA-Z0-9:/?#[\]@!$&'()*+,;=._~%-]/;
+const URI_INVALID_ESCAPE: RegExp = /%(?![0-9a-fA-F]{2})/;
+
 const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string, SchemaNode>(
   ['uuid', 'date', 'date-time', 'email'].map((format: string): [string, SchemaNode] => [
     format,
@@ -270,6 +273,8 @@ export class FormatEvaluator implements ConstraintEvaluator {
   }
 
   private isAbsoluteUri(value: string): boolean {
+    if (URI_INVALID_CHARACTERS.test(value) || URI_INVALID_ESCAPE.test(value)) return false;
+
     try {
       return new URL(value).protocol.length > 1;
     } catch {

@@ -25,7 +25,7 @@ model.createAttribute(document, {
 });
 
 const data: ModelInstanceGraph = {
-  nodes: [{ id: 'record1', typeId: document.id, properties: {} }],
+  nodes: [{ id: 'documentRecord01', typeId: document.id, properties: {} }],
   relations: [],
 };
 const checked: ValidationResult = model.validateInstances(data);
@@ -33,7 +33,7 @@ console.log(checked.diagnostics);
 // INSTANCE_PROPERTY_REQUIRED at /nodes/0/properties/title.
 ```
 
-`record1` identifies the recorded object. `document.id` identifies its model type. The model already supplies the validation context, so the data graph has no model ID. [Read Diagnostics](diagnostics.md) explains the path.
+`documentRecord01` identifies the recorded object. Record and link IDs must contain at least 16 letters, digits, underscores or hyphens. `document.id` identifies its model type. The model already supplies the validation context, so the data graph has no model ID. [Read Diagnostics](diagnostics.md) explains the path.
 
 ## Too many links
 
@@ -51,13 +51,13 @@ const filedIn: Relation = model.createRelation({
 
 const links: ModelInstanceGraph = {
   nodes: [
-    { id: 'doc1', typeId: document.id, properties: { title: 'Example' } },
-    { id: 'folder1', typeId: folder.id, properties: {} },
-    { id: 'folder2', typeId: folder.id, properties: {} },
+    { id: 'documentRecord01', typeId: document.id, properties: { title: 'Example' } },
+    { id: 'folderRecord0001', typeId: folder.id, properties: {} },
+    { id: 'folderRecord0002', typeId: folder.id, properties: {} },
   ],
   relations: [
-    { id: 'link1', typeId: filedIn.id, fromId: 'doc1', toId: 'folder1' },
-    { id: 'link2', typeId: filedIn.id, fromId: 'doc1', toId: 'folder2' },
+    { id: 'relationRecord01', typeId: filedIn.id, fromId: 'documentRecord01', toId: 'folderRecord0001' },
+    { id: 'relationRecord02', typeId: filedIn.id, fromId: 'documentRecord01', toId: 'folderRecord0002' },
   ],
 };
 

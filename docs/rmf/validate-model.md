@@ -6,7 +6,7 @@ group: RMF
 
 # Validate a Model
 
-{@link model.Modeller.validate | validate()} checks model definitions across the open levels. It checks the JSON structure, imports, references, inheritance and model rules. It does not check recorded objects.
+{@link model.Modeller.validate | validate()} checks definitions in the selected model and its transitive imports. It checks the JSON structure, imports, references, inheritance and model rules. It does not check recorded objects.
 
 ## Check the whole model
 

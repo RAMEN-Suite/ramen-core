@@ -10,7 +10,7 @@ Unacceptable behaviour includes harassment, discrimination, sexualised attention
 
 AI-assisted contributions are welcome when they are reviewed and owned by the contributor. Do not use AI to impersonate another person, fabricate evidence or attribution, disclose confidential or personal information, overwhelm maintainers with unreviewed output, or evade licensing and authorship responsibilities. Clearly disclose material AI assistance when it affects provenance, security, licensing, or the reviewability of a contribution.
 
-Generated suggestions never excuse harmful conduct or transfer responsibility away from the person submitting them. Repository-specific implementation rules are documented in [Contributing](CONTRIBUTING.md#coding-conventions).
+Generated suggestions never excuse harmful conduct or transfer responsibility away from the person submitting them. Repository-specific implementation rules are documented in [Contributing](CONTRIBUTING.md#coding-and-testing-conventions).
 
 ## Scope and enforcement
 

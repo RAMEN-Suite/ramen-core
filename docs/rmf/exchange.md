@@ -26,7 +26,7 @@ const file: ModelFile = website.export();
 const json: string = JSON.stringify(file, null, 2);
 ```
 
-`website.export()` includes Website and Filing. It does not include an unrelated sibling model. Export checks the model first and throws if its definitions are invalid. Use [Validate a Model](validate-model.md) to show findings before export.
+`website.export()` includes Website and Filing. It excludes sibling and descendant levels. A {@link model.Modeller.snapshot | snapshot()} instead retains the complete workspace for editing and comparison. Export checks the model first and throws if its definitions are invalid. Use [Validate a Model](validate-model.md) to show findings before export.
 
 Project information is separate from model-level names. Pass `{ name, description }` to `export()` to include it under `file.project`. `Modeller.import(file)` retains this information; `getProjectMetadata()` returns a detached copy, and subsequent exports, level selection and snapshots preserve it. `RamenModel` provides the same API. Supplying metadata to an export changes that file only; it does not rename model levels or modify the workspace.
 
@@ -35,8 +35,8 @@ const projectFile: ModelFile = website.export({
   name: 'Website project',
   description: 'Shared models for the editorial website.',
 });
-const restored: Modeller = Modeller.import(projectFile);
-console.log(restored.getProjectMetadata()?.name); // Website project
+const restoredProject: Modeller = Modeller.import(projectFile);
+console.log(restoredProject.getProjectMetadata()?.name); // Website project
 ```
 
 ## Understand the file
@@ -46,6 +46,7 @@ The file has one list of model headers and shared lists of declarations:
 | Field         | What it preserves                                                             |
 | ------------- | ----------------------------------------------------------------------------- |
 | `$schema`     | The [RMF file schema](https://ramen-schema.org/model/1.0.0/file.schema.json). |
+| `project`     | Optional project name and description, independent of model-level names.      |
 | `id`          | The selected model, Website in this example.                                  |
 | `models`      | Website and Filing metadata, including their IDs, versions and imports.       |
 | `classifiers` | Page and Document, each tagged with the `modelId` of its declaring model.     |
@@ -88,3 +89,7 @@ console.log(restored.getNodeLineage(page)[0]?.name); // Record
 The edit is visible from Website. {@link model.Modeller.getModel | getModel()} returns only the currently opened model document, while `export()` combines it with its predecessors again. Import creates an independent workspace, so these edits do not change the original Filing and Website objects.
 
 See [JSON Schemas](../schemas.md) for all packaged schemas and their purposes.
+
+## Compatibility
+
+Import validates the file against the supported format and current model rules. A different `$schema` identifier throws {@link model.UnsupportedModelFormatError | UnsupportedModelFormatError}, with `actualSchema` and `expectedSchema`. Malformed files and invalid definitions throw validation errors. Import does not migrate older formats.

@@ -52,7 +52,7 @@ console.log(titleChange?.action); // 'added'
 
 The report uses stable IDs to identify added, removed and changed models, nodes, attributes, data types, literals and relations. An {@link model.EvolutionChange | EvolutionChange} gives the declaring `modelId`, `elementId` and, where relevant, `ownerId`, plus `before` and `after` values.
 
-`beforeDiagnostics` and `afterDiagnostics` contain validation findings for each complete workspace. This includes disconnected branches and isolated import cycles. The findings show whether an edit left a model invalid, as explained in [Validate Models and Data](validation.md). The report describes differences without changing either state or migrating recorded data.
+`beforeDiagnostics` and `afterDiagnostics` contain validation findings for each complete workspace. This includes disconnected branches and isolated import cycles. The findings show whether an edit left a model invalid, as explained in [Validate Models and Data](validation.md). The report describes differences without changing either state or migrating recorded data. For example, renaming `title` to `heading` preserves the attribute's identity in the report, but recorded `properties.title` values still need to be moved to `properties.heading` before validation against the new model.
 
 ## Read the report
 

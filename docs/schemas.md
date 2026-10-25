@@ -40,3 +40,9 @@ Every filename above is available as `@ramen-suite/core/schemas/<filename>`. The
 The links above are the versioned canonical `$id` values declared in the schemas. They identify the format even before the corresponding website paths are published. The packaged copies are available without fetching those URLs.
 
 `https://ramen-schema.org/ramen/1.0.0/model.json` identifies the built-in {@link ramen.RAMEN_MODEL | RAMEN reference model}. It is a model document, not an additional JSON schema.
+
+## Versions
+
+The npm package version identifies the implementation and public API. Schema `$id` values identify document formats, while the RAMEN reference model has its own identity and vocabulary version. These versions are independent; a package update does not necessarily change the file format.
+
+See [Contributing](../CONTRIBUTING.md#guides-and-releases) for publishing the schemas and reference model to their canonical URLs.

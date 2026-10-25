@@ -13,12 +13,6 @@ children:
 
 # RAMEN Model Format
 
-## Describe definitions
-
-Models, nodes, relations, properties, data types, literals, constraints and RAMEN annotation shapes accept optional `description` metadata. It is plain text, may contain line breaks and is limited to 2,000 Unicode code points (`DESCRIPTION_MAX_LENGTH`). Empty or whitespace-only descriptions are omitted; other text is preserved. Updates retain the description unless explicitly supplied, and an empty string clears it.
-
-Descriptions stay with their declaring definitions through duplication, inherited-property lookup and model import/export. They do not create captured-data fields or change validation rules; a constraint's description explains the rule, while its `message` reports a violation. Invalid or oversized descriptions are rejected without truncation. Project-level `ProjectMetadata.description` remains a separate, unchanged field.
-
 ## Understand RMF
 
 **RAMEN Model Format (RMF)** describes data models in JSON.
@@ -124,6 +118,12 @@ project.createRelation({ refines: filedIn, from: { node: page }, to: { node: sec
 ```
 
 Page inherits `title`, and Section inherits `description`. Website explicitly applies Filing's relationship. [Refine by Inheritance](inheritance.md) compares inheritance in one model with a new level.
+
+## Describe definitions
+
+Models, nodes, relations, properties, data types, literals, constraints and RAMEN annotation shapes accept optional `description` metadata. It is plain text, may contain line breaks and is limited to 2,000 Unicode code points (`DESCRIPTION_MAX_LENGTH`). Empty or whitespace-only descriptions are omitted; other text is preserved. Updates retain the description unless explicitly supplied, and an empty string clears it.
+
+Descriptions stay with their declaring definitions through duplication, inherited-property lookup and model import/export. They do not create captured-data fields or change validation rules; a constraint's description explains the rule, while its `message` reports a violation. Invalid or oversized descriptions are rejected without truncation. Project-level `ProjectMetadata.description` remains a separate, unchanged field.
 
 ## Export and import
 

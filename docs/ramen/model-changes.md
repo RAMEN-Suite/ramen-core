@@ -20,7 +20,7 @@ import type { AnnotationShape, RamenModel } from '@ramen-suite/core/ramen';
 const before: RamenModel = edition.snapshot();
 
 const personType: AnnotationShape = edition.createAnnotationShape({
-  node: RAMEN_ELEMENT.ANNOTATION,
+  nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'person',
   relations: [
     { relation: textAnnotation, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } },

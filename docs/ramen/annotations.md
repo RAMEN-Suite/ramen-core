@@ -67,7 +67,7 @@ For example, `place` can require a Text attachment and one Place reference:
 
 ```ts
 media.createAnnotationShape({
-  node: RAMEN_ELEMENT.ANNOTATION,
+  nodeId: RAMEN_ELEMENT.ANNOTATION,
   type: 'place',
   relations: [
     { relation: textLink, direction: 'incoming', bounds: { lowerBound: 1, upperBound: 1 } },

@@ -43,7 +43,7 @@ This checks the property's bounds, data type and constraints, including inherite
 
 ## Check recorded data
 
-A tool supplies its records as a {@link model.ModelInstanceGraph | ModelInstanceGraph}. This example has one Text record, one `person` annotation and one Person record. The record IDs are short for readability:
+A tool supplies its records as a {@link model.ModelInstanceGraph | ModelInstanceGraph}. This example has one Text record, one `person` annotation and one Person record. Record and link IDs contain at least 16 characters:
 
 ```ts
 import type { Diagnostic, ModelInstanceGraph, ValidationResult } from '@ramen-suite/core/model';
@@ -52,12 +52,12 @@ import { RAMEN_MODEL } from '@ramen-suite/core/ramen';
 const data: ModelInstanceGraph = {
   nodes: [
     {
-      id: 'text',
+      id: 'textRecord000001',
       typeId: text.id,
       properties: { uuid: crypto.randomUUID() },
     },
     {
-      id: 'annotation',
+      id: 'annotationRecord',
       typeId: `${RAMEN_MODEL.id}:${RAMEN_ELEMENT.ANNOTATION}`,
       properties: {
         uuid: crypto.randomUUID(),
@@ -66,14 +66,14 @@ const data: ModelInstanceGraph = {
       },
     },
     {
-      id: 'person',
+      id: 'personRecord0001',
       typeId: person.id,
       properties: { uuid: crypto.randomUUID(), label: 'Alex Morgan' },
     },
   ],
   relations: [
-    { id: 'textLink', typeId: textLink.id, fromId: 'text', toId: 'annotation' },
-    { id: 'personLink', typeId: personLink.id, fromId: 'annotation', toId: 'person' },
+    { id: 'textLinkRecord01', typeId: textLink.id, fromId: 'textRecord000001', toId: 'annotationRecord' },
+    { id: 'personLinkRecord', typeId: personLink.id, fromId: 'annotationRecord', toId: 'personRecord0001' },
   ],
 };
 

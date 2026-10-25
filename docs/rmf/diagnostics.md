@@ -24,7 +24,7 @@ for (const diagnostic of checked.diagnostics) {
 }
 ```
 
-That check reports `INSTANCE_PROPERTY_REQUIRED` at `/nodes/0/properties/title`: `0` means the first entry in `data.nodes`, and `title` names its missing property. The record is `data.nodes[0]`, whose ID is `record1`. Use that ID when showing the finding in a tool. The path is positional, so it changes if records are reordered. For missing values, its final segment names where the value should be, even though that location does not yet exist.
+That check reports `INSTANCE_PROPERTY_REQUIRED` at `/nodes/0/properties/title`: `0` means the first entry in `data.nodes`, and `title` names its missing property. The record is `data.nodes[0]`, whose ID is `documentRecord01`. Use that ID when showing the finding in a tool. The path is positional, so it changes if records are reordered. For missing values, its final segment names where the value should be, even though that location does not yet exist.
 
 Paths follow [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) notation. `ref` identifies a related declaration or record rather than a second path.
 

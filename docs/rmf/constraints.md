@@ -19,7 +19,7 @@ A constraint is a rule attached to a model element. Choose the owner by the valu
 
 `regex` and `format` require a string value. A JSON Schema on a node should express a condition **between** properties, rather than repeat their RMF definitions. A recorded relation has no properties beyond its IDs, so JSON Schema adds little there. [Validate Models and Data](validation.md) explains when each rule runs.
 
-Custom languages can be attached to every owner. **Current behaviour:** The editing API accepts any language on every owner without rejecting unsuitable combinations when the rule is attached. Model validation checks whether a `json-schema` expression can be compiled. `regex` and `format` require a string at data validation time. A custom language needs a registered evaluator in the validating tool.
+Custom languages can be attached to every owner. The editing API accepts any language on every owner without rejecting unsuitable combinations when the rule is attached. Model validation checks the expressions of all three built-in languages. `regex` and `format` require a string at data validation time. A custom language needs a registered evaluator in the validating tool.
 
 The examples below share this small model:
 

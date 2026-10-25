@@ -49,12 +49,12 @@ import type { AnnotationShapeOptions, PropertyOption, RelationOption } from '@ra
 
 const options: AnnotationShapeOptions | undefined = media.suggestAnnotationShapeOptions(RAMEN_ELEMENT.ANNOTATION);
 console.log(options?.properties.map((property: PropertyOption): string => property.name));
-// []
+// ['selector', 'type', 'uuid']
 console.log(options?.relations.map((relation: RelationOption): string => relation.targetName).sort());
 // ['Image', 'Person', 'Place', 'Text']
 ```
 
-`uuid`, `type` and the optional `selector` are common Annotation properties, so they are not offered as type-specific options. RAMEN declares `Selector` as an object-valued data type. Its `type` field names the selection method, and tools interpret the remaining fields. A new annotation shape may also declare properties that belong only to that type.
+`uuid`, `type` and the optional `selector` are common Annotation properties. They appear in the options automatically and must not be redeclared on the shape. RAMEN declares `Selector` as an object-valued data type. Its `type` field names the selection method, and tools interpret the remaining fields. A new annotation shape may also declare properties that belong only to that type.
 
 ## Read a selected type
 
@@ -66,8 +66,8 @@ const properties: readonly PropertyOption[] = media.getPropertiesForAnnotationSh
 
 console.log(relations.map((relation: RelationOption): string => `${relation.direction}: ${relation.targetName}`));
 // ['incoming: Text', 'incoming: Image', 'outgoing: Person']
-console.log(properties);
-// []
+console.log(properties.map((property: PropertyOption): string => property.name));
+// ['selector', 'type', 'uuid']
 ```
 
-The `person` type needs no extra properties here. If a project adds type-owned properties later, this query includes their names, data types and cardinalities. The generic {@link model.Modeller.getAttributes | getAttributes(annotation)} instead lists attributes of the shared Annotation node.
+The `person` type needs no extra properties here, so the result contains only shared properties. If a project adds type-owned properties later, this query includes those as well. The generic {@link model.Modeller.getAttributes | getAttributes(annotation)} instead lists attributes of the shared Annotation node.

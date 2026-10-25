@@ -1,4 +1,4 @@
-import { compileSchema, JsonError, SchemaNode } from 'json-schema-library';
+import { compileSchema, JsonError } from 'json-schema-library';
 import schema from '../../resources/schemas/model.schema.json';
 import { Model } from '../Types.js';
 
@@ -7,10 +7,10 @@ export const MODEL_SCHEMA_URI: string = 'https://ramen-schema.org/model/1.0.0/sc
 
 /** Validates unknown JSON values against the versioned RAMEN model format JSON Schema. */
 export class ModelSchemaValidator {
-  private static schemaNode: SchemaNode = compileSchema(schema);
+  private static readonly schemaNode: ReturnType<typeof compileSchema> = compileSchema(schema);
 
   /** Returns the compiled RAMEN model format JSON Schema node. */
-  public static getSchemaNode(): SchemaNode {
+  public static getSchemaNode(): ReturnType<typeof compileSchema> {
     return this.schemaNode;
   }
 

@@ -29,3 +29,13 @@ void test('node and property name helpers preserve Unicode and enforce their doc
   assert.equal(ModelNames.toCamelName(''), 'p');
   assert.equal(ModelNames.toCamelName('x'.repeat(80)).length, 32);
 });
+
+void test('Unicode name boundaries retain complete characters and camel-case supplementary letters', (): void => {
+  const pascal: string = ModelNames.toPascalName('x'.repeat(39) + '𐐀');
+  const camel: string = ModelNames.toCamelName('x'.repeat(31) + '𐐀');
+  assert.equal(pascal, 'X' + 'x'.repeat(38) + '𐐀');
+  assert.equal(camel, 'x'.repeat(31) + '𐐀');
+  assert.equal(Array.from(pascal).length, 40);
+  assert.equal(Array.from(camel).length, 32);
+  assert.equal(ModelNames.toCamelName('𐐀 name'), '𐐨Name');
+});

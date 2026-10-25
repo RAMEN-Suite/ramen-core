@@ -1,19 +1,20 @@
 import { Constraint, Id } from '../Types.js';
 import { compileSchema, draft2020, JsonError, SchemaNode } from 'json-schema-library';
+import { isUri } from '@hyperjump/uri';
 import { Diagnostic, DiagnosticPath, DiagnosticReport, Diagnostics } from './Diagnostics.js';
 import { VALIDATION_ERROR } from './Codes.js';
 import type { ProjectGraph } from '../graph/ProjectGraph.js';
 import type { ModelInstanceGraph } from '../data/InstanceTypes.js';
 
-const URI_INVALID_CHARACTERS: RegExp = /[^a-zA-Z0-9:/?#[\]@!$&'()*+,;=._~%-]/;
-const URI_INVALID_ESCAPE: RegExp = /%(?![0-9a-fA-F]{2})/;
+type FormatCheck = (value: string) => boolean;
 
-const STANDARD_FORMAT_SCHEMAS: ReadonlyMap<string, SchemaNode> = new Map<string, SchemaNode>(
-  ['uuid', 'date', 'date-time', 'email'].map((format: string): [string, SchemaNode] => [
-    format,
-    compileSchema({ type: 'string', format: format }),
-  ]),
-);
+const STANDARD_FORMAT_CHECKS: ReadonlyMap<string, FormatCheck> = new Map<string, FormatCheck>([
+  ['uri', isUri],
+  ...['uuid', 'date', 'date-time', 'email'].map((format: string): [string, FormatCheck] => {
+    const schema: SchemaNode = compileSchema({ type: 'string', format });
+    return [format, (value: string): boolean => schema.validate(value).valid];
+  }),
+]);
 
 function finding(constraint: Constraint, code: string, message: string, path: DiagnosticPath): Diagnostic {
   const report: DiagnosticReport = { code, message, path, ref: constraint.id };
@@ -254,7 +255,7 @@ export class FormatEvaluator implements ConstraintEvaluator {
   /** Checks whether the expression selects a supported format. */
   public validateExpression(expression: Constraint['expression']): string | undefined {
     if (typeof expression !== 'string') return 'expected a format name';
-    return STANDARD_FORMAT_SCHEMAS.has(expression) || expression === 'uri' ? undefined : `unsupported format '${expression}'`;
+    return STANDARD_FORMAT_CHECKS.has(expression) ? undefined : `unsupported format '${expression}'`;
   }
 
   /** Validates standard JSON Schema string formats used by RAMEN model format data types. */
@@ -264,22 +265,12 @@ export class FormatEvaluator implements ConstraintEvaluator {
     if (typeof constraint.expression !== 'string' || typeof context.value !== 'string')
       return [this.invalid(constraint, context, 'expected a string value')];
 
-    const schema: SchemaNode | undefined = STANDARD_FORMAT_SCHEMAS.get(constraint.expression);
-    const valid: boolean = schema ? schema.validate(context.value).valid : this.isAbsoluteUri(context.value);
+    const check: FormatCheck | undefined = STANDARD_FORMAT_CHECKS.get(constraint.expression);
+    const valid: boolean = check?.(context.value) === true;
     if (valid) return [];
     const code: string = constraint.code ?? VALIDATION_ERROR.CONSTRAINT_FORMAT_MISMATCH;
     const message: string = constraint.message ?? `Value is not a valid ${constraint.expression}.`;
     return [finding(constraint, code, message, context.path)];
-  }
-
-  private isAbsoluteUri(value: string): boolean {
-    if (URI_INVALID_CHARACTERS.test(value) || URI_INVALID_ESCAPE.test(value)) return false;
-
-    try {
-      return new URL(value).protocol.length > 1;
-    } catch {
-      return false;
-    }
   }
 
   private invalid(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {

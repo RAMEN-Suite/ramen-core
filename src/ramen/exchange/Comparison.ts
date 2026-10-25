@@ -1,4 +1,11 @@
-import { ModelEvolution, type EvolutionChange, type EvolutionReport, type Id, type Model } from '../../model/index.js';
+import {
+  ModelEvolution,
+  type EvolutionChange,
+  type EvolutionReport,
+  type Diagnostic,
+  type Id,
+  type Model,
+} from '../../model/index.js';
 
 import { AnnotationShape, AnnotationShapes } from '../annotations/Definitions.js';
 import { RamenModelFormat } from '../Document.js';
@@ -44,12 +51,12 @@ export class RamenEvolution {
       changes,
       beforeDiagnostics: ModelEvolution.validateWorkspace(
         beforeModels,
-        (id: Id) => validator.validateProject(id, beforeModels).diagnostics,
+        (id: Id): readonly Diagnostic[] => validator.validateProject(id, beforeModels).diagnostics,
         beforeModelId,
       ),
       afterDiagnostics: ModelEvolution.validateWorkspace(
         afterModels,
-        (id: Id) => validator.validateProject(id, afterModels).diagnostics,
+        (id: Id): readonly Diagnostic[] => validator.validateProject(id, afterModels).diagnostics,
         afterModelId,
       ),
       annotationChanges: this.compareAnnotations(beforeModels, afterModels),

@@ -4,17 +4,16 @@ import { ModelFiles, Modeller, UnsupportedModelFormatError, type ModelFile } fro
 import { RamenFiles, RamenModel, type RamenFile } from '@ramen-suite/core/ramen';
 
 void test('file readers identify unsupported formats without changing their input', (): void => {
-  const files: readonly ModelFile[] = [Modeller.create('Filing').export(), RamenModel.create('Edition').export()];
-  const readers: readonly ((input: unknown) => unknown)[] = [
-    (input: unknown): unknown => ModelFiles.read(input),
-    (input: unknown): unknown => RamenFiles.read(input),
+  const cases: readonly { file: ModelFile; read: (input: unknown) => unknown }[] = [
+    { file: Modeller.create('Filing').export(), read: (input: unknown): unknown => ModelFiles.read(input) },
+    { file: RamenModel.create('Edition').export(), read: (input: unknown): unknown => RamenFiles.read(input) },
   ];
 
-  files.forEach((file: ModelFile, index: number): void => {
+  for (const { file, read } of cases) {
     const input: ModelFile = { ...file, $schema: 'https://example.org/old-format.json' };
     const original: ModelFile = structuredClone(input);
     assert.throws(
-      (): unknown => readers[index]?.(input),
+      (): unknown => read(input),
       (error: unknown): boolean => {
         assert.ok(error instanceof UnsupportedModelFormatError);
         assert.equal(error.actualSchema, input.$schema);
@@ -23,7 +22,7 @@ void test('file readers identify unsupported formats without changing their inpu
       },
     );
     assert.deepEqual(input, original);
-  });
+  }
 });
 
 void test('missing format identifiers and malformed current files remain schema errors', (): void => {

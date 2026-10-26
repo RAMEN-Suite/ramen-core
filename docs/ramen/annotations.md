@@ -81,3 +81,7 @@ Neither type permits a link to the other entity. Tools can [suggest which types]
 {@link ramen.RamenModel.getAnnotationShapes | getAnnotationShapes()} lists declarations made on this project level. Use {@link ramen.RamenModel.updateAnnotationShape | updateAnnotationShape()} or {@link ramen.RamenModel.removeAnnotationShape | removeAnnotationShape()} with the declaration's ID, such as `personType.id`, to change or remove one.
 
 Next, [Add Properties](constrain-annotations.md) adds a type-owned property. [Use Selectors](selectors.md) shows how a recorded annotation can point to part of Text or Image. [Refine Nodes](refine-annotations.md) separates node families when a project needs that distinction. [Suggestions](suggest-annotations.md) shows the choices a tool can offer.
+
+## Tool metadata
+
+Annotation shapes accept an optional `ext` object for tool-specific definitions, for example `ext: { "org.example.editor": { widget: "textarea" } }`. Core preserves this metadata through editing and exchange without interpreting it.

@@ -30,7 +30,7 @@ const code = model.createDataType({
 }).element;
 ```
 
-`regex` uses a JavaScript regular expression. Anchor it with `^` and `$` when the entire string must match.
+`regex` uses a JavaScript regular expression in Unicode mode (`u`), including property escapes such as `\p{Lu}`. Invalid expressions are reported during model validation. Anchor it with `^` and `$` when the entire string must match.
 
 > Regex patterns, including JSON Schema `pattern` and `patternProperties`, can cause [ReDoS (OWASP)](https://community.owasp.org/attacks/Regular_expression_Denial_of_Service_-_ReDoS). Evaluation has no built-in timeout; untrusted patterns can be isolated in a [terminable worker (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Worker/terminate).
 

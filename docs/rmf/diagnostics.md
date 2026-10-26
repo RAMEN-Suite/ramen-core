@@ -8,13 +8,14 @@ group: RMF
 
 {@link model.Modeller.validate | validate()} and {@link model.Modeller.validateInstances | validateInstances(data)} return a list of {@link model.Diagnostic | diagnostics}. Read `code` when your tool needs to react to a finding.
 
-| Field      | Meaning                                      |
-| ---------- | -------------------------------------------- |
-| `severity` | `error`, `warn` or `info`                    |
-| `code`     | Stable identifier for the failed rule        |
-| `message`  | Explanation for people                       |
-| `path`     | Location in the checked JSON, when available |
-| `ref`      | Related model or element ID, when available  |
+| Field        | Meaning                                      |
+| ------------ | -------------------------------------------- |
+| `severity`   | `error`, `warn` or `info`                    |
+| `code`       | Stable identifier for the failed rule        |
+| `message`    | Explanation for people                       |
+| `path`       | Location in the checked JSON, when available |
+| `ref`        | Related model or element ID, when available  |
+| `instanceId` | Affected data record ID, when available      |
 
 For example, continue [Validate Recorded Data](validate-data.md#missing-required-values), where a Document lacks its required `title`:
 
@@ -27,6 +28,8 @@ for (const diagnostic of checked.diagnostics) {
 That check reports `INSTANCE_PROPERTY_REQUIRED` at `/nodes/0/properties/title`: `0` means the first entry in `data.nodes`, and `title` names its missing property. The record is `data.nodes[0]`, whose ID is `documentRecord01`. Use that ID when showing the finding in a tool. The path is positional, so it changes if records are reordered. For missing values, its final segment names where the value should be, even though that location does not yet exist.
 
 Paths follow [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) notation. `ref` identifies a related declaration or record rather than a second path.
+
+Structural schema findings identify individual input fields under `/models/<index>`; semantic model findings use `/models/<modelId>`. Relation cardinality findings include `instanceId` because a missing link has no position in `/relations`.
 
 For JSON Schema rules, an ambiguous library path points to the nearest unambiguous containing object. The finding still identifies the failed constraint.
 
@@ -93,7 +96,8 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 | `RELATION_END_TYPE_INCOMPATIBLE`           | An endpoint type does not match or refine the inherited endpoint.           |
 | `CONSTRAINT_LANGUAGE_UNSUPPORTED`          | No evaluator is registered for the constraint's language.                   |
 | `CONSTRAINT_EVALUATION_FAILED`             | A registered evaluator threw an exception instead of returning findings.    |
-| `CONSTRAINT_EXPRESSION_INVALID`            | An expression, format name or input value cannot be evaluated as requested. |
+| `CONSTRAINT_EXPRESSION_INVALID`            | An expression or format name cannot be evaluated as requested.              |
+| `CONSTRAINT_VALUE_TYPE_INVALID`            | A constraint received a value of an unsupported type.                       |
 | `CONSTRAINT_REGEX_MISMATCH`                | A value does not match a regular expression.                                |
 | `CONSTRAINT_FORMAT_MISMATCH`               | A value does not match a declared string format.                            |
 | `CONSTRAINT_JSON_SCHEMA_MISMATCH`          | A value does not match a JSON Schema constraint.                            |

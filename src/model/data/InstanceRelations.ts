@@ -286,7 +286,7 @@ export class InstanceRelationValidator {
 
       for (const node of nodes.get(key) ?? []) {
         const count: number = counts.get(`${type.modelId}:${relation.id}:${direction}:${node.instance.id}`) ?? 0;
-        this.validateCount(relation.name, bounds, count, DiagnosticPath.root().property('relations'), ref, diagnostics);
+        this.validateCount(relation.name, bounds, count, ref, node.instance.id, diagnostics);
       }
     }
   }
@@ -315,20 +315,20 @@ export class InstanceRelationValidator {
     name: string,
     bounds: Bounds,
     count: number,
-    path: DiagnosticPath,
     ref: string,
+    instanceId: Id,
     diagnostics: Diagnostic[],
   ): void {
-    if (!Cardinality.isCountWithinBounds(count, bounds)) {
-      diagnostics.push(
-        this.error(
-          VALIDATION_ERROR.INSTANCE_CARDINALITY_INVALID,
-          `Feature '${name}' has ${count} value(s), expected ${bounds.lowerBound}..${bounds.upperBound}.`,
-          path,
-          ref,
-        ),
-      );
-    }
+    if (Cardinality.isCountWithinBounds(count, bounds)) return;
+    diagnostics.push(
+      Diagnostics.error({
+        code: VALIDATION_ERROR.INSTANCE_CARDINALITY_INVALID,
+        message: `Feature '${name}' on record '${instanceId}' has ${count} value(s), expected ${Cardinality.format(bounds)}.`,
+        path: DiagnosticPath.root().property('relations'),
+        ref,
+        instanceId,
+      }),
+    );
   }
 
   private error(code: ValidationCode, message: string, path: DiagnosticPath, ref?: string): Diagnostic {

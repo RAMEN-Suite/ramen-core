@@ -13,7 +13,6 @@ import {
   type ModelInstanceRelation,
   type ProjectValidationResult,
   type ValidationResult,
-  type Bounds,
   type Attribute,
   type Model,
   type Node,
@@ -245,7 +244,7 @@ export class RamenInstanceValidator {
         this.error(
           diagnostics,
           RAMEN_INSTANCE_ERROR.ANNOTATION_RELATION_CARDINALITY,
-          `Annotation '${selected.annotation.type}' requires ${this.boundsText(requirement.bounds)} matching relation(s), found ${count}.`,
+          `Annotation '${selected.annotation.type}' requires ${Cardinality.format(requirement.bounds)} matching relation(s), found ${count}.`,
           path,
           node.id,
         );
@@ -284,10 +283,6 @@ export class RamenInstanceValidator {
 
   private hasDirection(requirement: AnnotationShapeRelation, relation: ModelInstanceRelation, nodeId: Id): boolean {
     return requirement.direction === 'outgoing' ? relation.fromId === nodeId : relation.toId === nodeId;
-  }
-
-  private boundsText(bounds: Bounds): string {
-    return bounds.upperBound === -1 ? `${bounds.lowerBound}..*` : `${bounds.lowerBound}..${bounds.upperBound}`;
   }
 
   private error(diagnostics: Diagnostic[], code: RAMEN_INSTANCE_ERROR, message: string, path: DiagnosticPath, ref: Id): void {

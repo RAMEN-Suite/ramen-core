@@ -104,6 +104,9 @@ export interface AnnotationShapeUpdate {
 
 /** Adds the RAMEN vocabulary and annotation rules to shared generic editing. */
 export class RamenModel extends ModelDraft<RamenAdvisor> {
+  private readonly validator: RamenValidator = new RamenValidator();
+  private readonly instances: RamenInstanceValidator = new RamenInstanceValidator();
+
   private constructor(
     model: RamenModelDocument,
     dependencies: readonly Model[],
@@ -114,7 +117,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   protected check(): ProjectValidationResult {
-    return new RamenValidator().validateProject(this.model.id, this.validationInputs());
+    return this.validator.validateProject(this.model.id, this.validationInputs());
   }
 
   protected buildAdvisor(result: ValidProjectResult): RamenAdvisor {
@@ -232,9 +235,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
 
   /** Validates a complete data graph against this RAMEN model. */
   public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
-    const validator: RamenInstanceValidator = constraints
-      ? RamenInstanceValidator.withConstraints(constraints)
-      : new RamenInstanceValidator();
+    const validator: RamenInstanceValidator = constraints ? RamenInstanceValidator.withConstraints(constraints) : this.instances;
 
     return validator.validate(this.model.id, this.validationInputs(), input);
   }
@@ -248,7 +249,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     type: string,
     name: string,
     value: unknown,
-    constraints: ConstraintRegistry = ConstraintRegistry.createDefault(),
+    constraints: ConstraintRegistry = this.defaultConstraints,
   ): ValidationResult {
     const project: ProjectValidationResult = this.validate();
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };

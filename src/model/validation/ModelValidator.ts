@@ -1,9 +1,10 @@
+import { SchemaFindings } from './SchemaFindings.js';
 import { RelationSelections } from '../graph/RelationScope.js';
 import { Model, Id } from '../Types.js';
 import { buildProjectGraph, ProjectGraphResult } from '../graph/BuildGraph.js';
 import { ProjectGraph } from '../graph/ProjectGraph.js';
 import { VALIDATION_ERROR } from './Codes.js';
-import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics.js';
+import { Diagnostic, DiagnosticPath } from './Diagnostics.js';
 import { ModelRules } from './ModelRules.js';
 import { ModelSchemaValidator } from './ModelSchema.js';
 
@@ -44,18 +45,15 @@ export class ModelValidator {
     const models: Model[] = [];
 
     inputs.forEach((input: unknown, index: number): void => {
-      try {
-        ModelSchemaValidator.assertValid(input);
-        models.push(input);
-      } catch (error: unknown) {
-        diagnostics.push(
-          Diagnostics.error({
-            code: VALIDATION_ERROR.SCHEMA_INVALID,
-            message: error instanceof Error ? error.message : String(error),
-            path: DiagnosticPath.root().property('models').index(index),
-          }),
-        );
-      }
+      const path: DiagnosticPath = DiagnosticPath.root().property('models').index(index);
+      const findings: readonly Diagnostic[] = SchemaFindings.validate(
+        ModelSchemaValidator.getSchemaNode(),
+        input,
+        VALIDATION_ERROR.SCHEMA_INVALID,
+        path,
+      );
+      diagnostics.push(...findings);
+      if (findings.length === 0) models.push(input as Model);
     });
 
     if (diagnostics.length > 0) return { valid: false, diagnostics: diagnostics, hasErrors: true };

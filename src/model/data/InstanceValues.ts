@@ -302,7 +302,7 @@ export class InstanceValueValidator {
       diagnostics.push(
         this.error(
           VALIDATION_ERROR.INSTANCE_CARDINALITY_INVALID,
-          `Feature '${name}' has ${count} value(s), expected ${bounds.lowerBound}..${bounds.upperBound}.`,
+          `Feature '${name}' has ${count} value(s), expected ${Cardinality.format(bounds)}.`,
           path,
           ref,
         ),

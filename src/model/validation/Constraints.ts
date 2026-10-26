@@ -1,3 +1,4 @@
+import { SchemaFindings } from './SchemaFindings.js';
 import { Constraint, Id } from '../Types.js';
 import { compileSchema, draft2020, JsonError, SchemaNode } from 'json-schema-library';
 import { isUri } from '@hyperjump/uri';
@@ -21,6 +22,16 @@ function finding(constraint: Constraint, code: string, message: string, path: Di
   if (constraint.severity === 'warn') return Diagnostics.warn(report);
   if (constraint.severity === 'info') return Diagnostics.info(report);
   return Diagnostics.error(report);
+}
+
+function invalidValue(constraint: Constraint, context: ConstraintContext): Diagnostic {
+  return Diagnostics.error({
+    code: VALIDATION_ERROR.CONSTRAINT_VALUE_TYPE_INVALID,
+    message: `Constraint '${constraint.name}' requires a string value.`,
+    path: context.path,
+    ref: constraint.id,
+    instanceId: context.instanceId,
+  });
 }
 
 /** Model element kind that supplies the context for a constraint evaluation. */
@@ -170,25 +181,7 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
   }
 
   private valuePath(context: ConstraintContext, error: JsonError): DiagnosticPath {
-    const pointer: unknown = error.data?.pointer;
-    if (typeof pointer !== 'string') return context.path;
-    let remaining: string = pointer.replace(/^#/, '');
-    let value: unknown = context.value;
-    let path: DiagnosticPath = context.path;
-
-    // The schema library supplies unescaped keys. Stop at the last unambiguous owner rather than inventing a path.
-    while (remaining.startsWith('/') && value !== null && typeof value === 'object') {
-      const keys: readonly string[] = Object.keys(value).filter(
-        (key: string): boolean => remaining === `/${key}` || remaining.startsWith(`/${key}/`),
-      );
-      const key: string | undefined = keys[0];
-      if (keys.length !== 1 || key === undefined) return path;
-
-      path = path.property(key);
-      remaining = remaining.slice(key.length + 1);
-      value = (value as Record<string, unknown>)[key];
-    }
-    return path;
+    return SchemaFindings.path(context.value, error, context.path);
   }
 
   private invalid(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {
@@ -224,7 +217,7 @@ export class RegexEvaluator implements ConstraintEvaluator {
       return [this.invalidExpression(constraint, context, error instanceof Error ? error.message : String(error))];
     }
 
-    if (typeof context.value !== 'string') return [this.invalidExpression(constraint, context, 'expected a string value')];
+    if (typeof context.value !== 'string') return [invalidValue(constraint, context)];
     if (expression.test(context.value)) return [];
 
     return [
@@ -239,7 +232,7 @@ export class RegexEvaluator implements ConstraintEvaluator {
 
   private compile(expression: Constraint['expression']): RegExp {
     if (typeof expression !== 'string') throw new Error('expected a string');
-    return new RegExp(expression);
+    return new RegExp(expression, 'u');
   }
 
   private invalidExpression(constraint: Constraint, context: ConstraintContext, reason: string): Diagnostic {
@@ -268,8 +261,7 @@ export class FormatEvaluator implements ConstraintEvaluator {
     if (reason) return [this.invalid(constraint, context, reason)];
     const expression: unknown = constraint.expression;
     const value: unknown = context.value;
-    if (typeof expression !== 'string' || typeof value !== 'string')
-      return [this.invalid(constraint, context, 'expected a string value')];
+    if (typeof expression !== 'string' || typeof value !== 'string') return [invalidValue(constraint, context)];
 
     const check: FormatCheck | undefined = STANDARD_FORMAT_CHECKS.get(expression);
     const valid: boolean = check?.(value) === true;

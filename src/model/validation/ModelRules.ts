@@ -46,11 +46,14 @@ export class ModelRules {
     ];
 
     for (const reference of invalid) {
+      const index: number = model.relations.findIndex((relation: Relation): boolean => relation.id === reference);
+      const collection: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id).property('relations');
+      const path: DiagnosticPath = index < 0 ? collection : collection.index(index);
       diagnostics.push(
         this.error(
           VALIDATION_ERROR.RELATION_SCOPE_INVALID,
           'Select a relation permitted by the preceding model level.',
-          DiagnosticPath.root().property('models').property(model.id).property('relations'),
+          path,
           reference,
         ),
       );

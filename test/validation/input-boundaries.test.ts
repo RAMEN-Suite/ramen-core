@@ -28,7 +28,7 @@ void test('untrusted JSON shapes fail at the model, exchange and recorded-data b
     assert.equal(definition.diagnostics[0]?.path, '/models/0');
     assert.equal(records.hasErrors, true);
     assert.equal(records.diagnostics[0]?.code, 'INSTANCE_SCHEMA_INVALID');
-    assert.equal(records.diagnostics[0]?.path, '/');
+    assert.equal(records.diagnostics[0]?.path, input === inputs[7] ? '/nodes' : '/');
     assert.throws((): Modeller => Modeller.import(input), /Invalid model file/);
     assert.throws((): RamenModel => RamenModel.import(input), /Invalid model file/);
   }

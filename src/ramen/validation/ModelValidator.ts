@@ -1,3 +1,4 @@
+import { SchemaFindings } from '../../model/validation/SchemaFindings.js';
 import {
   DiagnosticPath,
   Diagnostics,
@@ -56,7 +57,7 @@ export class RamenValidator {
         Diagnostics.error({
           code: RAMEN_VALIDATION_ERROR.PROJECT_FORMAT_REQUIRED,
           message: `Root model '${rootModelId}' must use the RAMEN project format.`,
-          path: DiagnosticPath.root().property('$schema'),
+          path: DiagnosticPath.root().property('models').property(rootModelId).property('$schema'),
           ref: rootModelId,
         }),
       ];
@@ -68,7 +69,7 @@ export class RamenValidator {
         Diagnostics.error({
           code: RAMEN_VALIDATION_ERROR.BASE_MODEL_REQUIRED,
           message: `RAMEN project '${rootModelId}' must import RAMEN '${RAMEN_MODEL.id}' directly or transitively.`,
-          path: DiagnosticPath.root().property('imports'),
+          path: DiagnosticPath.root().property('models').property(rootModelId).property('imports'),
           ref: RAMEN_MODEL.id,
         }),
       ];
@@ -83,10 +84,9 @@ export class RamenValidator {
     inputs.forEach((input: unknown, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('models').index(index);
       if (!RamenModelFormat.isDocument(input)) {
-        if (!ModelSchemaValidator.isValid(input))
-          diagnostics.push(
-            Diagnostics.error({ code: VALIDATION_ERROR.SCHEMA_INVALID, message: 'Invalid generic model document.', path }),
-          );
+        diagnostics.push(
+          ...SchemaFindings.validate(ModelSchemaValidator.getSchemaNode(), input, VALIDATION_ERROR.SCHEMA_INVALID, path),
+        );
         return;
       }
 
@@ -95,9 +95,7 @@ export class RamenValidator {
         ? VALIDATION_ERROR.SCHEMA_INVALID
         : RAMEN_VALIDATION_ERROR.ANNOTATIONS_INVALID;
 
-      diagnostics.push(
-        Diagnostics.error({ code, message: `Model '${input.id}' does not match the RAMEN project schema.`, path, ref: input.id }),
-      );
+      diagnostics.push(...SchemaFindings.validate(RamenProjectSchemaValidator.getSchemaNode(), input, code, path));
     });
 
     return diagnostics;

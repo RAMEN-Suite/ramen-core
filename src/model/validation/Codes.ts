@@ -75,8 +75,10 @@ export enum VALIDATION_ERROR {
   CONSTRAINT_LANGUAGE_UNSUPPORTED = 'CONSTRAINT_LANGUAGE_UNSUPPORTED',
   /** A registered evaluator threw an exception instead of returning findings. */
   CONSTRAINT_EVALUATION_FAILED = 'CONSTRAINT_EVALUATION_FAILED',
-  /** An expression, format name or input value cannot be evaluated as requested. */
+  /** An expression or format name cannot be evaluated as requested. */
   CONSTRAINT_EXPRESSION_INVALID = 'CONSTRAINT_EXPRESSION_INVALID',
+  /** A constraint received a value of an unsupported type. */
+  CONSTRAINT_VALUE_TYPE_INVALID = 'CONSTRAINT_VALUE_TYPE_INVALID',
   /** A value does not match a regular expression. */
   CONSTRAINT_REGEX_MISMATCH = 'CONSTRAINT_REGEX_MISMATCH',
   /** A value does not match a declared string format. */

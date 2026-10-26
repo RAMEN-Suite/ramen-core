@@ -71,6 +71,7 @@ export interface RemovalEffect {
 /** Shared editing state for generic and domain-specific modelling facades. */
 export abstract class ModelDraft<A extends ModelAdvisor> {
   protected readonly workspace: ModelWorkspace;
+  protected readonly defaultConstraints: ConstraintRegistry = ConstraintRegistry.createDefault();
   private readonly modelId: Id;
   private validatedRevision: number = -1;
   private validation: ProjectValidationResult | undefined;
@@ -239,7 +240,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   public validateValue(
     type: ElementInput,
     value: unknown,
-    registry: ConstraintRegistry = ConstraintRegistry.createDefault(),
+    registry: ConstraintRegistry = this.defaultConstraints,
   ): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { diagnostics: result.diagnostics, hasErrors: true };
@@ -265,7 +266,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     node: ElementInput,
     name: string,
     value: unknown,
-    registry: ConstraintRegistry = ConstraintRegistry.createDefault(),
+    registry: ConstraintRegistry = this.defaultConstraints,
   ): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { diagnostics: result.diagnostics, hasErrors: true };

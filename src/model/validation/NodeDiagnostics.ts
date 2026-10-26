@@ -53,10 +53,15 @@ export class NodeDiagnostics {
     extraPaths: readonly string[] = [],
   ): ValidationResult {
     const paths: readonly string[] = [...this.paths(lineage), ...extraPaths];
+    const inputPaths: readonly string[] = this.models.map((_model: Model, index: number): string => `/models/${index}`);
     const selected: readonly Diagnostic[] = diagnostics.filter(
       (item: Diagnostic): boolean =>
         item.path === '/' ||
-        paths.some((path: string): boolean => item.path === path || item.path?.startsWith(`${path}/`) === true),
+        inputPaths.some((path: string): boolean => item.path === path || item.path?.startsWith(`${path}/`) === true) ||
+        paths.some(
+          (path: string): boolean =>
+            item.path === path || item.path?.startsWith(`${path}/`) === true || path.startsWith(`${item.path}/`),
+        ),
     );
 
     return { diagnostics: selected, hasErrors: selected.some((item: Diagnostic): boolean => item.severity === 'error') };

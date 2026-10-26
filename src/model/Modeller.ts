@@ -12,6 +12,9 @@ import type { Id, Model } from './Types.js';
 
 /** Creates and refines generic models while retaining dependencies, validation and suggestions. */
 export class Modeller extends ModelDraft<ModelAdvisor> {
+  private readonly validator: ModelValidator = new ModelValidator();
+  private readonly instances: InstanceValidator = new InstanceValidator();
+
   private constructor(model: Model, dependencies: readonly Model[], workspace?: ModelWorkspace, attach: boolean = false) {
     super(model, dependencies, workspace, attach);
   }
@@ -78,11 +81,12 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
   public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { hasErrors: true, diagnostics: result.diagnostics };
-    return new InstanceValidator(constraints).validate(result.graph, input);
+    const validator: InstanceValidator = constraints ? new InstanceValidator(constraints) : this.instances;
+    return validator.validate(result.graph, input);
   }
 
   protected check(): ProjectValidationResult {
-    return new ModelValidator().validateProject(this.model.id, this.validationInputs());
+    return this.validator.validateProject(this.model.id, this.validationInputs());
   }
 
   protected buildAdvisor(result: ValidProjectResult): ModelAdvisor {

@@ -8,6 +8,8 @@ export interface Diagnostic {
   readonly message: string;
   readonly path?: string;
   readonly ref?: string;
+  /** Identifier of the affected data record, separate from the model definition reference. */
+  readonly instanceId?: string;
 }
 
 /** Immutable builder for JSON Pointer-like diagnostic paths. */
@@ -40,7 +42,7 @@ export class DiagnosticPath {
 }
 
 /** Finding data accepted by the diagnostic factory methods. */
-export type DiagnosticReport = Pick<Diagnostic, 'code' | 'message' | 'ref'> & {
+export type DiagnosticReport = Pick<Diagnostic, 'code' | 'message' | 'ref' | 'instanceId'> & {
   path?: DiagnosticPath;
 };
 

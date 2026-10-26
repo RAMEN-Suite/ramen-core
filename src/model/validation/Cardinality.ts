@@ -4,6 +4,12 @@ import { Bounds } from '../Types.js';
 export class Cardinality {
   public static readonly UNBOUNDED: -1 = -1;
 
+  /** Formats an interval using an asterisk for an unbounded maximum. */
+  public static format(bounds: Bounds): string {
+    const maximum: string = bounds.upperBound === this.UNBOUNDED ? '*' : String(bounds.upperBound);
+    return `${bounds.lowerBound}..${maximum}`;
+  }
+
   /** Reports whether a recorded count satisfies the modelled interval. */
   public static isCountWithinBounds(count: number, bounds: Bounds): boolean {
     const meetsMinimum: boolean = count >= bounds.lowerBound;

@@ -8,9 +8,11 @@ void test('schema retention stays bounded and evicted expressions still validate
   const cache: Map<string, unknown> = Reflect.get(evaluator, 'schemas') as Map<string, unknown>;
   const expression: Record<string, unknown> = { minLength: 3 };
   const key: string = JSON.stringify(expression);
+
   assert.equal(evaluator.validateExpression(expression), undefined);
   const compiled: unknown = cache.get(key);
   assert.ok(compiled);
+
   assert.equal(evaluator.validateExpression({ minLength: 3 }), undefined);
   assert.equal(cache.get(key), compiled);
 

@@ -33,6 +33,7 @@ void test('Float literals preserve fractions through export while Integer litera
   model.removeLiteral(score.id, negative.id);
   model.updateDataType(score.id, { baseType: DataTypes.Integer });
   assert.equal(model.validate().diagnostics[0]?.code, 'DATATYPE_LITERAL_TYPE_INVALID');
+
   model.updateLiteral(score.id, half.id, { value: 1 });
   assert.equal(model.validate().valid, true);
   assert.equal(model.validateValue(score, 1).hasErrors, false);
@@ -135,6 +136,7 @@ void test('attribute rules can be changed and removed through the owning attribu
     typeId: DataTypes.String,
     constraints: [capitalised],
   }).element;
+
   const data: ModelInstanceGraph = {
     nodes: [{ id: 'documentRecord001', typeId: document.id, properties: { title: 'Example' } }],
     relations: [],
@@ -143,6 +145,7 @@ void test('attribute rules can be changed and removed through the owning attribu
   assert.equal(model.validateInstances(data).hasErrors, false);
   model.updateAttribute(document.id, title.id, { constraints: [{ ...capitalised, expression: '^Draft' }] });
   assert.equal(model.validateInstances(data).diagnostics[0]?.code, 'CONSTRAINT_REGEX_MISMATCH');
+
   model.updateAttribute(document.id, title.id, { constraints: [] });
   assert.equal(model.validateInstances(data).hasErrors, false);
 });
@@ -183,6 +186,7 @@ void test('relation cardinality is checked on complete recorded graphs', (): voi
     from: { node: document },
     to: { node: folder, bounds: { lowerBound: 1, upperBound: 1 } },
   }).element;
+
   const records: ModelInstanceGraph = {
     nodes: [
       { id: 'documentRecord01', typeId: document.id, properties: {} },
@@ -190,6 +194,7 @@ void test('relation cardinality is checked on complete recorded graphs', (): voi
     ],
     relations: [],
   };
+
   const missing: ValidationResult = model.validateInstances(records);
   const linked: ModelInstanceGraph = {
     ...records,
@@ -225,6 +230,7 @@ void test('inherited relation counts include self-links and keep endpoint bounds
     from: { node: member },
     to: { node: member },
   }).element;
+
   const typeId: string = selected.id;
   const records: ModelInstanceGraph = {
     nodes: [
@@ -262,6 +268,7 @@ void test('model validation rejects a second key along one inheritance chain', (
     bounds: { lowerBound: 1, upperBound: 1 },
     isKey: true,
   }).element;
+
   const editor: Node = model.createNode({ name: 'Editor', refines: person }).element;
   const duplicate: Attribute = model.createAttribute(editor, {
     name: 'editorIdentifier',
@@ -317,6 +324,7 @@ void test('Object keys compare JSON content across inherited records, independen
     ],
     relations: [],
   };
+
   const result: ValidationResult = edition.validateInstances(records);
   const duplicate: Diagnostic | undefined = result.diagnostics.find(
     (item: Diagnostic): boolean => item.code === 'INSTANCE_KEY_DUPLICATE',
@@ -403,8 +411,10 @@ void test('an attribute can use a registered evaluator for input and recorded da
     typeId: DataTypes.String,
     constraints: [capitalised, rule],
   });
+
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   registry.register({ language: rule.language, evaluate: checkLength });
+
   const invalid: ModelInstanceGraph = {
     nodes: [{ id: 'documentRecord01', typeId: document.id, properties: { title: 'Long title' } }],
     relations: [],
@@ -438,6 +448,7 @@ void test('one value checks its base type, literals and constraints without reco
   assert.equal(model.validateValue(status, 'Draft').hasErrors, false);
   assert.equal(model.validateValue(status, 4).diagnostics[0]?.code, 'INSTANCE_PROPERTY_TYPE_INVALID');
   assert.equal(model.validateValue(status, 'Done').diagnostics[0]?.code, 'INSTANCE_PROPERTY_LITERAL_INVALID');
+
   assert.equal(model.validateValue(DataTypes.Integer, 4).hasErrors, false);
   assert.equal(model.validateValue(DataTypes.Integer, 4.5).diagnostics[0]?.code, 'INSTANCE_PROPERTY_TYPE_INVALID');
 
@@ -456,6 +467,7 @@ void test('a named date type validates stored strings through its format rule', 
     constraints: [{ id: 'eventDateRule001', name: 'Calendar date', language: 'format', expression: 'date' }],
   }).element;
   model.createAttribute(event, { name: 'date', type: date });
+
   const valid: ModelInstanceGraph = {
     nodes: [{ id: 'eventRecord00001', typeId: event.id, properties: { date: '2026-09-22' } }],
     relations: [],
@@ -500,10 +512,13 @@ void test('JSON Schema rules validate declared scalar types', (): void => {
 
   assert.equal(model.validateValue(shortName, 'Ada').hasErrors, false);
   assert.equal(model.validateValue(shortName, 'A').diagnostics[0]?.code, 'CONSTRAINT_JSON_SCHEMA_MISMATCH');
+
   assert.equal(model.validateValue(age, 17).diagnostics[0]?.code, 'CONSTRAINT_JSON_SCHEMA_MISMATCH');
   assert.equal(model.validateValue(age, 20).hasErrors, false);
+
   assert.equal(model.validateValue(confirmed, false).diagnostics[0]?.code, 'CONSTRAINT_JSON_SCHEMA_MISMATCH');
   assert.equal(model.validateValue(confirmed, true).hasErrors, false);
+
   assert.equal(model.validateValue(score, 0.5).hasErrors, false);
   assert.equal(model.validateValue(score, 2).diagnostics[0]?.code, 'CONSTRAINT_JSON_SCHEMA_MISMATCH');
 });
@@ -559,6 +574,7 @@ void test('JSON Schema supports local references and reports invalid schemas', (
 
   assert.equal(model.validateAttributeValue(person, 'code', 'AB').hasErrors, false);
   assert.equal(model.validateAttributeValue(person, 'code', 'abc').diagnostics[0]?.code, 'CONSTRAINT_JSON_SCHEMA_MISMATCH');
+
   model.updateAttribute(person.id, code.id, { constraints: [invalid] });
   assert.equal(model.validate().diagnostics[0]?.code, 'CONSTRAINT_EXPRESSION_INVALID');
   assert.equal(model.validateAttributeValue(person, 'code', 'AB').diagnostics[0]?.code, 'CONSTRAINT_EXPRESSION_INVALID');

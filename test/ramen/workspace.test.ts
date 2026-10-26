@@ -86,6 +86,7 @@ void test('RAMEN roundtrip preserves reused nodes, a refined Annotation, literal
   const research: RamenModel = edition.model.createNextLevel('Research');
   const annotation: Node = research.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   research.hasAnnotation(edition.text, annotation);
+
   const file: RamenFile = research.export();
   const restored: RamenModel = RamenModel.import(JSON.parse(JSON.stringify(file)) as unknown);
 
@@ -97,6 +98,7 @@ void test('RAMEN roundtrip preserves reused nodes, a refined Annotation, literal
     jsonContent(restored.openLevel(edition.model.getModel().id).getModel()),
     jsonContent(edition.model.getModel()),
   );
+
   assert.deepEqual(annotationTypes(restored, edition.text), ['note']);
   assert.deepEqual(jsonContent(restored.getDataType(edition.label.id)), jsonContent(research.getDataType(edition.label.id)));
   assert.equal(restored.validateAnnotationValue(annotation, 'note', 'label', 'short').hasErrors, false);

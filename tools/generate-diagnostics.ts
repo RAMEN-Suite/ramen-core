@@ -32,6 +32,7 @@ function enumEntries(path: string, name: string): readonly CodeEntry[] {
       .getJSDocCommentsAndTags(member)
       .find((item: ts.JSDoc | ts.JSDocTag): item is ts.JSDoc => ts.isJSDoc(item));
     const meaning: string | undefined = typeof comment?.comment === 'string' ? comment.comment.trim() : undefined;
+
     const category: ts.JSDocTag | undefined = comment?.tags?.find((tag: ts.JSDocTag): boolean => tag.tagName.text === 'group');
     if (typeof category?.comment === 'string') group = category.comment.trim();
 
@@ -48,7 +49,6 @@ function table(entries: readonly CodeEntry[]): string {
   if (entries.length === 0) throw new Error('A diagnostic table cannot be empty.');
 
   const rows: readonly string[] = entries.map((entry: CodeEntry): string => `| \`${entry.code}\` | ${entry.meaning} |`);
-
   return ['| Code | Meaning |', '| --- | --- |', ...rows].join('\n');
 }
 
@@ -70,6 +70,7 @@ function replaceTable(document: string, section: Table): string {
 async function updateDocument(path: string, tables: readonly Table[], check: boolean): Promise<boolean> {
   const current: string = readFileSync(path, 'utf8');
   const updated: string = tables.reduce((document: string, section: Table): string => replaceTable(document, section), current);
+
   const options: prettier.Options | null = await prettier.resolveConfig(path);
   const formatted: string = await prettier.format(updated, { ...options, filepath: path });
 
@@ -82,10 +83,11 @@ async function updateDocument(path: string, tables: readonly Table[], check: boo
 
 async function main(): Promise<void> {
   const check: boolean = process.argv.includes('--check');
-
   const rmf: readonly CodeEntry[] = enumEntries(resource('src/model/validation/Codes.ts'), 'VALIDATION_ERROR');
+
   const ramenModel: readonly CodeEntry[] = enumEntries(resource('src/ramen/validation/Codes.ts'), 'RAMEN_VALIDATION_ERROR');
   const ramenData: readonly CodeEntry[] = enumEntries(resource('src/ramen/data/InstanceValidator.ts'), 'RAMEN_INSTANCE_ERROR');
+
   const rmfTables: readonly Table[] = [
     { marker: 'structure', entries: rmf.filter((entry: CodeEntry): boolean => entry.group === 'Structure and references') },
     { marker: 'nodes', entries: rmf.filter((entry: CodeEntry): boolean => entry.group === 'Nodes, properties and data types') },

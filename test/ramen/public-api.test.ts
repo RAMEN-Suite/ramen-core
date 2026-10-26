@@ -99,11 +99,13 @@ void test('annotation input checks resolve inherited shape properties and automa
   const annotation: Node = edition.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const roleName: DataType = edition.createDataType({ name: 'RoleName', baseType: DataTypes.String }).element;
   edition.createLiteral(roleName.id, { name: 'Sender', literal: 'sender' });
+
   const label: Attribute = edition.createAttribute(annotation, {
     name: 'label',
     typeId: DataTypes.String,
     bounds: { lowerBound: 1, upperBound: 1 },
   }).element;
+
   const capitalised: Constraint = { id: 'capitalLabelRule1', name: 'Capitalised', language: 'regex', expression: '^[A-Z]' };
 
   edition.updateAttribute(annotation.id, label.id, { constraints: [capitalised] });
@@ -126,11 +128,13 @@ void test('annotation input checks resolve inherited shape properties and automa
     'INSTANCE_PROPERTY_REQUIRED',
   );
   assert.equal(next.validateAnnotationValue(refined, 'role', 'name', 7).diagnostics[0]?.code, 'INSTANCE_PROPERTY_TYPE_INVALID');
+
   assert.equal(
     next.validateAnnotationValue(refined, 'role', 'label', 'lowercase').diagnostics[0]?.code,
     'CONSTRAINT_REGEX_MISMATCH',
   );
   assert.equal(next.validateAnnotationValue(refined, 'role', 'label', undefined).diagnostics[0]?.path, '/value');
+
   assert.throws((): ValidationResult => next.validateAnnotationValue(refined, 'missing', 'name', 'sender'), /not found/);
   assert.throws((): ValidationResult => next.validateAnnotationValue(refined, 'role', 'missing', 'sender'), /not allowed/);
   checkCommonInputs(next, refined);
@@ -174,6 +178,7 @@ void test('annotation input checks use custom evaluators and report invalid mode
     edition.validateAnnotationValue(annotation, 'role', 'name', 'sender').diagnostics[0]?.code,
     'CONSTRAINT_LANGUAGE_UNSUPPORTED',
   );
+
   edition.removeDataType(roleName.id);
   assert.equal(edition.validateAnnotationValue(annotation, 'role', 'name', 'sender').hasErrors, true);
 });

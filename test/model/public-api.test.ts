@@ -21,6 +21,7 @@ import {
 void test('editing inputs, returned definitions and exported files cannot mutate the draft indirectly', (): void => {
   const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
+
   const expression: Record<string, unknown> = { minLength: 3 };
   const rule: Constraint = { id: 'titleLength00001', name: 'Title length', language: 'json-schema', expression };
   const title: Attribute = model.createAttribute(document, {
@@ -33,6 +34,7 @@ void test('editing inputs, returned definitions and exported files cannot mutate
   expression['minLength'] = 100;
   title.name = 'changed';
   title.constraints?.splice(0);
+
   const read: Node | undefined = model.getNode(document.id);
   assert.ok(read);
   read.attributes.splice(0);
@@ -58,14 +60,17 @@ void test('the generic editor suggests available types and rejects inherited pro
 
   const website: Modeller = Modeller.createLevel(base.getModel(), 'Website');
   const page: Node = website.createNode({ name: 'Page', refines: file }).element;
+
   const nodes: readonly NodeSuggestion[] = website.suggestNodes();
   const types: readonly DataTypeSuggestion[] = website.suggestDataTypes();
+
   const usedName: AttributeNameResult = website.validateAttributeName(page, 'name');
   const freshName: AttributeNameResult = website.validateAttributeName(page, 'slug');
 
   assert.ok(nodes.some((item: NodeSuggestion): boolean => item.nodeId === folder.id));
   assert.ok(types.some((item: DataTypeSuggestion): boolean => item.dataTypeId === status.id));
   assert.ok(types.some((item: DataTypeSuggestion): boolean => item.dataTypeId === DataTypes.String));
+
   assert.deepEqual(usedName, { allowed: false, conflicts: ['attribute'] });
   assert.deepEqual(freshName, { allowed: true, conflicts: [] });
   assert.ok(website.getAdvisor() instanceof ModelAdvisor);
@@ -86,6 +91,7 @@ void test('the lower-level factory duplicates owned identifiers without editing 
   assert.notEqual(copy.node.id, file.id);
   assert.notEqual(copy.node.attributes[0]?.id, original?.attributes[0]?.id);
   assert.equal(copy.node.name, 'File (copy)');
+
   assert.equal(copy.relations.length, 1);
   assert.notEqual(copy.relations[0]?.id, relation.id);
   assert.equal(copy.relations[0]?.from.nodeId, copy.node.id);

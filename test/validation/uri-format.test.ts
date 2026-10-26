@@ -78,6 +78,7 @@ void test('URI failures preserve a rule’s custom diagnostic and warning severi
       },
     ],
   }).element;
+
   const result: ValidationResult = model.validateValue(uri, 'not a URI');
   assert.equal(result.hasErrors, false);
   assert.equal(result.diagnostics.length, 1);
@@ -93,6 +94,7 @@ void test('unsupported IP versions produce a diagnostic instead of escaping valu
     baseType: DataTypes.String,
     constraints: [{ id: 'uriFormatRule001', name: 'Absolute URI', language: 'format', expression: 'uri' }],
   }).element;
+
   const result: ValidationResult = model.validateValue(uri, 'example://[v1.fe80]/resource');
   assert.equal(result.hasErrors, true);
   assert.equal(result.diagnostics[0]?.code, 'CONSTRAINT_EVALUATION_FAILED');

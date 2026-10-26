@@ -19,9 +19,11 @@ import {
 void test('properties, data types and literals remain editable by stable ID', (): void => {
   const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
+
   const status: DataType = model.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
   const draft: Literal = model.createLiteral(status.id, { name: 'Draft', literal: 'draft' }).element;
   const property: Attribute = model.createAttribute(document, { name: 'status', type: status }).element;
+
   const recorded: ModelInstanceGraph = {
     nodes: [{ id: 'documentRecord01', typeId: document.id, properties: { status: 'draft' } }],
     relations: [],
@@ -30,6 +32,7 @@ void test('properties, data types and literals remain editable by stable ID', ()
   assert.equal(model.validateInstances(recorded).hasErrors, false);
   model.updateLiteral(status.id, draft.id, { literal: 'published' });
   assert.equal(model.validateInstances(recorded).hasErrors, true);
+
   model.updateAttribute(document.id, property.id, { name: 'publicationStatus' });
   model.removeLiteral(status.id, draft.id);
   model.removeAttribute(document.id, property.id);
@@ -59,7 +62,6 @@ void test('editing a literal retains its position, identity and previous snapsho
   const draft: Literal = model.createLiteral(status.id, { name: 'Draft' }).element;
   const published: Literal = model.createLiteral(status.id, { name: 'Published' }).element;
   const before: Modeller = model.snapshot();
-
   model.updateLiteral(status.id, draft.id, { name: 'In progress', literal: 'in-progress' });
 
   const literals: readonly Literal[] = model.getDataType(status.id)?.literals ?? [];
@@ -86,6 +88,7 @@ void test('property flags survive inheritance and exchange without imposing hist
     isOrdered: false,
     isUnique: false,
   }).element;
+
   const next: Modeller = base.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: document }).element;
   const restored: Modeller = Modeller.import(next.export());
@@ -95,6 +98,7 @@ void test('property flags survive inheritance and exchange without imposing hist
   assert.equal(property?.isReadOnly, true);
   assert.equal(property?.isOrdered, false);
   assert.equal(property?.isUnique, false);
+
   assert.equal(restored.validateAttributeValue(page, 'tags', ['published', 'draft', 'draft']).hasErrors, false);
   assert.equal(restored.validateAttributeValue(page, 'tags', ['changed']).hasErrors, false);
 
@@ -110,6 +114,7 @@ void test('invalid element selections fail before changing the draft', (): void 
 
   assert.throws((): ModelChange<Attribute> => model.createAttribute(document, { name: 'status', typeId: 'missingType00001' }));
   assert.deepEqual(model.getModel(), before);
+
   assert.throws((): ModelChange<Node> => model.updateNode('missingNode00001', { name: 'Unknown' }), /not found/);
   assert.deepEqual(model.getModel(), before);
 });
@@ -129,6 +134,7 @@ void test('a long refinement chain can be previewed and removed without recursio
 
   assert.equal(model.validate().valid, true);
   assert.equal(model.previewNodeRemoval(root.id).nodes.length, 1001);
+
   model.removeNode(root.id, { cascade: true });
   assert.equal(model.getModel().classifiers.length, 0);
   assert.equal(model.validate().valid, true);
@@ -143,6 +149,7 @@ void test('suggestions include same-level refinements and permitted connections'
     from: { node: document },
     to: { node: folder },
   }).element;
+
   const candidates: readonly NodeSuggestion[] = model.suggestNodes();
   const documentChoice: NodeSuggestion | undefined = candidates.find(
     (item: NodeSuggestion): boolean => item.nodeId === document.id,

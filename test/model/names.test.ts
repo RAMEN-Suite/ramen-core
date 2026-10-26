@@ -23,6 +23,7 @@ void test('node and property name helpers preserve Unicode and enforce their doc
   assert.equal(ModelNames.toPascalName('123'), 'N123');
   assert.equal(ModelNames.toPascalName(''), 'N');
   assert.equal(ModelNames.toPascalName('x'.repeat(80)).length, 40);
+
   assert.equal(ModelNames.toCamelName('Digital edition'), 'digitalEdition');
   assert.equal(ModelNames.toCamelName('Änderung'), 'änderung');
   assert.equal(ModelNames.toCamelName('123'), 'p123');

@@ -42,6 +42,7 @@ void test('a following level may use either same-named node but cannot combine b
   const next: RamenModel = model.createNextLevel('Research');
   const refinementUse: AnnotationShape = next.createAnnotationShape({ node: refined, type: 'refined' }).element;
   assert.equal(next.validate().valid, true);
+
   const valid: RamenFile = next.export();
   const selected: AnnotationShape = next.createAnnotationShape({ nodeId: RAMEN_ELEMENT.ANNOTATION, type: 'base' }).element;
   assert.equal(next.validate().valid, false);
@@ -50,6 +51,7 @@ void test('a following level may use either same-named node but cannot combine b
       RamenModel.import({ ...valid, annotations: [...valid.annotations, { ...selected, modelId: next.getModel().id }] }),
     /Node name 'Annotation'/,
   );
+
   next.removeAnnotationShape(refinementUse.id);
   assert.equal(next.validate().valid, true);
 });

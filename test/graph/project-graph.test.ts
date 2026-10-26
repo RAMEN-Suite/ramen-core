@@ -20,6 +20,7 @@ void test('the public graph resolves imports, inheritance and effective properti
   const filesystem: Modeller = Modeller.create('File system');
   const file: Node = filesystem.createNode('File').element;
   const folder: Node = filesystem.createNode('Folder').element;
+
   const status: DataType = filesystem.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
   filesystem.createAttribute(file, { name: 'status', type: status });
   const membership: Relation = filesystem.createRelation({
@@ -36,6 +37,7 @@ void test('the public graph resolves imports, inheritance and effective properti
     from: { node: page },
     to: { node: section },
   }).element;
+
   const models: readonly Model[] = website.getModels();
   const built: ProjectGraphResult = buildProjectGraph({ rootModelId: website.getModel().id, models });
 
@@ -49,12 +51,14 @@ void test('the public graph resolves imports, inheritance and effective properti
     graph.resolveNode(website.getModel().id, ModelRef.qualify(filesystem.getModel().id, file.id))?.element.id,
     file.id,
   );
+
   assert.equal(graph.getNodeAncestors(website.getModel().id, page.id)[0]?.element.id, file.id);
   assert.equal(graph.getRelationAncestors(website.getModel().id, pageMembership.id)[0]?.element.id, membership.id);
   assert.equal(
     graph.resolveDataType(website.getModel().id, ModelRef.qualify(filesystem.getModel().id, status.id))?.element.id,
     status.id,
   );
+
   assert.equal(EffectiveModel.resolveNode(graph, website.getModel().id, page.id)?.attributes[0]?.name, 'status');
   assert.equal(Object.isFrozen(graph.getRootModel()), true);
 });
@@ -72,8 +76,10 @@ void test('the public graph queries keep model and element identities distinct',
   const file: Node = model.createNode('File').element;
   const folder: Node = model.createNode('Folder').element;
   const webPage: Node = model.createNode({ name: 'WebPage', refines: file }).element;
+
   const status: DataType = model.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
   const membership: Relation = model.createRelation({ name: 'IN_FOLDER', from: { node: file }, to: { node: folder } }).element;
+
   const result: ProjectGraphResult = buildProjectGraph({ rootModelId: model.getModel().id, models: [model.getModel()] });
   if (!result.ok) throw new Error(JSON.stringify(result.diagnostics));
 
@@ -90,9 +96,11 @@ void test('the public graph queries keep model and element identities distinct',
   assert.equal(graph.getModels().length, 1);
   assert.deepEqual(graph.getImportedModels(modelId), []);
   assert.equal(graph.getAvailableNodes(modelId).length, 3);
+
   assert.equal(graph.getNode(modelId, file.id)?.id, file.id);
   assert.equal(graph.getDataType(modelId, status.id)?.id, status.id);
   assert.equal(graph.getRelation(modelId, membership.id)?.id, membership.id);
+
   assert.equal(graph.isNodeSameOrSubtype(resolvedPage, resolvedFile), true);
   assert.equal(graph.acceptsNode(modelId, file.id, resolvedPage), true);
   assert.equal(graph.isRelationSameOrSubtype(resolvedRelation, resolvedRelation), true);

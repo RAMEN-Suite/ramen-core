@@ -26,6 +26,7 @@ void test('annotation properties and their constraints share the model declarati
     type: 'note',
     properties: [{ id: node.id, name: 'value', typeId: DataTypes.String, bounds: { lowerBound: 0, upperBound: 1 } }],
   }).element;
+
   const collision: Diagnostic | undefined = model
     .validate()
     .diagnostics.find((item: Diagnostic): boolean => item.code === 'DUPLICATE_ELEMENT_ID');
@@ -35,6 +36,7 @@ void test('annotation properties and their constraints share the model declarati
   assert.equal(collision.severity, 'error');
   assert.equal(collision.path, `/models/${model.getModel().id}/annotations/${note.id}/properties/0/id`);
   assert.throws((): unknown => model.export(), /Duplicate element id/);
+
   model.updateAnnotationShape(note.id, {
     properties: [
       {
@@ -51,6 +53,7 @@ void test('annotation properties and their constraints share the model declarati
         (item: Diagnostic): boolean => item.code === 'DUPLICATE_ELEMENT_ID' && item.path?.endsWith('/constraints/0/id') === true,
       ),
   );
+
   model.updateAnnotationShape(note.id, { properties: [{ name: 'value', typeId: DataTypes.String }] });
   assert.equal(model.validate().valid, true);
 });
@@ -69,6 +72,7 @@ void test('shape properties are independent declarations with unique identifiers
     properties: [{ id: 'sharedProperty01', name: 'value', typeId: DataTypes.Integer, bounds: { lowerBound: 0, upperBound: 1 } }],
   }).element;
   assert.ok(model.validate().diagnostics.some((item: Diagnostic): boolean => item.code === 'DUPLICATE_ELEMENT_ID'));
+
   model.updateAnnotationShape(first.id, { properties: [{ name: 'value', typeId: DataTypes.String }] });
   model.updateAnnotationShape(second.id, { properties: [{ name: 'value', typeId: DataTypes.Integer }] });
   assert.equal(model.validate().valid, true);
@@ -82,6 +86,7 @@ void test('an annotation declaration cannot reuse its node ID', (): void => {
   const model: RamenModel = RamenModel.create('Edition');
   const node: Node = model.createNode({ name: 'Annotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   model.createAnnotationShape({ node, type: 'note' });
+
   const raw: RamenModelDocument = model.getModel();
   raw.annotations = raw.annotations.map((item: AnnotationShape): AnnotationShape => ({ ...item, id: node.id }));
   const result: ProjectValidationResult = new RamenValidator().validateProject(raw.id, [raw, RAMEN_MODEL]);
@@ -95,9 +100,11 @@ void test('shape information includes standard, inherited and own properties exa
   const node: Node = base.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   base.createAttribute(node, { name: 'source', typeId: DataTypes.String });
   base.createAnnotationShape({ node, type: 'note', properties: [{ name: 'note', typeId: DataTypes.String }] });
+
   const next: RamenModel = base.createNextLevel('Publication');
   const refined: Node = next.createNode({ name: 'PublishedAnnotation', refines: node }).element;
   next.createAttribute(refined, { name: 'page', typeId: DataTypes.Integer });
+
   const properties: readonly PropertyOption[] = next.getPropertiesForAnnotationShape(refined, 'note');
   const names: readonly string[] = properties.map((item: PropertyOption): string => item.name);
 
@@ -124,6 +131,7 @@ void test('node properties apply automatically to every annotation shape', (): v
       model.getPropertiesForAnnotationShape(node, type).some((item: PropertyOption): boolean => item.attributeId === source.id),
     );
   }
+
   model.removeAttribute(node.id, source.id);
   assert.equal(model.validate().valid, true);
   assert.deepEqual(
@@ -137,6 +145,7 @@ void test('inherited node properties apply automatically without annotation refe
   const node: Node = model.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const source: Attribute = model.createAttribute(node, { name: 'source', typeId: DataTypes.String }).element;
   model.createAnnotationShape({ node, type: 'note' });
+
   const next: RamenModel = model.createNextLevel('Research');
   const refined: Node = next.createNode({ name: 'ResearchAnnotation', refines: node }).element;
   const required: Attribute = next.createAttribute(refined, {
@@ -148,6 +157,7 @@ void test('inherited node properties apply automatically without annotation refe
   assert.equal(next.validateAnnotationValue(refined, 'note', 'source', 'archive').hasErrors, false);
   assert.equal(next.validateAnnotationValue(refined, 'note', 'certainty', undefined).hasErrors, true);
   assert.equal(next.validateAnnotationValue(refined, 'note', 'certainty', 0.8).hasErrors, false);
+
   model.removeAttribute(node.id, source.id);
   assert.equal(next.validate().valid, true);
   assert.ok(
@@ -167,8 +177,10 @@ void test('shapes cannot redeclare shared properties on their node or a refined 
     properties: [{ name: 'source', typeId: DataTypes.Integer }],
   }).element;
   assert.equal(model.validate().valid, false);
+
   model.updateAnnotationShape(note.id, { properties: [{ name: 'certainty', typeId: DataTypes.Float }] });
   assert.equal(model.validate().valid, true);
+
   const next: RamenModel = model.createNextLevel('Research');
   const refined: Node = next.createNode({ name: 'ResearchAnnotation', refines: node }).element;
   next.createAttribute(refined, { name: 'certainty', typeId: DataTypes.String });
@@ -180,9 +192,11 @@ void test('annotation properties require declarations in project and file schema
   const node: Node = model.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   const source: Attribute = model.createAttribute(node, { name: 'source', typeId: DataTypes.String }).element;
   const note: AnnotationShape = model.createAnnotationShape({ node, type: 'note' }).element;
+
   const raw: RamenModelDocument = model.getModel();
   const invalid: unknown = { ...raw, annotations: [{ ...note, properties: [{ attributeId: source.id }] }] };
   assert.equal(new RamenValidator().validateProject(raw.id, [invalid, RAMEN_MODEL]).valid, false);
+
   const file: ReturnType<RamenModel['export']> = model.export();
   const invalidFile: unknown = {
     ...file,
@@ -207,6 +221,7 @@ void test('type-owned property constraints use the generic expression checks and
     type: 'note',
     properties: [{ name: 'value', typeId: DataTypes.String, constraints: [rule] }],
   }).element;
+
   const finding: Diagnostic | undefined = model
     .validate()
     .diagnostics.find((item: Diagnostic): boolean => item.code === 'CONSTRAINT_EXPRESSION_INVALID');

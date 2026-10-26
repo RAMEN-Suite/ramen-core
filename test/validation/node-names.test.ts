@@ -27,11 +27,13 @@ void test('names remain independent across models and classifier kinds', (): voi
   const base: Modeller = Modeller.create('Base');
   const document: Node = base.createNode('Document').element;
   base.createDataType({ name: 'Document', baseType: DataTypes.String });
+
   const next: Modeller = base.createNextLevel('Next');
   next.createNode({ name: 'Document', refines: document });
 
   assert.equal(next.validate().valid, true);
   assert.equal(Modeller.import(next.export()).validate().valid, true);
+
   next.createNode({ name: 'Document', refines: document });
   assert.equal(next.validate().diagnostics[0]?.code, 'NODE_NAME_DUPLICATE');
 });
@@ -40,6 +42,7 @@ void test('import rejects duplicate node names introduced in an otherwise valid 
   const model: Modeller = Modeller.create('Names');
   model.createNode('Document');
   const letter: Node = model.createNode('Letter').element;
+
   const file: ModelFile = model.export();
   const duplicate: ModelFile = {
     ...file,
@@ -56,6 +59,7 @@ void test('using an imported relation endpoint conflicts with a same-named local
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const relation: Relation = base.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
+
   const next: Modeller = base.createNextLevel('Next');
   const refined: Node = next.createNode({ name: 'Document', refines: document }).element;
   assert.equal(next.validate().valid, true);

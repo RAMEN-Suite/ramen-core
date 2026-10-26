@@ -55,6 +55,7 @@ void test('nested JSON Schema findings retain escaped object keys in their value
     expression: { properties: { 'a/b': { properties: { '~key': { minLength: 3 } } } } },
   };
   const metadata: DataType = model.createDataType({ name: 'Metadata', baseType: DataTypes.Object, constraints: [rule] }).element;
+
   const result: ValidationResult = model.validateValue(metadata, { 'a/b': { '~key': 'Hi' } });
   const finding: Diagnostic | undefined = result.diagnostics[0];
 

@@ -56,10 +56,12 @@ void test('recorded relations cannot bypass the choices made by the current mode
   const file: Node = base.createNode('File').element;
   const folder: Node = base.createNode('Folder').element;
   const relation: Relation = base.createRelation({ name: 'IN', from: { node: file }, to: { node: folder } }).element;
+
   const next: Modeller = base.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: file }).element;
   const section: Node = next.createNode({ name: 'Section', refines: folder }).element;
   const applied: Relation = next.createRelation({ from: { node: page }, to: { node: section } }).element;
+
   const data: ModelInstanceGraph = {
     nodes: [
       { id: 'pageRecord000001', typeId: page.id, properties: {} },
@@ -75,6 +77,7 @@ void test('recorded relations cannot bypass the choices made by the current mode
     ],
   };
   expectCode(next.validateInstances(data), 'INSTANCE_RELATION_TYPE_NOT_ALLOWED', '/relations/0');
+
   const allowed: ModelInstanceGraph = {
     ...data,
     relations: [{ id: 'relationRecord01', typeId: applied.id, fromId: 'pageRecord000001', toId: 'sectionRecord001' }],

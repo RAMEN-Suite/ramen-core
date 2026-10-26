@@ -40,6 +40,7 @@ void test('one file preserves ownership and inheritance across three editable le
   const publication: Modeller = website.createNextLevel('Publication');
   const article: Node = publication.createNode({ name: 'Article', refines: page }).element;
   publication.createRelation({ refines: pageFiledIn, from: { node: article }, to: { node: section } });
+
   const file: ModelFile = publication.export();
   const restored: Modeller = Modeller.import(JSON.parse(JSON.stringify(file)) as unknown);
 
@@ -55,11 +56,12 @@ void test('each level must apply a permitted relationship again', (): void => {
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   base.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } });
+
   const website: Modeller = base.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
   const section: Node = website.createNode({ name: 'Section', refines: folder }).element;
-
   assert.equal(website.suggestRelations(page, section).length, 1);
+
   const publication: Modeller = website.createNextLevel('Publication');
   const article: Node = publication.createNode({ name: 'Article', refines: page }).element;
   assert.deepEqual(publication.suggestRelations(article, section), []);
@@ -81,6 +83,7 @@ void test('missing references produce stable diagnostics and block export', (): 
       };
     }),
   };
+
   const loaded: Modeller = Modeller.load(broken);
   const finding: Diagnostic | undefined = loaded
     .validate()
@@ -108,6 +111,7 @@ void test('removed relation-end flags are rejected by the model file schema', ()
   const document: Node = model.createNode('Document').element;
   const folder: Node = model.createNode('Folder').element;
   model.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } });
+
   const file: ModelFile = model.export();
 
   for (const field of ['isNavigable', 'isComposite'] as const) {

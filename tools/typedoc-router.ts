@@ -18,7 +18,6 @@ class GuideRouter extends KindRouter {
     if (existing && existing !== reflection) throw new Error(`Guide route '${route}' is declared more than once.`);
 
     this.usedRoutes.set(route, reflection);
-
     return `guides/${route}`;
   }
 }

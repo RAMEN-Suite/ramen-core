@@ -14,6 +14,7 @@ void test('a changed import version is reported at the import reference', (): vo
   const document: Node = base.createNode('Document').element;
   const next: Modeller = base.createNextLevel('Website');
   next.createNode({ name: 'Page', refines: document });
+
   const changed: Model = { ...base.getModel(), version: '2.0.0' };
   const result: ProjectValidationResult = new ModelValidator().validateProject(next.getModel().id, [next.getModel(), changed]);
 
@@ -25,6 +26,7 @@ void test('an inheritance cycle is found without exposing an unsafe project grap
   const model: Modeller = Modeller.create('Filing');
   const first: Node = model.createNode('First').element;
   const second: Node = model.createNode({ name: 'Second', refines: first }).element;
+
   model.updateNode(first.id, { superTypes: [second.id] });
   const result: ProjectValidationResult = model.validate();
 
@@ -37,6 +39,7 @@ void test('duplicate IDs in different declaration kinds are rejected', (): void 
   const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const raw: Model = model.getModel();
+
   raw.classifiers.push({ kind: 'DataType', id: document.id, name: 'Duplicate', baseType: 'String' });
   const result: ProjectValidationResult = new ModelValidator().validateProject(raw.id, [raw]);
 

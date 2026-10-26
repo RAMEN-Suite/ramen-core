@@ -47,6 +47,7 @@ void test('relations accept constraints on creation and update', (): void => {
   const document: Node = model.createNode('Document').element;
   const folder: Node = model.createNode('Folder').element;
   model.createAttribute(document, { name: 'title', typeId: DataTypes.String });
+
   const linkRule: Constraint = {
     id: 'linkRule00000001',
     name: 'No self-link',
@@ -59,6 +60,7 @@ void test('relations accept constraints on creation and update', (): void => {
     language: 'json-schema',
     expression: { properties: { properties: { required: ['title'] } } },
   };
+
   const filedIn: Relation = model.createRelation({
     name: 'FILED_IN',
     from: { node: document, constraints: [endRule] },
@@ -83,14 +85,17 @@ void test('one constraint can be read, changed and removed on each kind of owner
   const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const folder: Node = model.createNode('Folder').element;
+
   const status: DataType = model.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
   const draft: Literal = model.createLiteral(status.id, { name: 'Draft', literal: 'draft' }).element;
   const title: Attribute = model.createAttribute(document, { name: 'title', typeId: DataTypes.String }).element;
+
   const filedIn: Relation = model.createRelation({
     name: 'FILED_IN',
     from: { node: document },
     to: { node: folder },
   }).element;
+
   const owners: readonly ConstraintOwner[] = [document, title, status, draft, filedIn, filedIn.from, filedIn.to];
 
   owners.forEach((owner: ConstraintOwner, index: number): void => {
@@ -149,6 +154,7 @@ void test('constraint owners with the same local ID require a model identity', (
   const website: Modeller = base.createNextLevel('Website');
   const localRule: Constraint = { id: 'localRule0000001', name: 'Local rule', language: 'json-schema', expression: {} };
   website.createNode({ name: 'Page', refines: document, constraints: [localRule] });
+
   const raw: Model = website.getModel();
   const page: Model['classifiers'][number] | undefined = raw.classifiers.find(
     (item: Model['classifiers'][number]): boolean => item.kind === 'Node',
@@ -165,6 +171,7 @@ void test('constraint owners with the same local ID require a model identity', (
 
   const added: Constraint = { id: 'addedRule0000001', name: 'Added rule', language: 'json-schema', expression: {} };
   assert.throws((): ModelChange<Constraint> => restored.addConstraint(page, added), /ambiguous/);
+
   restored.addConstraint({ modelId: raw.id, elementId: page.id }, added);
   assert.deepEqual(restored.getConstraints({ modelId: raw.id, elementId: page.id }), [localRule, added]);
 });

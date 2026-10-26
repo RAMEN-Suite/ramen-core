@@ -10,12 +10,14 @@ void test('project metadata survives exchange, level selection and snapshots wit
   };
   const base: Modeller = Modeller.create('Language');
   const next: Modeller = base.createNextLevel('Edition');
+
   const file: ModelFile = next.export(project);
   const restored: Modeller = Modeller.import(JSON.parse(JSON.stringify(file)) as unknown);
 
   assert.deepEqual(restored.getProjectMetadata(), project);
   assert.deepEqual(restored.export(), file);
   assert.equal(restored.getModel().name, 'Edition');
+
   assert.deepEqual(restored.openLevel(base.getModel().id).snapshot().export().project, project);
   assert.deepEqual(restored.createNextLevel('Publication').export().project, project);
   assert.deepEqual(file.models.map((model: ModelHeader): string => model.name).sort(), ['Edition', 'Language']);
@@ -29,6 +31,7 @@ void test('RAMEN project metadata remains separate from model levels through imp
   const project: ProjectMetadata = { name: 'Briefedition ÄÖÜ', description: 'Eine Edition mit Briefen und Varianten.' };
   const base: RamenModel = RamenModel.create('Edition');
   const next: RamenModel = base.createNextLevel('Publication');
+
   const file: RamenFile = next.export(project);
   const restored: RamenModel = RamenModel.import(JSON.parse(JSON.stringify(file)) as unknown);
 
@@ -41,6 +44,7 @@ void test('RAMEN project metadata remains separate from model levels through imp
 
   Object.assign(project, { name: 'Changed' });
   assert.notEqual(file.project?.name, project.name);
+
   const metadata: ProjectMetadata | undefined = restored.getProjectMetadata();
   Object.assign(metadata ?? {}, { description: 'Changed' });
   assert.equal(restored.getProjectMetadata()?.description, file.project?.description);

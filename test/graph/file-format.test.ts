@@ -28,6 +28,7 @@ void test('file readers identify unsupported formats without changing their inpu
 void test('missing format identifiers and malformed current files remain schema errors', (): void => {
   const generic: ModelFile = Modeller.create('Filing').export();
   const ramen: RamenFile = RamenModel.create('Edition').export();
+
   assert.throws((): unknown => ModelFiles.read({ ...generic, $schema: undefined }), /Invalid model file/);
   assert.throws((): unknown => RamenFiles.read({ ...ramen, classifiers: null }), /Invalid model file/);
 });

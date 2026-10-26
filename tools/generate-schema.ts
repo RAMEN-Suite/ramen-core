@@ -44,7 +44,6 @@ function rewriteRefs(value: unknown, prefix: string, replacement: string): unkno
       result[key] = `${replacement}${entry.slice(prefix.length)}`;
       continue;
     }
-
     result[key] = rewriteRefs(entry, prefix, replacement);
   }
 
@@ -186,7 +185,6 @@ const files: readonly FileInput[] = [
 ];
 
 await emit('ramen-project.schema.json', project);
-
 for (const file of files) {
   await emit(file.name, graphSchema(file));
 }

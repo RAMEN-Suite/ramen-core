@@ -135,6 +135,7 @@ void test('RAMEN scenario: a correspondence edition models witnesses and six ann
   assert.equal(edition.validate().valid, true);
   assert.equal(edition.getAnnotationShapes().length, 6);
   assert.equal(edition.getModel().classifiers.filter((item: Classifier): boolean => item.kind === 'Node').length, 6);
+
   assert.deepEqual(
     edition
       .suggestAnnotationShapesForNode(fixture.text)
@@ -147,6 +148,7 @@ void test('RAMEN scenario: a correspondence edition models witnesses and six ann
     edition.suggestAnnotationShapesForNode(fixture.image).map((item: AnnotationShapeSuggestion): string => item.type),
     ['persName'],
   );
+
   assert.equal(edition.getRelations(fixture.text, fixture.witness).length, 1);
   assert.equal(edition.getRelations(fixture.witness, fixture.letter).length, 1);
 
@@ -159,6 +161,7 @@ void test('RAMEN scenario: a correspondence edition models witnesses and six ann
   research.partOf(fixture.witness, fixture.letter);
   research.partOf(fixture.text, fixture.witness);
   research.partOf(fixture.image, fixture.witness);
+
   research.hasAnnotation(fixture.text, RAMEN_ELEMENT.ANNOTATION);
   research.hasAnnotation(fixture.image, RAMEN_ELEMENT.ANNOTATION);
   research.refersTo(RAMEN_ELEMENT.ANNOTATION, fixture.place);
@@ -378,6 +381,7 @@ void test('RAMEN scenario: inherited annotation rules constrain data after Perso
     ),
   };
   expectFinding(research.validateInstances(oldPerson), 'INSTANCE_RELATION_END_TYPE_INVALID', '/relations/3/toId');
+
   const invalidRole: ModelInstanceGraph = changeProperties(data, 'role', { name: 'editor' });
   expectFinding(research.validateInstances(invalidRole), 'INSTANCE_PROPERTY_LITERAL_INVALID', '/nodes/11/properties/name');
 });

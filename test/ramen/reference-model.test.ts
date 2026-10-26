@@ -36,6 +36,7 @@ void test('reference constants are frozen while projects receive independently e
   assert.equal(Reflect.set(RAMEN_MODEL, 'name', 'Changed'), false);
   assert.equal(Reflect.set(RAMEN_MODEL.classifiers[0] ?? {}, 'name', 'Changed'), false);
   assert.equal(Reflect.set(RAMEN_ELEMENT, 'ANNOTATION', 'Changed'), false);
+
   const copy: Model | undefined = RamenModel.create('Edition')
     .getModels()
     .find((model: Model): boolean => model.id === RAMEN_MODEL.id);
@@ -49,6 +50,7 @@ void test('older files using the current vocabulary retain their descriptions, i
   reference.classifiers.reverse();
   reference.relations.reverse();
   assert.equal(validateReference(reference).valid, true);
+
   const project: RamenModel = RamenModel.load(RamenModel.create('Edition').getModel(), [reference]);
   const file: RamenFile = project.export();
   assert.deepEqual(RamenModel.import(file).export(), file);
@@ -73,6 +75,7 @@ void test('reference descriptions may change without losing or replacing them on
   assert.ok(collection);
   const label: Attribute | undefined = collection.attributes.find((item: Attribute): boolean => item.name === 'label');
   assert.ok(label);
+
   reference.description = 'Local documentation';
   collection.description = 'Collection documentation';
   label.description = 'Label documentation';

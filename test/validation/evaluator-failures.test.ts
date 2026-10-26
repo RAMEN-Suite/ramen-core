@@ -40,6 +40,7 @@ void test('evaluator failures become errors without skipping the remaining value
   }).element;
   const document: Node = model.createNode('Document').element;
   model.createAttribute(document, { name: 'title', type: title });
+
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   registry.register({ language: 'external', evaluate: failEvaluation });
 

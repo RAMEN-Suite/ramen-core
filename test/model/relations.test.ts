@@ -23,6 +23,7 @@ void test('a refined relation accepts a local name and constraint at creation', 
   const website: Modeller = base.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
   const section: Node = website.createNode({ name: 'Section', refines: folder }).element;
+
   const rule: Constraint = { id: 'appliedRule000001', name: 'Link rule', language: 'example:link', expression: 'check link' };
   const applied: Relation = website.createRelation({
     refines: filedIn,
@@ -46,6 +47,7 @@ void test('relation bounds can narrow but cannot widen a preceding level', (): v
     from: { node: document },
     to: { node: folder, bounds: { lowerBound: 0, upperBound: 2 } },
   }).element;
+
   const next: Modeller = base.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: document }).element;
   const section: Node = next.createNode({ name: 'Section', refines: folder }).element;
@@ -75,10 +77,12 @@ void test('relation removal previews and rejects dependencies, then cascades acr
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const filedIn: Relation = base.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
+
   const website: Modeller = base.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
   const section: Node = website.createNode({ name: 'Section', refines: folder }).element;
   const pageFiledIn: Relation = website.createRelation({ refines: filedIn, from: { node: page }, to: { node: section } }).element;
+
   const edition: Modeller = base.createNextLevel('Edition');
   const letter: Node = edition.createNode({ name: 'Letter', refines: document }).element;
   const series: Node = edition.createNode({ name: 'Series', refines: folder }).element;
@@ -87,6 +91,7 @@ void test('relation removal previews and rejects dependencies, then cascades acr
     from: { node: letter },
     to: { node: series },
   }).element;
+
   const publication: Modeller = website.createNextLevel('Publication');
   const post: Node = publication.createNode({ name: 'Post', refines: page }).element;
   const part: Node = publication.createNode({ name: 'Part', refines: section }).element;
@@ -95,6 +100,7 @@ void test('relation removal previews and rejects dependencies, then cascades acr
     from: { node: post },
     to: { node: part },
   }).element;
+
   const before: readonly Model[] = base.getModels();
 
   const preview: RelationRemovalPreview = base.previewRelationRemoval(filedIn.id);
@@ -119,6 +125,7 @@ void test('removing a leaf relation keeps its parent available', (): void => {
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const filedIn: Relation = base.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
+
   const website: Modeller = base.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
   const section: Node = website.createNode({ name: 'Section', refines: folder }).element;
@@ -141,6 +148,7 @@ void test('parallel relationships require an explicit modelling choice', (): voi
   const next: Modeller = base.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: document }).element;
   const section: Node = next.createNode({ name: 'Section', refines: folder }).element;
+
   const choices: readonly RelationSuggestion[] = next.suggestRelations(page, section);
   const before: Model = next.getModel();
 

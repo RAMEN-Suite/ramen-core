@@ -99,6 +99,7 @@ void test('refined relations still evaluate inherited source endpoint rules', ()
       node.id === 'pageRecord000001' ? { ...node, properties: { title: 'no' } } : node,
     ),
   };
+
   const result: ValidationResult = fixture.model.validateInstances(data);
   const finding: Diagnostic | undefined = result.diagnostics.find((item: Diagnostic): boolean => item.ref === 'sourceTitleRule1');
 

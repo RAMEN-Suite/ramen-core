@@ -77,9 +77,11 @@ void test('MDE library pass 1: specialise Book within and across levels while re
     course.getAttributes(textbook).map((item: AttributeInfo): string => item.name),
     ['title', 'pages', 'subject'],
   );
+
   assert.equal(course.getDataType(library.subject.id)?.id, library.subject.id);
   assert.equal(course.validateAttributeValue(textbook, 'subject', 'science').hasErrors, false);
   assert.equal(course.validateAttributeValue(textbook, 'subject', 'fiction').hasErrors, true);
+
   assert.equal(course.suggestRelations(textbook, library.writer).length, 1);
   assert.deepEqual(course.getRelations(textbook, library.writer), []);
 
@@ -117,6 +119,7 @@ void test('MDE library pass 2: repair a deleted value type without changing the 
   );
   assert.deepEqual(report.beforeDiagnostics, []);
   assert.deepEqual(report.afterDiagnostics, []);
+
   assert.equal(course.validateAttributeValue(textbook, 'subject', 'fiction').hasErrors, false);
   assert.equal(before.validateAttributeValue(textbook, 'subject', 'fiction').hasErrors, true);
 });
@@ -126,6 +129,7 @@ void test('MDE library pass 2: preview dependent deletion, reject it, then remov
   const course: Modeller = library.model.createNextLevel('Course library');
   const textbook: Node = course.createNode({ name: 'Textbook', refines: library.schoolBook }).element;
   course.createRelation({ from: { node: textbook }, to: { node: library.writer } });
+
   const before: readonly Model[] = course.getModels();
   const preview: NodeRemovalPreview = library.model.previewNodeRemoval(library.book.id);
 
@@ -140,8 +144,10 @@ void test('MDE library pass 2: preview dependent deletion, reject it, then remov
   library.model.removeNode(library.book.id, { cascade: true });
   assert.equal(library.model.validate().valid, true);
   assert.equal(course.validate().valid, true);
+
   assert.equal(library.model.getNode(library.writer.id)?.name, 'Writer');
   assert.equal(library.model.getDataType(library.subject.id)?.name, 'Subject');
+
   assert.deepEqual(course.getModel().classifiers, []);
   assert.deepEqual(course.getModel().relations, []);
 });
@@ -165,6 +171,7 @@ void test('MDE library pass 3: inherited value rules survive a JSON export and i
   const course: Modeller = library.model.createNextLevel('Course library');
   const textbook: Node = course.createNode({ name: 'Textbook', refines: library.schoolBook }).element;
   const authorship: Relation = course.createRelation({ from: { node: textbook }, to: { node: library.writer } }).element;
+
   const data: ModelInstanceGraph = recordTextbook(library, textbook, authorship);
   const parsed: unknown = JSON.parse(JSON.stringify(course.export()));
   const restored: Modeller = Modeller.import(parsed);
@@ -198,8 +205,10 @@ void test('MDE library pass 3: required authorship checks counts and endpoint ty
   const course: Modeller = library.model.createNextLevel('Course library');
   const textbook: Node = course.createNode({ name: 'Textbook', refines: library.schoolBook }).element;
   const authorship: Relation = course.createRelation({ from: { node: textbook }, to: { node: library.writer } }).element;
+
   const data: ModelInstanceGraph = recordTextbook(library, textbook, authorship);
   const restored: Modeller = Modeller.import(course.export());
+
   const missing: ModelInstanceGraph = { ...data, relations: [] };
   const invalid: ModelInstanceGraph = {
     ...data,
@@ -216,8 +225,10 @@ void test('MDE library pass 3: required authorship checks counts and endpoint ty
   assert.equal(missingAuthor?.path, '/relations');
   assert.equal(missingAuthor?.severity, 'error');
   assert.equal(missingAuthor?.ref, authorship.id);
+
   assert.equal(wrongAuthor?.path, '/relations/0/toId');
   assert.equal(wrongAuthor?.severity, 'error');
+
   assert.deepEqual(restored.validateInstances(missing).diagnostics, course.validateInstances(missing).diagnostics);
   assert.deepEqual(restored.validateInstances(invalid).diagnostics, course.validateInstances(invalid).diagnostics);
 });
@@ -227,6 +238,7 @@ void test('MDE library pass 3: the inherited upper bound rejects two distinct au
   const course: Modeller = library.model.createNextLevel('Course library');
   const textbook: Node = course.createNode({ name: 'Textbook', refines: library.schoolBook }).element;
   const authorship: Relation = course.createRelation({ from: { node: textbook }, to: { node: library.writer } }).element;
+
   const data: ModelInstanceGraph = recordTextbook(library, textbook, authorship);
   const writerType: string = ModelRef.qualify(library.model.getModel().id, library.writer.id);
   const twoAuthors: ModelInstanceGraph = {

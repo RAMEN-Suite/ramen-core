@@ -57,6 +57,7 @@ void test('RMF scenario: a website applies a file system relation to pages and s
     website.getAttributes(post).map((item: AttributeInfo): string => item.name),
     ['name', 'published'],
   );
+
   assert.equal(website.getMostSpecificNode([file, page, post])?.id, post.id);
   assert.equal(website.getNode(post.id)?.name, 'Post');
   assert.ok(

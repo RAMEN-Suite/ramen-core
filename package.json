@@ -50,7 +50,7 @@
     "schema:generate": "node tools/generate-schema.ts",
     "test": "npm run build && npm run typecheck && node --test \"test/**/*.test.ts\"",
     "test:coverage": "npm run build && npm run typecheck && node --experimental-test-coverage --test-coverage-include=\"dist/ramen-core/**/*.js\" --test \"test/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.tools.json",
+    "typecheck": "tsc --noEmit && tsc -p test/tsconfig.json && tsc -p tools/tsconfig.json",
     "verify": "npm test && npm run schema:check && npm run docs:diagnostics:check && npm run lint && npm run format && npm run docs:build && node tools/check-package.ts"
   },
   "dependencies": {
@@ -62,7 +62,7 @@
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^10.0.1",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",

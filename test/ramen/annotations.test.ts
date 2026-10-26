@@ -64,6 +64,7 @@ void test('an editor paragraph needs a declared text annotation but no entity re
   const image: Node = model.createNode({ name: 'Image', refines: RAMEN_ELEMENT.CONTENT }).element;
   const textLink: Relation = model.hasAnnotation(text, RAMEN_ELEMENT.ANNOTATION).element;
   model.hasAnnotation(image, RAMEN_ELEMENT.ANNOTATION);
+
   const data: ModelInstanceGraph = paragraphRecords(text, textLink);
   const undeclared: ValidationResult = model.validateInstances(data);
 
@@ -127,6 +128,7 @@ void test('invalid annotation selections leave the project unchanged', (): void 
   const fixture: Edition = edition();
   const note: AnnotationShape = fixture.model.createAnnotationShape({ node: fixture.annotation, type: 'note' }).element;
   const before: readonly AnnotationShape[] = fixture.model.getAnnotationShapes();
+
   const missing: Relation = { ...fixture.refers, id: 'missingRelation01' };
   const invalid: AnnotationShapeUpdate = {
     relations: [{ relation: missing, direction: 'outgoing', bounds: { lowerBound: 0, upperBound: 1 } }],
@@ -178,6 +180,7 @@ void test('RAMEN project levels share generic update and strict removal rules', 
     ['Digital Publication', 'Archive'],
   );
   assert.throws((): ModelRemovalPreview => edition.removeNextLevel(publicationId), /still used by Archive/);
+
   edition.removeNextLevel(publicationId, { cascade: true });
   assert.equal(edition.validate().valid, true);
   assert.equal(
@@ -221,6 +224,7 @@ void test('a deleted annotation-owned data type becomes a repairable diagnostic'
 void test('cascading an Annotation node removes its types and all dependent links across levels', (): void => {
   const fixture: Edition = edition();
   const note: AnnotationShape = fixture.model.createAnnotationShape({ node: fixture.annotation, type: 'note' }).element;
+
   const next: RamenModel = fixture.model.createNextLevel('Publication');
   const review: Node = next.createNode({ name: 'ReviewAnnotation', refines: fixture.annotation }).element;
   const preview: RamenNodeRemovalPreview = fixture.model.previewNodeRemoval(fixture.annotation.id);

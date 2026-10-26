@@ -7,6 +7,7 @@ void test('RAMEN import rejects property ID collisions introduced in an otherwis
   const model: RamenModel = RamenModel.create('Edition');
   const node: Node = model.createNode({ name: 'Annotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
   model.createAnnotationShape({ node, type: 'note', properties: [{ name: 'value', typeId: DataTypes.String }] });
+
   const file: RamenFile = model.export();
   const tampered: RamenFile = {
     ...file,
@@ -45,12 +46,14 @@ void test('equal local property IDs in different model levels remain distinct du
     type: 'note',
     properties: [{ id: 'sharedProperty01', name: 'value', typeId: DataTypes.String, bounds: { lowerBound: 0, upperBound: 1 } }],
   }).element;
+
   const next: RamenModel = model.createNextLevel('Research');
   const second: AnnotationShape = next.createAnnotationShape({
     nodeId: RAMEN_ELEMENT.ANNOTATION,
     type: 'comment',
     properties: [{ id: 'sharedProperty01', name: 'value', typeId: DataTypes.Integer, bounds: { lowerBound: 0, upperBound: 1 } }],
   }).element;
+
   const file: RamenFile = next.export();
   const restored: RamenModel = RamenModel.import(file);
 
@@ -63,6 +66,7 @@ void test('equal local property IDs in different model levels remain distinct du
     file.annotations.find((item: RamenFile['annotations'][number]): boolean => item.id === second.id)?.modelId,
     next.getModel().id,
   );
+
   assert.equal(restored.validateAnnotationValue(RAMEN_ELEMENT.ANNOTATION, 'note', 'value', 'text').hasErrors, false);
   assert.equal(restored.validateAnnotationValue(RAMEN_ELEMENT.ANNOTATION, 'comment', 'value', 7).hasErrors, false);
   assert.equal(restored.validateAnnotationValue(RAMEN_ELEMENT.ANNOTATION, 'comment', 'value', 'text').hasErrors, true);

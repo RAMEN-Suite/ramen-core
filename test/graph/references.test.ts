@@ -30,6 +30,7 @@ void test('imports reject missing models, duplicate identities and cyclic depend
 
   expectInvalid(root.id, [root], 'IMPORTED_MODEL_NOT_FOUND');
   expectInvalid(root.id, [root, root, predecessor], 'DUPLICATE_MODEL_ID');
+
   predecessor.imports.push({ modelId: root.id, modelUri: root.$id, version: root.version, name: root.name });
   expectInvalid(root.id, [root, predecessor], 'IMPORT_CYCLE');
 });
@@ -38,11 +39,13 @@ void test('references reject unreachable models and incompatible declaration kin
   const model: Modeller = Modeller.create('Files');
   const file: Node = model.createNode('File').element;
   const dataType: DataType = model.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
+
   const foreign: Modeller = Modeller.create('Other');
   const foreignNode: Node = foreign.createNode('OtherFile').element;
 
   model.updateNode(file.id, { superTypes: [`${foreign.getModel().id}:${foreignNode.id}`] });
   expectInvalid(model.getModel().id, [model.getModel(), foreign.getModel()], 'REFERENCE_MODEL_NOT_REACHABLE');
+
   model.updateNode(file.id, { superTypes: [dataType.id] });
   expectInvalid(model.getModel().id, [model.getModel()], 'ELEMENT_REFERENCE_KIND_MISMATCH');
 });
@@ -51,6 +54,7 @@ void test('raw model inputs cannot bypass node refinement and inherited property
   const base: Modeller = Modeller.create('Files');
   const file: Node = base.createNode('File').element;
   base.createAttribute(file, { name: 'title', typeId: DataTypes.String });
+
   const next: Modeller = base.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: file }).element;
   const raw: Model = next.getModel();

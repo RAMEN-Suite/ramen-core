@@ -30,6 +30,7 @@ void test('element getters read local and imported definitions without exposing 
   const folder: Node = filing.createNode('Folder').element;
   const status: DataType = filing.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
   const filedIn: Relation = filing.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
+
   const website: Modeller = filing.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
 
@@ -42,8 +43,10 @@ void test('element getters read local and imported definitions without exposing 
   assert.equal(imported?.name, 'Document');
   assert.deepEqual(qualified, imported);
   assert.equal(local?.name, 'Page');
+
   assert.equal(importedType?.name, 'Status');
   assert.equal(importedRelation?.name, 'FILED_IN');
+
   assert.equal(website.getNode('missing'), undefined);
   assert.equal(website.getDataType(DataTypes.String), undefined);
   assert.equal(website.getRelation('missing'), undefined);
@@ -85,6 +88,7 @@ void test('most specific node accepts definitions or a lineage and rejects incom
 void test('levels share edits while an explicit snapshot keeps the earlier state', (): void => {
   const base: Modeller = Modeller.create('Filing');
   const document: Node = base.createNode('Document').element;
+
   const next: Modeller = base.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: document }).element;
   const before: Modeller = next.snapshot();
@@ -103,8 +107,10 @@ void test('levels share edits while an explicit snapshot keeps the earlier state
 void test('model identity edits update exact imports and preserve declarations', (): void => {
   const filing: Modeller = Modeller.create('Filing');
   const document: Node = filing.createNode('Document').element;
+
   const website: Modeller = filing.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
+
   const publication: Modeller = website.createNextLevel('Publication');
   const article: Node = publication.createNode({ name: 'Article', refines: page }).element;
 
@@ -126,6 +132,7 @@ void test('model identity edits update exact imports and preserve declarations',
   assert.equal(imported?.name, updated.name);
   assert.equal(imported?.modelUri, updated.$id);
   assert.equal(imported?.version, updated.version);
+
   assert.equal(publication.getNodeLineage(article).length, 3);
   assert.equal(publication.validate().valid, true);
   assert.equal(publication.getModel().name, 'Publication');
@@ -140,6 +147,7 @@ void test('model removal previews descendants, rejects by default and cascades a
   const website: Modeller = filing.createNextLevel('Website');
   const publication: Modeller = website.createNextLevel('Publication');
   const edition: Modeller = filing.createNextLevel('Edition');
+
   const websiteId: string = website.getModel().id;
   const editionId: string = edition.getModel().id;
   const before: readonly string[] = [filing, website, publication, edition].map((model: Modeller): string => model.getModel().id);
@@ -166,10 +174,13 @@ void test('model removal previews descendants, rejects by default and cascades a
 void test('one snapshot compares edits in the base and both sibling levels', (): void => {
   const base: Modeller = Modeller.create('Filing');
   const document: Node = base.createNode('Document').element;
+
   const website: Modeller = base.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
+
   const edition: Modeller = base.createNextLevel('Edition');
   const letter: Node = edition.createNode({ name: 'Letter', refines: document }).element;
+
   const status: DataType = base.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
   edition.createAttribute(letter, { name: 'status', type: status });
   const before: Modeller = website.snapshot();
@@ -194,6 +205,7 @@ void test('a removed data type leaves an editable draft and a finding on the aff
   const base: Modeller = Modeller.create('Filing');
   const document: Node = base.createNode('Document').element;
   const status: DataType = base.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
+
   const next: Modeller = base.createNextLevel('Website');
   const page: Node = next.createNode({ name: 'Page', refines: document }).element;
   const property: Attribute = next.createAttribute(page, { name: 'status', type: status }).element;
@@ -240,11 +252,13 @@ void test('node diagnostics retain project-wide inheritance errors and update af
   const model: Modeller = Modeller.create('Filing');
   const document: Node = model.createNode('Document').element;
   const page: Node = model.createNode({ name: 'Page', refines: document }).element;
+
   model.updateNode(document.id, { superTypes: [page.id] });
   const invalid: ValidationResult = model.validateNode(page);
 
   assert.equal(invalid.hasErrors, true);
   assert.ok(invalid.diagnostics.some((item: Diagnostic): boolean => item.code === 'INHERITANCE_CYCLE' && item.path === '/'));
+
   model.updateNode(document.id, { superTypes: [] });
   assert.deepEqual(model.validateNode(page), { hasErrors: false, diagnostics: [] });
 });
@@ -262,6 +276,7 @@ void test('strict node removal reports cross-level dependencies; cascade removes
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
   const section: Node = website.createNode({ name: 'Section', refines: folder }).element;
   website.createRelation({ refines: filedIn, from: { node: page }, to: { node: section } });
+
   const edition: Modeller = base.createNextLevel('Edition');
   const letter: Node = edition.createNode({ name: 'Letter', refines: document }).element;
   const before: readonly Model[] = base.getModels();
@@ -282,6 +297,7 @@ void test('strict node removal reports cross-level dependencies; cascade removes
   assert.equal(base.validate().valid, true);
   assert.equal(website.validate().valid, true);
   assert.equal(edition.validate().valid, true);
+
   assert.deepEqual(
     website.getModel().classifiers.map((item: Classifier): string => item.id),
     [section.id],
@@ -322,6 +338,7 @@ void test('narrowing a base relation invalidates a warmed child and repair refre
   const document: Node = base.createNode('Document').element;
   const folder: Node = base.createNode('Folder').element;
   const relation: Relation = base.createRelation({ name: 'FILED_IN', from: { node: document }, to: { node: folder } }).element;
+
   const website: Modeller = base.createNextLevel('Website');
   const page: Node = website.createNode({ name: 'Page', refines: document }).element;
   const section: Node = website.createNode({ name: 'Section', refines: folder }).element;
@@ -329,6 +346,7 @@ void test('narrowing a base relation invalidates a warmed child and repair refre
 
   assert.equal(website.validate().valid, true);
   assert.equal(website.suggestRelations(page, section).length > 0, true);
+
   base.updateRelation(relation.id, { to: { ...relation.to, bounds: { lowerBound: 0, upperBound: 1 } } });
   const finding: Diagnostic | undefined = website
     .validate()
@@ -351,12 +369,15 @@ void test('export selects predecessors while snapshots retain sibling and descen
   const document: Node = base.createNode('Document').element;
   const website: Modeller = base.createNextLevel('Website');
   website.createNode({ name: 'Page', refines: document });
+
   const edition: Modeller = base.createNextLevel('Edition');
   edition.createNode({ name: 'Letter', refines: document });
+
   const publication: Modeller = website.createNextLevel('Publication');
 
   const exportedIds: readonly string[] = website.export().models.map((model: ModelHeader): string => model.id);
   assert.deepEqual(new Set<string>(exportedIds), new Set<string>([base.getModel().id, website.getModel().id]));
+
   const snapshot: Modeller = website.snapshot();
   assert.equal(snapshot.openLevel(edition.getModel().id).getModel().name, 'Edition');
   assert.equal(snapshot.openLevel(publication.getModel().id).getModel().name, 'Publication');

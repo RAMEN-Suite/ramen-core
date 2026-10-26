@@ -31,11 +31,11 @@ function pack(destination: string): PackedFile {
       encoding: 'utf8',
     },
   );
+
   const files: readonly PackedFile[] = JSON.parse(output) as readonly PackedFile[];
   const file: PackedFile | undefined = files[0];
 
   if (!file) throw new Error('npm pack returned no package.');
-
   return file;
 }
 
@@ -59,6 +59,7 @@ function checkContents(file: PackedFile): void {
     .map((path: string): string => path.replace(/\.d\.ts$/, '.js'))
     .filter((path: string): boolean => !paths.has(path));
   if (missingModules.length > 0) throw new Error(`Missing runtime modules: ${missingModules.join(', ')}`);
+
   const sharedChunks: boolean = [...paths].some((path: string): boolean => path.startsWith('dist/ramen-core/chunks/'));
   if (sharedChunks) {
     throw new Error('The package must preserve modules rather than publish generated shared chunks.');
@@ -76,6 +77,7 @@ function install(tarball: string, consumer: string): void {
 
   const manifestPath: string = join(consumer, 'node_modules/@ramen-suite/core/package.json');
   const installed: InstalledPackage = JSON.parse(readFileSync(manifestPath, 'utf8')) as InstalledPackage;
+
   const publicPackage: boolean = installed.name === '@ramen-suite/core' && !installed.private;
   const optimisableEsm: boolean = installed.type === 'module' && installed.sideEffects === false;
   if (!publicPackage || !optimisableEsm) {
@@ -85,7 +87,6 @@ function install(tarball: string, consumer: string): void {
 
 function compileConsumer(consumer: string): void {
   copyFileSync(join(root, 'test/package/consumer.ts'), join(consumer, 'consumer.ts'));
-
   const config: object = {
     compilerOptions: { strict: true, resolveJsonModule: true, module: 'NodeNext', target: 'ES2022' },
     include: ['consumer.ts'],
@@ -98,7 +99,6 @@ function compileConsumer(consumer: string): void {
 
 function runConsumer(consumer: string, entry: string = 'consumer.js'): void {
   const runtimes: readonly string[] = process.argv.length > 2 ? process.argv.slice(2) : [process.execPath];
-
   for (const runtime of runtimes) {
     const version: string = execFileSync(runtime, ['--version'], { encoding: 'utf8' }).trim();
     execFileSync(runtime, [entry], { cwd: consumer, stdio: 'inherit' });
@@ -136,11 +136,13 @@ async function checkTreeShaking(consumer: string): Promise<void> {
   });
   if (result.warnings.length > 0) throw new Error(`Tree-shaking warnings: ${JSON.stringify(result.warnings)}`);
   if (!result.metafile) throw new Error('Missing tree-shaking metadata.');
+
   const retained: readonly string[] = Object.values(result.metafile.outputs).flatMap((output): string[] =>
     Object.entries(output.inputs)
       .filter(([, input]): boolean => input.bytesInOutput > 0)
       .map(([path]): string => path.replaceAll('\\', '/')),
   );
+
   const modules: readonly string[] = retained.filter((path: string): boolean => path !== '<stdin>');
   const onlyBuiltins: boolean = modules.length === 1 && modules[0]?.endsWith('/dist/ramen-core/model/Builtins.js') === true;
   if (!onlyBuiltins) {
@@ -157,6 +159,7 @@ try {
 
   const consumer: string = join(temporary, 'consumer');
   install(join(temporary, file.filename), consumer);
+
   compileConsumer(consumer);
   runConsumer(consumer);
   await bundleBrowserConsumer(consumer);

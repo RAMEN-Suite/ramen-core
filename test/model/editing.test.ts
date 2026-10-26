@@ -67,13 +67,13 @@ void test('editing a literal retains its position, identity and previous snapsho
   const literals: readonly Literal[] = model.getDataType(status.id)?.literals ?? [];
   assert.deepEqual(
     literals.map((item: Literal): string => item.id),
-    [published.id, draft.id],
+    [draft.id, published.id],
   );
-  assert.equal(literals[1]?.name, 'In progress');
-  assert.equal(before.getDataType(status.id)?.literals?.[1]?.name, 'Draft');
+  assert.equal(literals[0]?.name, 'In progress');
+  assert.equal(before.getDataType(status.id)?.literals?.[0]?.name, 'Draft');
 
   model.removeLiteral(status.id, published.id);
-  assert.deepEqual(model.getDataType(status.id)?.literals, [literals[1]]);
+  assert.deepEqual(model.getDataType(status.id)?.literals, [literals[0]]);
   assert.equal(Modeller.import(model.export()).validateValue(status.id, 'in-progress').hasErrors, false);
 });
 

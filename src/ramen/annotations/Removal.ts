@@ -53,13 +53,15 @@ export class AnnotationRemoval {
   /** Returns annotation paths attached to a node's inheritance chain. */
   public diagnosticPaths(models: readonly Model[], lineage: readonly ElementRef[]): readonly string[] {
     const nodes: ReadonlySet<Ref> = this.keys(lineage);
-    return models.flatMap((model: Model): string[] =>
-      AnnotationShapes.get(model).flatMap((annotation: AnnotationShape): string[] =>
-        nodes.has(this.referenceKey(annotation.annotationId, model.id))
-          ? [`/models/${model.id}/annotations/${annotation.id}`]
-          : [],
-      ),
-    );
+    return models
+      .filter(AnnotationShapes.hasValidSection)
+      .flatMap((model: Model): string[] =>
+        AnnotationShapes.get(model).flatMap((annotation: AnnotationShape): string[] =>
+          nodes.has(this.referenceKey(annotation.annotationId, model.id))
+            ? [`/models/${model.id}/annotations/${annotation.id}`]
+            : [],
+        ),
+      );
   }
 
   /** Lists surviving definitions whose properties or relation rules would change. */

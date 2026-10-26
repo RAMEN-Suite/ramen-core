@@ -425,7 +425,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   public createLiteral(dataTypeId: Id, input: LiteralInput): ModelChange<Literal> {
     const dataType: DataType = this.requireDataType(dataTypeId);
     const literal: Literal = ModelFactory.createLiteral(input.name, input.literal, input.value, input.description);
-    const literals: [Literal, ...Literal[]] = [literal, ...(dataType.literals ?? [])];
+    const literals: [Literal, ...Literal[]] = dataType.literals ? [...dataType.literals, literal] : [literal];
 
     this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals: literals });
     return this.change(literal);

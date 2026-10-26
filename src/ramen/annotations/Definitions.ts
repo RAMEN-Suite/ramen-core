@@ -19,6 +19,7 @@ export interface AnnotationShape extends DescribedDefinition {
   readonly id: Id;
   readonly annotationId: Ref;
   readonly type: string;
+  readonly ext?: Record<string, unknown>;
   readonly properties: readonly AnnotationShapeProperty[];
   readonly relations: readonly AnnotationShapeRelation[];
 }
@@ -41,8 +42,7 @@ export class AnnotationShapes {
   public static get(model: Model): readonly AnnotationShape[] {
     if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) return [];
     const document: RamenModelDocument = model as RamenModelDocument;
-    const valid: boolean = AnnotationShapeSchemaValidator.isValid({ annotations: document.annotations });
-    if (!valid) return [];
+    AnnotationShapeSchemaValidator.assertValid({ annotations: document.annotations });
     return ModelDescriptions.copy(document.annotations);
   }
 

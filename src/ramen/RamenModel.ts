@@ -88,6 +88,7 @@ export type AnnotationShapeRelationInput =
 export type AnnotationShapeInput = {
   readonly type: string;
   readonly description?: string;
+  readonly ext?: Record<string, unknown>;
   readonly properties?: readonly AnnotationShapePropertyInput[];
   readonly relations?: readonly AnnotationShapeRelationInput[];
 } & ({ readonly node: Node; readonly nodeId?: Ref } | { readonly node?: Node; readonly nodeId: Ref });
@@ -96,6 +97,7 @@ export type AnnotationShapeInput = {
 export interface AnnotationShapeUpdate {
   readonly type?: string;
   readonly description?: string;
+  readonly ext?: Record<string, unknown>;
   readonly properties?: readonly AnnotationShapePropertyInput[];
   readonly relations?: readonly AnnotationShapeRelationInput[];
 }
@@ -292,6 +294,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       id: ModelFactory.createIdentifier(),
       annotationId: owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId),
       type: input.type,
+      ...(input.ext === undefined ? {} : { ext: structuredClone(input.ext) }),
       description: input.description,
       properties: this.annotationProperties(input.properties ?? []),
       relations: this.annotationRelations(annotationNode, input.relations ?? []),
@@ -312,6 +315,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
       ...current,
       type: input.type ?? current.type,
       ...('description' in input ? { description: input.description } : {}),
+      ...('ext' in input ? { ext: structuredClone(input.ext) } : {}),
       properties: this.annotationProperties(input.properties ?? current.properties),
       relations: this.annotationRelations(current.annotationId, input.relations ?? current.relations),
     };

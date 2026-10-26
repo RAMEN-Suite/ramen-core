@@ -354,7 +354,12 @@
           "items": { "$ref": "#/$defs/RamenAnnotationShapeRelation" },
           "default": []
         },
-        "description": { "$ref": "#/$defs/Description" }
+        "description": { "$ref": "#/$defs/Description" },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata, preserved without interpretation."
+        }
       }
     },
     "Header": {
@@ -502,6 +507,11 @@
           "default": []
         },
         "description": { "$ref": "#/$defs/Description" },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata, preserved without interpretation."
+        },
         "modelId": { "$ref": "#/$defs/Id", "description": "Model that declares this element. Nested elements share this owner." }
       }
     }

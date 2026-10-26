@@ -104,6 +104,11 @@
         },
         "description": {
           "$ref": "https://ramen-schema.org/model/1.0.0/schema.json#/$defs/Description"
+        },
+        "ext": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque tool metadata, preserved without interpretation."
         }
       }
     }

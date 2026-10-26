@@ -18,15 +18,15 @@ children:
 **RAMEN Model Format (RMF)** describes data models in JSON.
 You define which types, properties and relationships tools can use to collect data. This page builds a small Filing model and then a Website model based on it. Each step continues the previous one, with links to guides that explain the choices.
 
-| Concept                 | Purpose                        | Example                       |
-| ----------------------- | ------------------------------ | ----------------------------- |
-| {@link model.Model}     | A versioned set of definitions | Filing                        |
-| {@link model.Node}      | An object type                 | Document                      |
-| {@link model.Attribute} | A typed property               | title                         |
-| {@link model.DataType}  | Allowed property values        | String                        |
-| {@link model.Relation}  | A permitted connection         | FILED_IN                      |
-| {@link model.Import}    | An exact model dependency      | Use Filing from another model |
-| Refinement              | A more specific definition     | A specialised Document type   |
+| Concept                           | Purpose                        | Example                       |
+| --------------------------------- | ------------------------------ | ----------------------------- |
+| {@link model.Model Model}         | A versioned set of definitions | Filing                        |
+| {@link model.Node Node}           | An object type                 | Document                      |
+| {@link model.Attribute Attribute} | A typed property               | title                         |
+| {@link model.DataType Data type}  | Allowed property values        | String                        |
+| {@link model.Relation Relation}   | A permitted connection         | FILED_IN                      |
+| {@link model.Import Import}       | An exact model dependency      | Use Filing from another model |
+| Refinement                        | A more specific definition     | A specialised Document type   |
 
 {@link model.Modeller | Modeller} is the class you use to edit a model.
 `Model`, `Node`, `Attribute` and `Relation` are data interfaces.

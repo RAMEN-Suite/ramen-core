@@ -71,16 +71,15 @@ void test('missing references produce stable diagnostics and block export', (): 
   const raw: Model = base.getModel();
   const broken: Model = {
     ...raw,
-    classifiers: raw.classifiers.map((item: Classifier): Classifier =>
-      item.id === document.id && item.kind === 'Node'
-        ? {
-            ...item,
-            attributes: [
-              { id: 'missingTypeAttr1', name: 'status', typeId: 'missingType00001', bounds: { lowerBound: 0, upperBound: 1 } },
-            ],
-          }
-        : item,
-    ),
+    classifiers: raw.classifiers.map((item: Classifier): Classifier => {
+      if (item.id !== document.id || item.kind !== 'Node') return item;
+      return {
+        ...item,
+        attributes: [
+          { id: 'missingTypeAttr1', name: 'status', typeId: 'missingType00001', bounds: { lowerBound: 0, upperBound: 1 } },
+        ],
+      };
+    }),
   };
   const loaded: Modeller = Modeller.load(broken);
   const finding: Diagnostic | undefined = loaded

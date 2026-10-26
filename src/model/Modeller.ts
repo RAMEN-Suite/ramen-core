@@ -40,6 +40,7 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
     const models: readonly Model[] = ModelFiles.read(input);
     const file: ModelFile = input as ModelFile;
     const id: Id = file.id;
+
     const model: Model | undefined = models.find((item: Model): boolean => item.id === id);
     if (!model) throw new Error('Exported model not found.');
     return new Modeller(model, [], new ModelWorkspace(models, file.project), true);

@@ -1,9 +1,10 @@
-import { Bounds, Node, Relation, Id, Ref } from '../Types.js';
+import { Bounds, Node, Relation, RelationEnd, Id, Ref, Model } from '../Types.js';
 import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph.js';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics.js';
 import { ModelInstanceGraph, ModelInstanceRelation, ResolvedInstanceNode, ResolvedInstanceRelation } from './InstanceTypes.js';
-import { ValidationCode } from '../validation/Codes.js';
+import { VALIDATION_ERROR, ValidationCode } from '../validation/Codes.js';
 import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints.js';
+import { Cardinality } from '../validation/Cardinality.js';
 
 /** Validates instance relations, endpoint types, and graph cardinalities. */
 export class InstanceRelationValidator {
@@ -27,6 +28,7 @@ export class InstanceRelationValidator {
     nodesById: ReadonlyMap<Id, ResolvedInstanceNode>,
     diagnostics: Diagnostic[],
   ): readonly ResolvedInstanceRelation[] {
+    const ownerModelId: Id = graph.getRootModel().id;
     const ids: Set<Id> = new Set<Id>();
     const result: ResolvedInstanceRelation[] = [];
 
@@ -34,7 +36,7 @@ export class InstanceRelationValidator {
       const path: DiagnosticPath = DiagnosticPath.root().property('relations').index(index);
       const resolved: ResolvedInstanceRelation | undefined = this.resolveRelation(
         graph,
-        graph.getRootModel().id,
+        ownerModelId,
         relation,
         path,
         ids,
@@ -43,8 +45,9 @@ export class InstanceRelationValidator {
       );
       if (resolved) result.push(resolved);
     });
+
     const counts: ReadonlyMap<string, number> = this.relationCounts(graph, result);
-    this.validateCardinalities(graph, graph.getRootModel().id, nodesById, counts, diagnostics);
+    this.validateCardinalities(graph, ownerModelId, nodesById, counts, diagnostics);
     return result;
   }
 
@@ -74,6 +77,7 @@ export class InstanceRelationValidator {
     if (!from || !to) return undefined;
     this.validateEndpoint(graph, type, type.element.from.nodeId, from, path.property('fromId'), diagnostics);
     this.validateEndpoint(graph, type, type.element.to.nodeId, to, path.property('toId'), diagnostics);
+
     const lineage: readonly ResolvedElement<Relation>[] = [type, ...graph.getRelationAncestors(type.modelId, type.element.id)];
     for (const owner of lineage) this.validateConstraints(owner, relation, from, to, path, diagnostics);
     return { instance: relation, type: type };
@@ -100,11 +104,22 @@ export class InstanceRelationValidator {
         }),
       );
     }
+    this.validateEndpointConstraints(type, from, to, path, diagnostics);
+  }
 
-    for (const [end, node, endPath] of [
+  private validateEndpointConstraints(
+    type: ResolvedElement<Relation>,
+    from: ResolvedInstanceNode,
+    to: ResolvedInstanceNode,
+    path: DiagnosticPath,
+    diagnostics: Diagnostic[],
+  ): void {
+    const endpoints: readonly [RelationEnd, ResolvedInstanceNode, DiagnosticPath][] = [
       [type.element.from, from, path.property('fromId')],
       [type.element.to, to, path.property('toId')],
-    ] as const) {
+    ];
+
+    for (const [end, node, endPath] of endpoints) {
       for (const constraint of end.constraints ?? []) {
         diagnostics.push(
           ...this.constraints.evaluate(constraint, {
@@ -124,11 +139,12 @@ export class InstanceRelationValidator {
   private registerId(id: Id, path: DiagnosticPath, ids: Set<Id>, diagnostics: Diagnostic[]): boolean {
     if (!ids.has(id)) {
       ids.add(id);
-
       return true;
     }
 
-    diagnostics.push(this.error('INSTANCE_RELATION_ID_DUPLICATE', `Instance relation id '${id}' is duplicated.`, path, id));
+    diagnostics.push(
+      this.error(VALIDATION_ERROR.INSTANCE_RELATION_ID_DUPLICATE, `Instance relation id '${id}' is duplicated.`, path, id),
+    );
     return false;
   }
 
@@ -140,16 +156,24 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): ResolvedElement<Relation> | undefined {
     const type: ResolvedElement<Relation> | undefined = graph.resolveRelation(ownerModelId, relation.typeId);
-    if (type && this.selectedRefs && !this.selectedRefs.has(`${type.modelId}:${type.element.id}`)) {
+    const excluded: boolean =
+      type !== undefined && this.selectedRefs !== undefined && !this.selectedRefs.has(`${type.modelId}:${type.element.id}`);
+    if (excluded) {
       diagnostics.push(
-        this.error('INSTANCE_RELATION_TYPE_NOT_ALLOWED', 'Relation type is not selected by this model level.', path, relation.id),
+        this.error(
+          VALIDATION_ERROR.INSTANCE_RELATION_TYPE_NOT_ALLOWED,
+          'Relation type is not selected by this model level.',
+          path,
+          relation.id,
+        ),
       );
       return undefined;
     }
+
     if (type) return type;
     diagnostics.push(
       this.error(
-        'INSTANCE_RELATION_TYPE_NOT_FOUND',
+        VALIDATION_ERROR.INSTANCE_RELATION_TYPE_NOT_FOUND,
         `Relation type '${relation.typeId}' was not found.`,
         path.property('typeId'),
         relation.id,
@@ -168,8 +192,10 @@ export class InstanceRelationValidator {
   ): ResolvedInstanceNode | undefined {
     const node: ResolvedInstanceNode | undefined = nodesById.get(nodeId);
     if (node) return node;
+
     const property: string = end === 'FROM' ? 'fromId' : 'toId';
-    const code: ValidationCode = end === 'FROM' ? 'INSTANCE_RELATION_FROM_NOT_FOUND' : 'INSTANCE_RELATION_TO_NOT_FOUND';
+    const code: ValidationCode =
+      end === 'FROM' ? VALIDATION_ERROR.INSTANCE_RELATION_FROM_NOT_FOUND : VALIDATION_ERROR.INSTANCE_RELATION_TO_NOT_FOUND;
 
     diagnostics.push(this.error(code, `Relation node '${nodeId}' was not found.`, path.property(property), relationId));
     return undefined;
@@ -184,10 +210,11 @@ export class InstanceRelationValidator {
     diagnostics: Diagnostic[],
   ): void {
     const required: ResolvedElement<Node> | undefined = graph.resolveNode(relationType.modelId, requiredRef);
-    if (required && !graph.isNodeSameOrSubtype(actual.type, required)) {
+    const incompatible: boolean = required !== undefined && !graph.isNodeSameOrSubtype(actual.type, required);
+    if (incompatible) {
       diagnostics.push(
         this.error(
-          'INSTANCE_RELATION_END_TYPE_INVALID',
+          VALIDATION_ERROR.INSTANCE_RELATION_END_TYPE_INVALID,
           `Node '${actual.instance.id}' is incompatible with relation '${relationType.element.name}'.`,
           path,
           actual.instance.id,
@@ -207,7 +234,7 @@ export class InstanceRelationValidator {
       this.selected ??
       graph
         .getModels()
-        .flatMap((model): ResolvedElement<Relation>[] =>
+        .flatMap((model: Model): ResolvedElement<Relation>[] =>
           model.relations.map((element: Relation): ResolvedElement<Relation> => ({ modelId: model.id, element })),
         );
     const nodes: ReadonlyMap<Ref, readonly ResolvedInstanceNode[]> = this.indexNodeTypes(graph, nodesById);
@@ -248,11 +275,14 @@ export class InstanceRelationValidator {
     const ref: Ref = type.modelId === ownerModelId ? relation.id : `${type.modelId}:${relation.id}`;
 
     for (const direction of ['from', 'to'] as const) {
+      const opposite: 'from' | 'to' = direction === 'from' ? 'to' : 'from';
+      const bounds: Bounds = relation[opposite].bounds;
+      const unrestricted: boolean = bounds.lowerBound === 0 && bounds.upperBound === Cardinality.UNBOUNDED;
+      if (unrestricted) continue;
+
       const endpoint: ResolvedElement<Node> | undefined = graph.resolveNode(type.modelId, relation[direction].nodeId);
       if (!endpoint) continue;
       const key: Ref = `${endpoint.modelId}:${endpoint.element.id}`;
-      const opposite: 'from' | 'to' = direction === 'from' ? 'to' : 'from';
-      const bounds: Bounds = relation[opposite].bounds;
 
       for (const node of nodes.get(key) ?? []) {
         const count: number = counts.get(`${type.modelId}:${relation.id}:${direction}:${node.instance.id}`) ?? 0;
@@ -289,10 +319,10 @@ export class InstanceRelationValidator {
     ref: string,
     diagnostics: Diagnostic[],
   ): void {
-    if (count < bounds.lowerBound || (bounds.upperBound !== -1 && count > bounds.upperBound)) {
+    if (!Cardinality.isCountWithinBounds(count, bounds)) {
       diagnostics.push(
         this.error(
-          'INSTANCE_CARDINALITY_INVALID',
+          VALIDATION_ERROR.INSTANCE_CARDINALITY_INVALID,
           `Feature '${name}' has ${count} value(s), expected ${bounds.lowerBound}..${bounds.upperBound}.`,
           path,
           ref,

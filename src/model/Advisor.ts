@@ -91,9 +91,11 @@ export class ModelAdvisor {
   public getAttributes(modelId: Id, nodeId: Id): readonly AttributeInfo[] {
     const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
+
     const ancestors: readonly ResolvedElement<Node>[] = [
       ...this.graph.getNodeAncestors(actual.modelId, actual.element.id),
     ].reverse();
+
     return this.attributeInfo([...ancestors, actual], actual);
   }
 
@@ -101,6 +103,7 @@ export class ModelAdvisor {
   public getNodeLineage(modelId: Id, nodeId: Id): readonly NodeLineageItem[] {
     const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
+
     const ancestors: ResolvedElement<Node>[] = [...this.graph.getNodeAncestors(actual.modelId, actual.element.id)].reverse();
     const lineage: readonly ResolvedElement<Node>[] = [...ancestors, actual];
 
@@ -110,9 +113,11 @@ export class ModelAdvisor {
   /** Finds one selected node that refines every other selected node. */
   public getMostSpecificNode(modelId: Id, refs: readonly Ref[]): NodeLineageItem | undefined {
     let mostSpecific: ResolvedElement<Node> | undefined;
+
     for (const ref of refs) {
       const node: ResolvedElement<Node> | undefined = this.resolveNode(modelId, ref);
       if (!node) throw new Error(`Node not found: '${ref}'.`);
+
       if (!mostSpecific || this.graph.isNodeSameOrSubtype(node, mostSpecific)) {
         mostSpecific = node;
       } else if (!this.graph.isNodeSameOrSubtype(mostSpecific, node)) {
@@ -142,6 +147,7 @@ export class ModelAdvisor {
       const ref: Ref = ModelRef.qualify(item.modelId, item.element.id);
       matches.set(ref, Object.freeze({ ref, from: source, to: target }));
     }
+
     return Object.freeze([...matches.values()]);
   }
 
@@ -175,6 +181,7 @@ export class ModelAdvisor {
       name: type,
       baseType: type,
     }));
+
     const declared: DataTypeSuggestion[] = [this.graph.getModel(modelId), ...this.importedModels(modelId)].flatMap(
       (model: Model | undefined): DataTypeSuggestion[] => {
         if (!model) return [];
@@ -205,7 +212,12 @@ export class ModelAdvisor {
 
     if (!from || !to) return [];
     const choices: Map<Ref, ResolvedElement<Relation>> = new Map<Ref, ResolvedElement<Relation>>();
-    for (const item of [...this.relations.bases(modelId), ...this.relations.available(modelId)]) {
+    const candidates: readonly ResolvedElement<Relation>[] = [
+      ...this.relations.bases(modelId),
+      ...this.relations.available(modelId),
+    ];
+
+    for (const item of candidates) {
       choices.set(ModelRef.qualify(item.modelId, item.element.id), item);
     }
 
@@ -235,7 +247,8 @@ export class ModelAdvisor {
     const attributes: readonly AttributeInfo[] = this.getAttributes(modelId, nodeId);
     const conflicts: 'attribute'[] = [];
 
-    if (attributes.some((attribute: AttributeInfo): boolean => attribute.name === name)) conflicts.push('attribute');
+    const nameExists: boolean = attributes.some((attribute: AttributeInfo): boolean => attribute.name === name);
+    if (nameExists) conflicts.push('attribute');
     return { allowed: conflicts.length === 0, conflicts: conflicts };
   }
 
@@ -285,6 +298,7 @@ export class ModelAdvisor {
     for (const item of this.relations.available(modelId)) {
       const owner: Model | undefined = this.graph.getModel(item.modelId);
       if (!owner) continue;
+
       for (const direction of ['outgoing', 'incoming'] as const) {
         const endpoint: Ref = direction === 'outgoing' ? item.element.from.nodeId : item.element.to.nodeId;
         if (!this.graph.acceptsNode(owner.id, endpoint, actual)) continue;
@@ -297,6 +311,7 @@ export class ModelAdvisor {
         if (suggestion) suggestions.push(suggestion);
       }
     }
+
     return suggestions;
   }
 

@@ -36,9 +36,11 @@ export class RamenReferenceValidator {
         .map((item: unknown): unknown => this.definition(item))
         .sort((left: unknown, right: unknown): number => jsonValueKey(left).localeCompare(jsonValueKey(right)));
     }
+
     if (typeof value !== 'object' || value === null) return value;
     const result: Record<string, unknown> = { ...value };
     delete result['description'];
+
     for (const key of [...DEFINITION_COLLECTIONS, 'from', 'to']) {
       if (result[key] !== undefined) result[key] = this.definition(result[key]);
     }

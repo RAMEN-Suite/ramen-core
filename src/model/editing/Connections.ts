@@ -1,5 +1,6 @@
 import { ModelAdvisor, RelationSuggestion, RelationSelection } from '../Advisor.js';
 import { ModelFactory } from './Factory.js';
+import type { ResolvedElement } from '../graph/ProjectGraph.js';
 import { ModelRef } from '../graph/References.js';
 import type { RelationSelections } from '../graph/RelationScope.js';
 import type { ValidProjectResult } from '../validation/ModelValidator.js';
@@ -47,8 +48,10 @@ export class ModelConnections {
     const { fromNode: from, toNode: to, refines: choice } = input;
     const suggestions: readonly RelationSuggestion[] = this.suggestRelations(from, to);
     const selected: RelationSuggestion = this.select(suggestions, choice);
+
     const base: Model | undefined = this.project.graph.getModel(selected.modelId);
     if (!base) throw new Error(`Relation model not found: '${selected.modelId}'.`);
+
     return ModelFactory.createRelation(base, base.id, {
       baseRelationId: selected.relationId,
       fromNodeId: this.nodeRef(from),
@@ -84,7 +87,12 @@ export class ModelConnections {
   private ancestors(suggestions: readonly RelationSuggestion[]): ReadonlySet<Ref> {
     const refs: Set<Ref> = new Set<Ref>();
     for (const item of suggestions) {
-      for (const ancestor of this.project.graph.getRelationAncestors(item.modelId, item.relationId)) {
+      const ancestors: readonly ResolvedElement<Relation>[] = this.project.graph.getRelationAncestors(
+        item.modelId,
+        item.relationId,
+      );
+
+      for (const ancestor of ancestors) {
         refs.add(ModelRef.qualify(ancestor.modelId, ancestor.element.id));
       }
     }

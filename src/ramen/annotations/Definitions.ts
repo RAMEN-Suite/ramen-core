@@ -41,9 +41,9 @@ export class AnnotationShapes {
   public static get(model: Model): readonly AnnotationShape[] {
     if (model.$schema !== RAMEN_PROJECT_SCHEMA_URI) return [];
     const document: RamenModelDocument = model as RamenModelDocument;
-    return AnnotationShapeSchemaValidator.isValid({ annotations: document.annotations })
-      ? ModelDescriptions.copy(document.annotations)
-      : [];
+    const valid: boolean = AnnotationShapeSchemaValidator.isValid({ annotations: document.annotations });
+    if (!valid) return [];
+    return ModelDescriptions.copy(document.annotations);
   }
 
   /** Reports whether the model's annotation shapes have the complete serialised shape. */
@@ -62,8 +62,8 @@ export class AnnotationShapes {
   /** Returns a model with one declared annotation replaced. */
   public static update<T extends Model>(model: T, annotationId: Id, annotation: AnnotationShape): T {
     const current: readonly AnnotationShape[] = this.get(model);
-    if (!current.some((candidate: AnnotationShape): boolean => candidate.id === annotationId))
-      throw new Error(`Annotation not found: '${annotationId}'.`);
+    const exists: boolean = current.some((candidate: AnnotationShape): boolean => candidate.id === annotationId);
+    if (!exists) throw new Error(`Annotation not found: '${annotationId}'.`);
 
     return this.write(
       model,

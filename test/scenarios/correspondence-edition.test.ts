@@ -265,7 +265,8 @@ function recordedEdition(fixture: Edition, model: RamenModel = fixture.model, pe
     link(model, 'imageAnnotation', fixture.image, annotation, 'image', 'imagePerson'),
   ];
 
-  for (const id of ['personName', 'placeName', 'date', 'highlight', 'note', 'role']) {
+  const annotationIds: readonly string[] = ['personName', 'placeName', 'date', 'highlight', 'note', 'role'];
+  for (const id of annotationIds) {
     relations.push(link(model, `${id}OnText`, fixture.text, annotation, 'text', id));
   }
   return { nodes, relations };

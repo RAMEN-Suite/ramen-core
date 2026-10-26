@@ -108,6 +108,7 @@ export class ModelWorkspace {
     for (const model of replacements) {
       if (!this.models.has(model.id)) throw new Error(`Model not found: '${model.id}'.`);
     }
+
     for (const model of replacements) this.models.set(model.id, model);
     this.revision += 1;
   }
@@ -124,6 +125,7 @@ export class ModelWorkspace {
       $id: patch.uri ?? current.$id,
       version: patch.version ?? current.version,
     };
+
     const replacements: readonly Model[] = this.all().map((model: Model): Model => {
       if (model.id === id) return updated;
       return {
@@ -173,6 +175,7 @@ export class ModelWorkspace {
     for (const model of preview.models) {
       if (!this.models.has(model.id)) throw new Error(`Model not found: '${model.id}'.`);
     }
+
     for (const model of preview.models) this.models.delete(model.id);
     this.revision += 1;
   }
@@ -184,6 +187,7 @@ export class ModelWorkspace {
     while (pending.length > 0) {
       const current: Id | undefined = pending.pop();
       if (!current) continue;
+
       const model: Model | undefined = this.models.get(current);
       for (const entry of model?.imports ?? []) {
         if (dependencies.has(entry.modelId)) continue;

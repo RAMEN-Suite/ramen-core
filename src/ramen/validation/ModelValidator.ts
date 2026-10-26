@@ -89,6 +89,7 @@ export class RamenValidator {
           );
         return;
       }
+
       if (RamenProjectSchemaValidator.isValid(input)) return;
       const code: string = AnnotationShapes.hasValidSection(input)
         ? VALIDATION_ERROR.SCHEMA_INVALID

@@ -91,12 +91,13 @@ export class ModelEditor {
   /** Updates an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
   public static updateAttribute(model: Model, nodeId: Id, attributeId: Id, patch: UpdateAttributeInput): Model {
     const node: Node = this.requireNode(model, nodeId);
-    if (!node.attributes.some((attribute: Attribute): boolean => attribute.id === attributeId))
-      throw new Error(`Attribute not found: '${attributeId}'`);
+    const current: Attribute | undefined = node.attributes.find((attribute: Attribute): boolean => attribute.id === attributeId);
 
-    const attributes: Attribute[] = node.attributes.map((attribute: Attribute): Attribute =>
-      attribute.id === attributeId ? ModelDescriptions.copy({ ...attribute, ...structuredClone(patch) }) : attribute,
-    );
+    if (!current) throw new Error(`Attribute not found: '${attributeId}'`);
+    const attributes: Attribute[] = node.attributes.map((attribute: Attribute): Attribute => {
+      if (attribute.id !== attributeId) return attribute;
+      return ModelDescriptions.copy({ ...attribute, ...structuredClone(patch) });
+    });
     return this.replaceNode(model, { ...node, attributes });
   }
 

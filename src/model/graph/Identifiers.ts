@@ -18,6 +18,7 @@ export class ModelIdentifiers {
     for (const [index, classifier] of model.classifiers.entries()) {
       const owner: DiagnosticPath = path.property('classifiers').index(index);
       this.diagnostics.push(...this.register(classifier, owner));
+
       const members: readonly IdentifiedElement[] =
         classifier.kind === 'Node' ? classifier.attributes : (classifier.literals ?? []);
       const field: string = classifier.kind === 'Node' ? 'attributes' : 'literals';
@@ -47,7 +48,8 @@ export class ModelIdentifiers {
     code: string = VALIDATION_ERROR.DUPLICATE_ELEMENT_ID,
   ): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [...this.registerId(element.id, path.property('id'), code)];
-    for (const [index, constraint] of (element.constraints ?? []).entries()) {
+    const constraints: readonly Constraint[] = element.constraints ?? [];
+    for (const [index, constraint] of constraints.entries()) {
       diagnostics.push(...this.registerId(constraint.id, path.property('constraints').index(index).property('id')));
     }
     return diagnostics;

@@ -22,6 +22,7 @@ import {
 } from '../../model/index.js';
 
 import { AnnotationProperties } from '../annotations/Properties.js';
+import { Cardinality } from '../../model/validation/Cardinality.js';
 
 import { AnnotationShapes, AnnotationShapeRelation } from '../annotations/Definitions.js';
 import { AnnotationIndex, ResolvedAnnotationShape } from '../annotations/AnnotationIndex.js';
@@ -59,12 +60,14 @@ export class RamenInstanceValidator {
   public validate(rootModelId: Id, models: readonly Model[], input: unknown): ValidationResult {
     const project: ProjectValidationResult = this.projects.validateProject(rootModelId, models);
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
+
     const annotations: AnnotationIndex = new AnnotationIndex(project.graph, models);
     const base: ValidationResult = this.instances.validate(project.graph, input, {
       relations: new ModelRelationScope(project.graph, AnnotationShapes.relationSelections(models)).available(rootModelId),
       attributes: (type: ResolvedElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
         this.effectiveAttributes(project.graph, annotations, rootModelId, type, node),
     });
+
     if (!InstanceSchemaValidator.isValid(input)) return base;
     const diagnostics: Diagnostic[] = [...base.diagnostics];
     const connections: ReadonlyMap<Id, readonly ModelInstanceRelation[]> = this.indexRelations(input.relations);
@@ -90,6 +93,7 @@ export class RamenInstanceValidator {
         indexed.set(id, connected);
       }
     }
+
     return indexed;
   }
 
@@ -102,12 +106,14 @@ export class RamenInstanceValidator {
   ): readonly Attribute[] {
     const attributes: readonly Attribute[] = EffectiveModel.resolveNode(graph, type.modelId, type.element.id)?.attributes ?? [];
     if (typeof node.properties['type'] !== 'string') return attributes;
+
     const definition: ResolvedAnnotationShape | undefined = annotations.findEffective(
       modelId,
       node.typeId,
       node.properties['type'],
     );
     if (!definition) return attributes;
+
     const byName: Map<string, Attribute> = new Map<string, Attribute>(
       attributes.map((item: Attribute): [string, Attribute] => [item.name, item]),
     );
@@ -126,7 +132,11 @@ export class RamenInstanceValidator {
     diagnostics: Diagnostic[],
   ): void {
     const resolved: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, node.typeId);
-    if (!resolved || !annotations.isAnnotationNode(resolved.modelId, resolved.element.id)) return;
+    if (!resolved) return;
+
+    const isAnnotation: boolean = annotations.isAnnotationNode(resolved.modelId, resolved.element.id);
+    if (!isAnnotation) return;
+
     const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
     const type: unknown = node.properties['type'];
 
@@ -141,19 +151,14 @@ export class RamenInstanceValidator {
         path.property('properties').property('type'),
         node.id,
       );
-
       return;
     }
+
     const selected: ResolvedAnnotationShape | undefined = annotations.findEffective(modelId, node.typeId, type);
     if (!selected) {
-      this.error(
-        diagnostics,
-        RAMEN_INSTANCE_ERROR.ANNOTATION_UNKNOWN,
-        `Annotation shape '${type}' is not available for '${resolved.element.name}'.`,
-        path.property('properties').property('type'),
-        node.id,
-      );
-
+      const message: string = `Annotation shape '${type}' is not available for '${resolved.element.name}'.`;
+      const typePath: DiagnosticPath = path.property('properties').property('type');
+      this.error(diagnostics, RAMEN_INSTANCE_ERROR.ANNOTATION_UNKNOWN, message, typePath, node.id);
       return;
     }
 
@@ -167,7 +172,9 @@ export class RamenInstanceValidator {
     path: DiagnosticPath = DiagnosticPath.root().property('value'),
     ref?: Id,
   ): readonly Diagnostic[] {
-    if (selector === undefined || selector === null || typeof selector !== 'object' || Array.isArray(selector)) return [];
+    const isObject: boolean = selector !== null && typeof selector === 'object' && !Array.isArray(selector);
+    if (!isObject) return [];
+
     const type: unknown = (selector as Record<string, unknown>)['type'];
     if (typeof type === 'string' && type.trim().length > 0) return [];
     return [
@@ -234,7 +241,7 @@ export class RamenInstanceValidator {
 
     for (const requirement of requirements) {
       const count: number = counts.get(requirement) ?? 0;
-      if (!this.within(count, requirement.bounds))
+      if (!Cardinality.isCountWithinBounds(count, requirement.bounds))
         this.error(
           diagnostics,
           RAMEN_INSTANCE_ERROR.ANNOTATION_RELATION_CARDINALITY,
@@ -263,9 +270,11 @@ export class RamenInstanceValidator {
           graph.isRelationRefSameOrSubtype(modelId, relation.typeId, selected.modelId, ref),
         );
         if (!matches) continue;
+
         allowed = true;
         counts.set(requirement, (counts.get(requirement) ?? 0) + 1);
       }
+
       if (allowed) continue;
       const message: string = `Relation '${relation.id}' is not allowed for annotation '${selected.annotation.type}'.`;
       this.error(diagnostics, RAMEN_INSTANCE_ERROR.ANNOTATION_RELATION_NOT_ALLOWED, message, path, node.id);
@@ -277,15 +286,11 @@ export class RamenInstanceValidator {
     return requirement.direction === 'outgoing' ? relation.fromId === nodeId : relation.toId === nodeId;
   }
 
-  private within(count: number, bounds: Bounds): boolean {
-    return count >= bounds.lowerBound && (bounds.upperBound === -1 || count <= bounds.upperBound);
-  }
-
   private boundsText(bounds: Bounds): string {
     return bounds.upperBound === -1 ? `${bounds.lowerBound}..*` : `${bounds.lowerBound}..${bounds.upperBound}`;
   }
 
-  private error(diagnostics: Diagnostic[], code: string, message: string, path: DiagnosticPath, ref: Id): void {
+  private error(diagnostics: Diagnostic[], code: RAMEN_INSTANCE_ERROR, message: string, path: DiagnosticPath, ref: Id): void {
     diagnostics.push(Diagnostics.error({ code: code, message: message, path: path, ref: ref }));
   }
 }

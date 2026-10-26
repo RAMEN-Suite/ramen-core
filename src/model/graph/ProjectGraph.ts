@@ -135,6 +135,7 @@ export class ProjectGraph {
     const key: Ref = ModelRef.qualify(modelId, nodeId);
     const cached: readonly ResolvedElement<Node>[] | undefined = this.nodeAncestorCache.get(key);
     if (cached) return cached;
+
     const ancestors: readonly ResolvedElement<Node>[] = this.collectAncestors(
       this.getNode(modelId, nodeId)?.superTypes ?? [],
       modelId,
@@ -150,6 +151,7 @@ export class ProjectGraph {
     const key: Ref = ModelRef.qualify(modelId, relationId);
     const cached: readonly ResolvedElement<Relation>[] | undefined = this.relationAncestorCache.get(key);
     if (cached) return cached;
+
     const ancestors: readonly ResolvedElement<Relation>[] = this.collectAncestors(
       this.getRelation(modelId, relationId)?.superTypes ?? [],
       modelId,
@@ -175,6 +177,7 @@ export class ProjectGraph {
       visited.add(key);
       queue.push(Object.freeze(item));
     };
+
     initial.forEach((ref: Ref): void => append(modelId, ref));
     for (const item of queue) {
       item.element.superTypes.forEach((ref: Ref): void => append(item.modelId, ref));
@@ -184,7 +187,8 @@ export class ProjectGraph {
 
   /** Reports whether an actual node is the expected node or one of its transitive refinements. */
   public isNodeSameOrSubtype(actual: ResolvedElement<Node>, expected: ResolvedElement<Node>): boolean {
-    if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
+    const sameIdentity: boolean = actual.modelId === expected.modelId && actual.element.id === expected.element.id;
+    if (sameIdentity) return true;
     return this.getNodeAncestors(actual.modelId, actual.element.id).some(
       (ancestor: ResolvedElement<Node>): boolean =>
         ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,
@@ -193,7 +197,8 @@ export class ProjectGraph {
 
   /** Reports whether an actual relation is the expected relation or one of its transitive refinements. */
   public isRelationSameOrSubtype(actual: ResolvedElement<Relation>, expected: ResolvedElement<Relation>): boolean {
-    if (actual.modelId === expected.modelId && actual.element.id === expected.element.id) return true;
+    const sameIdentity: boolean = actual.modelId === expected.modelId && actual.element.id === expected.element.id;
+    if (sameIdentity) return true;
     return this.getRelationAncestors(actual.modelId, actual.element.id).some(
       (ancestor: ResolvedElement<Relation>): boolean =>
         ancestor.modelId === expected.modelId && ancestor.element.id === expected.element.id,

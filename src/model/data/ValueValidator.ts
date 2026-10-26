@@ -1,3 +1,4 @@
+import { VALIDATION_ERROR } from '../validation/Codes.js';
 import type { BuiltinType, Constraint, DataType, Id, Literal } from '../Types.js';
 import type { ResolvedElement } from '../graph/ProjectGraph.js';
 import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints.js';
@@ -31,7 +32,7 @@ export class ValueValidator {
     if (!this.matchesBuiltin(baseType, value)) {
       diagnostics.push(
         Diagnostics.error({
-          code: 'INSTANCE_PROPERTY_TYPE_INVALID',
+          code: VALIDATION_ERROR.INSTANCE_PROPERTY_TYPE_INVALID,
           message: `${context.label} must contain ${baseType} values${suffix}.`,
           path: context.path,
           ref: context.ref,
@@ -61,7 +62,7 @@ export class ValueValidator {
       else {
         diagnostics.push(
           Diagnostics.error({
-            code: 'INSTANCE_PROPERTY_LITERAL_INVALID',
+            code: VALIDATION_ERROR.INSTANCE_PROPERTY_LITERAL_INVALID,
             message: `${context.label} contains no literal declared by data type '${type.element.name}'.`,
             path: context.path,
             ref: context.ref,

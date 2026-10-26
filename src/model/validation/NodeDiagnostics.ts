@@ -22,8 +22,10 @@ export class NodeDiagnostics {
     while (pending.length > 0) {
       const current: ElementRef | undefined = pending.pop();
       if (!current) continue;
+
       const key: Ref = ModelRef.qualify(current.modelId, current.elementId);
       if (seen.has(key)) continue;
+
       seen.add(key);
       lineage.push(current);
 
@@ -40,6 +42,7 @@ export class NodeDiagnostics {
         pending.push(parent);
       }
     }
+
     return lineage;
   }
 
@@ -55,6 +58,7 @@ export class NodeDiagnostics {
         item.path === '/' ||
         paths.some((path: string): boolean => item.path === path || item.path?.startsWith(`${path}/`) === true),
     );
+
     return { diagnostics: selected, hasErrors: selected.some((item: Diagnostic): boolean => item.severity === 'error') };
   }
 
@@ -74,6 +78,7 @@ export class NodeDiagnostics {
         if (keys.has(from) || keys.has(to)) paths.push(`/models/${model.id}/relations/${index}`);
       });
     }
+
     return paths;
   }
 

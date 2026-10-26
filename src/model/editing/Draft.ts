@@ -275,7 +275,6 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const attribute: Attribute | undefined = effective?.attributes.find((item: Attribute): boolean => item.name === name);
 
     if (!attribute) throw new Error(`Attribute '${name}' not found on node '${owner.elementId}'.`);
-
     return new InstanceValueValidator(registry).validateOneAttribute(result.graph, owner.modelId, attribute, value);
   }
 
@@ -365,7 +364,6 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     });
 
     this.workspace.updateMany(replacements);
-
     return this.change(node);
   }
 
@@ -437,10 +435,12 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   public updateLiteral(dataTypeId: Id, literalId: Id, input: LiteralUpdate): ModelChange<Literal> {
     const dataType: DataType = this.requireDataType(dataTypeId);
     const current: Literal = this.requireLiteral(dataType, literalId);
+
     const literal: Literal = ModelDescriptions.copy({ ...current, ...structuredClone(input) });
-    const literals: [Literal, ...Literal[]] = (dataType.literals ?? []).map((item: Literal): Literal =>
-      item.id === literalId ? literal : item,
-    ) as [Literal, ...Literal[]];
+    const literals: [Literal, ...Literal[]] = [...(dataType.literals ?? [current])];
+    for (const [index, item] of literals.entries()) {
+      if (item.id === literalId) literals[index] = literal;
+    }
 
     this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals: literals });
     return this.change(literal);
@@ -452,9 +452,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const literal: Literal = this.requireLiteral(dataType, literalId);
     const remaining: Literal[] = (dataType.literals ?? []).filter((item: Literal): boolean => item.id !== literalId);
 
-    this.model = ModelEditor.updateDataType(this.model, dataTypeId, {
-      literals: remaining.length > 0 ? (remaining as [Literal, ...Literal[]]) : undefined,
-    });
+    const [first, ...rest]: Literal[] = remaining;
+    const literals: DataType['literals'] = first ? [first, ...rest] : undefined;
+
+    this.model = ModelEditor.updateDataType(this.model, dataTypeId, { literals });
     return this.change(literal);
   }
 
@@ -497,6 +498,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       modelId: this.model.id,
       elementId: relationId,
     });
+
     const removal: NodeRemovalPreview = { nodes: [], relations: preview.relations };
     const effect: RemovalEffect = this.removalEffect(removal);
     const blockers: readonly string[] = [
@@ -520,14 +522,14 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     });
 
     this.workspace.updateMany(replacements);
-
     return this.change(relation);
   }
 
   /** Adds one rule to a local element without replacing its existing rules. */
   public addConstraint(owner: ConstraintOwnerInput, rule: Constraint): ModelChange<Constraint> {
     const location: ConstraintLocation = this.localConstraintOwner(owner);
-    if (location.constraints.some((item: Constraint): boolean => item.id === rule.id)) {
+    const alreadyExists: boolean = location.constraints.some((item: Constraint): boolean => item.id === rule.id);
+    if (alreadyExists) {
       throw new Error(`Constraint already exists: '${rule.id}'.`);
     }
 
@@ -544,11 +546,13 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const location: ConstraintLocation = this.localConstraintOwner(owner);
     const current: Constraint | undefined = location.constraints.find((item: Constraint): boolean => item.id === ruleId);
     if (!current) throw new Error(`Constraint not found: '${ruleId}'.`);
+
     const updated: Constraint = { ...current, ...structuredClone(patch) };
     const rules: readonly Constraint[] = location.constraints.map((item: Constraint): Constraint =>
       item.id === ruleId ? updated : item,
     );
     const validation: ProjectValidationResult = this.replaceConstraints(location, rules);
+
     return { element: ModelDescriptions.copy(updated), validation };
   }
 
@@ -557,6 +561,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const location: ConstraintLocation = this.localConstraintOwner(owner);
     const removed: Constraint | undefined = location.constraints.find((item: Constraint): boolean => item.id === ruleId);
     if (!removed) throw new Error(`Constraint not found: '${ruleId}'.`);
+
     const rules: readonly Constraint[] = location.constraints.filter((item: Constraint): boolean => item.id !== ruleId);
     const validation: ProjectValidationResult = this.replaceConstraints(location, rules);
     return { element: structuredClone(removed), validation };
@@ -659,9 +664,11 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const toRef: Ref = this.nodeReference(to);
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) throw new Error('Cannot infer a relation from an invalid model.');
+
     const connections: ModelConnections = new ModelConnections(result, this.selections());
     const suggestions: readonly RelationSuggestion[] = connections.suggestRelations(fromRef, toRef);
     const candidates: readonly RelationSuggestion[] = this.selectFamily(result, suggestions, family);
+
     const selected: RelationSuggestion = connections.select(candidates, choice);
     const input: RelationInput = { refines: selected.ref, from: { nodeId: fromRef }, to: { nodeId: toRef } };
     const relation: Relation = this.newRelation(input);
@@ -750,6 +757,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       });
       return { ...node, constraints: constraints };
     }
+
     if (this.model.imports.length > 0) throw new Error('Select a node to refine from the imported models.');
     return {
       kind: 'Node',
@@ -793,6 +801,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       if (!base) throw new Error(`Unknown model: '${reference.modelId}'.`);
       return ModelFactory.createRelation(base, base.id, { baseRelationId: reference.elementId, fromNodeId: from, toNodeId: to });
     }
+
     if (this.model.imports.length > 0) return this.inferRelation(from, to);
     if (!input.name) throw new Error('A root relation needs a name.');
     const defaultBounds: Bounds = { lowerBound: 0, upperBound: -1 };
@@ -848,6 +857,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   private typeReference(input: ElementInput): Ref {
     const reference: Ref = this.inputRef(input);
     if (BuiltinDataTypes.isBuiltin(reference)) return reference;
+
     const owner: ElementRef = this.resolveRef(reference, 'dataType');
     return owner.modelId === this.model.id ? owner.elementId : ModelRef.qualify(owner.modelId, owner.elementId);
   }

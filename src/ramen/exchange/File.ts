@@ -21,8 +21,10 @@ export class RamenFiles {
   public static write(id: Id, models: readonly Model[], project?: ProjectMetadata): RamenFile {
     const result: ProjectValidationResult = new RamenValidator().validateProject(id, models);
     FileParts.assertValid(result);
+
     const reachable: ReadonlySet<Id> = new Set<Id>(result.graph.getModels().map((model: Model): Id => model.id));
     const selected: readonly Model[] = models.filter((model: Model): boolean => reachable.has(model.id));
+
     const core: readonly Model[] = selected.map((model: Model): Model => {
       if (!RamenModelFormat.isDocument(model)) return model;
       const { annotations: _annotations, ...rest }: RamenModelDocument = model;
@@ -31,12 +33,12 @@ export class RamenFiles {
 
     const file: RamenFile = ModelDescriptions.copy({
       ...FileParts.merge(id, core, fileSchema.$id, project),
-      annotations: selected.flatMap((model: Model): Owned<AnnotationShape>[] =>
-        RamenModelFormat.isDocument(model)
-          ? model.annotations.map((item: AnnotationShape): Owned<AnnotationShape> => ({ ...item, modelId: model.id }))
-          : [],
-      ),
+      annotations: selected.flatMap((model: Model): Owned<AnnotationShape>[] => {
+        if (!RamenModelFormat.isDocument(model)) return [];
+        return model.annotations.map((item: AnnotationShape): Owned<AnnotationShape> => ({ ...item, modelId: model.id }));
+      }),
     });
+
     FileParts.assertSchema(this.schema, file);
     return file;
   }
@@ -54,6 +56,7 @@ export class RamenFiles {
     for (const entry of file.annotations) {
       const { modelId, ...annotation }: Owned<AnnotationShape> = entry;
       const owner: Model | undefined = owners.get(modelId);
+
       if (!RamenModelFormat.isDocument(owner)) throw new Error(`Invalid annotation owner: '${modelId}'.`);
       const group: AnnotationShape[] = groups.get(modelId) ?? [];
       group.push(structuredClone(annotation));

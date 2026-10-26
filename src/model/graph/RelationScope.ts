@@ -81,10 +81,12 @@ export class ModelRelationScope {
     if (!this.graph.hasModel(modelId)) return [];
     const parents: readonly Model[] = this.graph.getImportedModels(modelId);
     if (parents.length < 2) return parents;
+
     const ancestors: Set<Id> = new Set<Id>();
     for (const parent of parents) {
       for (const ancestor of this.graph.getTransitiveImports(parent.id)) ancestors.add(ancestor.id);
     }
+
     return parents.filter((parent: Model): boolean => !ancestors.has(parent.id));
   }
 }

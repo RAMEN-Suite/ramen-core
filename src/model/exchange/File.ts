@@ -36,8 +36,10 @@ export class ModelFiles {
   public static write(id: Id, models: readonly Model[], project?: ProjectMetadata): ModelFile {
     const result: ProjectValidationResult = new ModelValidator().validateProject(id, models);
     FileParts.assertValid(result);
+
     const file: ModelFile = FileParts.merge(id, result.graph.getModels(), fileSchema.$id, project);
     FileParts.assertSchema(this.schema, file);
+
     return file;
   }
 
@@ -100,9 +102,12 @@ export class FileParts {
   public static assertSchema(schema: SchemaNode, input: unknown): void {
     const expected: unknown = schema.schema['$id'];
     const actual: unknown = typeof input === 'object' && input !== null && '$schema' in input ? input.$schema : undefined;
-    if (typeof actual === 'string' && typeof expected === 'string' && actual !== expected) {
-      throw new UnsupportedModelFormatError(actual, expected);
+
+    if (typeof actual === 'string' && typeof expected === 'string') {
+      const unsupported: boolean = actual !== expected;
+      if (unsupported) throw new UnsupportedModelFormatError(actual, expected);
     }
+
     const result: ReturnType<SchemaNode['validate']> = schema.validate(input ?? null);
     if (!result.valid) throw new Error(`Invalid model file: ${result.errors.map((error): string => error.message).join('\n')}`);
   }

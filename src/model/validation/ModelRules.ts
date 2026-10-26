@@ -3,7 +3,7 @@ import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph.js';
 import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics.js';
 import { ModelRelationScope, RelationSelections } from '../graph/RelationScope.js';
 import { Cardinality } from './Cardinality.js';
-import { ValidationCode } from './Codes.js';
+import { VALIDATION_ERROR, ValidationCode } from './Codes.js';
 import { ConstraintRules } from './ConstraintRules.js';
 import { NodeNames } from './NodeNames.js';
 
@@ -20,6 +20,7 @@ export class ModelRules {
       this.validateModel(graph, model, diagnostics);
       this.validateRelationSelections(model, scope, selections?.get(model.id) ?? [], diagnostics);
     }
+
     return diagnostics;
   }
 
@@ -29,14 +30,16 @@ export class ModelRules {
     selections: readonly Ref[],
     diagnostics: Diagnostic[],
   ): void {
-    const references: readonly Ref[] =
-      model.imports.length > 0
-        ? model.relations
-            .filter(
-              (relation: Relation): boolean => !relation.superTypes[0] || !scope.allowsBase(model.id, relation.superTypes[0]),
-            )
-            .map((relation: Relation): Ref => relation.id)
-        : [];
+    const references: Ref[] = [];
+
+    if (model.imports.length > 0) {
+      for (const relation of model.relations) {
+        const base: Ref | undefined = relation.superTypes[0];
+        const permitted: boolean = base !== undefined && scope.allowsBase(model.id, base);
+        if (!permitted) references.push(relation.id);
+      }
+    }
+
     const invalid: readonly Ref[] = [
       ...references,
       ...selections.filter((ref: Ref): boolean => !scope.allowsBase(model.id, ref)),
@@ -45,7 +48,7 @@ export class ModelRules {
     for (const reference of invalid) {
       diagnostics.push(
         this.error(
-          'RELATION_SCOPE_INVALID',
+          VALIDATION_ERROR.RELATION_SCOPE_INVALID,
           'Select a relation permitted by the preceding model level.',
           DiagnosticPath.root().property('models').property(model.id).property('relations'),
           reference,
@@ -56,6 +59,7 @@ export class ModelRules {
 
   private validateModel(graph: ProjectGraph, model: Model, diagnostics: Diagnostic[]): void {
     this.validateImports(model, diagnostics);
+
     diagnostics.push(...new NodeNames(graph, model).getDiagnostics());
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
@@ -63,6 +67,7 @@ export class ModelRules {
       if (classifier.kind === 'Node') this.validateNode(graph, model, classifier, path, diagnostics);
       else this.validateDataType(classifier, path, diagnostics);
     });
+
     model.relations.forEach((relation: Relation, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'relations', index);
       this.validateConstraints(relation.constraints, path, diagnostics);
@@ -83,7 +88,7 @@ export class ModelRules {
       if (previousIndex !== undefined) {
         diagnostics.push(
           this.error(
-            'IMPORT_MODEL_ID_DUPLICATE',
+            VALIDATION_ERROR.IMPORT_MODEL_ID_DUPLICATE,
             `Import '${modelImport.modelId}' is duplicated; first declared at index ${previousIndex}.`,
             path.property('modelId'),
             modelImport.modelId,
@@ -94,7 +99,7 @@ export class ModelRules {
       if (modelImport.modelId === model.id) {
         diagnostics.push(
           this.error(
-            'IMPORT_SELF_NOT_ALLOWED',
+            VALIDATION_ERROR.IMPORT_SELF_NOT_ALLOWED,
             `Model '${model.id}' must not import itself.`,
             path.property('modelId'),
             model.id,
@@ -116,9 +121,10 @@ export class ModelRules {
         dataType.baseType === 'String' ||
         (numeric && literal.value !== undefined && (dataType.baseType === 'Float' || Number.isInteger(literal.value)));
       if (valid) return;
+
       const literalPath: DiagnosticPath = path.property('literals').index(index);
       const message: string = `Literal '${literal.name}' has no valid value for base type '${dataType.baseType}'.`;
-      diagnostics.push(this.error('DATATYPE_LITERAL_TYPE_INVALID', message, literalPath, literal.id));
+      diagnostics.push(this.error(VALIDATION_ERROR.DATATYPE_LITERAL_TYPE_INVALID, message, literalPath, literal.id));
     });
   }
 
@@ -132,7 +138,7 @@ export class ModelRules {
       this.registerLiteralValue(
         names,
         literal.name,
-        'DATATYPE_LITERAL_NAME_DUPLICATE',
+        VALIDATION_ERROR.DATATYPE_LITERAL_NAME_DUPLICATE,
         literalPath.property('name'),
         diagnostics,
       );
@@ -143,7 +149,7 @@ export class ModelRules {
       this.registerLiteralValue(
         serialised,
         serialisedValue,
-        'DATATYPE_LITERAL_SERIALIZED_DUPLICATE',
+        VALIDATION_ERROR.DATATYPE_LITERAL_SERIALIZED_DUPLICATE,
         literalPath.property(hasExplicitLiteral ? 'literal' : 'name'),
         diagnostics,
       );
@@ -152,7 +158,7 @@ export class ModelRules {
         this.registerLiteralValue(
           values,
           literal.value,
-          'DATATYPE_LITERAL_VALUE_DUPLICATE',
+          VALIDATION_ERROR.DATATYPE_LITERAL_VALUE_DUPLICATE,
           literalPath.property('value'),
           diagnostics,
         );
@@ -175,7 +181,7 @@ export class ModelRules {
     if (node.superTypes.length > 1) {
       diagnostics.push(
         this.error(
-          'NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED',
+          VALIDATION_ERROR.NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED,
           `Node '${node.id}' has ${node.superTypes.length} supertypes; RAMEN model format refinement supports at most one.`,
           path.property('superTypes'),
           node.id,
@@ -188,7 +194,7 @@ export class ModelRules {
     if (model.imports.length > 0 && node.superTypes.length === 0) {
       const referencePath: DiagnosticPath = path.property('superTypes');
       const message: string = `Node '${node.id}' must refine an existing node in a model with imports.`;
-      diagnostics.push(this.error('NODE_REFINEMENT_REQUIRED', message, referencePath, node.id));
+      diagnostics.push(this.error(VALIDATION_ERROR.NODE_REFINEMENT_REQUIRED, message, referencePath, node.id));
     }
 
     this.validateKeys(graph, model.id, node, path, diagnostics);
@@ -203,7 +209,7 @@ export class ModelRules {
     );
     if (keys.length <= 1) return;
     const message: string = `Node '${node.name}' has multiple key attributes, including inherited keys.`;
-    diagnostics.push(this.error('ATTRIBUTE_MULTIPLE_KEYS', message, path.property('attributes'), node.id));
+    diagnostics.push(this.error(VALIDATION_ERROR.ATTRIBUTE_MULTIPLE_KEYS, message, path.property('attributes'), node.id));
   }
 
   private validateLocalAttributes(node: Node, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
@@ -213,7 +219,7 @@ export class ModelRules {
       if (localNames.has(attribute.name)) {
         diagnostics.push(
           this.error(
-            'ATTRIBUTE_NAME_DUPLICATE',
+            VALIDATION_ERROR.ATTRIBUTE_NAME_DUPLICATE,
             `Attribute name '${attribute.name}' is duplicated on node '${node.id}'.`,
             attributePath.property('name'),
             attribute.id,
@@ -243,7 +249,7 @@ export class ModelRules {
       if (!inheritedNames.has(attribute.name)) continue;
       diagnostics.push(
         this.error(
-          'ATTRIBUTE_NAME_SHADOWS_SUPERTYPE',
+          VALIDATION_ERROR.ATTRIBUTE_NAME_SHADOWS_SUPERTYPE,
           `Attribute '${attribute.name}' shadows an inherited attribute on node '${node.id}'.`,
           path.property('attributes'),
           attribute.id,
@@ -256,7 +262,7 @@ export class ModelRules {
     if (!Cardinality.areBoundsCoherent(attribute.bounds)) {
       diagnostics.push(
         this.error(
-          'ATTRIBUTE_BOUNDS_INVALID',
+          VALIDATION_ERROR.ATTRIBUTE_BOUNDS_INVALID,
           `Attribute '${attribute.name}' has incoherent bounds.`,
           path.property('bounds'),
           attribute.id,
@@ -264,10 +270,11 @@ export class ModelRules {
       );
     }
 
-    if (attribute.isKey === true && (attribute.bounds.lowerBound !== 1 || attribute.bounds.upperBound !== 1)) {
+    const singleValue: boolean = attribute.bounds.lowerBound === 1 && attribute.bounds.upperBound === 1;
+    if (attribute.isKey === true && !singleValue) {
       diagnostics.push(
         this.error(
-          'ATTRIBUTE_KEY_BOUNDS_INVALID',
+          VALIDATION_ERROR.ATTRIBUTE_KEY_BOUNDS_INVALID,
           `Key attribute '${attribute.name}' must have bounds 1..1.`,
           path.property('bounds'),
           attribute.id,
@@ -286,7 +293,7 @@ export class ModelRules {
     if (relation.superTypes.length > 1) {
       diagnostics.push(
         this.error(
-          'RELATION_MULTIPLE_SUPERTYPES_UNSUPPORTED',
+          VALIDATION_ERROR.RELATION_MULTIPLE_SUPERTYPES_UNSUPPORTED,
           `Relation '${relation.id}' has ${relation.superTypes.length} supertypes; RAMEN model format refinement supports at most one.`,
           path.property('superTypes'),
           relation.id,
@@ -298,17 +305,22 @@ export class ModelRules {
 
     this.validateRelationEnd(relation.from, path.property('from'), diagnostics);
     this.validateRelationEnd(relation.to, path.property('to'), diagnostics);
+
     const superType: Ref | undefined = relation.superTypes[0];
     if (!superType) return;
+
     const base: ResolvedElement<Relation> | undefined = graph.resolveRelation(modelId, superType);
     if (!base) return;
+
     this.validateRelationRefinement(graph, modelId, relation, base, path, diagnostics);
   }
 
   private validateRelationEnd(end: RelationEnd, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
     this.validateConstraints(end.constraints, path, diagnostics);
     if (!Cardinality.areBoundsCoherent(end.bounds)) {
-      diagnostics.push(this.error('RELATION_END_BOUNDS_INVALID', `Relation end has incoherent bounds.`, path, end.id));
+      diagnostics.push(
+        this.error(VALIDATION_ERROR.RELATION_END_BOUNDS_INVALID, `Relation end has incoherent bounds.`, path, end.id),
+      );
     }
   }
 
@@ -335,17 +347,24 @@ export class ModelRules {
   ): void {
     if (!Cardinality.isModelBoundsCompatible(baseEnd.bounds, end.bounds)) {
       diagnostics.push(
-        this.error('RELATION_BOUNDS_WIDENED', `Relation end widens its base cardinality.`, path.property('bounds'), end.id),
+        this.error(
+          VALIDATION_ERROR.RELATION_BOUNDS_WIDENED,
+          `Relation end widens its base cardinality.`,
+          path.property('bounds'),
+          end.id,
+        ),
       );
     }
 
     const actualNode: ResolvedElement<Node> | undefined = graph.resolveNode(modelId, end.nodeId);
     const requiredNode: ResolvedElement<Node> | undefined = graph.resolveNode(baseModelId, baseEnd.nodeId);
 
-    if (actualNode && requiredNode && !graph.isNodeSameOrSubtype(actualNode, requiredNode)) {
+    if (!actualNode || !requiredNode) return;
+    const incompatible: boolean = !graph.isNodeSameOrSubtype(actualNode, requiredNode);
+    if (incompatible) {
       diagnostics.push(
         this.error(
-          'RELATION_END_TYPE_INCOMPATIBLE',
+          VALIDATION_ERROR.RELATION_END_TYPE_INCOMPATIBLE,
           `Node '${actualNode.element.id}' does not refine required node '${requiredNode.element.id}'.`,
           path.property('nodeId'),
           end.id,

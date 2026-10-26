@@ -59,7 +59,8 @@ function checkContents(file: PackedFile): void {
     .map((path: string): string => path.replace(/\.d\.ts$/, '.js'))
     .filter((path: string): boolean => !paths.has(path));
   if (missingModules.length > 0) throw new Error(`Missing runtime modules: ${missingModules.join(', ')}`);
-  if ([...paths].some((path: string): boolean => path.startsWith('dist/ramen-core/chunks/'))) {
+  const sharedChunks: boolean = [...paths].some((path: string): boolean => path.startsWith('dist/ramen-core/chunks/'));
+  if (sharedChunks) {
     throw new Error('The package must preserve modules rather than publish generated shared chunks.');
   }
 }
@@ -75,12 +76,9 @@ function install(tarball: string, consumer: string): void {
 
   const manifestPath: string = join(consumer, 'node_modules/@ramen-suite/core/package.json');
   const installed: InstalledPackage = JSON.parse(readFileSync(manifestPath, 'utf8')) as InstalledPackage;
-  if (
-    installed.name !== '@ramen-suite/core' ||
-    installed.private ||
-    installed.type !== 'module' ||
-    installed.sideEffects !== false
-  ) {
+  const publicPackage: boolean = installed.name === '@ramen-suite/core' && !installed.private;
+  const optimisableEsm: boolean = installed.type === 'module' && installed.sideEffects === false;
+  if (!publicPackage || !optimisableEsm) {
     throw new Error('The published manifest must identify RAMEN Core as a public, side-effect-free ESM package.');
   }
 }
@@ -144,7 +142,8 @@ async function checkTreeShaking(consumer: string): Promise<void> {
       .map(([path]): string => path.replaceAll('\\', '/')),
   );
   const modules: readonly string[] = retained.filter((path: string): boolean => path !== '<stdin>');
-  if (modules.length !== 1 || !modules[0]?.endsWith('/dist/ramen-core/model/Builtins.js')) {
+  const onlyBuiltins: boolean = modules.length === 1 && modules[0]?.endsWith('/dist/ramen-core/model/Builtins.js') === true;
+  if (!onlyBuiltins) {
     throw new Error(`A DataTypes import retained unrelated code: ${retained.join(', ')}`);
   }
   console.log('Browser tree shaking retained only the built-in data types.');

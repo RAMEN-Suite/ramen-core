@@ -19,6 +19,7 @@ export class ConstraintRules {
       );
       const reason: string | undefined = evaluator?.validateExpression(rule.expression);
       if (!reason) return;
+
       diagnostics.push(
         Diagnostics.error({
           code: VALIDATION_ERROR.CONSTRAINT_EXPRESSION_INVALID,
@@ -28,6 +29,7 @@ export class ConstraintRules {
         }),
       );
     });
+
     return diagnostics;
   }
 }

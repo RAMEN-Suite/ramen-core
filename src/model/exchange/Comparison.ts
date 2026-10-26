@@ -73,7 +73,8 @@ export class ModelEvolution {
     const roots: readonly Model[] = this.validationRoots(models);
     const diagnostics: Map<string, Diagnostic> = new Map<string, Diagnostic>();
     const ids: Id[] = roots.map((model: Model): Id => model.id);
-    if (rootModelId !== undefined && !models.some((model: Model): boolean => model.id === rootModelId)) ids.push(rootModelId);
+    const rootExists: boolean = models.some((model: Model): boolean => model.id === rootModelId);
+    if (rootModelId !== undefined && !rootExists) ids.push(rootModelId);
 
     for (const id of ids) {
       for (const diagnostic of validate(id)) {
@@ -125,13 +126,21 @@ export class ModelEvolution {
       const oldRecord: ElementRecord | undefined = before.get(key);
       const newRecord: ElementRecord | undefined = after.get(key);
 
-      if (oldRecord && newRecord && oldRecord.ownerId === newRecord.ownerId && this.sameJson(oldRecord.value, newRecord.value))
-        continue;
+      const unchanged: boolean =
+        oldRecord !== undefined &&
+        newRecord !== undefined &&
+        oldRecord.ownerId === newRecord.ownerId &&
+        this.sameJson(oldRecord.value, newRecord.value);
+      if (unchanged) continue;
       const record: ElementRecord | undefined = newRecord ?? oldRecord;
 
       if (!record) continue;
+      let action: EvolutionChange['action'] = 'changed';
+      if (!oldRecord) action = 'added';
+      else if (!newRecord) action = 'removed';
+
       changes.push({
-        action: oldRecord ? (newRecord ? 'changed' : 'removed') : 'added',
+        action,
         element: record.element,
         modelId: record.modelId,
         elementId: record.elementId,
@@ -162,7 +171,6 @@ export class ModelEvolution {
       for (const attribute of classifier.attributes) {
         this.add(records, 'attribute', modelId, attribute.id, attribute, classifier.id);
       }
-
       return;
     }
 

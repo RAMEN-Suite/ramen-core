@@ -7,6 +7,7 @@ import {
   ProjectGraph,
   type ResolvedElement,
   type Bounds,
+  type Attribute,
   type Model,
   type Node,
   type Relation,
@@ -64,12 +65,16 @@ export class AnnotationShapeRules {
   private validateInheritedProperties(graph: ProjectGraph, annotations: AnnotationIndex, diagnostics: Diagnostic[]): void {
     for (const owner of graph.getAvailableNodes(graph.getRootModel().id)) {
       if (owner.element.superTypes.length === 0) continue;
-      for (const definition of annotations.getEffective(owner.modelId, owner.element.id)) {
+      const definitions: readonly ResolvedAnnotationShape[] = annotations.getEffective(owner.modelId, owner.element.id);
+
+      for (const definition of definitions) {
         const declared: ResolvedElement<Node> | undefined = graph.resolveNode(
           definition.modelId,
           definition.annotation.annotationId,
         );
-        if (declared?.modelId === owner.modelId && declared.element.id === owner.element.id) continue;
+
+        const sameOwner: boolean = declared?.modelId === owner.modelId && declared.element.id === owner.element.id;
+        if (sameOwner) continue;
         diagnostics.push(...AnnotationProperties.validate(graph, definition, owner));
       }
     }
@@ -124,7 +129,9 @@ export class AnnotationShapeRules {
     const index: ModelIdentifiers | undefined = identifiers.get(resolved.modelId);
     if (!index) return;
     diagnostics.push(...index.register(resolved.annotation, path, RAMEN_VALIDATION_ERROR.ANNOTATION_ID_DUPLICATE));
-    for (const [propertyIndex, property] of resolved.annotation.properties.entries()) {
+
+    const properties: readonly Attribute[] = resolved.annotation.properties;
+    for (const [propertyIndex, property] of properties.entries()) {
       diagnostics.push(...index.register(property, path.property('properties').index(propertyIndex)));
     }
   }
@@ -174,6 +181,7 @@ export class AnnotationShapeRules {
     const relations: readonly (ResolvedElement<Relation> | undefined)[] = refs.map(
       (ref: Ref): ResolvedElement<Relation> | undefined => graph.resolveRelation(resolved.modelId, ref),
     );
+
     const validEndpoint: boolean = relations.every((relation: ResolvedElement<Relation> | undefined): boolean => {
       const endpoint: Ref | undefined = this.annotationEnd(relation, requirement.direction);
       return relation !== undefined && endpoint !== undefined && graph.acceptsNode(relation.modelId, endpoint, owner);
@@ -182,12 +190,14 @@ export class AnnotationShapeRules {
       const bound: Bounds | undefined = this.targetBounds(relation, requirement.direction);
       return bound ? [bound] : [];
     });
+
     const modelledBounds: Bounds = {
       lowerBound: bounds.reduce((sum: number, value: Bounds): number => sum + value.lowerBound, 0),
       upperBound: bounds.some((value: Bounds): boolean => value.upperBound === -1)
         ? -1
         : bounds.reduce((sum: number, value: Bounds): number => sum + value.upperBound, 0),
     };
+
     const duplicate: boolean = this.overlaps(graph, relations, requirement.direction, seen);
     const path: DiagnosticPath = this.path(resolved.modelId, resolved.annotation.id).property('relations');
     this.validateRelationShape(resolved, requirement, relations[0], modelledBounds, validEndpoint, duplicate, path, diagnostics);
@@ -209,12 +219,10 @@ export class AnnotationShapeRules {
         .getRelationAncestors(relation.modelId, relation.element.id)
         .map((item: ResolvedElement<Relation>): string => `${prefix}${ModelRef.qualify(item.modelId, item.element.id)}`);
 
-      if (
-        seen.selected.has(key) ||
-        seen.ancestors.has(key) ||
-        ancestors.some((ancestor: string): boolean => seen.selected.has(ancestor))
-      )
-        overlap = true;
+      const alreadySelected: boolean = seen.selected.has(key) || seen.ancestors.has(key);
+      const ancestorSelected: boolean = ancestors.some((ancestor: string): boolean => seen.selected.has(ancestor));
+      if (alreadySelected || ancestorSelected) overlap = true;
+
       seen.selected.add(key);
       for (const ancestor of ancestors) seen.ancestors.add(ancestor);
     }
@@ -284,14 +292,20 @@ export class AnnotationShapeRules {
     current: ResolvedAnnotationShape,
     owner: ResolvedElement<Node>,
   ): ResolvedAnnotationShape | undefined {
-    for (const candidate of annotations.getApplicable(current.modelId, current.annotation.annotationId)) {
+    const candidates: readonly ResolvedAnnotationShape[] = annotations.getApplicable(
+      current.modelId,
+      current.annotation.annotationId,
+    );
+
+    for (const candidate of candidates) {
       if (candidate.annotation.type !== current.annotation.type) continue;
       if (candidate.modelId === current.modelId) {
         const candidateOwner: ResolvedElement<Node> | undefined = graph.resolveNode(
           candidate.modelId,
           candidate.annotation.annotationId,
         );
-        if (candidateOwner?.modelId === owner.modelId && candidateOwner.element.id === owner.element.id) continue;
+        const sameOwner: boolean = candidateOwner?.modelId === owner.modelId && candidateOwner.element.id === owner.element.id;
+        if (sameOwner) continue;
       }
       return candidate;
     }
@@ -306,7 +320,7 @@ export class AnnotationShapeRules {
     return DiagnosticPath.root().property('models').property(modelId).property('annotations').property(annotationId);
   }
 
-  private error(diagnostics: Diagnostic[], code: string, message: string, path: DiagnosticPath, ref: Id): void {
+  private error(diagnostics: Diagnostic[], code: RAMEN_VALIDATION_ERROR, message: string, path: DiagnosticPath, ref: Id): void {
     diagnostics.push(Diagnostics.error({ code: code, message: message, path: path, ref: ref }));
   }
 }

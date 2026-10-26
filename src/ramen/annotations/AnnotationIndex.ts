@@ -97,8 +97,7 @@ export class AnnotationIndex {
     const actual: Node | undefined = this.graph.getNode(modelId, nodeId);
     const expected: Node | undefined = this.graph.getNode(RAMEN_MODEL.id, RAMEN_ELEMENT.ANNOTATION);
 
-    return actual && expected
-      ? this.graph.isNodeSameOrSubtype({ modelId: modelId, element: actual }, { modelId: RAMEN_MODEL.id, element: expected })
-      : false;
+    if (!actual || !expected) return false;
+    return this.graph.isNodeSameOrSubtype({ modelId, element: actual }, { modelId: RAMEN_MODEL.id, element: expected });
   }
 }

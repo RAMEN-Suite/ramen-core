@@ -1,3 +1,5 @@
+import { VALIDATION_ERROR } from '../../model/validation/Codes.js';
+import { RAMEN_VALIDATION_ERROR } from '../validation/Codes.js';
 import { BuiltinDataTypes } from '../../model/Builtins.js';
 import {
   EffectiveModel,
@@ -46,12 +48,13 @@ export class AnnotationProperties {
     const nodeAttributes: readonly Attribute[] =
       EffectiveModel.resolveNode(graph, owner.modelId, owner.element.id)?.attributes ?? [];
 
-    for (const [index, attribute] of definition.annotation.properties.entries()) {
+    const properties: readonly Attribute[] = definition.annotation.properties;
+    for (const [index, attribute] of properties.entries()) {
       if (!this.isValid(graph, definition.modelId, attribute, nodeAttributes)) {
         diagnostics.push(
           this.error(
             definition,
-            'RAMEN_ANNOTATION_PROPERTY_INVALID',
+            RAMEN_VALIDATION_ERROR.ANNOTATION_PROPERTY_INVALID,
             'Property name or data type is invalid, or conflicts with a shared node property.',
           ),
         );
@@ -60,7 +63,11 @@ export class AnnotationProperties {
 
       if (names.has(attribute.name) || ids.has(attribute.id)) {
         diagnostics.push(
-          this.error(definition, 'RAMEN_ANNOTATION_PROPERTY_INVALID', 'Property names and identifiers must be unique.'),
+          this.error(
+            definition,
+            RAMEN_VALIDATION_ERROR.ANNOTATION_PROPERTY_INVALID,
+            'Property names and identifiers must be unique.',
+          ),
         );
       }
       diagnostics.push(...this.validateBounds(definition, attribute));
@@ -79,18 +86,25 @@ export class AnnotationProperties {
     index: number,
   ): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [...this.constraints.validate(attribute.constraints, this.path(definition).index(index))];
-    if (attribute.isKey && nodeAttributes.some((item: Attribute): boolean => item.isKey === true)) {
-      diagnostics.push(this.error(definition, 'ATTRIBUTE_MULTIPLE_KEYS', 'An annotation property cannot add a second node key.'));
+    const hasSharedKey: boolean = nodeAttributes.some((item: Attribute): boolean => item.isKey === true);
+
+    if (attribute.isKey && hasSharedKey) {
+      diagnostics.push(
+        this.error(definition, VALIDATION_ERROR.ATTRIBUTE_MULTIPLE_KEYS, 'An annotation property cannot add a second node key.'),
+      );
     }
     return diagnostics;
   }
 
   private static validateBounds(definition: ResolvedAnnotationShape, attribute: Attribute): readonly Diagnostic[] {
-    if (Cardinality.areBoundsCoherent(attribute.bounds) && !this.hasInvalidKeyBounds(attribute, attribute.bounds)) return [];
+    const coherent: boolean = Cardinality.areBoundsCoherent(attribute.bounds);
+    const invalidKey: boolean = this.hasInvalidKeyBounds(attribute, attribute.bounds);
+    if (coherent && !invalidKey) return [];
+
     return [
       this.error(
         definition,
-        'RAMEN_ANNOTATION_BOUNDS_INVALID',
+        RAMEN_VALIDATION_ERROR.ANNOTATION_BOUNDS_INVALID,
         'Property cardinality must be valid; a key must have bounds 1..1.',
       ),
     ];
@@ -115,7 +129,11 @@ export class AnnotationProperties {
     return { ...attribute, typeId };
   }
 
-  private static error(definition: ResolvedAnnotationShape, code: string, message: string): Diagnostic {
+  private static error(
+    definition: ResolvedAnnotationShape,
+    code: VALIDATION_ERROR | RAMEN_VALIDATION_ERROR,
+    message: string,
+  ): Diagnostic {
     return Diagnostics.error({
       code,
       message,

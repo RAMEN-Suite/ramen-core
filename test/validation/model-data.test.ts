@@ -209,6 +209,49 @@ void test('relation cardinality is checked on complete recorded graphs', (): voi
 
   assert.equal(invalidLink.diagnostics[0]?.code, 'INSTANCE_SCHEMA_INVALID');
 });
+void test('inherited relation counts include self-links and keep endpoint bounds independent', (): void => {
+  const base: Modeller = Modeller.create('People');
+  const person: Node = base.createNode('Person').element;
+  const knows: Relation = base.createRelation({
+    name: 'KNOWS',
+    from: { node: person },
+    to: { node: person, bounds: { lowerBound: 1, upperBound: 1 } },
+  }).element;
+
+  const model: Modeller = base.createNextLevel('Members');
+  const member: Node = model.createNode({ name: 'Member', refines: person }).element;
+  const selected: Relation = model.createRelation({
+    refines: knows,
+    from: { node: member },
+    to: { node: member },
+  }).element;
+  const typeId: string = selected.id;
+  const records: ModelInstanceGraph = {
+    nodes: [
+      { id: 'firstMember00001', typeId: member.id, properties: {} },
+      { id: 'otherMember00001', typeId: member.id, properties: {} },
+    ],
+    relations: [
+      { id: 'selfLink00000001', typeId, fromId: 'firstMember00001', toId: 'firstMember00001' },
+      { id: 'otherLink0000001', typeId, fromId: 'otherMember00001', toId: 'firstMember00001' },
+    ],
+  };
+  assert.equal(model.validateInstances(records).hasErrors, false);
+
+  const additional: ModelInstanceGraph = {
+    ...records,
+    relations: [...records.relations, { id: 'extraLink0000001', typeId, fromId: 'firstMember00001', toId: 'otherMember00001' }],
+  };
+  const missing: ModelInstanceGraph = { ...records, relations: records.relations.slice(1) };
+
+  for (const invalid of [additional, missing]) {
+    const result: ValidationResult = model.validateInstances(invalid);
+    assert.deepEqual(
+      result.diagnostics.map((item: Diagnostic): string => item.code),
+      ['INSTANCE_CARDINALITY_INVALID'],
+    );
+  }
+});
 
 void test('model validation rejects a second key along one inheritance chain', (): void => {
   const model: Modeller = Modeller.create('People');

@@ -93,7 +93,8 @@ async function main(): Promise<void> {
     { marker: 'data', entries: rmf.filter((entry: CodeEntry): boolean => entry.group === 'Recorded-data codes') },
   ];
 
-  if (rmfTables.reduce((count: number, section: Table): number => count + section.entries.length, 0) !== rmf.length) {
+  const groupedCount: number = rmfTables.reduce((count: number, section: Table): number => count + section.entries.length, 0);
+  if (groupedCount !== rmf.length) {
     throw new Error('Every RMF diagnostic needs a known @group.');
   }
 

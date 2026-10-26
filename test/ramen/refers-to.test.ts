@@ -30,7 +30,8 @@ void test('REFERS_TO cannot target Annotation or its refinements on any model le
 });
 
 void test('REFERS_TO still supports Collection, Content and Entity and their refinements', (): void => {
-  for (const target of [RAMEN_ELEMENT.COLLECTION, RAMEN_ELEMENT.CONTENT, RAMEN_ELEMENT.ENTITY]) {
+  const targets: readonly string[] = [RAMEN_ELEMENT.COLLECTION, RAMEN_ELEMENT.CONTENT, RAMEN_ELEMENT.ENTITY];
+  for (const target of targets) {
     const model: RamenModel = RamenModel.create('Edition');
     const annotation: Node = model.createNode({ name: 'TextAnnotation', refines: RAMEN_ELEMENT.ANNOTATION }).element;
     const refined: Node = model.createNode({ name: 'Target', refines: target }).element;

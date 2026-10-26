@@ -253,25 +253,29 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
 
     const reference: Ref = this.nodeReference(node);
     const annotations: AnnotationIndex = new AnnotationIndex(project.graph, this.validationInputs());
+
     const actual: ResolvedElement<Node> | undefined = project.graph.resolveNode(this.model.id, reference);
     const selected: ResolvedAnnotationShape | undefined = annotations.findEffective(this.model.id, reference, type);
+
     if (!actual || !selected) throw new Error(`Annotation shape '${type}' not found on node '${reference}'.`);
     const attribute: Attribute | undefined = AnnotationProperties.allowed(project.graph, selected, actual).find(
       (item: Attribute): boolean => item.name === name,
     );
-    if (!attribute) throw new Error(`Property '${name}' is not allowed for annotation '${type}'.`);
 
+    if (!attribute) throw new Error(`Property '${name}' is not allowed for annotation '${type}'.`);
     const result: ValidationResult = new InstanceValueValidator(constraints).validateOneAttribute(
       project.graph,
       actual.modelId,
       attribute,
       value,
     );
+
     if (name !== 'selector') return result;
     const diagnostics: ValidationResult['diagnostics'] = [
       ...result.diagnostics,
       ...RamenInstanceValidator.validateSelector(value),
     ];
+
     return { diagnostics, hasErrors: diagnostics.some((item: Diagnostic): boolean => item.severity === 'error') };
   }
 
@@ -282,6 +286,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   public createAnnotationShape(input: AnnotationShapeInput): ModelChange<AnnotationShape> {
     const annotationNode: ElementInput | undefined = input.node ?? input.nodeId;
     if (annotationNode === undefined) throw new Error('Select an Annotation node.');
+
     const owner: ElementRef = this.resolveRef(annotationNode, 'node');
     const annotation: AnnotationShape = {
       id: ModelFactory.createIdentifier(),
@@ -387,13 +392,16 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
           bounds: { ...input.bounds },
         };
       }
+
       if ('relationIds' in input) return structuredClone(input);
       if ('relationId' in input) {
         return { relationIds: [input.relationId], direction: input.direction, bounds: { ...input.bounds } };
       }
       if ('connection' in input) return this.connectionRule(owner, input);
+
       const from: ElementInput = input.from ?? owner;
       const to: ElementInput = input.to ?? owner;
+
       const connection: RelationSelection = this.requireConnection(from, to);
       return this.connectionRule(owner, { connection, bounds: input.bounds });
     });
@@ -429,10 +437,10 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
 
     const selected: RelationSelection = this.requireConnection(connection.from, connection.to, connection.ref);
     const direction: 'incoming' | 'outgoing' = selected.to === node ? 'incoming' : 'outgoing';
-    const relationId: Ref =
-      ModelRef.isQualified(selected.ref) && ModelRef.splitQualified(selected.ref).modelId === this.model.id
-        ? ModelRef.localId(selected.ref)
-        : selected.ref;
+    const localRelation: boolean =
+      ModelRef.isQualified(selected.ref) && ModelRef.splitQualified(selected.ref).modelId === this.model.id;
+
+    const relationId: Ref = localRelation ? ModelRef.localId(selected.ref) : selected.ref;
     return { relationIds: [relationId], direction, bounds: { ...input.bounds } };
   }
 

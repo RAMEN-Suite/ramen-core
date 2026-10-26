@@ -75,12 +75,19 @@ export class RamenEvolution {
     for (const key of keys) {
       const oldRecord: AnnotationRecord | undefined = before.get(key);
       const newRecord: AnnotationRecord | undefined = after.get(key);
-      if (oldRecord && newRecord && ModelEvolution.sameJson(oldRecord.annotation, newRecord.annotation)) continue;
+      const unchanged: boolean =
+        oldRecord !== undefined && newRecord !== undefined && ModelEvolution.sameJson(oldRecord.annotation, newRecord.annotation);
+      if (unchanged) continue;
+
       const record: AnnotationRecord | undefined = newRecord ?? oldRecord;
       if (!record) continue;
 
+      let action: AnnotationShapeChange['action'] = 'changed';
+      if (!oldRecord) action = 'added';
+      else if (!newRecord) action = 'removed';
+
       annotationChanges.push({
-        action: oldRecord ? (newRecord ? 'changed' : 'removed') : 'added',
+        action,
         modelId: record.modelId,
         annotationId: record.annotation.id,
         before: oldRecord ? structuredClone(oldRecord.annotation) : undefined,

@@ -28,6 +28,7 @@ export function walkGraph(
         stack.pop();
         continue;
       }
+
       if (completed.has(next)) continue;
       const start: number | undefined = active.get(next);
       if (start !== undefined) {

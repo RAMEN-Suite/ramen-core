@@ -70,7 +70,11 @@ export class AnnotationAdvisor {
   /** Lists automatically shared properties and relation choices for a new annotation shape. */
   public suggestOptions(modelId: Id, annotationNodeId: Id): AnnotationShapeOptions | undefined {
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
-    if (!actual || !this.annotations.isAnnotationNode(actual.modelId, actual.element.id)) return undefined;
+    if (!actual) return undefined;
+
+    const isAnnotation: boolean = this.annotations.isAnnotationNode(actual.modelId, actual.element.id);
+    if (!isAnnotation) return undefined;
+
     return {
       properties: this.propertyOptions(modelId, actual),
       relations: this.relationOptions(modelId, actual),
@@ -81,8 +85,10 @@ export class AnnotationAdvisor {
   public getTypeInfo(modelId: Id, annotationNodeId: Id, type: string): AnnotationShapeOptions | undefined {
     const definition: ResolvedAnnotationShape | undefined = this.annotations.findEffective(modelId, annotationNodeId, type);
     if (!definition) return undefined;
+
     const actual: ResolvedElement<Node> | undefined = this.graph.resolveNode(modelId, annotationNodeId);
     if (!actual) return undefined;
+
     return {
       properties: [...this.propertyOptions(modelId, actual), ...this.ownedPropertyOptions(modelId, definition)],
       relations: this.selectedRelationOptions(modelId, actual, definition),
@@ -152,6 +158,7 @@ export class AnnotationAdvisor {
   ): void {
     const annotationRef: Ref = direction === 'outgoing' ? relation.from.nodeId : relation.to.nodeId;
     if (!this.graph.acceptsNode(owner.id, annotationRef, actual)) return;
+
     const targetRef: Ref = direction === 'outgoing' ? relation.to.nodeId : relation.from.nodeId;
     const target: ResolvedElement<Node> | undefined = this.graph.resolveNode(owner.id, targetRef);
 
@@ -204,10 +211,12 @@ export class AnnotationAdvisor {
       suggestedBounds: { ...requirement.bounds },
       cardinalityOptions: this.cardinalityOptions(requirement.bounds),
     };
+
     if (requirement.relationIds.length === 1) return selected;
     const relationIds: readonly Ref[] = requirement.relationIds.map((ref: Ref): Ref =>
       ModelRef.isQualified(ref) ? ref : ModelRef.qualify(modelId, ref),
     );
+
     return { ...selected, relationIds };
   }
 

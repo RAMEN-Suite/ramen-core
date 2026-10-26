@@ -6,10 +6,11 @@ import { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph.js';
 import { ConstraintRegistry, type ConstraintGraph } from '../validation/Constraints.js';
 import { Diagnostic, DiagnosticPath, Diagnostics } from '../validation/Diagnostics.js';
 import { InstanceValidationOptions, ModelInstanceGraph, ModelInstanceNode, ResolvedInstanceNode } from './InstanceTypes.js';
-import { ValidationCode } from '../validation/Codes.js';
+import { VALIDATION_ERROR, ValidationCode } from '../validation/Codes.js';
 import { jsonValueKey } from '../JsonValue.js';
 import { ValueValidator, type ValueCheck } from './ValueValidator.js';
 import type { ValidationResult } from '../validation/ModelValidator.js';
+import { Cardinality } from '../validation/Cardinality.js';
 
 /** Validates instance properties against effective node attributes and constraints. */
 export class InstanceValueValidator {
@@ -45,25 +46,27 @@ export class InstanceValueValidator {
   public validate(graph: ProjectGraph, instance: ModelInstanceGraph, diagnostics: Diagnostic[]): Map<Id, ResolvedInstanceNode> {
     this.keys.clear();
     this.nodes.clear();
+
     const nodesById: Map<Id, ResolvedInstanceNode> = new Map<Id, ResolvedInstanceNode>();
     instance.nodes.forEach((node: ModelInstanceNode, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('nodes').index(index);
       if (nodesById.has(node.id)) {
-        diagnostics.push(this.error('INSTANCE_NODE_ID_DUPLICATE', `Instance node id '${node.id}' is duplicated.`, path, node.id));
-
+        diagnostics.push(
+          this.error(VALIDATION_ERROR.INSTANCE_NODE_ID_DUPLICATE, `Instance node id '${node.id}' is duplicated.`, path, node.id),
+        );
         return;
       }
+
       const type: ResolvedElement<Node> | undefined = graph.resolveNode(graph.getRootModel().id, node.typeId);
       if (!type) {
         diagnostics.push(
           this.error(
-            'INSTANCE_NODE_TYPE_NOT_FOUND',
+            VALIDATION_ERROR.INSTANCE_NODE_TYPE_NOT_FOUND,
             `Node type '${node.typeId}' was not found.`,
             path.property('typeId'),
             node.id,
           ),
         );
-
         return;
       }
 
@@ -84,6 +87,7 @@ export class InstanceValueValidator {
     const effective: EffectiveNode | undefined =
       this.nodes.get(reference) ?? EffectiveModel.resolveNode(graph, type.modelId, type.element.id);
     if (!effective) return;
+
     this.nodes.set(reference, effective);
     const attributes: readonly Attribute[] = this.attributes?.(type, instance) ?? effective.attributes;
     const attributesByName: Map<string, Attribute> = new Map<string, Attribute>(
@@ -118,12 +122,12 @@ export class InstanceValueValidator {
     );
     const key: string = ModelRef.qualify(owner?.modelId ?? effective.modelId, attribute.id);
     const values: Map<string, Id> = this.keys.get(key) ?? new Map<string, Id>();
+
     const valueKey: string = jsonValueKey(value);
     const previous: Id | undefined = values.get(valueKey);
-
     if (previous !== undefined) {
       const message: string = `Key '${attribute.name}' duplicates the value on instance '${previous}'.`;
-      diagnostics.push(this.error('INSTANCE_KEY_DUPLICATE', message, path, instanceId));
+      diagnostics.push(this.error(VALIDATION_ERROR.INSTANCE_KEY_DUPLICATE, message, path, instanceId));
       return;
     }
 
@@ -142,7 +146,7 @@ export class InstanceValueValidator {
       if (attributesByName.has(name)) continue;
       diagnostics.push(
         this.error(
-          'INSTANCE_PROPERTY_UNKNOWN',
+          VALIDATION_ERROR.INSTANCE_PROPERTY_UNKNOWN,
           `Property '${name}' is not declared by node type '${type.name}'.`,
           path.property('properties').property(name),
           instance.id,
@@ -185,23 +189,19 @@ export class InstanceValueValidator {
     const isMissing: boolean = value === undefined;
     if (isMissing) {
       if (attribute.bounds.lowerBound > 0) {
-        diagnostics.push(
-          this.error('INSTANCE_PROPERTY_REQUIRED', `Property '${attribute.name}' is required.`, path, attribute.id),
-        );
+        const message: string = `Property '${attribute.name}' is required.`;
+        diagnostics.push(this.error(VALIDATION_ERROR.INSTANCE_PROPERTY_REQUIRED, message, path, attribute.id));
       }
-
       return;
     }
+
     const values: readonly unknown[] = this.readValues(attribute, value, path, diagnostics);
     if (values.length === 0 && !Array.isArray(value)) return;
+
     this.validateCount(attribute.name, attribute.bounds, values.length, path, attribute.id, diagnostics);
-    if (
-      attribute.isUnique !== false &&
-      new Set(values.map((item: unknown): string => jsonValueKey(item))).size !== values.length
-    ) {
-      diagnostics.push(
-        this.error('INSTANCE_PROPERTY_NOT_UNIQUE', `Property '${attribute.name}' contains duplicate values.`, path, attribute.id),
-      );
+    if (attribute.isUnique !== false && this.hasDuplicateValues(values)) {
+      const message: string = `Property '${attribute.name}' contains duplicate values.`;
+      diagnostics.push(this.error(VALIDATION_ERROR.INSTANCE_PROPERTY_NOT_UNIQUE, message, path, attribute.id));
     }
 
     values.forEach((item: unknown, index: number): void => {
@@ -210,26 +210,39 @@ export class InstanceValueValidator {
     });
   }
 
+  private hasDuplicateValues(values: readonly unknown[]): boolean {
+    const seen: Set<string> = new Set<string>();
+    for (const value of values) {
+      const key: string = jsonValueKey(value);
+      if (seen.has(key)) return true;
+      seen.add(key);
+    }
+    return false;
+  }
+
   private readValues(attribute: Attribute, value: unknown, path: DiagnosticPath, diagnostics: Diagnostic[]): readonly unknown[] {
     const isMany: boolean = attribute.bounds.upperBound !== 1;
     if (isMany && !Array.isArray(value)) {
       diagnostics.push(
-        this.error('INSTANCE_PROPERTY_ARRAY_REQUIRED', `Property '${attribute.name}' must be an array.`, path, attribute.id),
+        this.error(
+          VALIDATION_ERROR.INSTANCE_PROPERTY_ARRAY_REQUIRED,
+          `Property '${attribute.name}' must be an array.`,
+          path,
+          attribute.id,
+        ),
       );
-
       return [];
     }
 
     if (!isMany && Array.isArray(value)) {
       diagnostics.push(
         this.error(
-          'INSTANCE_PROPERTY_SCALAR_REQUIRED',
+          VALIDATION_ERROR.INSTANCE_PROPERTY_SCALAR_REQUIRED,
           `Property '${attribute.name}' must be a scalar value.`,
           path,
           attribute.id,
         ),
       );
-
       return [];
     }
     return Array.isArray(value) ? value : [value];
@@ -244,9 +257,11 @@ export class InstanceValueValidator {
     path: DiagnosticPath,
     diagnostics: Diagnostic[],
   ): void {
-    const type: BuiltinType | ResolvedElement<DataType> | undefined = BuiltinDataTypes.isBuiltin(attribute.typeId)
-      ? attribute.typeId
-      : graph.resolveDataType(ModelRef.isQualified(attribute.typeId) ? graph.getRootModel().id : modelId, attribute.typeId);
+    const typeId: string = attribute.typeId;
+    const ownerModelId: Id = ModelRef.isQualified(typeId) ? graph.getRootModel().id : modelId;
+    const type: BuiltinType | ResolvedElement<DataType> | undefined = BuiltinDataTypes.isBuiltin(typeId)
+      ? typeId
+      : graph.resolveDataType(ownerModelId, typeId);
 
     if (type) {
       const result: ValueCheck = this.values.validate(type, value, {
@@ -283,10 +298,10 @@ export class InstanceValueValidator {
     ref: string,
     diagnostics: Diagnostic[],
   ): void {
-    if (count < bounds.lowerBound || (bounds.upperBound !== -1 && count > bounds.upperBound)) {
+    if (!Cardinality.isCountWithinBounds(count, bounds)) {
       diagnostics.push(
         this.error(
-          'INSTANCE_CARDINALITY_INVALID',
+          VALIDATION_ERROR.INSTANCE_CARDINALITY_INVALID,
           `Feature '${name}' has ${count} value(s), expected ${bounds.lowerBound}..${bounds.upperBound}.`,
           path,
           ref,

@@ -43,8 +43,10 @@ export class NodeNames {
   public register(reference: Ref, path: DiagnosticPath, ref: Id): readonly Diagnostic[] {
     const node: ResolvedElement<Node> | undefined = this.graph.resolveNode(this.model.id, reference);
     if (!node) return [];
+
     const identity: Ref = ModelRef.qualify(node.modelId, node.element.id);
     const previous: Ref | undefined = this.names.get(node.element.name);
+
     if (previous === undefined) this.names.set(node.element.name, identity);
     if (previous === undefined || previous === identity) return [];
 

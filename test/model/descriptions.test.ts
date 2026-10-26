@@ -198,21 +198,21 @@ function definitions(model: Model): readonly DescribedDefinition[] {
     model,
     ...model.classifiers,
     ...model.relations,
-    ...model.classifiers.flatMap((classifier: Model['classifiers'][number]): DescribedDefinition[] =>
-      classifier.kind === 'Node'
-        ? [
-            ...classifier.attributes,
-            ...classifier.attributes.flatMap((attribute: Attribute): Constraint[] => attribute.constraints ?? []),
-          ]
-        : [...(classifier.literals ?? [])],
-    ),
+    ...model.classifiers.flatMap((classifier: Model['classifiers'][number]): DescribedDefinition[] => {
+      if (classifier.kind !== 'Node') return [...(classifier.literals ?? [])];
+      const constraints: Constraint[] = classifier.attributes.flatMap(
+        (attribute: Attribute): Constraint[] => attribute.constraints ?? [],
+      );
+      return [...classifier.attributes, ...constraints];
+    }),
   ];
 }
 
 void test('every definition schema enforces the length limit, including nested properties, literals and constraints', (): void => {
   const { model }: DocumentedModel = documentedModel();
   const source: Model = model.getModel();
-  for (let index: number = 0; index < definitions(source).length; index += 1) {
+  const count: number = definitions(source).length;
+  for (let index: number = 0; index < count; index += 1) {
     const invalid: Model = structuredClone(source);
     const definition: DescribedDefinition | undefined = definitions(invalid)[index];
     assert.ok(definition);

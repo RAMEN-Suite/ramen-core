@@ -59,7 +59,6 @@ export class ModelValidator {
     });
 
     if (diagnostics.length > 0) return { valid: false, diagnostics: diagnostics, hasErrors: true };
-
     return this.validateModels(rootModelId, models, selections);
   }
 
@@ -67,10 +66,13 @@ export class ModelValidator {
   public validateModels(rootModelId: Id, models: readonly Model[], selections?: RelationSelections): ProjectValidationResult {
     const graphResult: ProjectGraphResult = buildProjectGraph({ rootModelId: rootModelId, models: models });
     if (!graphResult.ok) return { valid: false, diagnostics: graphResult.diagnostics, hasErrors: true };
+
     const semanticDiagnostics: readonly Diagnostic[] = this.semantics.validate(graphResult.graph, selections);
-    if (semanticDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error')) {
+    const hasErrors: boolean = semanticDiagnostics.some((diagnostic: Diagnostic): boolean => diagnostic.severity === 'error');
+    if (hasErrors) {
       return { valid: false, diagnostics: semanticDiagnostics, hasErrors: true };
     }
+
     return { valid: true, diagnostics: semanticDiagnostics, hasErrors: false, graph: graphResult.graph };
   }
 }

@@ -24,18 +24,19 @@ export class EffectiveModel {
   public static resolveNode(graph: ProjectGraph, modelId: Id, nodeId: Id): EffectiveNode | undefined {
     const node: Node | undefined = graph.getNode(modelId, nodeId);
     if (!node) return undefined;
+
     const ancestors: readonly ResolvedElement<Node>[] = graph.getNodeAncestors(modelId, nodeId);
     const baseFirstAncestors: ResolvedElement<Node>[] = [...ancestors].reverse();
     const lineage: readonly ResolvedElement<Node>[] = [...baseFirstAncestors, { modelId: modelId, element: node }];
+
     const attributesByName: Map<string, Attribute> = new Map<string, Attribute>();
     const constraints: Constraint[] = [];
 
     for (const item of lineage) {
       for (const attribute of item.element.attributes) {
-        const typeId: string =
-          item.modelId === modelId || BuiltinDataTypes.isBuiltin(attribute.typeId) || ModelRef.isQualified(attribute.typeId)
-            ? attribute.typeId
-            : ModelRef.qualify(item.modelId, attribute.typeId);
+        const localType: boolean = item.modelId === modelId;
+        const completeRef: boolean = BuiltinDataTypes.isBuiltin(attribute.typeId) || ModelRef.isQualified(attribute.typeId);
+        const typeId: string = localType || completeRef ? attribute.typeId : ModelRef.qualify(item.modelId, attribute.typeId);
         attributesByName.set(attribute.name, { ...attribute, typeId });
       }
       constraints.push(...(item.element.constraints ?? []));

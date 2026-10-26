@@ -61,9 +61,15 @@ export class RamenAdvisor extends ModelAdvisor {
       modelId,
       ...this.importedModels(modelId).map((model: Model): Id => model.id),
     ]);
-    const candidates: readonly ResolvedAnnotationShape[] = annotationNodeId
+
+    const available: readonly ResolvedAnnotationShape[] = annotationNodeId
       ? this.annotations.getEffective(modelId, annotationNodeId)
-      : this.annotations.getAll().filter((candidate: ResolvedAnnotationShape): boolean => visibleModels.has(candidate.modelId));
+      : this.annotations.getAll();
+
+    const selectedNode: boolean = Boolean(annotationNodeId);
+    const candidates: readonly ResolvedAnnotationShape[] = available.filter(
+      (candidate: ResolvedAnnotationShape): boolean => selectedNode || visibleModels.has(candidate.modelId),
+    );
 
     return candidates
       .map((candidate: ResolvedAnnotationShape): AnnotationShapeSuggestion => this.annotationSuggestion(modelId, candidate))
@@ -74,16 +80,21 @@ export class RamenAdvisor extends ModelAdvisor {
   public suggestAnnotationShapesForNode(modelId: Id, nodeId: Id, annotationNodeId?: Ref): readonly AnnotationShapeSuggestion[] {
     const actual: ResolvedElement<Node> | undefined = this.resolveNode(modelId, nodeId);
     if (!actual) return [];
+
     const selected: ResolvedElement<Node> | undefined = annotationNodeId
       ? this.resolveNode(modelId, annotationNodeId)
       : undefined;
     if (annotationNodeId && !selected) return [];
     const result: Map<string, AnnotationShapeSuggestion> = new Map<string, AnnotationShapeSuggestion>();
 
-    for (const relation of this.nodeRelationSuggestions(modelId, actual)) {
+    const relations: readonly NodeRelationSuggestion[] = this.nodeRelationSuggestions(modelId, actual);
+    for (const relation of relations) {
       if (relation.direction !== 'outgoing') continue;
-      for (const targetId of this.annotationTargets(modelId, relation, selected)) {
-        for (const suggestion of this.annotationsAcceptingRelation(modelId, targetId, relation)) {
+      const targetIds: readonly Ref[] = this.annotationTargets(modelId, relation, selected);
+
+      for (const targetId of targetIds) {
+        const suggestions: readonly AnnotationShapeSuggestion[] = this.annotationsAcceptingRelation(modelId, targetId, relation);
+        for (const suggestion of suggestions) {
           result.set(`${suggestion.modelId}:${suggestion.annotationId}`, suggestion);
         }
       }
@@ -102,7 +113,11 @@ export class RamenAdvisor extends ModelAdvisor {
   private annotationTargets(modelId: Id, relation: NodeRelationSuggestion, selected?: ResolvedElement<Node>): readonly Ref[] {
     return relation.compatibleTargetNodeIds.filter((ref: Ref): boolean => {
       const target: ResolvedElement<Node> | undefined = this.resolveNode(modelId, ref);
-      if (!target || !this.annotations.isAnnotationNode(target.modelId, target.element.id)) return false;
+      if (!target) return false;
+
+      const isAnnotation: boolean = this.annotations.isAnnotationNode(target.modelId, target.element.id);
+      if (!isAnnotation) return false;
+
       return !selected || (selected.modelId === target.modelId && selected.element.id === target.element.id);
     });
   }

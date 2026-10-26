@@ -25,6 +25,7 @@ export class ConstraintOwners {
       if (modelId !== undefined && model.id !== modelId) continue;
       const location: ConstraintLocation | undefined = this.inModel(model, ownerId);
       if (!location) continue;
+
       if (found) throw new Error(`Constraint owner '${ownerId}' is ambiguous. Supply its modelId and elementId.`);
       found = location;
     }

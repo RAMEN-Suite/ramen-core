@@ -7,7 +7,7 @@ import { ModelElementIndex } from './ElementIndex.js';
 import { ModelIdentifiers } from './Identifiers.js';
 import { ModelRef } from './References.js';
 import { ProjectGraph } from './ProjectGraph.js';
-import { ValidationCode } from '../validation/Codes.js';
+import { VALIDATION_ERROR, ValidationCode } from '../validation/Codes.js';
 
 /** Root selection and available models used to build a project graph. */
 export interface ProjectGraphInput {
@@ -54,7 +54,7 @@ export function buildProjectGraph(input: ProjectGraphInput): ProjectGraphResult 
   registerModels(input.models, state);
   if (!state.modelsById.has(input.rootModelId)) {
     state.diagnostics.push(
-      error('PROJECT_ROOT_NOT_FOUND', `Root model not found: '${input.rootModelId}'.`, DiagnosticPath.root()),
+      error(VALIDATION_ERROR.PROJECT_ROOT_NOT_FOUND, `Root model not found: '${input.rootModelId}'.`, DiagnosticPath.root()),
     );
   }
   if (state.diagnostics.length > 0) return { ok: false, diagnostics: state.diagnostics };
@@ -83,7 +83,9 @@ export function buildProjectGraph(input: ProjectGraphInput): ProjectGraphResult 
 function registerModels(models: readonly Model[], state: GraphBuildState): void {
   for (const model of models) {
     if (state.modelsById.has(model.id)) {
-      state.diagnostics.push(error('DUPLICATE_MODEL_ID', `Duplicate model id: '${model.id}'.`, DiagnosticPath.root()));
+      state.diagnostics.push(
+        error(VALIDATION_ERROR.DUPLICATE_MODEL_ID, `Duplicate model id: '${model.id}'.`, DiagnosticPath.root()),
+      );
       continue;
     }
     state.modelsById.set(model.id, freezeJson(structuredClone(model)));
@@ -95,6 +97,7 @@ function resolveImports(rootModelId: Id, state: GraphBuildState): void {
     const model: Model | undefined = state.modelsById.get(id);
     if (!model) return [];
     state.reachableModelIds.add(id);
+
     return model.imports.flatMap((item: Import, index: number): Id[] => {
       const target: Id | undefined = resolveImportedModel(id, item, index, state);
       return target === undefined ? [] : [target];
@@ -102,7 +105,7 @@ function resolveImports(rootModelId: Id, state: GraphBuildState): void {
   };
 
   walkGraph([rootModelId], children, (cycle: readonly string[]): void => {
-    state.diagnostics.push(error('IMPORT_CYCLE', `Import cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
+    state.diagnostics.push(error(VALIDATION_ERROR.IMPORT_CYCLE, `Import cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
   });
 }
 
@@ -120,7 +123,9 @@ function resolveImportedModel(
   const importedModel: Model | undefined = state.modelsById.get(modelImport.modelId);
 
   if (!importedModel) {
-    state.diagnostics.push(error('IMPORTED_MODEL_NOT_FOUND', `Imported model not found: '${modelImport.modelId}'.`, importPath));
+    state.diagnostics.push(
+      error(VALIDATION_ERROR.IMPORTED_MODEL_NOT_FOUND, `Imported model not found: '${modelImport.modelId}'.`, importPath),
+    );
 
     return;
   }
@@ -128,7 +133,7 @@ function resolveImportedModel(
   if (modelImport.modelUri !== importedModel.$id) {
     state.diagnostics.push(
       error(
-        'IMPORTED_MODEL_URI_MISMATCH',
+        VALIDATION_ERROR.IMPORTED_MODEL_URI_MISMATCH,
         `Import model URI '${modelImport.modelUri}' does not match '${importedModel.$id}'.`,
         importPath.property('modelUri'),
       ),
@@ -138,7 +143,7 @@ function resolveImportedModel(
   if (modelImport.version !== importedModel.version) {
     state.diagnostics.push(
       error(
-        'IMPORTED_VERSION_MISMATCH',
+        VALIDATION_ERROR.IMPORTED_VERSION_MISMATCH,
         `Import version '${modelImport.version}' does not match '${importedModel.version}'.`,
         importPath.property('version'),
       ),
@@ -212,7 +217,7 @@ function validateModelRef(
   if (!visibleModels(ownerModelId, state).has(target.modelId)) {
     state.diagnostics.push(
       error(
-        'REFERENCE_MODEL_NOT_REACHABLE',
+        VALIDATION_ERROR.REFERENCE_MODEL_NOT_REACHABLE,
         `Reference target model '${target.modelId}' is not imported by '${ownerModelId}'.`,
         path,
         reference,
@@ -226,12 +231,12 @@ function validateModelRef(
   const foundKind: ExpectedElementKind | undefined = findElementKind(index, target.refId);
   if (!foundKind) {
     state.diagnostics.push(
-      error('ELEMENT_REFERENCE_NOT_FOUND', `Referenced element not found: '${reference}'.`, path, reference),
+      error(VALIDATION_ERROR.ELEMENT_REFERENCE_NOT_FOUND, `Referenced element not found: '${reference}'.`, path, reference),
     );
   } else if (foundKind !== expectedKind) {
     state.diagnostics.push(
       error(
-        'ELEMENT_REFERENCE_KIND_MISMATCH',
+        VALIDATION_ERROR.ELEMENT_REFERENCE_KIND_MISMATCH,
         `Reference '${reference}' points to ${foundKind}; expected ${expectedKind}.`,
         path,
         reference,
@@ -270,7 +275,9 @@ function validateInheritanceCycles(state: GraphBuildState): void {
     [...edges.keys()],
     (key: string): readonly string[] => edges.get(key) ?? [],
     (cycle: readonly string[]): void => {
-      state.diagnostics.push(error('INHERITANCE_CYCLE', `Inheritance cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()));
+      state.diagnostics.push(
+        error(VALIDATION_ERROR.INHERITANCE_CYCLE, `Inheritance cycle: ${cycle.join(' -> ')}.`, DiagnosticPath.root()),
+      );
     },
   );
 }

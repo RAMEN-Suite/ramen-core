@@ -26,12 +26,14 @@ export class ModelDescriptions {
       return;
     }
     if (value === null || typeof value !== 'object') return;
+
     const definition: Record<string, unknown> = value as Record<string, unknown>;
     if ('description' in definition) this.description(definition, path);
 
     for (const key of COLLECTIONS) {
       if (Array.isArray(definition[key])) this.normalise(definition[key], `${path}/${key}`);
     }
+
     for (const key of ['from', 'to']) {
       const end: unknown = definition[key];
       if (end !== null && typeof end === 'object') this.normalise(end, `${path}/${key}`);
@@ -44,8 +46,10 @@ export class ModelDescriptions {
       delete definition['description'];
       return;
     }
+
     if (typeof value !== 'string') throw new TypeError(`Description at ${path} must be plain text.`);
     let length: number = 0;
+
     for (const _character of value) {
       length += 1;
       if (length > DESCRIPTION_MAX_LENGTH)

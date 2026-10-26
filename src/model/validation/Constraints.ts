@@ -112,7 +112,7 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
   public validateExpression(expression: Constraint['expression']): string | undefined {
     if (typeof expression === 'string') return 'expected a JSON Schema object';
     try {
-      this.compile(expression);
+      void this.compile(expression);
       return undefined;
     } catch (error: unknown) {
       return error instanceof Error ? error.message : String(error);
@@ -142,7 +142,9 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
   }
 
   private compile(expression: Record<string, unknown>): SchemaNode {
-    if (expression['$schema'] !== undefined && expression['$schema'] !== draft2020.$schema) {
+    const declaredSchema: unknown = expression['$schema'];
+    const unsupportedDraft: boolean = declaredSchema !== undefined && declaredSchema !== draft2020.$schema;
+    if (unsupportedDraft) {
       throw new Error(`expected JSON Schema Draft 2020-12`);
     }
 
@@ -162,6 +164,7 @@ export class JsonSchemaEvaluator implements ConstraintEvaluator {
       const oldest: string | undefined = this.schemas.keys().next().value;
       if (oldest !== undefined) this.schemas.delete(oldest);
     }
+
     this.schemas.set(key, schema);
     return schema;
   }
@@ -220,6 +223,7 @@ export class RegexEvaluator implements ConstraintEvaluator {
     } catch (error: unknown) {
       return [this.invalidExpression(constraint, context, error instanceof Error ? error.message : String(error))];
     }
+
     if (typeof context.value !== 'string') return [this.invalidExpression(constraint, context, 'expected a string value')];
     if (expression.test(context.value)) return [];
 
@@ -262,14 +266,17 @@ export class FormatEvaluator implements ConstraintEvaluator {
   public evaluate(constraint: Constraint, context: ConstraintContext): readonly Diagnostic[] {
     const reason: string | undefined = this.validateExpression(constraint.expression);
     if (reason) return [this.invalid(constraint, context, reason)];
-    if (typeof constraint.expression !== 'string' || typeof context.value !== 'string')
+    const expression: unknown = constraint.expression;
+    const value: unknown = context.value;
+    if (typeof expression !== 'string' || typeof value !== 'string')
       return [this.invalid(constraint, context, 'expected a string value')];
 
-    const check: FormatCheck | undefined = STANDARD_FORMAT_CHECKS.get(constraint.expression);
-    const valid: boolean = check?.(context.value) === true;
+    const check: FormatCheck | undefined = STANDARD_FORMAT_CHECKS.get(expression);
+    const valid: boolean = check?.(value) === true;
     if (valid) return [];
+
     const code: string = constraint.code ?? VALIDATION_ERROR.CONSTRAINT_FORMAT_MISMATCH;
-    const message: string = constraint.message ?? `Value is not a valid ${constraint.expression}.`;
+    const message: string = constraint.message ?? `Value is not a valid ${expression}.`;
     return [finding(constraint, code, message, context.path)];
   }
 

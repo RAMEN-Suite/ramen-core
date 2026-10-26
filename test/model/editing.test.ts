@@ -53,6 +53,28 @@ void test('removing the last literal restores the unrestricted base type, not ot
   assert.equal(Modeller.import(model.export()).validateValue(status.id, 'Published').hasErrors, false);
 });
 
+void test('editing a literal retains its position, identity and previous snapshot', (): void => {
+  const model: Modeller = Modeller.create('Publication');
+  const status: DataType = model.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
+  const draft: Literal = model.createLiteral(status.id, { name: 'Draft' }).element;
+  const published: Literal = model.createLiteral(status.id, { name: 'Published' }).element;
+  const before: Modeller = model.snapshot();
+
+  model.updateLiteral(status.id, draft.id, { name: 'In progress', literal: 'in-progress' });
+
+  const literals: readonly Literal[] = model.getDataType(status.id)?.literals ?? [];
+  assert.deepEqual(
+    literals.map((item: Literal): string => item.id),
+    [published.id, draft.id],
+  );
+  assert.equal(literals[1]?.name, 'In progress');
+  assert.equal(before.getDataType(status.id)?.literals?.[1]?.name, 'Draft');
+
+  model.removeLiteral(status.id, published.id);
+  assert.deepEqual(model.getDataType(status.id)?.literals, [literals[1]]);
+  assert.equal(Modeller.import(model.export()).validateValue(status.id, 'in-progress').hasErrors, false);
+});
+
 void test('property flags survive inheritance and exchange without imposing history or sorting checks', (): void => {
   const base: Modeller = Modeller.create('Filing');
   const document: Node = base.createNode('Document').element;

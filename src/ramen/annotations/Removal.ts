@@ -106,6 +106,7 @@ export class AnnotationRemoval {
         return [{ ...annotation, relations }];
       },
     );
+
     const cleaned: RamenModelDocument = { ...model, annotations };
     return cleaned;
   }

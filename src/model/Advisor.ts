@@ -28,7 +28,9 @@ export interface RelationSuggestion {
   readonly relationId: Id;
   readonly ref: Ref;
   readonly name: string;
+  /** Reuse references the existing definition; refine creates a specialised local relation. */
   readonly actions: readonly ['reuse', 'refine'];
+  /** Human-readable endpoint compatibility explanation, not a stable diagnostic code. */
   readonly explanation: string;
 }
 
@@ -67,6 +69,7 @@ export interface NodeRelationSuggestion {
   readonly requiredTarget: NodeLineageItem;
   /** Local IDs or qualified references for imported target nodes. */
   readonly compatibleTargetNodeIds: readonly Ref[];
+  /** Local relations permit reuse; imported relations also permit creating a local refinement. */
   readonly actions: readonly ('reuse' | 'refine')[];
 }
 
@@ -110,7 +113,10 @@ export class ModelAdvisor {
     return lineage.map((item: ResolvedElement<Node>): NodeLineageItem => this.lineageItem(item, modelId));
   }
 
-  /** Finds one selected node that refines every other selected node. */
+  /**
+   * Finds one selected node that refines every other selected node.
+   * @throws When a selected node reference cannot be resolved.
+   */
   public getMostSpecificNode(modelId: Id, refs: readonly Ref[]): NodeLineageItem | undefined {
     let mostSpecific: ResolvedElement<Node> | undefined;
 

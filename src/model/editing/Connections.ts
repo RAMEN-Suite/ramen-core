@@ -59,7 +59,10 @@ export class ModelConnections {
     });
   }
 
-  /** Selects from suggestions, also allowing a domain wrapper to filter them before choosing. */
+  /**
+   * Selects from suggestions, also allowing a domain wrapper to filter them before choosing.
+   * @throws When the chosen relation is unavailable, or the suggestions have no unique most specific candidate.
+   */
   public select(suggestions: readonly RelationSuggestion[], choice?: RelationChoice): RelationSuggestion {
     if (choice !== undefined) {
       const ref: Ref = typeof choice === 'string' ? choice : choice.ref;

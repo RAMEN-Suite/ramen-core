@@ -23,6 +23,7 @@ export { RAMEN_VALIDATION_ERROR } from './Codes.js';
 
 /** Validates the RAMEN model format first and then the closed annotation shapes. */
 export class RamenValidator {
+  /** Creates a RAMEN validator, optionally reusing a generic model validator. */
   public constructor(private readonly models: ModelValidator = new ModelValidator()) {}
 
   /** Validates a complete RAMEN project and exposes its graph only on success. */

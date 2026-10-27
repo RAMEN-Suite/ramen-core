@@ -178,7 +178,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return structuredClone(location.constraints);
   }
 
-  /** Returns an advisor or explains why the current model cannot provide suggestions. */
+  /**
+   * Returns an advisor or explains why the current model cannot provide suggestions.
+   * @throws When the current project is invalid and cannot provide modelling suggestions.
+   */
   public getAdvisor(): A {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) throw new Error(`Cannot query an invalid model: ${result.diagnostics[0]?.message ?? 'Unknown error.'}`);
@@ -236,7 +239,11 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.getAdvisor().validateAttributeName(this.model.id, this.nodeReference(node), name);
   }
 
-  /** Checks one value against a built-in or declared data type, including literals and value rules. */
+  /**
+   * Checks one value against a built-in or declared data type, including literals and value rules.
+   * Invalid projects and values return diagnostics.
+   * @throws When the selected data type is unavailable or its reference is ambiguous.
+   */
   public validateValue(
     type: ElementInput,
     value: unknown,
@@ -261,7 +268,11 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return validator.validate(selected, value, { path: DiagnosticPath.root().property('value'), label: 'Value' });
   }
 
-  /** Checks one local or inherited attribute input. Custom evaluators must work without a data graph. */
+  /**
+   * Checks one local or inherited attribute input. Custom evaluators must work without a data graph.
+   * Invalid projects and values return diagnostics.
+   * @throws When the node is unavailable or ambiguous, or the named attribute is not visible on it.
+   */
   public validateAttributeValue(
     node: ElementInput,
     name: string,
@@ -297,7 +308,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.workspace.previewModelRemoval(modelId);
   }
 
-  /** Removes a next level; cascade also removes every level that depends on it. */
+  /**
+   * Removes a next level; cascade also removes every level that depends on it.
+   * @throws When the level is not an immediate successor, or later levels depend on it and cascade is disabled.
+   */
   public removeNextLevel(modelId: Id, options: { readonly cascade?: boolean } = {}): ModelRemovalPreview {
     const preview: ModelRemovalPreview = this.previewNextLevelRemoval(modelId);
     const blockers: readonly string[] = preview.models.slice(1).map((model): string => `${model.name} (${model.id})`);
@@ -334,7 +348,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.workspace.previewNodeRemoval(target);
   }
 
-  /** Removes an unused node, or atomically removes its dependent definitions with cascade. */
+  /**
+   * Removes an unused node, or atomically removes its dependent definitions with cascade.
+   * @throws When the node is not local, dependants exist without cascade, or malformed domain-specific declarations prevent safe removal.
+   */
   public removeNode(nodeId: Id, options: { readonly cascade?: boolean } = {}): ModelChange<Node> {
     const node: Node = this.requireNode(nodeId);
     const preview: NodeRemovalPreview = this.workspace.previewNodeRemoval({ modelId: this.model.id, elementId: nodeId });
@@ -492,7 +509,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.workspace.previewRelationRemoval(target);
   }
 
-  /** Removes an unused relation, or its dependants with explicit cascade. */
+  /**
+   * Removes an unused relation, or its dependants with explicit cascade.
+   * @throws When the relation is not local, dependants exist without cascade, or malformed domain-specific declarations prevent safe removal.
+   */
   public removeRelation(relationId: Id, options: { readonly cascade?: boolean } = {}): ModelChange<Relation> {
     const relation: Relation = this.requireRelation(relationId);
     const preview: RelationRemovalPreview = this.workspace.previewRelationRemoval({
@@ -526,7 +546,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return this.change(relation);
   }
 
-  /** Adds one rule to a local element without replacing its existing rules. */
+  /**
+   * Adds one rule to a local element without replacing its existing rules.
+   * @throws When the owner is unavailable, ambiguous or imported, or already declares this constraint ID.
+   */
   public addConstraint(owner: ConstraintOwnerInput, rule: Constraint): ModelChange<Constraint> {
     const location: ConstraintLocation = this.localConstraintOwner(owner);
     const alreadyExists: boolean = location.constraints.some((item: Constraint): boolean => item.id === rule.id);
@@ -538,7 +561,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return { element: ModelDescriptions.copy(rule), validation };
   }
 
-  /** Updates one rule by ID on a local element while preserving its other rules. */
+  /**
+   * Updates one rule by ID on a local element while preserving its other rules.
+   * @throws When the owner is unavailable, ambiguous or imported, or does not declare this constraint ID.
+   */
   public updateConstraint(
     owner: ConstraintOwnerInput,
     ruleId: Id,
@@ -557,7 +583,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return { element: ModelDescriptions.copy(updated), validation };
   }
 
-  /** Removes one rule by ID from a local element while preserving its other rules. */
+  /**
+   * Removes one rule by ID from a local element while preserving its other rules.
+   * @throws When the owner is unavailable, ambiguous or imported, or does not declare this constraint ID.
+   */
   public removeConstraint(owner: ConstraintOwnerInput, ruleId: Id): ModelChange<Constraint> {
     const location: ConstraintLocation = this.localConstraintOwner(owner);
     const removed: Constraint | undefined = location.constraints.find((item: Constraint): boolean => item.id === ruleId);

@@ -43,7 +43,10 @@ export class RamenFiles {
     return file;
   }
 
-  /** Checks JSON shape, declaration ownership, references and RAMEN semantics before restoring models. */
+  /**
+   * Checks JSON shape, declaration ownership, references and RAMEN semantics before restoring models.
+   * @throws When the file format is unsupported, declaration ownership is invalid, or the restored RAMEN project fails validation.
+   */
   public static read(input: unknown): readonly Model[] {
     FileParts.assertSchema(this.schema, input);
     const file: RamenFile = input as RamenFile;

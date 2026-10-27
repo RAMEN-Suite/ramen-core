@@ -28,7 +28,10 @@ export class ModelEditor {
     return { ...model, classifiers: filtered };
   }
 
-  /** Applies a partial update to a node without mutating the source model. */
+  /**
+   * Applies a partial update to a node without mutating the source model.
+   * @throws When the local node does not exist.
+   */
   public static updateNode(model: Model, nodeId: string, patch: UpdateNodeInput): Model {
     const classifiers: Classifier[] = model.classifiers;
     let found: boolean = false;
@@ -45,7 +48,10 @@ export class ModelEditor {
     return { ...model, classifiers: patched };
   }
 
-  /** Applies a partial update to a data type without mutating the source model. */
+  /**
+   * Applies a partial update to a data type without mutating the source model.
+   * @throws When the local data type does not exist.
+   */
   public static updateDataType(model: Model, dataTypeId: string, patch: UpdateDataTypeInput): Model {
     const classifiers: Classifier[] = model.classifiers;
     let found: boolean = false;
@@ -67,7 +73,10 @@ export class ModelEditor {
     return { ...model, relations: [...model.relations, ModelDescriptions.copy(relation)] };
   }
 
-  /** Applies a partial update to a relation without mutating the source model. */
+  /**
+   * Applies a partial update to a relation without mutating the source model.
+   * @throws When the local relation does not exist.
+   */
   public static updateRelation(model: Model, relationId: string, patch: UpdateRelationInput): Model {
     const relations: Relation[] = model.relations;
     let found: boolean = false;
@@ -88,7 +97,10 @@ export class ModelEditor {
     return this.replaceNode(model, { ...node, attributes: [...node.attributes, ModelDescriptions.copy(attribute)] });
   }
 
-  /** Updates an attribute; project-wide semantic conflicts are reported by `ModelValidator`. */
+  /**
+   * Updates an attribute; project-wide semantic conflicts are reported by `ModelValidator`.
+   * @throws When the local node or attribute does not exist.
+   */
   public static updateAttribute(model: Model, nodeId: Id, attributeId: Id, patch: UpdateAttributeInput): Model {
     const node: Node = this.requireNode(model, nodeId);
     const current: Attribute | undefined = node.attributes.find((attribute: Attribute): boolean => attribute.id === attributeId);
@@ -101,7 +113,10 @@ export class ModelEditor {
     return this.replaceNode(model, { ...node, attributes });
   }
 
-  /** Removes a named attribute from a node without mutating the source model. */
+  /**
+   * Removes a named attribute from a node without mutating the source model.
+   * @throws When the local node or attribute does not exist.
+   */
   public static removeAttribute(model: Model, nodeId: Id, attributeId: Id): Model {
     const node: Node = this.requireNode(model, nodeId);
     const attributes: Attribute[] = node.attributes.filter((attribute: Attribute): boolean => attribute.id !== attributeId);

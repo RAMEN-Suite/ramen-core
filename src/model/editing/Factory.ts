@@ -149,7 +149,10 @@ export class ModelFactory {
     });
   }
 
-  /** Creates a relation whose end bounds are copied from a base relation. */
+  /**
+   * Creates a relation whose end bounds are copied from a base relation.
+   * @throws When the selected base relation does not exist in the supplied model.
+   */
   public static createRelation(base: Model, baseId: Id, input: CreateRelationInput): Relation {
     const baseIndex: ModelElementIndex = new ModelElementIndex(base);
     const baseRelation: Relation | undefined = baseIndex.relationsById.get(input.baseRelationId);
@@ -189,7 +192,10 @@ export class ModelFactory {
     return cloned;
   }
 
-  /** Duplicates a node and every local relation connected to it. */
+  /**
+   * Duplicates a node and every local relation connected to it.
+   * @throws When the source node does not exist in the supplied model.
+   */
   public static duplicateConnectedNode(model: Model, sourceNodeId: Id): ConnectedNode {
     const index: ModelElementIndex = new ModelElementIndex(model);
     const source: Node | undefined = index.nodesById.get(sourceNodeId);

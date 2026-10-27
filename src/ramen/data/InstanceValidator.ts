@@ -45,6 +45,7 @@ export enum RAMEN_INSTANCE_ERROR {
 
 /** Validates a complete instance graph against the RAMEN model format and closed annotation shapes. */
 export class RamenInstanceValidator {
+  /** Creates a data validator with the supplied project and instance validators. */
   public constructor(
     private readonly projects: RamenValidator = new RamenValidator(),
     private readonly instances: InstanceValidator = new InstanceValidator(),

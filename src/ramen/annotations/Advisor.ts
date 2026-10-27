@@ -27,7 +27,9 @@ export interface PropertyOption {
   readonly ref: Ref;
   readonly name: string;
   readonly typeId: Ref;
+  /** Effective interval from the model declaration; annotation rules may narrow it. */
   readonly modelledBounds: Bounds;
+  /** Initial interval for a new selection, or the existing shape rule when editing. */
   readonly suggestedBounds: Bounds;
   /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
   readonly cardinalityOptions: readonly Bounds[];
@@ -44,7 +46,9 @@ export interface RelationOption {
   readonly targetName: string;
   /** Local IDs or qualified references for imported target nodes. */
   readonly compatibleTargetNodeIds: readonly Ref[];
+  /** Effective interval from the model declaration; annotation rules may narrow it. */
   readonly modelledBounds: Bounds;
+  /** Initial interval for a new selection, or the existing shape rule when editing. */
   readonly suggestedBounds: Bounds;
   /** Common valid interval presets, not all possible intervals. An upper bound of -1 means unlimited. */
   readonly cardinalityOptions: readonly Bounds[];

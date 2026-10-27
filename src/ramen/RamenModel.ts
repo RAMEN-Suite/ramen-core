@@ -149,13 +149,20 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return new RamenModel(RamenModelFormat.create(ModelFactory.createModel(base, this.options(input))), [...models.values()]);
   }
 
-  /** Loads a project with all models needed to resolve its imports. */
+  /**
+   * Loads a project with all models needed to resolve its imports.
+   * Content errors remain available through validate().
+   * @throws When the model does not declare the RAMEN project schema.
+   */
   public static load(model: Model, dependencies: readonly Model[] = [RAMEN_MODEL]): RamenModel {
     if (!RamenModelFormat.isDocument(model)) throw new Error('Expected a RAMEN project model.');
     return new RamenModel(model, dependencies);
   }
 
-  /** Restores an editable project from a shared graph and validates every model level. */
+  /**
+   * Restores an editable project from a shared graph and validates every model level.
+   * @throws When the file format is unsupported, the document or RAMEN project is invalid, or the selected root cannot be restored.
+   */
   public static import(input: unknown): RamenModel {
     const models: readonly Model[] = RamenFiles.read(input);
     const file: RamenFile = input as RamenFile;
@@ -172,7 +179,10 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return new RamenModel(RamenModelFormat.create(next), [], this.workspace);
   }
 
-  /** Opens an imported RAMEN project level for editing; the packaged reference model stays read-only. */
+  /**
+   * Opens an imported RAMEN project level for editing; the packaged reference model stays read-only.
+   * @throws When the model is missing or is not an editable RAMEN project level, including the packaged reference model.
+   */
   public openLevel(modelId: Id): RamenModel {
     const model: Model | undefined = this.workspace.get(modelId);
     if (!model) throw new Error(`Model not found in workspace: '${modelId}'.`);
@@ -200,7 +210,10 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return structuredClone(this.model) as RamenModelDocument;
   }
 
-  /** Returns the annotation shapes declared directly by the project model. */
+  /**
+   * Returns the annotation shapes declared directly by the project model.
+   * @throws When the annotation section is malformed; no partial list is returned.
+   */
   public getAnnotationShapes(): readonly AnnotationShape[] {
     return AnnotationShapes.get(this.model);
   }
@@ -305,7 +318,10 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return this.change(annotation);
   }
 
-  /** Updates a local annotation shape, resolving endpoint selections or preserving supplied references, then validates the project. */
+  /**
+   * Updates a local annotation shape, resolving endpoint selections or preserving supplied references, then validates the project.
+   * @throws When the local shape is missing, its section or replacement is malformed, or a selected node, property or relation is unavailable or ambiguous.
+   */
   public updateAnnotationShape(annotationId: Id, input: AnnotationShapeUpdate): ModelChange<AnnotationShape> {
     const current: AnnotationShape | undefined = this.getAnnotationShapes().find(
       (annotation: AnnotationShape): boolean => annotation.id === annotationId,
@@ -325,7 +341,10 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return this.change(annotation);
   }
 
-  /** Removes a locally declared annotation and validates the complete project. */
+  /**
+   * Removes a locally declared annotation and validates the complete project.
+   * @throws When the local shape is missing or its annotation section is malformed.
+   */
   public removeAnnotationShape(annotationId: Id): ModelChange<AnnotationShape> {
     const current: AnnotationShape | undefined = this.getAnnotationShapes().find(
       (annotation: AnnotationShape): boolean => annotation.id === annotationId,

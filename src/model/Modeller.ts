@@ -38,7 +38,10 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
     return new Modeller(model, dependencies);
   }
 
-  /** Loads a shared graph and restores its project context without a consumer-side model selection. */
+  /**
+   * Loads a shared graph and restores its project context without a consumer-side model selection.
+   * @throws When the file format is unsupported, the document or project is invalid, or the selected root cannot be restored.
+   */
   public static import(input: unknown): Modeller {
     const models: readonly Model[] = ModelFiles.read(input);
     const file: ModelFile = input as ModelFile;
@@ -55,7 +58,10 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
     return new Modeller(next, [], this.workspace);
   }
 
-  /** Opens another model in this editable workspace, including an imported predecessor. */
+  /**
+   * Opens another model in this editable workspace, including an imported predecessor.
+   * @throws When the requested model is not in this workspace.
+   */
   public openLevel(modelId: Id): Modeller {
     const model: Model | undefined = this.workspace.get(modelId);
     if (!model) throw new Error(`Model not found in workspace: '${modelId}'.`);

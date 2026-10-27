@@ -17,7 +17,7 @@ export class RamenModelFormat {
     return { ...model, $schema: RAMEN_PROJECT_SCHEMA_URI, annotations: [] };
   }
 
-  /** Recognizes the RAMEN schema marker only. Validate the contents before reading its fields. */
+  /** Recognises the RAMEN schema marker only. Validate the contents before reading its fields. */
   public static isDocument(input: unknown): input is RamenModelDocument {
     return typeof input === 'object' && input !== null && '$schema' in input && input.$schema === RAMEN_PROJECT_SCHEMA_URI;
   }

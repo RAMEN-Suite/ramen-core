@@ -8,7 +8,7 @@ import { Diagnostic, DiagnosticPath } from './Diagnostics.js';
 import { ModelRules } from './ModelRules.js';
 import { ModelSchemaValidator } from './ModelSchema.js';
 
-/** Diagnostics and summarized error state produced by instance validation. */
+/** Diagnostics and summarised error state produced by instance validation. */
 export interface ValidationResult {
   readonly diagnostics: readonly Diagnostic[];
   readonly hasErrors: boolean;

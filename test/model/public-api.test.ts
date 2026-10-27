@@ -98,3 +98,16 @@ void test('the lower-level factory duplicates owned identifiers without editing 
   assert.equal(copy.relations[0]?.to.nodeId, folder.id);
   assert.deepEqual(model.getModel(), source);
 });
+
+void test('built-in data type references cannot be replaced or extended at runtime', (): void => {
+  assert.equal(Object.isFrozen(DataTypes), true);
+  assert.equal(Reflect.set(DataTypes, 'String', 'Changed'), false);
+  assert.equal(Reflect.deleteProperty(DataTypes, 'Integer'), false);
+  assert.equal(Reflect.set(DataTypes, 'Date', 'Date'), false);
+
+  const model: Modeller = Modeller.create('Filing');
+  const document: Node = model.createNode('Document').element;
+  const title: Attribute = model.createAttribute(document, { name: 'title', typeId: DataTypes.String }).element;
+  assert.equal(title.typeId, 'String');
+  assert.equal(model.validateValue(DataTypes.Integer, 7).hasErrors, false);
+});

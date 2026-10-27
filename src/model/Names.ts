@@ -9,20 +9,20 @@ const RELATIONSHIP_VALID_START: RegExp = /^[A-Z]/;
 export class ModelNames {
   /** Converts text to a PascalCase node or type name of at most 40 characters. */
   public static toPascalName(str: string): string {
-    const pascalized: string = str
+    const pascalised: string = str
       .replace(NAME_START, (_: string, letter: string): string => letter.toUpperCase())
       .replace(NAME_INVALID_CHARS, '');
-    return this.truncate(NAME_VALID_START.test(pascalized) ? pascalized : `N${pascalized}`, 40);
+    return this.truncate(NAME_VALID_START.test(pascalised) ? pascalised : `N${pascalised}`, 40);
   }
 
   /** Converts text to a camelCase property name of at most 32 characters. */
   public static toCamelName(str: string): string {
-    const pascalized: string = str
+    const pascalised: string = str
       .replace(NAME_START, (_: string, letter: string): string => letter.toUpperCase())
       .replace(NAME_INVALID_CHARS, '');
 
-    const camelized: string = pascalized.replace(NAME_VALID_START, (letter: string): string => letter.toLowerCase());
-    return this.truncate(NAME_VALID_START.test(camelized) ? camelized : `p${camelized}`, 32);
+    const camelised: string = pascalised.replace(NAME_VALID_START, (letter: string): string => letter.toLowerCase());
+    return this.truncate(NAME_VALID_START.test(camelised) ? camelised : `p${camelised}`, 32);
   }
 
   /** Converts text to an uppercase underscore-separated relation name. */

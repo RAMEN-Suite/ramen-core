@@ -152,7 +152,7 @@ export class ModelRules {
       this.registerLiteralValue(
         serialised,
         serialisedValue,
-        VALIDATION_ERROR.DATATYPE_LITERAL_SERIALIZED_DUPLICATE,
+        VALIDATION_ERROR.DATATYPE_LITERAL_SERIALISED_DUPLICATE,
         literalPath.property(hasExplicitLiteral ? 'literal' : 'name'),
         diagnostics,
       );

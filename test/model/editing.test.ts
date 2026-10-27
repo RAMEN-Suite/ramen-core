@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   DataTypes,
+  VALIDATION_ERROR,
+  type Diagnostic,
   Modeller,
   type Attribute,
   type DataType,
@@ -168,4 +170,18 @@ void test('suggestions include same-level refinements and permitted connections'
 
   assert.ok(next.suggestNodes().some((item: NodeSuggestion): boolean => item.nodeId === page.id));
   assert.ok(next.suggestNodes().some((item: NodeSuggestion): boolean => item.nodeId === document.id));
+});
+
+void test('duplicate serialised literal values use the British English diagnostic code', (): void => {
+  const model: Modeller = Modeller.create('Publication');
+  const status: DataType = model.createDataType({ name: 'Status', baseType: DataTypes.String }).element;
+  model.createLiteral(status.id, { name: 'Draft', literal: 'draft' });
+  const duplicate: ModelChange<Literal> = model.createLiteral(status.id, { name: 'Working', literal: 'draft' });
+  const code: string = VALIDATION_ERROR.DATATYPE_LITERAL_SERIALISED_DUPLICATE;
+  const diagnostic: Diagnostic | undefined = duplicate.validation.diagnostics.find(
+    (item: Diagnostic): boolean => item.code === code,
+  );
+
+  assert.ok(diagnostic);
+  assert.match(diagnostic.path ?? '', /\/literals\/1\/literal$/);
 });

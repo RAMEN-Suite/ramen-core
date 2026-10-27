@@ -30,18 +30,18 @@ export const DataTypes: {
   readonly Float: 'Float';
   /** JSON object values, serialised as the built-in reference `Object`. */
   readonly Object: 'Object';
-} = {
+} = Object.freeze({
   String: 'String',
   Boolean: 'Boolean',
   Integer: 'Integer',
   Float: 'Float',
   Object: 'Object',
-};
+});
 
-/** Recognizes primitive type references that require no model declaration. */
+/** Recognises primitive type references that require no model declaration. */
 export class BuiltinDataTypes {
   /** Names accepted as primitive type references. */
-  public static readonly values: readonly BuiltinType[] = Object.values(DataTypes);
+  public static readonly values: readonly BuiltinType[] = Object.freeze(Object.values(DataTypes));
   private static readonly set: ReadonlySet<string> = new Set<string>(BuiltinDataTypes.values);
 
   /** Reports whether a type reference names a RAMEN model format primitive. */

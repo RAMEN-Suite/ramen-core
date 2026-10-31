@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'deps/**']
+  pull_request:
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  node-ci:
+    name: CI
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/node-ci.yml@6d3172a90120e48b47d20f2fecd1dfbb73239460 # v0.2.1
+    with:
+      lint-scripts: build lint format typecheck schema:check docs:diagnostics:check docs:build
+      test-scripts: test:coverage
+      package-script: package:check
+    permissions:
+      contents: read # required for actions/checkout to fetch repo contents if this repo is private
+
+  supply-chain:
+    name: CI
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/supply-chain.yml@6d3172a90120e48b47d20f2fecd1dfbb73239460 # v0.2.1
+    permissions:
+      contents: read # required for actions/checkout to fetch repo contents if this repo is private
+
+  security:
+    name: CI
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/security.yml@6d3172a90120e48b47d20f2fecd1dfbb73239460 # v0.2.1
+    with:
+      semgrep-configs: p/security-audit p/secrets p/typescript p/javascript
+      codeql-config-file: ./.github/codeql/codeql-config.yml
+    permissions:
+      contents: read # required for actions/checkout to fetch repo contents if this repo is private
+      security-events: write # required for uploading results to code scanning

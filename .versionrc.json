@@ -1,0 +1,16 @@
+{
+  "header": "# Changelog\n\nAll notable changes to this project are documented here.\n",
+  "types": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "refactor", "section": "Refactoring" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "revert", "section": "Reverts" },
+    { "type": "build", "hidden": true },
+    { "type": "ci", "hidden": true },
+    { "type": "chore", "hidden": true },
+    { "type": "style", "hidden": true },
+    { "type": "test", "hidden": true }
+  ]
+}

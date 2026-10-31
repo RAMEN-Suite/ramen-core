@@ -1,6 +1,65 @@
-node_modules/
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# Build output: library, API docs (dist/api-doc), TypeScript build info
 dist/
 *.tsbuildinfo
-.idea/
 coverage/
+
+# npm pack and the release workflow, when run locally
+*.tgz
+/pack.json
+/sbom.cdx.json
+/release-assets/
+/RELEASE_NOTES.md
+
+# Node and tools
+node_modules/
+*.log
+.npm/
+.cache/
+.eslintcache
+.nyc_output/
+
+# Scan results when running trivy, gitleaks or semgrep locally
+*.sarif
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.history/*
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# System files: macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.TemporaryItems
+.fseventsd
+.apdisk
+__MACOSX/
+
+# System files: Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*:Zone.Identifier
+
+# System files: Linux
+.Trash-*
+.directory
+.fuse_hidden*
+.nfs*

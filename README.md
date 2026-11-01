@@ -82,7 +82,9 @@ Tools translate their own data into the instance graph and interpret selector de
 
 ## Browse the documentation
 
-From a local checkout, start the guides and API reference:
+The guides and API reference of the latest release: <https://ramen-suite.github.io/ramen-core/>.
+
+From a local checkout, start them for the current source:
 
 ```bash
 nvm use

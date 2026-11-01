@@ -63,3 +63,17 @@ jobs:
     permissions:
       contents: read # required for actions/checkout to fetch repo contents if this repo is private
       id-token: write # required for npm trusted publishing (OIDC)
+
+  docs:
+    name: Docs
+    needs: [release]
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/pages.yml@c5539fc96b3ecd6d342f28f49f3000f64b9556fe # v0.2.2
+    with:
+      build-script: docs:build
+      path: dist/api-doc
+      ref: ${{ !inputs.dry_run && format('v{0}', needs.release.outputs.version) || '' }}
+      dry-run: ${{ inputs.dry_run }}
+    permissions:
+      contents: read # required for actions/checkout to fetch repo contents if this repo is private
+      pages: write # required to deploy to GitHub Pages
+      id-token: write # required for actions/deploy-pages to verify the deployment origin

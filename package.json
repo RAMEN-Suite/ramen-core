@@ -88,7 +88,7 @@
     "type": "git",
     "url": "git+https://github.com/RAMEN-Suite/ramen-core.git"
   },
-  "homepage": "https://github.com/RAMEN-Suite/ramen-core#readme",
+  "homepage": "https://ramen-suite.github.io/ramen-core/",
   "bugs": {
     "url": "https://github.com/RAMEN-Suite/ramen-core/issues"
   },

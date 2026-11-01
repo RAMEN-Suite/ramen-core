@@ -63,7 +63,7 @@ Explain the problem, resulting behaviour and validation. Call out changes to pub
 
 Start with the [RMF guide](docs/rmf/rmf.md), [RAMEN guide](docs/ramen/ramen.md), [constraint languages](docs/constraint-languages.md) or [schema guide](docs/schemas.md).
 
-Releases run from the Release workflow on `main` (Actions → Release → Run workflow), first with `dry_run`. It takes the version from the conventional commits since the last tag, updates `CHANGELOG.md`, tags `vX.Y.Z`, creates the GitHub release with provenance and SBOM attestations, and stages the package on npm. A maintainer approves the staged version with 2FA; the workflow then verifies the published package. `npm pack` uses the root manifest and its `files` list.
+Releases run from the Release workflow on `main` (Actions → Release → Run workflow), first with `dry_run`. It takes the version from the conventional commits since the last tag, updates `CHANGELOG.md`, tags `vX.Y.Z`, creates the GitHub release with provenance and SBOM attestations, stages the package on npm and deploys the guides and API reference to GitHub Pages. A maintainer approves the staged version with 2FA; the workflow then verifies the published package. `npm pack` uses the root manifest and its `files` list.
 
 Publish the six generated schemas and the reference model separately in the `ramen-schema.org` repository at their canonical `$id` URLs. Check `npm run schema:check` before copying and verify that the URLs serve the unchanged JSON. Once published, retain released identifiers and contents; version incompatible changes explicitly.
 

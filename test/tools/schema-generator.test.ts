@@ -43,25 +43,37 @@ function generate(directory: string, check: boolean = false): void {
   execFileSync(process.execPath, args, { cwd: directory, stdio: 'pipe', timeout: 15_000 });
 }
 
-void test('schema generation creates missing files, replaces stale files and leaves current files untouched', (context: TestContext): void => {
+void test('schema generation leaves current files untouched', (context: TestContext): void => {
   const directory: string = fixture(context);
   const schema: string = join(directory, 'src/resources/schemas/ramen-project.schema.json');
   generate(directory);
-  const expected: string = readFileSync(schema, 'utf8');
   const modified: number = statSync(schema).mtimeMs;
 
   generate(directory, true);
   generate(directory);
   assert.equal(statSync(schema).mtimeMs, modified);
+});
+
+void test('schema check rejects stale files without writing and generation replaces them', (context: TestContext): void => {
+  const directory: string = fixture(context);
+  const schema: string = join(directory, 'src/resources/schemas/ramen-project.schema.json');
+  const expected: string = readFileSync(join(root, 'src/resources/schemas/ramen-project.schema.json'), 'utf8');
   writeFileSync(schema, '{}\n');
+
   assert.throws((): void => generate(directory, true), /Outdated ramen-project.schema.json/);
   assert.equal(readFileSync(schema, 'utf8'), '{}\n');
-
   generate(directory);
   assert.equal(readFileSync(schema, 'utf8'), expected);
-  rmSync(schema);
+});
+
+void test('schema check rejects missing files without creating them and generation restores them', (context: TestContext): void => {
+  const directory: string = fixture(context);
+  const schemas: string = join(directory, 'src/resources/schemas');
+  const schema: string = join(schemas, 'ramen-project.schema.json');
+  const expected: string = readFileSync(join(root, 'src/resources/schemas/ramen-project.schema.json'), 'utf8');
+
   assert.throws((): void => generate(directory, true), /Outdated ramen-project.schema.json/);
-  assert.equal(readdirSync(join(directory, 'src/resources/schemas')).includes('ramen-project.schema.json'), false);
+  assert.equal(readdirSync(schemas).includes('ramen-project.schema.json'), false);
   generate(directory);
   assert.equal(readFileSync(schema, 'utf8'), expected);
 });

@@ -40,3 +40,27 @@ void test('Unicode name boundaries retain complete characters and camel-case sup
   assert.equal(Array.from(camel).length, 32);
   assert.equal(ModelNames.toCamelName('𐐀 name'), '𐐨Name');
 });
+
+void test('node and property names handle long separator runs without changing naming rules', (): void => {
+  const separators: string = '^'.repeat(100_000);
+  const input: string = `${separators}digital${separators}édition${separators}`;
+  assert.equal(ModelNames.toPascalName(input), 'DigitalÉdition');
+  assert.equal(ModelNames.toCamelName(input), 'digitalÉdition');
+  assert.equal(ModelNames.toPascalName(separators), 'N');
+  assert.equal(ModelNames.toCamelName(separators), 'p');
+});
+
+void test('word boundaries retain underscores and digits while removing repeated punctuation', (): void => {
+  const cases: readonly (readonly [string, string, string])[] = [
+    ['one---two', 'OneTwo', 'oneTwo'],
+    ['one__two', 'One__two', 'one__two'],
+    ['one--2two', 'One2two', 'one2two'],
+    ['123--édition', 'N123Édition', 'p123Édition'],
+    ['𐐨...name', '𐐀Name', '𐐨Name'],
+  ];
+
+  for (const [input, pascal, camel] of cases) {
+    assert.equal(ModelNames.toPascalName(input), pascal);
+    assert.equal(ModelNames.toCamelName(input), camel);
+  }
+});

@@ -1,4 +1,4 @@
-const NAME_START: RegExp = /(?:^|[^\p{L}\p{N}_]+)(\p{L})/gu;
+const NAME_START: RegExp = /(?:^|[^\p{L}\p{N}_])(\p{L})/gu;
 const NAME_INVALID_CHARS: RegExp = /[^\p{L}\p{N}_]/gu;
 const NAME_VALID_START: RegExp = /^\p{L}/u;
 

@@ -42,7 +42,7 @@ jobs:
   release:
     name: Release
     needs: [ci]
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-release.yml@6d3172a90120e48b47d20f2fecd1dfbb73239460 # v0.2.1
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-release.yml@c5539fc96b3ecd6d342f28f49f3000f64b9556fe # v0.2.2
     with:
       build-script: package:check
       release-as: ${{ inputs.release_as }}
@@ -57,7 +57,7 @@ jobs:
   npm:
     name: npm
     needs: [release]
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-publish.yml@6d3172a90120e48b47d20f2fecd1dfbb73239460 # v0.2.1
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-publish.yml@c5539fc96b3ecd6d342f28f49f3000f64b9556fe # v0.2.2
     with:
       dry-run: ${{ inputs.dry_run }}
     permissions:

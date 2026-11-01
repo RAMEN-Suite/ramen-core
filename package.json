@@ -1,6 +1,6 @@
 {
   "name": "@ramen-suite/core",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "type": "module",
   "engines": {
     "node": ">=22.18.0"
@@ -63,6 +63,7 @@
     "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.5",
+    "commit-and-tag-version": "^13.3.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",

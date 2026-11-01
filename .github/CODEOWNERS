@@ -1,0 +1,14 @@
+* @sebenns
+
+/.githooks/ @ramondevprivate
+/.github/ @sebenns @ramondevprivate
+/.github/renovate.json @ramondevprivate
+/.github/codeql/ @ramondevprivate
+/.github/workflows/ @ramondevprivate
+/.npmrc @sebenns @ramondevprivate
+/.versionrc.json @ramondevprivate
+/package.json @sebenns
+/package-lock.json @sebenns
+/tools/ @sebenns
+
+/SECURITY.md @sebenns

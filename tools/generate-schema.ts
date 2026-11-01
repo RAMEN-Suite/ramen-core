@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
 import type { Options } from 'prettier';
@@ -167,15 +168,38 @@ function graphSchema(input: FileInput): Schema {
   };
 }
 
+function readExisting(destination: string): string | undefined {
+  try {
+    return readFileSync(destination, 'utf8');
+  } catch (error: unknown) {
+    const missing: boolean = error instanceof Error && 'code' in error && error.code === 'ENOENT';
+    if (missing) return undefined;
+    throw error;
+  }
+}
+
+function replaceSchema(destination: string, generated: string): void {
+  const directory: string = mkdtempSync(join(dirname(destination), '.schema-'));
+  const temporary: string = join(directory, 'schema.json');
+
+  try {
+    writeFileSync(temporary, generated, { flag: 'wx' });
+    renameSync(temporary, destination);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
 async function emit(name: string, schema: Schema): Promise<void> {
   const destination: string = resource(name);
   const options: Options | null = await prettier.resolveConfig(destination);
   const generated: string = await prettier.format(JSON.stringify(schema), { ...options, parser: 'json' });
 
-  if (existsSync(destination) && readFileSync(destination, 'utf8') === generated) return;
+  const current: string | undefined = readExisting(destination);
+  if (current === generated) return;
   if (process.argv.includes('--check')) throw new Error(`Outdated ${name}. Run npm run schema:generate.`);
 
-  writeFileSync(destination, generated);
+  replaceSchema(destination, generated);
 }
 
 const project: ModelSchema = projectSchema();

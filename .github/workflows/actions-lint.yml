@@ -15,7 +15,7 @@ permissions: {}
 jobs:
   actions-lint:
     name: Actions lint
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/actions-lint.yml@c5539fc96b3ecd6d342f28f49f3000f64b9556fe # v0.2.2
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/actions-lint.yml@175bf2c7820eac7ddd6c59de31a823c8743616f7 # v0.2.4
     permissions:
       security-events: write # required for uploading zizmor results to code scanning
       contents: read # required for actions/checkout to fetch repo contents if this repo is private

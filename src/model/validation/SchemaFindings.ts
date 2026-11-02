@@ -13,20 +13,19 @@ export class SchemaFindings {
   public static path(input: unknown, error: JsonError, base: DiagnosticPath): DiagnosticPath {
     const pointer: unknown = error.data?.pointer;
     if (typeof pointer !== 'string') return base;
-    let remaining: string = pointer.replace(/^#/, '');
+    const relative: string = pointer.replace(/^#/, '');
+    if (!relative.startsWith('/')) return base;
+
+    const parts: readonly string[] = relative.slice(1).split('/');
     let value: unknown = input;
     let path: DiagnosticPath = base;
 
-    // Library pointers contain unescaped keys; only follow an unambiguous existing property.
-    while (remaining.startsWith('/') && value !== null && typeof value === 'object') {
-      const keys: readonly string[] = Object.keys(value).filter(
-        (key: string): boolean => remaining === `/${key}` || remaining.startsWith(`/${key}/`),
-      );
-      const key: string | undefined = keys[0];
-      if (keys.length !== 1 || key === undefined) return path;
+    for (const part of parts) {
+      if (value === null || typeof value !== 'object') return path;
+      const key: string = part.replaceAll('~1', '/').replaceAll('~0', '~');
+      if (!Object.hasOwn(value, key)) return path;
 
       path = path.property(key);
-      remaining = remaining.slice(key.length + 1);
       value = (value as Record<string, unknown>)[key];
     }
     return path;

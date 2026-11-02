@@ -31,7 +31,7 @@ Paths follow [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901) notat
 
 Structural schema findings identify individual input fields under `/models/<index>`; semantic model findings use `/models/<modelId>`. Relation cardinality findings include `instanceId` because a missing link has no position in `/relations`.
 
-For JSON Schema rules, an ambiguous library path points to the nearest unambiguous containing object. The finding still identifies the failed constraint.
+JSON Schema findings preserve property names containing `/` or `~`, escaped as `~1` and `~0`. For example, a property named `a/b` has the path `/value/a~1b`, distinct from nested properties at `/value/a/b`.
 
 An `error` sets `hasErrors` to `true`. A model result also has `valid`, which is `false` when errors prevent a usable project graph. Warnings and information may still appear in `diagnostics` without invalidating the result. See [Validate Models and Data](validation.md) for the two checks.
 

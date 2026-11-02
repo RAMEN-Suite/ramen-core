@@ -67,7 +67,7 @@ void test('nested JSON Schema findings retain escaped object keys in their value
   assert.equal(model.validateValue(metadata, { 'a/b': { '~key': 'Hello' } }).hasErrors, false);
 });
 
-void test('ambiguous schema-library paths point to their shared owner instead of the wrong property', (): void => {
+void test('escaped schema pointers distinguish slash-containing keys from nested properties', (): void => {
   const model: Modeller = Modeller.create('Filing');
   const rule: Constraint = {
     id: 'ambiguousRule001',
@@ -80,6 +80,38 @@ void test('ambiguous schema-library paths point to their shared owner instead of
 
   assert.equal(result.hasErrors, true);
   assert.equal(result.diagnostics.length, 1);
-  assert.equal(result.diagnostics[0]?.path, '/value');
+  assert.equal(result.diagnostics[0]?.path, '/value/a~1b');
   assert.equal(result.diagnostics[0]?.ref, rule.id);
+});
+
+void test('schema pointers preserve literal escape sequences, empty keys and array indices', (): void => {
+  const model: Modeller = Modeller.create('Metadata');
+  const rule: Constraint = {
+    id: 'escapedKeys00001',
+    name: 'Nested lengths',
+    language: 'json-schema',
+    expression: {
+      properties: {
+        'a~1b': { minLength: 3 },
+        '~0key': { minLength: 3 },
+        '': { minLength: 3 },
+        entries: { items: { properties: { 'a/b': { minLength: 3 } } } },
+      },
+    },
+  };
+  const type: DataType = model.createDataType({ name: 'Metadata', baseType: DataTypes.Object, constraints: [rule] }).element;
+  const value: Record<string, unknown> = {
+    'a~1b': 'Hi',
+    'a/b': 'Hello',
+    '~0key': 'Hi',
+    '~key': 'Hello',
+    '': 'Hi',
+    entries: [{ 'a/b': 'Hi' }],
+  };
+
+  const result: ValidationResult = model.validateValue(type, value);
+  const paths: readonly (string | undefined)[] = result.diagnostics.map((item: Diagnostic): string | undefined => item.path);
+  assert.equal(result.hasErrors, true);
+  assert.deepEqual([...paths].sort(), ['/value/', '/value/a~01b', '/value/entries/0/a~1b', '/value/~00key'].sort());
+  assert.ok(result.diagnostics.every((item: Diagnostic): boolean => item.ref === rule.id));
 });

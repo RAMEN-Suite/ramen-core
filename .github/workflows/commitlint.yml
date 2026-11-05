@@ -12,6 +12,6 @@ permissions: {}
 jobs:
   commitlint:
     name: Conventional
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/commitlint-node.yml@175bf2c7820eac7ddd6c59de31a823c8743616f7 # v0.2.4
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/commitlint-node.yml@87aa0a65d3291204cd60dae10e8b8773ca12da1b # v0.2.5
     permissions:
       contents: read # required for actions/checkout to fetch repo contents if this repo is private

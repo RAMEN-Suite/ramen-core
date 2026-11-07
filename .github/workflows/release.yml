@@ -42,7 +42,7 @@ jobs:
   release:
     name: Release
     needs: [ci]
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-release.yml@25a074cb7def054f196b57c26729160b0cb8b7f9 # v0.2.7
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-release.yml@cbbaea105a016f3fca8adca1e5af11313b790f05 # v0.2.8
     with:
       build-script: package:check
       release-as: ${{ inputs.release_as }}
@@ -57,7 +57,7 @@ jobs:
   npm:
     name: npm
     needs: [release]
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-publish.yml@25a074cb7def054f196b57c26729160b0cb8b7f9 # v0.2.7
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/npm-publish.yml@cbbaea105a016f3fca8adca1e5af11313b790f05 # v0.2.8
     with:
       dry-run: ${{ inputs.dry_run }}
     permissions:
@@ -67,7 +67,7 @@ jobs:
   docs:
     name: Docs
     needs: [release]
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/pages.yml@25a074cb7def054f196b57c26729160b0cb8b7f9 # v0.2.7
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/pages.yml@cbbaea105a016f3fca8adca1e5af11313b790f05 # v0.2.8
     with:
       build-script: docs:build
       path: dist/api-doc

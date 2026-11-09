@@ -17,7 +17,7 @@ permissions: {}
 jobs:
   node-ci:
     name: CI
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/node-ci.yml@cbbaea105a016f3fca8adca1e5af11313b790f05 # v0.2.8
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/node-ci.yml@4c5a73211c21748e0ba7f044b706c70551c0f6bb # v0.2.9
     with:
       lint-scripts: build lint format typecheck schema:check docs:diagnostics:check docs:build
       test-scripts: test:coverage
@@ -27,13 +27,13 @@ jobs:
 
   supply-chain:
     name: CI
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/supply-chain.yml@cbbaea105a016f3fca8adca1e5af11313b790f05 # v0.2.8
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/supply-chain.yml@4c5a73211c21748e0ba7f044b706c70551c0f6bb # v0.2.9
     permissions:
       contents: read # required for actions/checkout to fetch repo contents if this repo is private
 
   security:
     name: CI
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/security.yml@cbbaea105a016f3fca8adca1e5af11313b790f05 # v0.2.8
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/security.yml@4c5a73211c21748e0ba7f044b706c70551c0f6bb # v0.2.9
     with:
       semgrep-configs: p/security-audit p/secrets p/typescript p/javascript
       codeql-config-file: ./.github/codeql/codeql-config.yml

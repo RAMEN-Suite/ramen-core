@@ -254,7 +254,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     const validator: RamenInstanceValidator = options.constraints
       ? RamenInstanceValidator.withConstraints(options.constraints)
       : this.instances;
-    return validator.validate(this.model.id, this.validationInputs(), input, { profile: options.profile });
+    return validator.validateData(this.validate(), this.validationInputs(), input, { profile: options.profile });
   }
 
   /**

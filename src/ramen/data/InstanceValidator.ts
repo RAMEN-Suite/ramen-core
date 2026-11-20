@@ -68,7 +68,22 @@ export class RamenInstanceValidator {
     options: Pick<DataValidationOptions, 'profile'> = {},
   ): ValidationResult {
     const project: ProjectValidationResult = this.projects.validateProject(rootModelId, models);
+    return this.validateData(project, models, input, options);
+  }
+
+  /**
+   * @internal Reuses the workspace's validated project snapshot without repeating model validation.
+   * Models must match that snapshot because the generic graph omits RAMEN annotation shapes.
+   * @throws When a caller-provided profile predicate throws.
+   */
+  public validateData(
+    project: ProjectValidationResult,
+    models: readonly Model[],
+    input: unknown,
+    options: Pick<DataValidationOptions, 'profile'> = {},
+  ): ValidationResult {
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
+    const rootModelId: Id = project.graph.getRootModel().id;
 
     const annotations: AnnotationIndex = new AnnotationIndex(project.graph, models);
     const base: ValidationResult = this.instances.validate(project.graph, input, {

@@ -10,6 +10,7 @@ import {
   type Constraint,
   type ConstraintContext,
   type DataType,
+  type DataValidationOptions,
   type Diagnostic,
   type ModelInstanceGraph,
   type Literal,
@@ -414,23 +415,23 @@ void test('an attribute can use a registered evaluator for input and recorded da
 
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   registry.register({ language: rule.language, evaluate: checkLength });
+  const options: DataValidationOptions = { constraints: registry };
 
   const invalid: ModelInstanceGraph = {
     nodes: [{ id: 'documentRecord01', typeId: document.id, properties: { title: 'Long title' } }],
     relations: [],
   };
 
-  assert.equal(model.validateInstances(invalid, registry).diagnostics[0]?.code, 'TITLE_TOO_LONG');
-  assert.equal(model.validateAttributeValue(document.id, 'title', 'Long title', registry).diagnostics[0]?.code, 'TITLE_TOO_LONG');
-  assert.equal(model.validateAttributeValue(document, 'title', 'Short', registry).hasErrors, false);
+  assert.equal(model.validateInstances(invalid, options).diagnostics[0]?.code, 'TITLE_TOO_LONG');
+  assert.equal(model.validateAttributeValue(document.id, 'title', 'Long title', options).diagnostics[0]?.code, 'TITLE_TOO_LONG');
+  assert.equal(model.validateAttributeValue(document, 'title', 'Short', options).hasErrors, false);
+  const lowercase: ValidationResult = model.validateAttributeValue(document.id, 'title', 'long title', options);
   assert.deepEqual(
-    model
-      .validateAttributeValue(document.id, 'title', 'long title', registry)
-      .diagnostics.map((item: Diagnostic): string => item.code),
+    lowercase.diagnostics.map((item: Diagnostic): string => item.code),
     ['CONSTRAINT_REGEX_MISMATCH', 'TITLE_TOO_LONG'],
   );
   assert.deepEqual(
-    model.validateAttributeValue(document.id, 'title', 7, registry).diagnostics.map((item: Diagnostic): string => item.code),
+    model.validateAttributeValue(document.id, 'title', 7, options).diagnostics.map((item: Diagnostic): string => item.code),
     ['INSTANCE_PROPERTY_TYPE_INVALID'],
   );
 });

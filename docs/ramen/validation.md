@@ -39,7 +39,7 @@ console.log(valid.hasErrors); // false
 console.log(invalid.diagnostics); // INSTANCE_PROPERTY_LITERAL_INVALID
 ```
 
-This checks the property's bounds, data type and constraints, including inherited annotation shapes. An unavailable type or property throws an error. You can pass a {@link model.ConstraintRegistry | ConstraintRegistry} as the last argument for custom evaluators. Links and uniqueness across records need a complete data graph.
+This checks the property's bounds, data type and constraints, including inherited annotation shapes. An unavailable type or property throws an error. Pass `{ constraints: registry }` as the last argument for custom evaluators. Links and uniqueness across records need a complete data graph.
 
 ## Check recorded data
 
@@ -96,3 +96,24 @@ console.log(invalid.diagnostics.map((item: Diagnostic): string => item.code));
 ## Use data from a tool
 
 A tool translates its own records into `ModelInstanceGraph` before validation. RAMEN checks annotation shapes, allowed properties and links, and that `selector` has a `type`. The tool interprets selector details such as `start` and `end`. See [Add Properties](constrain-annotations.md) for fixed value lists and [Add Constraints](../rmf/constraints.md) for custom checks.
+
+## Accept historical identifiers
+
+Recorded data use strict UUID validation by default. For existing projects whose RAMEN `uuid` values must remain unchanged, opt in per validation call:
+
+```ts
+import { RamenValidationProfiles } from '@ramen-suite/core/ramen';
+import type { ValidationResult } from '@ramen-suite/core/model';
+
+const result: ValidationResult = media.validateInstances(data, {
+  profile: RamenValidationProfiles.LEGACY_IDENTIFIERS,
+});
+```
+
+This profile accepts well-formed historical strings of 1–256 UTF-16 code units without whitespace, control characters or invisible format characters, only for the inherited RAMEN identity property. The UUID constraint finding remains visible with its original code, message and path, but becomes a warning. Required values, primitive types, key uniqueness, other UUID properties and all other constraints remain strict. Recorded values and model definitions are unchanged. The separate instance `id` schema is still enforced.
+
+Use strict validation when creating new records. When editing existing data, pass the same `{ profile }` to `validateAttributeValue()` or `validateAnnotationValue()` so the field and graph checks agree. Without a profile they remain strict. A type-only `validateValue()` check has no property context and remains strict. Custom evaluators use `{ profile, constraints: registry }`.
+
+Each affected record retains its own warning and property path so tools can locate the data. A tool can group these warnings by code for a compact overview while keeping the detailed list available.
+
+Profiles can also declare [targeted exceptions for other properties](../rmf/validate-data.md#use-a-validation-profile), for example to retain historical date formats.

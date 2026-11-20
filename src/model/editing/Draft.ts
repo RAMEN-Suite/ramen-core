@@ -1,3 +1,4 @@
+import type { DataValidationOptions } from '../data/InstanceTypes.js';
 import { ModelDescriptions } from '../Descriptions.js';
 import { ModelConnections, RelationChoice, RelationSelection } from './Connections.js';
 import { ModelEditor, UpdateAttributeInput, UpdateDataTypeInput, UpdateNodeInput, UpdateRelationInput } from './Editor.js';
@@ -247,7 +248,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
   public validateValue(
     type: ElementInput,
     value: unknown,
-    registry: ConstraintRegistry = this.defaultConstraints,
+    options: Pick<DataValidationOptions, 'constraints'> = {},
   ): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { diagnostics: result.diagnostics, hasErrors: true };
@@ -264,20 +265,20 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
       selected = { modelId: owner.modelId, element: dataType };
     }
 
-    const validator: ValueValidator = new ValueValidator(registry);
+    const validator: ValueValidator = new ValueValidator(options.constraints ?? this.defaultConstraints);
     return validator.validate(selected, value, { path: DiagnosticPath.root().property('value'), label: 'Value' });
   }
 
   /**
    * Checks one local or inherited attribute input. Custom evaluators must work without a data graph.
-   * Invalid projects and values return diagnostics.
-   * @throws When the node is unavailable or ambiguous, or the named attribute is not visible on it.
+   * Invalid projects and values return diagnostics. Optional profiles apply the same exceptions as graph validation.
+   * @throws When the node or attribute is unavailable or ambiguous, or a profile predicate throws.
    */
   public validateAttributeValue(
     node: ElementInput,
     name: string,
     value: unknown,
-    registry: ConstraintRegistry = this.defaultConstraints,
+    options: DataValidationOptions = {},
   ): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { diagnostics: result.diagnostics, hasErrors: true };
@@ -287,7 +288,10 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     const attribute: Attribute | undefined = effective?.attributes.find((item: Attribute): boolean => item.name === name);
 
     if (!attribute) throw new Error(`Attribute '${name}' not found on node '${owner.elementId}'.`);
-    return new InstanceValueValidator(registry).validateOneAttribute(result.graph, owner.modelId, attribute, value);
+    const validator: InstanceValueValidator = new InstanceValueValidator(options.constraints ?? this.defaultConstraints, {
+      profile: options.profile,
+    });
+    return validator.validateOneAttribute(result.graph, owner.modelId, attribute, value);
   }
 
   /** Updates this model's identity and the exact imports used by later levels. */

@@ -4,7 +4,7 @@ import { ModelAdvisor } from './Advisor.js';
 import { ModelFactory } from './editing/Factory.js';
 import { ModelValidator, ProjectValidationResult, ValidProjectResult, ValidationResult } from './validation/ModelValidator.js';
 import { InstanceValidator } from './data/InstanceValidator.js';
-import type { ConstraintRegistry } from './validation/Constraints.js';
+import type { DataValidationOptions } from './data/InstanceTypes.js';
 import { ModelFiles, ModelFile, type ProjectMetadata } from './exchange/File.js';
 import { ModelEvolution, EvolutionReport } from './exchange/Comparison.js';
 import { ModelWorkspace } from './editing/Workspace.js';
@@ -83,12 +83,16 @@ export class Modeller extends ModelDraft<ModelAdvisor> {
     return ModelEvolution.compare(this.model.id, this.workspace.all(), next.model.id, next.workspace.all());
   }
 
-  /** Validates a complete data graph against this model. */
-  public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
+  /**
+   * Validates a complete data graph against this model, optionally applying targeted constraint exceptions.
+   * @throws When a caller-provided profile predicate throws.
+   */
+  public validateInstances(input: unknown, options: DataValidationOptions = {}): ValidationResult {
     const result: ProjectValidationResult = this.validate();
     if (!result.valid) return { hasErrors: true, diagnostics: result.diagnostics };
-    const validator: InstanceValidator = constraints ? new InstanceValidator(constraints) : this.instances;
-    return validator.validate(result.graph, input);
+
+    const validator: InstanceValidator = options.constraints ? new InstanceValidator(options.constraints) : this.instances;
+    return validator.validate(result.graph, input, { profile: options.profile });
   }
 
   protected check(): ProjectValidationResult {

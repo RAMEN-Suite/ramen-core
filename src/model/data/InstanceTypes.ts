@@ -1,5 +1,9 @@
 import type { Attribute, Node, Relation, Id, Ref } from '../Types.js';
+import type { ConstraintRegistry } from '../validation/Constraints.js';
+import type { InstanceValidationProfile } from './ValidationProfiles.js';
 import type { ResolvedElement } from '../graph/ProjectGraph.js';
+
+export type { AttributeValidationRule, InstanceValidationProfile } from './ValidationProfiles.js';
 
 /** One modelled object containing only properties declared by its RAMEN model format node type. */
 export interface ModelInstanceNode {
@@ -34,10 +38,20 @@ export interface ResolvedInstanceRelation {
   readonly type: ResolvedElement<Relation>;
 }
 
+/** Options shared by the RMF and RAMEN recorded-data validation facades. */
+export interface DataValidationOptions {
+  /** Optional evaluators for project-specific constraint languages. */
+  readonly constraints?: ConstraintRegistry;
+  /** Without a profile, all findings retain their declared severity. */
+  readonly profile?: InstanceValidationProfile;
+}
+
 /** Optional domain-specific model view used when validating captured data. */
 export interface InstanceValidationOptions {
   /** Restricts relation types to those selected by the current model. */
   readonly relations?: readonly ResolvedElement<Relation>[];
+  /** Targeted constraint exceptions; structural validation and cross-record checks still apply. */
+  readonly profile?: InstanceValidationProfile;
   /** Supplies additional type-dependent attributes without changing the model graph. */
   readonly attributes?: (type: ResolvedElement<Node>, node: ModelInstanceNode) => readonly Attribute[];
 }

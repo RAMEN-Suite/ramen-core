@@ -169,9 +169,9 @@ void test('annotation input checks use custom evaluators and report invalid mode
   registry.register({ language: rule.language, evaluate: checkRole });
   edition.updateDataType(roleName.id, { constraints: [rule] });
 
-  assert.equal(edition.validateAnnotationValue(annotation, 'role', 'name', 'sender', registry).hasErrors, false);
+  assert.equal(edition.validateAnnotationValue(annotation, 'role', 'name', 'sender', { constraints: registry }).hasErrors, false);
   assert.equal(
-    edition.validateAnnotationValue(annotation, 'role', 'name', 'other', registry).diagnostics[0]?.code,
+    edition.validateAnnotationValue(annotation, 'role', 'name', 'other', { constraints: registry }).diagnostics[0]?.code,
     'ROLE_MISMATCH',
   );
   assert.equal(

@@ -44,12 +44,12 @@ void test('evaluator failures become errors without skipping the remaining value
   const registry: ConstraintRegistry = ConstraintRegistry.createDefault();
   registry.register({ language: 'external', evaluate: failEvaluation });
 
-  const input: ValidationResult = model.validateValue(title, 'Hi', registry);
+  const input: ValidationResult = model.validateValue(title, 'Hi', { constraints: registry });
   const records: ModelInstanceGraph = {
     nodes: [{ id: 'documentRecord01', typeId: document.id, properties: { title: 'Hi' } }],
     relations: [],
   };
-  const recorded: ValidationResult = model.validateInstances(records, registry);
+  const recorded: ValidationResult = model.validateInstances(records, { constraints: registry });
 
   const checks: readonly (readonly [ValidationResult, string])[] = [
     [input, '/value'],

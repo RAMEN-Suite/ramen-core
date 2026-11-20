@@ -14,6 +14,7 @@ import {
   type ProjectValidationResult,
   type ValidationResult,
   type Attribute,
+  type DataValidationOptions,
   type Model,
   type Node,
   type Id,
@@ -56,14 +57,23 @@ export class RamenInstanceValidator {
     return new RamenInstanceValidator(new RamenValidator(), new InstanceValidator(constraints));
   }
 
-  /** Validates the project first and then validates a complete instance graph against it. */
-  public validate(rootModelId: Id, models: readonly Model[], input: unknown): ValidationResult {
+  /**
+   * Validates the project first and then validates a complete instance graph against it.
+   * @throws When a caller-provided profile predicate throws.
+   */
+  public validate(
+    rootModelId: Id,
+    models: readonly Model[],
+    input: unknown,
+    options: Pick<DataValidationOptions, 'profile'> = {},
+  ): ValidationResult {
     const project: ProjectValidationResult = this.projects.validateProject(rootModelId, models);
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
 
     const annotations: AnnotationIndex = new AnnotationIndex(project.graph, models);
     const base: ValidationResult = this.instances.validate(project.graph, input, {
       relations: new ModelRelationScope(project.graph, AnnotationShapes.relationSelections(models)).available(rootModelId),
+      profile: options.profile,
       attributes: (type: ResolvedElement<Node>, node: ModelInstanceNode): readonly Attribute[] =>
         this.effectiveAttributes(project.graph, annotations, rootModelId, type, node),
     });

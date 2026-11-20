@@ -29,6 +29,7 @@ export * from './annotations/Schema.js';
 export * from './validation/ProjectSchema.js';
 export * from './validation/ModelValidator.js';
 export * from './data/InstanceValidator.js';
+export * from './data/ValidationProfiles.js';
 
 export * from './exchange/File.js';
 

@@ -1,5 +1,6 @@
 import { ModelDraft, type RemovalEffect } from '../model/editing/Draft.js';
 import {
+  type DataValidationOptions,
   type NodeRemovalPreview,
   type RelationRemovalPreview,
   type WorkspaceElement,
@@ -13,7 +14,6 @@ import {
   type ProjectMetadata,
   type RelationSelection,
   type RelationSelections,
-  ConstraintRegistry,
   type ResolvedElement,
   type Diagnostic,
   type ProjectValidationResult,
@@ -246,23 +246,28 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     return this.getAdvisor().suggestAnnotationShapeOptions(this.model.id, this.nodeReference(node));
   }
 
-  /** Validates a complete data graph against this RAMEN model. */
-  public validateInstances(input: unknown, constraints?: ConstraintRegistry): ValidationResult {
-    const validator: RamenInstanceValidator = constraints ? RamenInstanceValidator.withConstraints(constraints) : this.instances;
-
-    return validator.validate(this.model.id, this.validationInputs(), input);
+  /**
+   * Validates recorded data strictly by default, with optional targeted exceptions for historical values.
+   * @throws When a caller-provided profile predicate throws.
+   */
+  public validateInstances(input: unknown, options: DataValidationOptions = {}): ValidationResult {
+    const validator: RamenInstanceValidator = options.constraints
+      ? RamenInstanceValidator.withConstraints(options.constraints)
+      : this.instances;
+    return validator.validate(this.model.id, this.validationInputs(), input, { profile: options.profile });
   }
 
   /**
    * Checks one property input for an annotation shape without requiring recorded nodes or links.
-   * Throws if the type or property is unavailable. Cross-record rules require validateInstances().
+   * Optional profiles apply the same exceptions as graph validation. Cross-record rules require validateInstances().
+   * @throws When the type or property is unavailable, or a profile predicate throws.
    */
   public validateAnnotationValue(
     node: ElementInput,
     type: string,
     name: string,
     value: unknown,
-    constraints: ConstraintRegistry = this.defaultConstraints,
+    options: DataValidationOptions = {},
   ): ValidationResult {
     const project: ProjectValidationResult = this.validate();
     if (!project.valid) return { hasErrors: true, diagnostics: project.diagnostics };
@@ -279,12 +284,9 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
     );
 
     if (!attribute) throw new Error(`Property '${name}' is not allowed for annotation '${type}'.`);
-    const result: ValidationResult = new InstanceValueValidator(constraints).validateOneAttribute(
-      project.graph,
-      actual.modelId,
-      attribute,
-      value,
-    );
+    const result: ValidationResult = new InstanceValueValidator(options.constraints ?? this.defaultConstraints, {
+      profile: options.profile,
+    }).validateOneAttribute(project.graph, actual.modelId, attribute, value);
 
     if (name !== 'selector') return result;
     const diagnostics: ValidationResult['diagnostics'] = [

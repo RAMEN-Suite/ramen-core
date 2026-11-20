@@ -10,6 +10,7 @@ import { VALIDATION_ERROR, ValidationCode } from '../validation/Codes.js';
 import { jsonValueKey } from '../JsonValue.js';
 import { ValueValidator, type ValueCheck } from './ValueValidator.js';
 import type { ValidationResult } from '../validation/ModelValidator.js';
+import { InstanceValidationProfiles } from './ValidationProfiles.js';
 import { Cardinality } from '../validation/Cardinality.js';
 
 /** Validates instance properties against effective node attributes and constraints. */
@@ -21,8 +22,8 @@ export class InstanceValueValidator {
   /** Creates a value validator with the supplied constraint languages. */
   public constructor(
     private readonly constraints: ConstraintRegistry,
+    private readonly options: Pick<InstanceValidationOptions, 'attributes' | 'profile'> = {},
     private readonly graphContext?: ConstraintGraph,
-    private readonly attributes?: InstanceValidationOptions['attributes'],
   ) {
     this.values = new ValueValidator(constraints);
   }
@@ -39,7 +40,8 @@ export class InstanceValueValidator {
       DiagnosticPath.root().property('value'),
       diagnostics,
     );
-    return { diagnostics, hasErrors: diagnostics.some((item: Diagnostic): boolean => item.severity === 'error') };
+    const findings: readonly Diagnostic[] = InstanceValidationProfiles.apply(this.options.profile, attribute, value, diagnostics);
+    return { diagnostics: findings, hasErrors: findings.some((item: Diagnostic): boolean => item.severity === 'error') };
   }
 
   /** Resolves instance node types and validates their modelled properties. */
@@ -89,7 +91,7 @@ export class InstanceValueValidator {
     if (!effective) return;
 
     this.nodes.set(reference, effective);
-    const attributes: readonly Attribute[] = this.attributes?.(type, instance) ?? effective.attributes;
+    const attributes: readonly Attribute[] = this.options.attributes?.(type, instance) ?? effective.attributes;
     const attributesByName: Map<string, Attribute> = new Map<string, Attribute>(
       attributes.map((attribute: Attribute): [string, Attribute] => [attribute.name, attribute]),
     );
@@ -101,6 +103,14 @@ export class InstanceValueValidator {
 
       const start: number = diagnostics.length;
       this.validateAttributeValue(graph, type.modelId, instance.id, attribute, value, attributePath, diagnostics);
+
+      const findings: readonly Diagnostic[] = diagnostics.slice(start);
+      diagnostics.splice(
+        start,
+        findings.length,
+        ...InstanceValidationProfiles.apply(this.options.profile, attribute, value, findings),
+      );
+
       const invalid: boolean = diagnostics.slice(start).some((item: Diagnostic): boolean => item.severity === 'error');
       if (attribute.isKey && !invalid) this.validateKey(effective, attribute, value, instance.id, attributePath, diagnostics);
     }

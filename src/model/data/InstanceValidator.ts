@@ -20,6 +20,7 @@ export class InstanceValidator {
   /**
    * Validates a complete instance graph against the graph root, including values, endpoints and cardinalities.
    * Callers must not pass a database page or partial update because absence has model-level meaning.
+   * @throws When a caller-provided profile predicate throws.
    */
   public validate(graph: ProjectGraph, input: unknown, options: InstanceValidationOptions = {}): ValidationResult {
     const diagnostics: readonly Diagnostic[] = SchemaFindings.validate(
@@ -34,11 +35,10 @@ export class InstanceValidator {
 
   private validateData(graph: ProjectGraph, instance: ModelInstanceGraph, options: InstanceValidationOptions): ValidationResult {
     const diagnostics: Diagnostic[] = [];
-    const values: InstanceValueValidator = new InstanceValueValidator(
-      this.constraints,
-      { project: graph, instances: instance },
-      options.attributes,
-    );
+    const values: InstanceValueValidator = new InstanceValueValidator(this.constraints, options, {
+      project: graph,
+      instances: instance,
+    });
     const relations: InstanceRelationValidator = new InstanceRelationValidator(
       this.constraints,
       {

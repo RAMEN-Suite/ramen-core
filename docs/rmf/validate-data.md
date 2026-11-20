@@ -69,3 +69,31 @@ console.log(linkResult.diagnostics);
 The input is the **complete proposed graph**, including both links. When checking an edit, add it to a copy of the complete graph before validation. Checking only the new link would leave out existing links and could give a wrong result.
 
 Validation checks declared properties, data types, endpoints, selected relationships, cardinalities and applicable [constraints](constraints.md). It cannot establish whether a recorded statement is factually correct. Express project rules in the model or register a custom evaluator.
+
+## Use a validation profile
+
+Validation is strict by default. An optional {@link model.InstanceValidationProfile | InstanceValidationProfile} can retain specific historical values as warnings without changing the model. Rules match a property's stable ID, a constraint ID and the original diagnostic code. An `accepts` predicate decides which recorded values qualify. Findings keep their code, message, path and references; only their severity changes.
+
+For example, suppose `issuedOn` uses a string data type with a `format: date` constraint named `dateConstraint`. To retain one historical date spelling:
+
+```ts
+import { VALIDATION_ERROR } from '@ramen-suite/core/model';
+import type { InstanceValidationProfile } from '@ramen-suite/core/model';
+
+const profile: InstanceValidationProfile = {
+  rules: [
+    {
+      attributeId: issuedOn.id,
+      constraintId: dateConstraint.id,
+      code: VALIDATION_ERROR.CONSTRAINT_FORMAT_MISMATCH,
+      accepts: (value: unknown): boolean => value === '14.07.1912',
+    },
+  ],
+};
+
+const result: ValidationResult = model.validateInstances(data, { profile });
+```
+
+The predicate can recognise other historical spellings as needed. It is caller-supplied application code; errors thrown by it propagate. Combine profiles through `{ rules: [...first.rules, ...second.rules] }`. Custom constraint evaluators can accompany a profile through `{ profile, constraints: registry }`.
+
+Profiles apply to property values, including inherited properties. They do not bypass model or instance-schema validation, unknown-property checks, relationships or key uniqueness. Unmatched findings retain their original severity. Field checks with `validateAttributeValue()` can use the same `{ profile }`; a type-only `validateValue()` check has no property context and remains strict. Use strict validation when creating new data.

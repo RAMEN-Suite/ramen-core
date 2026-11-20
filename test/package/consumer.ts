@@ -2,8 +2,8 @@ import { Modeller as RootModeller } from '@ramen-suite/core';
 import * as rootExports from '@ramen-suite/core';
 import * as modelExports from '@ramen-suite/core/model';
 import * as ramenExports from '@ramen-suite/core/ramen';
-import { DataTypes, Modeller, type ModelFile, type Node } from '@ramen-suite/core/model';
-import { RAMEN_ELEMENT, RamenModel } from '@ramen-suite/core/ramen';
+import { DataTypes, Modeller, type ModelFile, type ModelInstanceGraph, type Node } from '@ramen-suite/core/model';
+import { RAMEN_ELEMENT, RamenModel, RamenValidationProfiles } from '@ramen-suite/core/ramen';
 import schema from '@ramen-suite/core/schemas/model-file.schema.json' with { type: 'json' };
 
 for (const entry of [modelExports, ramenExports]) {
@@ -30,8 +30,18 @@ if (file.$schema !== schema.$id || !Modeller.import(file).validate().valid) {
 }
 
 const edition: RamenModel = RamenModel.create('Edition');
-edition.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION });
+const letter: Node = edition.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION }).element;
 
 if (!RamenModel.import(edition.export()).validate().valid || !RootModeller.create('Root export').validate().valid) {
   throw new Error('The installed RAMEN or root entry point is invalid.');
+}
+
+const historical: ModelInstanceGraph = {
+  nodes: [{ id: 'letterRecord0001', typeId: letter.id, properties: { uuid: 'MAIN_ed_isx_tgn_r5b', label: 'Letter' } }],
+  relations: [],
+};
+const profile: modelExports.InstanceValidationProfile = RamenValidationProfiles.LEGACY_IDENTIFIERS;
+const accepted: modelExports.ValidationResult = edition.validateInstances(historical, { profile });
+if (!edition.validateInstances(historical).hasErrors || accepted.hasErrors || accepted.diagnostics[0]?.severity !== 'warn') {
+  throw new Error('The installed package must support opt-in profiles while preserving strict defaults.');
 }

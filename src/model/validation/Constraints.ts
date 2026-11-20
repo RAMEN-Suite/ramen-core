@@ -12,7 +12,7 @@ type FormatCheck = (value: string) => boolean;
 const STANDARD_FORMAT_CHECKS: ReadonlyMap<string, FormatCheck> = new Map<string, FormatCheck>([
   ['uri', isUri],
   ...['uuid', 'date', 'date-time', 'email'].map((format: string): [string, FormatCheck] => {
-    const schema: SchemaNode = compileSchema({ type: 'string', format });
+    const schema: SchemaNode = compileSchema({ type: 'string', minLength: 1, format });
     return [format, (value: string): boolean => schema.validate(value).valid];
   }),
 ]);

@@ -110,10 +110,6 @@ const result: ValidationResult = media.validateInstances(data, {
 });
 ```
 
-This profile accepts well-formed historical strings of 1–256 UTF-16 code units without whitespace, control characters or invisible format characters, only for the inherited RAMEN identity property. The UUID constraint finding remains visible with its original code, message and path, but becomes a warning. Required values, primitive types, key uniqueness, other UUID properties and all other constraints remain strict. Recorded values and model definitions are unchanged. The separate instance `id` schema is still enforced.
+The profile reports UUID-format errors on inherited RAMEN `uuid` properties as warnings. Values must be well-formed strings of 1–256 UTF-16 code units without whitespace, control characters or invisible format characters. Required values, key uniqueness and other constraints remain enforced, including the separate record `id` rules.
 
-Use strict validation when creating new records. When editing existing data, pass the same `{ profile }` to `validateAttributeValue()` or `validateAnnotationValue()` so the field and graph checks agree. Without a profile they remain strict. A type-only `validateValue()` check has no property context and remains strict. Custom evaluators use `{ profile, constraints: registry }`.
-
-Each affected record retains its own warning and property path so tools can locate the data. A tool can group these warnings by code for a compact overview while keeping the detailed list available.
-
-Profiles can also declare [targeted exceptions for other properties](../rmf/validate-data.md#use-a-validation-profile), for example to retain historical date formats.
+When editing existing data, pass the same `{ profile }` to `validateAttributeValue()` or `validateAnnotationValue()`. Validate new records without the legacy profile. See [Validation profiles](../rmf/validate-data.md#use-a-validation-profile) for custom exceptions and composition.

@@ -87,7 +87,7 @@ void test('URI failures preserve a rule’s custom diagnostic and warning severi
   assert.equal(result.diagnostics[0]?.message, 'Use an absolute URI.');
 });
 
-void test('unsupported IP versions produce a diagnostic instead of escaping value validation', (): void => {
+void test('IPvFuture hosts are validated without evaluator failures', (): void => {
   const model: Modeller = Modeller.create('Links');
   const uri: DataType = model.createDataType({
     name: 'URI',
@@ -95,7 +95,19 @@ void test('unsupported IP versions produce a diagnostic instead of escaping valu
     constraints: [{ id: 'uriFormatRule001', name: 'Absolute URI', language: 'format', expression: 'uri' }],
   }).element;
 
-  const result: ValidationResult = model.validateValue(uri, 'example://[v1.fe80]/resource');
-  assert.equal(result.hasErrors, true);
-  assert.equal(result.diagnostics[0]?.code, 'CONSTRAINT_EVALUATION_FAILED');
+  for (const value of ['example://[v1.fe80]/resource', 'example://[vF.a:b]/resource']) {
+    assert.deepEqual(model.validateValue(uri, value).diagnostics, [], value);
+  }
+
+  const malformed: readonly string[] = [
+    'example://[v.fe80]/resource',
+    'example://[v1.]/resource',
+    'example://[vG.fe80]/resource',
+    'example://[v1.fe80/resource',
+  ];
+  for (const value of malformed) {
+    const result: ValidationResult = model.validateValue(uri, value);
+    assert.equal(result.hasErrors, true, value);
+    assert.equal(result.diagnostics[0]?.code, 'CONSTRAINT_FORMAT_MISMATCH', value);
+  }
 });

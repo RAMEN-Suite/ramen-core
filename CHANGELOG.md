@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0](https://github.com/RAMEN-Suite/ramen-core/compare/v0.1.0...v0.2.0) (2026-11-23)
+
+### ⚠ BREAKING CHANGES
+
+* **model:** Pass custom constraint registries through an options object,
+  { constraints: registry }, to validateInstances, validateValue,
+  validateAttributeValue and validateAnnotationValue. Property-aware methods also
+  accept { profile }; validateValue has no property context and accepts no profile.
+
+### Features
+
+* **model:** add targeted data validation profiles ([f68daab](https://github.com/RAMEN-Suite/ramen-core/commit/f68daab9ac8adbef07b91d7b00a6c6e3499d50e7))
+
+### Bug Fixes
+
+* **deps:** update dependency @hyperjump/uri to v2 ([#12](https://github.com/RAMEN-Suite/ramen-core/issues/12)) ([2eb453f](https://github.com/RAMEN-Suite/ramen-core/commit/2eb453fd046ab0fb588c6f485c972480d74f5ddc))
+* **deps:** update dependency json-schema-library to v11.6.16 ([#4](https://github.com/RAMEN-Suite/ramen-core/issues/4)) ([8ba62e3](https://github.com/RAMEN-Suite/ramen-core/commit/8ba62e32f7a74ad14a7d2766adf39f6d027c17d6))
+* **model:** reject empty strings in standard format constraints ([e736bda](https://github.com/RAMEN-Suite/ramen-core/commit/e736bda12b1336cb9084e73d7c55c8998021cce4))
+
+### Performance
+
+* **model:** reuse cached RAMEN project validation for recorded data ([92452e9](https://github.com/RAMEN-Suite/ramen-core/commit/92452e95fd38aed7343efcceea1570b4dacd45bd))
+
+### Documentation
+
+* **model:** simplify validation profile guidance ([77250bd](https://github.com/RAMEN-Suite/ramen-core/commit/77250bd828cd0b45752081b60f1577a1886333b4))
+
 ## 0.1.0 (2026-11-01)
 
 ### ⚠ BREAKING CHANGES

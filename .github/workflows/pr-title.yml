@@ -14,6 +14,6 @@ permissions: {}
 jobs:
   pr-title:
     name: Conventional
-    uses: RAMEN-Suite/ramen-workflows/.github/workflows/pr-title-node.yml@4d7ff68c07504c7b68a4f2b9ef2ae2062abc1239 # v0.2.11
+    uses: RAMEN-Suite/ramen-workflows/.github/workflows/pr-title-node.yml@052bd3de631153d42e86a32e27fdb28fbe82f0dc # v0.2.12
     permissions:
       contents: read # required for actions/checkout to fetch repo contents if this repo is private

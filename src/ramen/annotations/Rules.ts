@@ -18,6 +18,7 @@ import {
 import { ModelIdentifiers } from '../../model/graph/Identifiers.js';
 
 import { Cardinality } from '../../model/validation/Cardinality.js';
+import { DataTypeNames } from '../../model/validation/DataTypeNames.js';
 import { NodeNames } from '../../model/validation/NodeNames.js';
 
 import { AnnotationShape, AnnotationShapeRelation } from './Definitions.js';
@@ -40,26 +41,28 @@ export class AnnotationShapeRules {
       graph.getModels().map((model: Model): [Id, ModelIdentifiers] => [model.id, new ModelIdentifiers(model)]),
     );
     const ownerTypes: Set<string> = new Set<string>();
-    const nodeNames: ReadonlyMap<Id, NodeNames> = new Map<Id, NodeNames>(
-      graph.getModels().map((model: Model): [Id, NodeNames] => [model.id, new NodeNames(graph, model)]),
-    );
-
+    this.validateNames(graph, annotations, diagnostics);
     for (const resolved of annotations.getAll()) {
-      const names: NodeNames | undefined = nodeNames.get(resolved.modelId);
-      if (names) {
-        diagnostics.push(
-          ...names.register(
-            resolved.annotation.annotationId,
-            this.path(resolved.modelId, resolved.annotation.id).property('annotationId'),
-            resolved.annotation.id,
-          ),
-        );
-      }
       this.validateAnnotation(graph, annotations, resolved, identifiers, ownerTypes, diagnostics);
     }
 
     this.validateInheritedProperties(graph, annotations, diagnostics);
     return diagnostics;
+  }
+
+  private validateNames(graph: ProjectGraph, annotations: AnnotationIndex, diagnostics: Diagnostic[]): void {
+    for (const model of graph.getModels()) {
+      const nodes: NodeNames = new NodeNames(graph, model);
+      const types: DataTypeNames = new DataTypeNames(graph, model);
+      for (const annotation of annotations.getDeclared(model.id)) {
+        const path: DiagnosticPath = this.path(model.id, annotation.id);
+        diagnostics.push(...nodes.register(annotation.annotationId, path.property('annotationId'), annotation.id));
+        annotation.properties.forEach((property: Attribute, index: number): void => {
+          const propertyPath: DiagnosticPath = path.property('properties').index(index).property('typeId');
+          diagnostics.push(...types.register(property.typeId, propertyPath, property.id));
+        });
+      }
+    }
   }
 
   private validateInheritedProperties(graph: ProjectGraph, annotations: AnnotationIndex, diagnostics: Diagnostic[]): void {

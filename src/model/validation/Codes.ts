@@ -52,6 +52,8 @@ export enum VALIDATION_ERROR {
   ATTRIBUTE_KEY_BOUNDS_INVALID = 'ATTRIBUTE_KEY_BOUNDS_INVALID',
   /** A literal does not fit its data type's base type. */
   DATATYPE_LITERAL_TYPE_INVALID = 'DATATYPE_LITERAL_TYPE_INVALID',
+  /** Distinct data types declared or explicitly used in one model have the same name. */
+  DATATYPE_NAME_DUPLICATE = 'DATATYPE_NAME_DUPLICATE',
   /** Two literals have the same name. */
   DATATYPE_LITERAL_NAME_DUPLICATE = 'DATATYPE_LITERAL_NAME_DUPLICATE',
   /** Two literals produce the same stored string. */

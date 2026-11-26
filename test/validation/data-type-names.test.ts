@@ -28,9 +28,8 @@ void test('data type names are unique within one model and rechecked after renam
   assert.equal(model.validate().valid, false);
 });
 
-void test('same data type names are allowed in separate models and across classifier kinds', (): void => {
+void test('same data type names are allowed in separate models', (): void => {
   const base: Modeller = Modeller.create('Base');
-  base.createNode('Status');
   base.createDataType({ name: 'Status', baseType: DataTypes.String });
   const next: Modeller = base.createNextLevel('Next');
   next.createDataType({ name: 'Status', baseType: DataTypes.Integer });

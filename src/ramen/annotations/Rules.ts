@@ -18,8 +18,7 @@ import {
 import { ModelIdentifiers } from '../../model/graph/Identifiers.js';
 
 import { Cardinality } from '../../model/validation/Cardinality.js';
-import { DataTypeNames } from '../../model/validation/DataTypeNames.js';
-import { NodeNames } from '../../model/validation/NodeNames.js';
+import { ClassifierNames } from '../../model/validation/ClassifierNames.js';
 
 import { AnnotationShape, AnnotationShapeRelation } from './Definitions.js';
 import { AnnotationIndex, ResolvedAnnotationShape } from './AnnotationIndex.js';
@@ -52,14 +51,13 @@ export class AnnotationShapeRules {
 
   private validateNames(graph: ProjectGraph, annotations: AnnotationIndex, diagnostics: Diagnostic[]): void {
     for (const model of graph.getModels()) {
-      const nodes: NodeNames = new NodeNames(graph, model);
-      const types: DataTypeNames = new DataTypeNames(graph, model);
+      const names: ClassifierNames = new ClassifierNames(graph, model);
       for (const annotation of annotations.getDeclared(model.id)) {
         const path: DiagnosticPath = this.path(model.id, annotation.id);
-        diagnostics.push(...nodes.register(annotation.annotationId, path.property('annotationId'), annotation.id));
+        diagnostics.push(...names.registerNode(annotation.annotationId, path.property('annotationId'), annotation.id));
         annotation.properties.forEach((property: Attribute, index: number): void => {
           const propertyPath: DiagnosticPath = path.property('properties').index(index).property('typeId');
-          diagnostics.push(...types.register(property.typeId, propertyPath, property.id));
+          diagnostics.push(...names.registerDataType(property.typeId, propertyPath, property.id));
         });
       }
     }

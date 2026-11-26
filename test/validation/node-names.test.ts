@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DataTypes, Modeller, type Diagnostic, type ModelFile, type Node, type Relation } from '@ramen-suite/core/model';
+import { Modeller, type Diagnostic, type ModelFile, type Node, type Relation } from '@ramen-suite/core/model';
 
 void test('local node names are unique for independent nodes and refinements', (): void => {
   for (const refine of [false, true]) {
@@ -23,10 +23,9 @@ void test('local node names are unique for independent nodes and refinements', (
   }
 });
 
-void test('names remain independent across models and classifier kinds', (): void => {
+void test('node names remain independent across models', (): void => {
   const base: Modeller = Modeller.create('Base');
   const document: Node = base.createNode('Document').element;
-  base.createDataType({ name: 'Document', baseType: DataTypes.String });
 
   const next: Modeller = base.createNextLevel('Next');
   next.createNode({ name: 'Document', refines: document });

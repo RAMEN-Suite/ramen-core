@@ -45,7 +45,9 @@ export class RamenValidator {
 
     const diagnostics: readonly Diagnostic[] = new AnnotationShapeRules().validate(result.graph, inputs as readonly Model[]);
     if (diagnostics.length === 0) return result;
-    return { valid: false, hasErrors: true, diagnostics: [...result.diagnostics, ...diagnostics] };
+    const findings: readonly Diagnostic[] = [...result.diagnostics, ...diagnostics];
+    const hasErrors: boolean = findings.some((finding: Diagnostic): boolean => finding.severity === 'error');
+    return hasErrors ? { valid: false, hasErrors: true, diagnostics: findings } : { ...result, diagnostics: findings };
   }
 
   private validateRequirements(rootModelId: Id, inputs: readonly unknown[], graph: ProjectGraph): readonly Diagnostic[] {

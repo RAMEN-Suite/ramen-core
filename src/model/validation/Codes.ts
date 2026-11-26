@@ -36,6 +36,8 @@ export enum VALIDATION_ERROR {
    * @group Nodes, properties and data types
    */
   NODE_REFINEMENT_REQUIRED = 'NODE_REFINEMENT_REQUIRED',
+  /** Distinct classifiers in one model have names that differ only in case. */
+  CLASSIFIER_NAME_CASE_CONFLICT = 'CLASSIFIER_NAME_CASE_CONFLICT',
   /** A node and data type declared or explicitly used in one model have the same name. */
   CLASSIFIER_NAME_DUPLICATE = 'CLASSIFIER_NAME_DUPLICATE',
   /** Distinct nodes declared or explicitly used in one model have the same name. */

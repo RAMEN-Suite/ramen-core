@@ -18,7 +18,7 @@ An attribute uses a built-in type or a named {@link model.DataType | DataType}. 
 
 Custom data types use one of these built-in types as their `baseType`. Use a {@link model.Node | Node} instead of `Object` when fields or relationships need their own definitions.
 
-Nodes and named data types share one classifier namespace per model: distinct classifiers declared or explicitly used there must have different names. The same name is allowed in separate models.
+Nodes and named data types share one classifier namespace per model: distinct classifiers declared or explicitly used there must have different names. The same name is allowed in separate models. Names that differ only in case produce a warning because generators or file names may treat them as equal.
 
 The built-in names `String`, `Boolean`, `Integer`, `Float` and `Object` are reserved for primitive types and cannot be used as named data types, regardless of case.
 

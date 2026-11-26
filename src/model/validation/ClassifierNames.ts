@@ -7,6 +7,7 @@ import { VALIDATION_ERROR, type ValidationCode } from './Codes.js';
 /** @internal Checks the shared names of classifiers declared or explicitly used on one model level. */
 export class ClassifierNames {
   private readonly names: Map<string, ResolvedElement<Classifier>> = new Map<string, ResolvedElement<Classifier>>();
+  private readonly foldedNames: Map<string, ResolvedElement<Classifier>> = new Map<string, ResolvedElement<Classifier>>();
   private readonly diagnostics: Diagnostic[] = [];
 
   public constructor(
@@ -52,11 +53,31 @@ export class ClassifierNames {
     return type ? this.register(type, path, ref) : [];
   }
 
+  private checkCase(target: ResolvedElement<Classifier>, path: DiagnosticPath, ref: Id): readonly Diagnostic[] {
+    const folded: string = target.element.name.toLowerCase();
+    const previous: ResolvedElement<Classifier> | undefined = this.foldedNames.get(folded);
+    if (!previous) {
+      this.foldedNames.set(folded, target);
+      return [];
+    }
+    const identity: Ref = ModelRef.qualify(target.modelId, target.element.id);
+    if (identity === ModelRef.qualify(previous.modelId, previous.element.id)) return [];
+
+    return [
+      Diagnostics.warn({
+        code: VALIDATION_ERROR.CLASSIFIER_NAME_CASE_CONFLICT,
+        message: `Classifier names '${previous.element.name}' and '${target.element.name}' differ only in case in model '${this.model.id}'.`,
+        path,
+        ref,
+      }),
+    ];
+  }
+
   private register(target: ResolvedElement<Classifier>, path: DiagnosticPath, ref: Id): readonly Diagnostic[] {
     const previous: ResolvedElement<Classifier> | undefined = this.names.get(target.element.name);
     if (!previous) {
       this.names.set(target.element.name, target);
-      return [];
+      return this.checkCase(target, path, ref);
     }
     const identity: Ref = ModelRef.qualify(target.modelId, target.element.id);
     if (identity === ModelRef.qualify(previous.modelId, previous.element.id)) return [];

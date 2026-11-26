@@ -69,6 +69,7 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 | Code                                    | Meaning                                                                           |
 | --------------------------------------- | --------------------------------------------------------------------------------- |
 | `NODE_REFINEMENT_REQUIRED`              | A new node in a model with imports does not refine an existing node.              |
+| `CLASSIFIER_NAME_CASE_CONFLICT`         | Distinct classifiers in one model have names that differ only in case.            |
 | `CLASSIFIER_NAME_DUPLICATE`             | A node and data type declared or explicitly used in one model have the same name. |
 | `NODE_NAME_DUPLICATE`                   | Distinct nodes declared or explicitly used in one model have the same name.       |
 | `NODE_MULTIPLE_SUPERTYPES_UNSUPPORTED`  | A node lists more than one direct supertype.                                      |

@@ -22,6 +22,8 @@ Nodes and named data types share one classifier namespace per model: distinct cl
 
 The built-in names `String`, `Boolean`, `Integer`, `Float` and `Object` are reserved for primitive types and cannot be used as named data types, regardless of case.
 
+Node and data type names must start with a Unicode letter, followed only by letters, numbers or underscores. PascalCase is recommended; use `ModelNames.toPascalName()` to convert labels such as `my status!` to `MyStatus`. Model titles and literal labels can still contain spaces and punctuation.
+
 ## Limit a string to literals
 
 Use {@link model.Modeller.createDataType | createDataType()} and {@link model.Modeller.createLiteral | createLiteral()} to limit a string to `draft` or `published`:

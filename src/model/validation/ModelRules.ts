@@ -4,6 +4,7 @@ import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics.js';
 import { ModelRelationScope, RelationSelections } from '../graph/RelationScope.js';
 import { Cardinality } from './Cardinality.js';
 import { VALIDATION_ERROR, ValidationCode } from './Codes.js';
+import { BuiltinDataTypes } from '../Builtins.js';
 import { ConstraintRules } from './ConstraintRules.js';
 import { ClassifierNames } from './ClassifierNames.js';
 
@@ -113,6 +114,19 @@ export class ModelRules {
   }
 
   private validateDataType(dataType: DataType, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+    const folded: string = dataType.name.toLowerCase();
+    const reserved: boolean = BuiltinDataTypes.values.some((name: string): boolean => name.toLowerCase() === folded);
+    if (reserved) {
+      diagnostics.push(
+        this.error(
+          VALIDATION_ERROR.DATATYPE_NAME_RESERVED,
+          `Data type name '${dataType.name}' is reserved for a built-in type.`,
+          path.property('name'),
+          dataType.id,
+        ),
+      );
+    }
+
     const literals: readonly Literal[] | undefined = dataType.literals;
     if (!literals) return;
     this.validateLiteralUniqueness(literals, path, diagnostics);

@@ -20,6 +20,8 @@ Custom data types use one of these built-in types as their `baseType`. Use a {@l
 
 Nodes and named data types share one classifier namespace per model: distinct classifiers declared or explicitly used there must have different names. The same name is allowed in separate models.
 
+The built-in names `String`, `Boolean`, `Integer`, `Float` and `Object` are reserved for primitive types and cannot be used as named data types, regardless of case.
+
 ## Limit a string to literals
 
 Use {@link model.Modeller.createDataType | createDataType()} and {@link model.Modeller.createLiteral | createLiteral()} to limit a string to `draft` or `published`:

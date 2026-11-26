@@ -79,6 +79,7 @@ These codes come from {@link model.VALIDATION_ERROR | RMF validation}. Structura
 | `ATTRIBUTE_KEY_BOUNDS_INVALID`          | A key property's bounds are not `1..1`.                                           |
 | `DATATYPE_LITERAL_TYPE_INVALID`         | A literal does not fit its data type's base type.                                 |
 | `DATATYPE_NAME_DUPLICATE`               | Distinct data types declared or explicitly used in one model have the same name.  |
+| `DATATYPE_NAME_RESERVED`                | A declared data type reuses a built-in type name, ignoring case.                  |
 | `DATATYPE_LITERAL_NAME_DUPLICATE`       | Two literals have the same name.                                                  |
 | `DATATYPE_LITERAL_SERIALISED_DUPLICATE` | Two literals produce the same stored string.                                      |
 | `DATATYPE_LITERAL_VALUE_DUPLICATE`      | Two literals have the same numeric value.                                         |

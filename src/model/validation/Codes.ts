@@ -56,6 +56,8 @@ export enum VALIDATION_ERROR {
   DATATYPE_LITERAL_TYPE_INVALID = 'DATATYPE_LITERAL_TYPE_INVALID',
   /** Distinct data types declared or explicitly used in one model have the same name. */
   DATATYPE_NAME_DUPLICATE = 'DATATYPE_NAME_DUPLICATE',
+  /** A declared data type reuses a built-in type name, ignoring case. */
+  DATATYPE_NAME_RESERVED = 'DATATYPE_NAME_RESERVED',
   /** Two literals have the same name. */
   DATATYPE_LITERAL_NAME_DUPLICATE = 'DATATYPE_LITERAL_NAME_DUPLICATE',
   /** Two literals produce the same stored string. */

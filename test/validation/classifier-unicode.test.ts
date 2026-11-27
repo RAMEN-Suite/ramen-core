@@ -196,3 +196,27 @@ void test('import and export preserve decomposed names without changing their st
   assert.equal(restored.export().classifiers[0]?.name, 'e\u0301tat');
   assert.equal(restored.validate().valid, true);
 });
+
+void test('combining mark limits apply to editing and loaded RMF and RAMEN models', (): void => {
+  for (const ramen of [false, true]) {
+    const model: Modeller | RamenModel = ramen ? RamenModel.create('Edition') : Modeller.create('Names');
+    const type: DataType = model.createDataType({ name: 'A\u0301\u0301\u0301', baseType: DataTypes.String }).element;
+    assert.equal(model.validate().valid, true);
+    const raw: Model = model.getModel();
+    const input: Model = {
+      ...raw,
+      classifiers: raw.classifiers.map((item: Classifier): Classifier => ({ ...item, name: 'A\u0301\u0301\u0301\u0301' })),
+    };
+    const result: ProjectValidationResult = ramen
+      ? new RamenValidator().validateProject(raw.id, [RAMEN_MODEL, input])
+      : new ModelValidator().validateProject(raw.id, [input]);
+    assert.equal(result.valid, false);
+    assert.equal(result.diagnostics[0]?.code, 'CLASSIFIER_NAME_INVALID');
+    assert.match(result.diagnostics[0]?.message ?? '', /at most two consecutive combining marks/u);
+
+    model.updateDataType(type.id, { name: 'A\u0301\u0301\u0301\u0301' });
+    assert.equal(model.validate().valid, false);
+    model.updateDataType(type.id, { name: 'A\u0301\u0301\u0301' });
+    assert.equal(model.validate().valid, true);
+  }
+});

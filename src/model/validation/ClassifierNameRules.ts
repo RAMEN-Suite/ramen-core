@@ -10,6 +10,8 @@ export class ClassifierNameRules {
     const names: readonly Diagnostic[] = this.validate(input, path);
     const structural: readonly Diagnostic[] = SchemaFindings.validate(schema, input, code, path);
     if (names.length === 0) return structural;
+    if (structural.length === 0) return names;
+    if (!this.needsNameRepair(names, structural)) return [...names, ...structural];
     const repaired: readonly Diagnostic[] = SchemaFindings.validate(schema, this.withValidNames(input), code, path);
     const prefix: string = `${path.property('classifiers').toString()}/`;
     const broken: ReadonlySet<string> = new Set(
@@ -28,6 +30,16 @@ export class ClassifierNameRules {
       }),
     );
     return [...names, ...structural.filter((finding: Diagnostic): boolean => !replaced.has(finding.path ?? ''))];
+  }
+
+  private static needsNameRepair(names: readonly Diagnostic[], structural: readonly Diagnostic[]): boolean {
+    const affected: ReadonlySet<string> = new Set(
+      names.flatMap((finding: Diagnostic): string[] => {
+        const field: string = finding.path ?? '';
+        return [field, field.slice(0, -'/name'.length)];
+      }),
+    );
+    return structural.some((finding: Diagnostic): boolean => affected.has(finding.path ?? ''));
   }
 
   private static withValidNames(input: unknown): unknown {
@@ -56,7 +68,7 @@ export class ClassifierNameRules {
       return [
         Diagnostics.error({
           code: VALIDATION_ERROR.CLASSIFIER_NAME_INVALID,
-          message: `Classifier names must contain 1–${ModelNames.CLASSIFIER_MAX_LENGTH} Unicode code points, start with a letter and contain only letters, combining marks, numbers or underscores.`,
+          message: `Classifier names must contain 1–${ModelNames.CLASSIFIER_MAX_LENGTH} Unicode code points, start with a letter and contain only letters, combining marks, numbers or underscores, with at most two consecutive combining marks after NFC normalisation.`,
           path: path.property('classifiers').index(index).property('name'),
           ref: typeof reference === 'string' ? reference : undefined,
         }),

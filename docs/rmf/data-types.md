@@ -24,7 +24,7 @@ The built-in names `String`, `Boolean`, `Integer`, `Float` and `Object` are rese
 
 Node and data type names contain 1–40 Unicode code points, starting with a letter and followed only by letters, combining marks, numbers or underscores. Creating or editing a classifier stores its name in NFC; comparisons also recognise canonically equivalent spellings. Import preserves the stored spelling, including decomposed Unicode. PascalCase is recommended; use `ModelNames.toPascalName()` to convert labels such as `my status!` to `MyStatus`. Model titles and literal labels can still contain spaces and punctuation.
 
-After NFC normalisation, at most two consecutive combining marks are allowed. Joining controls ZWJ (U+200D) and ZWNJ (U+200C) are currently excluded from classifier names; context-sensitive support is not implemented. These restrictions do not apply to recorded string values.
+After NFC normalisation, classifier names allow at most two consecutive combining marks. This rules out some vocalised Hebrew spellings, such as `שִּׁמְעוֹן`; use an unpointed form like `שמעון` instead. ZWJ (U+200D) and ZWNJ (U+200C) are also excluded. Recorded string values are unaffected.
 
 Core reports invalid names as `CLASSIFIER_NAME_INVALID` at the `name` field. The JSON Schemas check string length; Unicode identifier syntax is checked by Core so the schemas remain usable with validators such as Python `jsonschema`.
 

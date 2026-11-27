@@ -1,3 +1,4 @@
+import { ModelNames } from '../Names.js';
 import type { DataValidationOptions } from '../data/InstanceTypes.js';
 import { ModelDescriptions } from '../Descriptions.js';
 import { ModelConnections, RelationChoice, RelationSelection } from './Connections.js';
@@ -785,7 +786,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     if (input.refines !== undefined) {
       const base: ElementRef = this.resolveRef(input.refines, 'node');
       const node: Node = ModelFactory.createNode(base.modelId, {
-        name: input.name,
+        name: ModelNames.normaliseClassifierName(input.name),
         description: input.description,
         baseNodeId: base.elementId,
       });
@@ -796,7 +797,7 @@ export abstract class ModelDraft<A extends ModelAdvisor> {
     return {
       kind: 'Node',
       id: ModelFactory.createIdentifier(),
-      name: input.name,
+      name: ModelNames.normaliseClassifierName(input.name),
       description: input.description,
       superTypes: [],
       attributes: [],

@@ -14,6 +14,7 @@ import {
 } from '../Types.js';
 import { MODEL_SCHEMA_URI } from '../validation/ModelSchema.js';
 import ShortUniqueId from 'short-unique-id';
+import { ModelNames } from '../Names.js';
 import { ModelDescriptions } from '../Descriptions.js';
 import { ModelRef } from '../graph/References.js';
 import { ModelElementIndex } from '../graph/ElementIndex.js';
@@ -110,7 +111,7 @@ export class ModelFactory {
     return ModelDescriptions.copy({
       kind: 'Node',
       id: this.createIdentifier(),
-      name: input.name,
+      name: ModelNames.normaliseClassifierName(input.name),
       description: input.description,
       superTypes: [ModelRef.qualify(baseId, input.baseNodeId)],
       attributes: [],
@@ -141,7 +142,7 @@ export class ModelFactory {
     return ModelDescriptions.copy({
       kind: 'DataType',
       id: this.createIdentifier(),
-      name: input.name,
+      name: ModelNames.normaliseClassifierName(input.name),
       description: input.description,
       baseType: input.baseType,
       constraints: structuredClone([...(input.constraints ?? [])]),
@@ -175,11 +176,15 @@ export class ModelFactory {
     return this.createRelationEnd(nodeId, base.bounds);
   }
 
-  /** Deeply duplicates a node and assigns new identifiers to its owned elements. */
+  /**
+   * Deeply duplicates a node and assigns new identifiers to its owned elements.
+   * Uses a Copy suffix without checking name collisions because no owning model is supplied.
+   * Use duplicateConnectedNode() to avoid existing local classifier names, then validate the complete project.
+   */
   public static duplicateNode(node: Node): Node {
     const cloned: Node = structuredClone(node);
     cloned.id = this.createIdentifier();
-    cloned.name = `${node.name} (copy)`;
+    cloned.name = this.copyName(node.name);
 
     const constraintFn: (constraint: Constraint) => Constraint = (constraint: Constraint): Constraint => {
       return { ...constraint, id: this.createIdentifier() };
@@ -192,6 +197,25 @@ export class ModelFactory {
     return cloned;
   }
 
+  private static copyName(name: string, ordinal: number = 1): string {
+    const suffix: string = ordinal === 1 ? 'Copy' : `Copy${ordinal}`;
+    const stem: string = Array.from(ModelNames.toPascalName(name))
+      .slice(0, ModelNames.CLASSIFIER_MAX_LENGTH - suffix.length)
+      .join('');
+    return `${stem}${suffix}`;
+  }
+
+  private static availableCopyName(model: Model, sourceName: string): string {
+    const names: ReadonlySet<string> = new Set(model.classifiers.map((item): string => ModelNames.foldClassifierName(item.name)));
+    let ordinal: number = 1;
+    let candidate: string = this.copyName(sourceName, ordinal);
+    while (names.has(ModelNames.foldClassifierName(candidate))) {
+      ordinal += 1;
+      candidate = this.copyName(sourceName, ordinal);
+    }
+    return candidate;
+  }
+
   /**
    * Duplicates a node and every local relation connected to it.
    * @throws When the source node does not exist in the supplied model.
@@ -202,6 +226,7 @@ export class ModelFactory {
 
     if (!source) throw new Error(`Node not found: ${sourceNodeId}`);
     const clonedNode: Node = this.duplicateNode(source);
+    clonedNode.name = this.availableCopyName(model, source.name);
     const related: Relation[] = [];
 
     for (const relation of model.relations) {

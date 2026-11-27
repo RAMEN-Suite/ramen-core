@@ -36,6 +36,12 @@ export enum VALIDATION_ERROR {
    * @group Nodes, properties and data types
    */
   NODE_REFINEMENT_REQUIRED = 'NODE_REFINEMENT_REQUIRED',
+  /** A classifier name violates the Unicode identifier syntax or length bound. */
+  CLASSIFIER_NAME_INVALID = 'CLASSIFIER_NAME_INVALID',
+  /** Distinct classifiers in one model have names that collide after case and Unicode compatibility normalisation. */
+  CLASSIFIER_NAME_CASE_CONFLICT = 'CLASSIFIER_NAME_CASE_CONFLICT',
+  /** A node and data type declared or explicitly used in one model have the same name. */
+  CLASSIFIER_NAME_DUPLICATE = 'CLASSIFIER_NAME_DUPLICATE',
   /** Distinct nodes declared or explicitly used in one model have the same name. */
   NODE_NAME_DUPLICATE = 'NODE_NAME_DUPLICATE',
   /** A node lists more than one direct supertype. */
@@ -52,6 +58,10 @@ export enum VALIDATION_ERROR {
   ATTRIBUTE_KEY_BOUNDS_INVALID = 'ATTRIBUTE_KEY_BOUNDS_INVALID',
   /** A literal does not fit its data type's base type. */
   DATATYPE_LITERAL_TYPE_INVALID = 'DATATYPE_LITERAL_TYPE_INVALID',
+  /** Distinct data types declared or explicitly used in one model have the same name. */
+  DATATYPE_NAME_DUPLICATE = 'DATATYPE_NAME_DUPLICATE',
+  /** A declared data type reuses a built-in type name after case and Unicode compatibility normalisation. */
+  DATATYPE_NAME_RESERVED = 'DATATYPE_NAME_RESERVED',
   /** Two literals have the same name. */
   DATATYPE_LITERAL_NAME_DUPLICATE = 'DATATYPE_LITERAL_NAME_DUPLICATE',
   /** Two literals produce the same stored string. */

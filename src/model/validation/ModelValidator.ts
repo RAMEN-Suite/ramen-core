@@ -7,6 +7,7 @@ import { VALIDATION_ERROR } from './Codes.js';
 import { Diagnostic, DiagnosticPath } from './Diagnostics.js';
 import { ModelRules } from './ModelRules.js';
 import { ModelSchemaValidator } from './ModelSchema.js';
+import type { DocumentSchemaCache } from './DocumentSchemaCache.js';
 
 /** Diagnostics and summarised error state produced by instance validation. */
 export interface ValidationResult {
@@ -41,6 +42,20 @@ export class ModelValidator {
    * Inputs are unknown because schema validation is the trust boundary for JSON documents.
    */
   public validateProject(rootModelId: Id, inputs: readonly unknown[], selections?: RelationSelections): ProjectValidationResult {
+    return this.validateInputs(rootModelId, inputs, selections);
+  }
+
+  /** @internal Rechecks edited declarations while retaining the complete semantic validation. */
+  public validateWorkspace(rootModelId: Id, inputs: readonly Model[], cache: DocumentSchemaCache): ProjectValidationResult {
+    return this.validateInputs(rootModelId, inputs, undefined, cache);
+  }
+
+  private validateInputs(
+    rootModelId: Id,
+    inputs: readonly unknown[],
+    selections?: RelationSelections,
+    cache?: DocumentSchemaCache,
+  ): ProjectValidationResult {
     const diagnostics: Diagnostic[] = [];
     const models: Model[] = [];
 
@@ -51,6 +66,7 @@ export class ModelValidator {
         input,
         VALIDATION_ERROR.SCHEMA_INVALID,
         path,
+        cache,
       );
       diagnostics.push(...findings);
       if (findings.length === 0) models.push(input as Model);

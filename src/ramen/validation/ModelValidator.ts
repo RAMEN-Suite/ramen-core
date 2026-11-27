@@ -1,4 +1,5 @@
 import { ClassifierNameRules } from '../../model/validation/ClassifierNameRules.js';
+import type { DocumentSchemaCache } from '../../model/validation/DocumentSchemaCache.js';
 import {
   DiagnosticPath,
   Diagnostics,
@@ -28,7 +29,16 @@ export class RamenValidator {
 
   /** Validates a complete RAMEN project and exposes its graph only on success. */
   public validateProject(rootModelId: Id, inputs: readonly unknown[]): ProjectValidationResult {
-    const documentErrors: readonly Diagnostic[] = this.validateDocuments(inputs);
+    return this.validateInputs(rootModelId, inputs);
+  }
+
+  /** @internal Reuses workspace structural checks without skipping RAMEN or annotation rules. */
+  public validateWorkspace(rootModelId: Id, inputs: readonly Model[], cache: DocumentSchemaCache): ProjectValidationResult {
+    return this.validateInputs(rootModelId, inputs, cache);
+  }
+
+  private validateInputs(rootModelId: Id, inputs: readonly unknown[], cache?: DocumentSchemaCache): ProjectValidationResult {
+    const documentErrors: readonly Diagnostic[] = this.validateDocuments(inputs, cache);
     if (documentErrors.length > 0) return { valid: false, hasErrors: true, diagnostics: documentErrors };
 
     const normalised: readonly Model[] = (inputs as readonly Model[]).map((input: Model): Model =>
@@ -81,7 +91,7 @@ export class RamenValidator {
     return RamenReferenceValidator.validate(reference);
   }
 
-  private validateDocuments(inputs: readonly unknown[]): readonly Diagnostic[] {
+  private validateDocuments(inputs: readonly unknown[], cache?: DocumentSchemaCache): readonly Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
 
     inputs.forEach((input: unknown, index: number): void => {
@@ -93,6 +103,7 @@ export class RamenValidator {
             input,
             VALIDATION_ERROR.SCHEMA_INVALID,
             path,
+            cache,
           ),
         );
         return;
@@ -102,7 +113,9 @@ export class RamenValidator {
         ? VALIDATION_ERROR.SCHEMA_INVALID
         : RAMEN_VALIDATION_ERROR.ANNOTATIONS_INVALID;
 
-      diagnostics.push(...ClassifierNameRules.validateDocument(RamenProjectSchemaValidator.getSchemaNode(), input, code, path));
+      diagnostics.push(
+        ...ClassifierNameRules.validateDocument(RamenProjectSchemaValidator.getSchemaNode(), input, code, path, cache),
+      );
     });
 
     return diagnostics;

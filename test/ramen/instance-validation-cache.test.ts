@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test, { type TestContext, type Mock } from 'node:test';
 import {
   ConstraintRegistry,
+  ModelValidator,
   DataTypes,
   VALIDATION_ERROR,
   type ModelInstanceGraph,
@@ -15,7 +16,6 @@ import {
   RAMEN_MODEL,
   RAMEN_INSTANCE_ERROR,
   RamenModel,
-  RamenValidator,
   RamenValidationProfiles,
   type AnnotationShape,
 } from '@ramen-suite/core/ramen';
@@ -30,7 +30,7 @@ void test('instance validation reuses the workspace project result but rechecks 
   const model: RamenModel = RamenModel.create('Edition');
   const letter: Node = model.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION }).element;
   const cached: ProjectValidationResult = model.validate();
-  const check: Mock<RamenValidator['validateProject']> = context.mock.method(RamenValidator.prototype, 'validateProject');
+  const check: Mock<ModelValidator['validateModels']> = context.mock.method(ModelValidator.prototype, 'validateModels');
 
   assert.equal(model.validateInstances(data(letter)).hasErrors, false);
   assert.equal(model.validateInstances(data(letter, { uuid, label: 7 })).hasErrors, true);
@@ -53,7 +53,7 @@ void test('a changed parent level refreshes instance validation once for the sha
   const printed: Node = child.createNode({ name: 'PrintedLetter', refines: letter }).element;
   assert.equal(child.validateInstances(data(printed)).hasErrors, false);
   parent.createAttribute(letter, { name: 'source', typeId: DataTypes.String, bounds: { lowerBound: 1, upperBound: 1 } });
-  const check: Mock<RamenValidator['validateProject']> = context.mock.method(RamenValidator.prototype, 'validateProject');
+  const check: Mock<ModelValidator['validateModels']> = context.mock.method(ModelValidator.prototype, 'validateModels');
 
   const invalid: ValidationResult = child.validateInstances(data(printed));
   assert.equal(invalid.hasErrors, true);
@@ -69,7 +69,7 @@ void test('cached model errors still block instance validation', (context: TestC
   const invalid: RamenModel = RamenModel.load({ ...created.getModel(), name: '' });
   const project: ProjectValidationResult = invalid.validate();
   assert.equal(project.valid, false);
-  const check: Mock<RamenValidator['validateProject']> = context.mock.method(RamenValidator.prototype, 'validateProject');
+  const check: Mock<ModelValidator['validateModels']> = context.mock.method(ModelValidator.prototype, 'validateModels');
 
   const result: ValidationResult = invalid.validateInstances({ nodes: [], relations: [] });
   assert.equal(result.hasErrors, true);

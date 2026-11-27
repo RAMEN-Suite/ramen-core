@@ -18,6 +18,16 @@ An attribute uses a built-in type or a named {@link model.DataType | DataType}. 
 
 Custom data types use one of these built-in types as their `baseType`. Use a {@link model.Node | Node} instead of `Object` when fields or relationships need their own definitions.
 
+Nodes and named data types share one classifier namespace per model: distinct classifiers declared or explicitly used there must have different names. The same name is allowed in separate models. Names that may collide after case or Unicode compatibility normalisation produce a warning because generators or file names may treat them as equal.
+
+The built-in names `String`, `Boolean`, `Integer`, `Float` and `Object` are reserved for primitive types and cannot be used as named data types, including case and Unicode compatibility variants.
+
+Node and data type names contain 1–40 Unicode code points, starting with a letter and followed only by letters, combining marks, numbers or underscores. Creating or editing a classifier stores its name in NFC; comparisons also recognise canonically equivalent spellings. Import preserves the stored spelling, including decomposed Unicode. PascalCase is recommended; use `ModelNames.toPascalName()` to convert labels such as `my status!` to `MyStatus`. Model titles and literal labels can still contain spaces and punctuation.
+
+After NFC normalisation, classifier names allow at most two consecutive combining marks. This rules out some vocalised Hebrew spellings, such as `שִּׁמְעוֹן`; use an unpointed form like `שמעון` instead. ZWJ (U+200D) and ZWNJ (U+200C) are also excluded. Recorded string values are unaffected.
+
+Core reports invalid names as `CLASSIFIER_NAME_INVALID` at the `name` field. The JSON Schemas check string length; Unicode identifier syntax is checked by Core so the schemas remain usable with validators such as Python `jsonschema`.
+
 ## Limit a string to literals
 
 Use {@link model.Modeller.createDataType | createDataType()} and {@link model.Modeller.createLiteral | createLiteral()} to limit a string to `draft` or `published`:

@@ -90,7 +90,7 @@ void test('the lower-level factory duplicates owned identifiers without editing 
 
   assert.notEqual(copy.node.id, file.id);
   assert.notEqual(copy.node.attributes[0]?.id, original?.attributes[0]?.id);
-  assert.equal(copy.node.name, 'File (copy)');
+  assert.equal(copy.node.name, 'FileCopy');
 
   assert.equal(copy.relations.length, 1);
   assert.notEqual(copy.relations[0]?.id, relation.id);

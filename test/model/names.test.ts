@@ -64,3 +64,38 @@ void test('word boundaries retain underscores and digits while removing repeated
     assert.equal(ModelNames.toCamelName(input), camel);
   }
 });
+
+void test('name helpers preserve canonical composition and combining marks', (): void => {
+  assert.equal(ModelNames.toPascalName('e\u0301tat'), 'État');
+  assert.equal(ModelNames.toCamelName('E\u0301tat'), 'état');
+  assert.equal(ModelNames.toPascalName('q\u0301 type'), 'Q\u0301Type');
+  assert.equal(ModelNames.foldClassifierName('Straße'), ModelNames.foldClassifierName('STRASSE'));
+  assert.equal(ModelNames.foldClassifierName('ﬁle'), ModelNames.foldClassifierName('file'));
+});
+
+void test('classifier names allow at most two consecutive combining marks after NFC', (): void => {
+  const boundary: string = 'A\u0301\u0301\u0301';
+  const excessive: string = `${boundary}\u0301`;
+  assert.equal(boundary.normalize('NFC'), 'Á\u0301\u0301');
+  assert.equal(ModelNames.isClassifierName(boundary), true);
+  assert.equal(ModelNames.isClassifierName(excessive), false);
+  assert.equal(ModelNames.isClassifierName(`A${'\u0301'.repeat(5)}`), false);
+  assert.equal(ModelNames.isClassifierName('A\u0302\u0301'), true);
+  assert.equal(ModelNames.isClassifierName('a\u0306\u0301'), true);
+  assert.equal(ModelNames.isClassifierName('Ma\u0304ori'), true);
+});
+
+void test('generated conventional names also respect the combining mark bound', (): void => {
+  const input: string = `q${'\u0301'.repeat(5)} type`;
+  const pascal: string = ModelNames.toPascalName(input);
+  const camel: string = ModelNames.toCamelName(input);
+  assert.equal(pascal, 'Q\u0301\u0301Type');
+  assert.equal(camel, 'q\u0301\u0301Type');
+  assert.equal(ModelNames.isClassifierName(pascal), true);
+  assert.equal(ModelNames.isClassifierName(camel), true);
+});
+
+void test('classifier names explicitly exclude joining controls', (): void => {
+  assert.equal(ModelNames.isClassifierName('می\u200cخواهم'), false);
+  assert.equal(ModelNames.isClassifierName('क्\u200dष'), false);
+});

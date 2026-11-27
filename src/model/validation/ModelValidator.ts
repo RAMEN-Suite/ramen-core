@@ -1,4 +1,4 @@
-import { SchemaFindings } from './SchemaFindings.js';
+import { ClassifierNameRules } from './ClassifierNameRules.js';
 import { RelationSelections } from '../graph/RelationScope.js';
 import { Model, Id } from '../Types.js';
 import { buildProjectGraph, ProjectGraphResult } from '../graph/BuildGraph.js';
@@ -46,7 +46,7 @@ export class ModelValidator {
 
     inputs.forEach((input: unknown, index: number): void => {
       const path: DiagnosticPath = DiagnosticPath.root().property('models').index(index);
-      const findings: readonly Diagnostic[] = SchemaFindings.validate(
+      const findings: readonly Diagnostic[] = ClassifierNameRules.validateDocument(
         ModelSchemaValidator.getSchemaNode(),
         input,
         VALIDATION_ERROR.SCHEMA_INVALID,

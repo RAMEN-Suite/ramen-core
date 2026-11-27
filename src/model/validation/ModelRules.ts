@@ -4,8 +4,11 @@ import { Diagnostic, DiagnosticPath, Diagnostics } from './Diagnostics.js';
 import { ModelRelationScope, RelationSelections } from '../graph/RelationScope.js';
 import { Cardinality } from './Cardinality.js';
 import { VALIDATION_ERROR, ValidationCode } from './Codes.js';
+import { BuiltinDataTypes } from '../Builtins.js';
 import { ConstraintRules } from './ConstraintRules.js';
-import { NodeNames } from './NodeNames.js';
+import { ClassifierNameRules } from './ClassifierNameRules.js';
+import { ModelNames } from '../Names.js';
+import { ClassifierNames } from './ClassifierNames.js';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
 export class ModelRules {
@@ -63,7 +66,9 @@ export class ModelRules {
   private validateModel(graph: ProjectGraph, model: Model, diagnostics: Diagnostic[]): void {
     this.validateImports(model, diagnostics);
 
-    diagnostics.push(...new NodeNames(graph, model).getDiagnostics());
+    const path: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id);
+    diagnostics.push(...ClassifierNameRules.validate(model, path));
+    diagnostics.push(...new ClassifierNames(graph, model).getDiagnostics());
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
       this.validateConstraints(classifier.constraints, path, diagnostics);
@@ -113,6 +118,21 @@ export class ModelRules {
   }
 
   private validateDataType(dataType: DataType, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
+    const folded: string = ModelNames.foldClassifierName(dataType.name);
+    const reserved: boolean = BuiltinDataTypes.values.some(
+      (name: string): boolean => ModelNames.foldClassifierName(name) === folded,
+    );
+    if (reserved) {
+      diagnostics.push(
+        this.error(
+          VALIDATION_ERROR.DATATYPE_NAME_RESERVED,
+          `Data type name '${dataType.name}' is reserved for a built-in type.`,
+          path.property('name'),
+          dataType.id,
+        ),
+      );
+    }
+
     const literals: readonly Literal[] | undefined = dataType.literals;
     if (!literals) return;
     this.validateLiteralUniqueness(literals, path, diagnostics);

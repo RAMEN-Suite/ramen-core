@@ -124,7 +124,12 @@
       "properties": {
         "kind": { "const": "Node" },
         "id": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string", "pattern": "^\\p{L}[\\p{L}\\p{N}_]*(?![\\s\\S])" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "$comment": "Core validates Unicode identifier syntax separately and normalises edited names to NFC."
+        },
         "superTypes": {
           "description": "The node refined by this declaration. Models with imports must declare exactly one base node; only models without imports may declare nodes without a base. Existing imported nodes can be reused without a local declaration. The model validator checks this contextual rule.",
           "type": "array",
@@ -151,7 +156,12 @@
       "properties": {
         "kind": { "const": "DataType" },
         "id": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string", "pattern": "^\\p{L}[\\p{L}\\p{N}_]*(?![\\s\\S])" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "$comment": "Core validates Unicode identifier syntax separately and normalises edited names to NFC."
+        },
         "baseType": {
           "$ref": "#/$defs/BuiltinType",
           "$comment": "Value representation validated before datatype literals and constraints."
@@ -320,7 +330,12 @@
       "properties": {
         "kind": { "const": "Node" },
         "id": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string", "pattern": "^\\p{L}[\\p{L}\\p{N}_]*(?![\\s\\S])" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "$comment": "Core validates Unicode identifier syntax separately and normalises edited names to NFC."
+        },
         "superTypes": {
           "description": "The node refined by this declaration. Models with imports must declare exactly one base node; only models without imports may declare nodes without a base. Existing imported nodes can be reused without a local declaration. The model validator checks this contextual rule.",
           "type": "array",
@@ -348,7 +363,12 @@
       "properties": {
         "kind": { "const": "DataType" },
         "id": { "$ref": "#/$defs/Id" },
-        "name": { "type": "string", "pattern": "^\\p{L}[\\p{L}\\p{N}_]*(?![\\s\\S])" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "$comment": "Core validates Unicode identifier syntax separately and normalises edited names to NFC."
+        },
         "baseType": {
           "$ref": "#/$defs/BuiltinType",
           "$comment": "Value representation validated before datatype literals and constraints."

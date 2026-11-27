@@ -64,3 +64,11 @@ void test('word boundaries retain underscores and digits while removing repeated
     assert.equal(ModelNames.toCamelName(input), camel);
   }
 });
+
+void test('name helpers preserve canonical composition and combining marks', (): void => {
+  assert.equal(ModelNames.toPascalName('e\u0301tat'), 'État');
+  assert.equal(ModelNames.toCamelName('E\u0301tat'), 'état');
+  assert.equal(ModelNames.toPascalName('q\u0301 type'), 'Q\u0301Type');
+  assert.equal(ModelNames.foldClassifierName('Straße'), ModelNames.foldClassifierName('STRASSE'));
+  assert.equal(ModelNames.foldClassifierName('ﬁle'), ModelNames.foldClassifierName('file'));
+});

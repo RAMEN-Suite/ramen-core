@@ -1,3 +1,4 @@
+import { ModelNames } from '../Names.js';
 import { ModelDescriptions } from '../Descriptions.js';
 import { Attribute, Classifier, DataType, Model, Node, Relation, Id } from '../Types.js';
 
@@ -14,9 +15,15 @@ export type UpdateAttributeInput = Partial<Omit<Attribute, 'id'>>;
 
 /** Applies immutable editing operations to an existing RMF model. */
 export class ModelEditor {
+  private static copyClassifier<T extends Classifier>(classifier: T): T {
+    const copy: T = ModelDescriptions.copy(classifier);
+    copy.name = ModelNames.normaliseClassifierName(copy.name);
+    return copy;
+  }
+
   /** Returns a model with the classifier appended. */
   public static addClassifier(model: Model, classifier: Classifier): Model {
-    return { ...model, classifiers: [...model.classifiers, ModelDescriptions.copy(classifier)] };
+    return { ...model, classifiers: [...model.classifiers, this.copyClassifier(classifier)] };
   }
 
   /** Returns a model without the classifier, or throws when it does not exist. */
@@ -41,7 +48,7 @@ export class ModelEditor {
       if (classifier.id !== nodeId) return classifier;
 
       found = true;
-      return ModelDescriptions.copy({ ...classifier, ...structuredClone(patch) });
+      return this.copyClassifier({ ...classifier, ...structuredClone(patch) });
     });
 
     if (!found) throw new Error(`Node not found: ${nodeId}`);
@@ -61,7 +68,7 @@ export class ModelEditor {
       if (collection.id !== dataTypeId) return collection;
 
       found = true;
-      return ModelDescriptions.copy({ ...collection, ...structuredClone(patch) });
+      return this.copyClassifier({ ...collection, ...structuredClone(patch) });
     });
 
     if (!found) throw new Error(`DataType not found: ${dataTypeId}`);

@@ -6,6 +6,8 @@ import { Cardinality } from './Cardinality.js';
 import { VALIDATION_ERROR, ValidationCode } from './Codes.js';
 import { BuiltinDataTypes } from '../Builtins.js';
 import { ConstraintRules } from './ConstraintRules.js';
+import { ClassifierNameRules } from './ClassifierNameRules.js';
+import { ModelNames } from '../Names.js';
 import { ClassifierNames } from './ClassifierNames.js';
 
 /** Applies model-level well-formedness and refinement rules across a complete project graph. */
@@ -64,6 +66,8 @@ export class ModelRules {
   private validateModel(graph: ProjectGraph, model: Model, diagnostics: Diagnostic[]): void {
     this.validateImports(model, diagnostics);
 
+    const path: DiagnosticPath = DiagnosticPath.root().property('models').property(model.id);
+    diagnostics.push(...ClassifierNameRules.validate(model, path));
     diagnostics.push(...new ClassifierNames(graph, model).getDiagnostics());
     model.classifiers.forEach((classifier, index: number): void => {
       const path: DiagnosticPath = this.elementPath(model.id, 'classifiers', index);
@@ -114,8 +118,10 @@ export class ModelRules {
   }
 
   private validateDataType(dataType: DataType, path: DiagnosticPath, diagnostics: Diagnostic[]): void {
-    const folded: string = dataType.name.toLowerCase();
-    const reserved: boolean = BuiltinDataTypes.values.some((name: string): boolean => name.toLowerCase() === folded);
+    const folded: string = ModelNames.foldClassifierName(dataType.name);
+    const reserved: boolean = BuiltinDataTypes.values.some(
+      (name: string): boolean => ModelNames.foldClassifierName(name) === folded,
+    );
     if (reserved) {
       diagnostics.push(
         this.error(

@@ -21,7 +21,7 @@ function named(name: string, dataType: boolean): Modeller {
   return model;
 }
 
-void test('classifier schemas accept Unicode identifier names without enforcing capitalisation', (): void => {
+void test('classifier names accept Unicode identifiers without enforcing capitalisation', (): void => {
   for (const dataType of [false, true]) {
     for (const name of ['Status', 'status', 'Status2', 'Status_Value', 'Édition', '𐐀Type']) {
       const model: Modeller = named(name, dataType);
@@ -31,7 +31,7 @@ void test('classifier schemas accept Unicode identifier names without enforcing 
   }
 });
 
-void test('classifier schemas reject spaces, punctuation, invalid starts and trailing line breaks', (): void => {
+void test('invalid classifier names report a dedicated diagnostic at the name field', (): void => {
   const invalid: readonly string[] = [
     '',
     'my status!',
@@ -51,7 +51,9 @@ void test('classifier schemas reject spaces, punctuation, invalid starts and tra
       const findings: readonly Diagnostic[] = model.validate().diagnostics;
       assert.equal(model.validate().valid, false, JSON.stringify(name));
       assert.ok(
-        findings.some((item: Diagnostic): boolean => item.code === 'SCHEMA_INVALID' && item.path === '/models/0/classifiers/0'),
+        findings.some(
+          (item: Diagnostic): boolean => item.code === 'CLASSIFIER_NAME_INVALID' && item.path === '/models/0/classifiers/0/name',
+        ),
       );
     }
   }

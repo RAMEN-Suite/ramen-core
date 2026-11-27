@@ -1,23 +1,46 @@
-const NAME_START: RegExp = /(?:^|[^\p{L}\p{N}_])(\p{L})/gu;
-const NAME_INVALID_CHARS: RegExp = /[^\p{L}\p{N}_]/gu;
+const NAME_START: RegExp = /(?:^|[^\p{L}\p{M}\p{N}_])(\p{L})/gu;
+const NAME_INVALID_CHARS: RegExp = /[^\p{L}\p{M}\p{N}_]/gu;
 const NAME_VALID_START: RegExp = /^\p{L}/u;
+const CLASSIFIER_INVALID_CHARS: RegExp = /[^\p{L}\p{M}\p{N}_]/u;
 
 const RELATIONSHIP_NAME: RegExp = /[A-Z0-9]+/g;
 const RELATIONSHIP_VALID_START: RegExp = /^[A-Z]/;
 
 /** Converts user input into valid conventional RAMEN model format element names. */
 export class ModelNames {
+  /** Maximum number of Unicode code points in a stored node or data type name. */
+  public static readonly CLASSIFIER_MAX_LENGTH: number = 40;
+
+  /** Canonicalises a classifier name without changing its spelling or removing invalid characters. */
+  public static normaliseClassifierName(name: string): string {
+    return name.normalize('NFC');
+  }
+
+  /** Checks the Unicode identifier syntax and length of a stored classifier name. */
+  public static isClassifierName(name: string): boolean {
+    const canonical: string = this.normaliseClassifierName(name);
+    const length: number = Array.from(name).length;
+    return length <= this.CLASSIFIER_MAX_LENGTH && NAME_VALID_START.test(canonical) && !CLASSIFIER_INVALID_CHARS.test(canonical);
+  }
+
+  /** Produces a comparison key for case and Unicode compatibility warnings, without changing stored names. */
+  public static foldClassifierName(name: string): string {
+    return name.normalize('NFKC').toUpperCase().toLowerCase();
+  }
+
   /** Converts text to a PascalCase node or type name of at most 40 characters. */
   public static toPascalName(str: string): string {
     const pascalised: string = str
+      .normalize('NFC')
       .replace(NAME_START, (_: string, letter: string): string => letter.toUpperCase())
       .replace(NAME_INVALID_CHARS, '');
-    return this.truncate(NAME_VALID_START.test(pascalised) ? pascalised : `N${pascalised}`, 40);
+    return this.truncate(NAME_VALID_START.test(pascalised) ? pascalised : `N${pascalised}`, this.CLASSIFIER_MAX_LENGTH);
   }
 
   /** Converts text to a camelCase property name of at most 32 characters. */
   public static toCamelName(str: string): string {
     const pascalised: string = str
+      .normalize('NFC')
       .replace(NAME_START, (_: string, letter: string): string => letter.toUpperCase())
       .replace(NAME_INVALID_CHARS, '');
 

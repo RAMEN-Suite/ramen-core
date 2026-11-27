@@ -1,4 +1,4 @@
-import { SchemaFindings } from '../../model/validation/SchemaFindings.js';
+import { ClassifierNameRules } from '../../model/validation/ClassifierNameRules.js';
 import {
   DiagnosticPath,
   Diagnostics,
@@ -88,17 +88,21 @@ export class RamenValidator {
       const path: DiagnosticPath = DiagnosticPath.root().property('models').index(index);
       if (!RamenModelFormat.isDocument(input)) {
         diagnostics.push(
-          ...SchemaFindings.validate(ModelSchemaValidator.getSchemaNode(), input, VALIDATION_ERROR.SCHEMA_INVALID, path),
+          ...ClassifierNameRules.validateDocument(
+            ModelSchemaValidator.getSchemaNode(),
+            input,
+            VALIDATION_ERROR.SCHEMA_INVALID,
+            path,
+          ),
         );
         return;
       }
 
-      if (RamenProjectSchemaValidator.isValid(input)) return;
       const code: string = AnnotationShapes.hasValidSection(input)
         ? VALIDATION_ERROR.SCHEMA_INVALID
         : RAMEN_VALIDATION_ERROR.ANNOTATIONS_INVALID;
 
-      diagnostics.push(...SchemaFindings.validate(RamenProjectSchemaValidator.getSchemaNode(), input, code, path));
+      diagnostics.push(...ClassifierNameRules.validateDocument(RamenProjectSchemaValidator.getSchemaNode(), input, code, path));
     });
 
     return diagnostics;

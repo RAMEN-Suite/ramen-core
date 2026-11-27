@@ -111,7 +111,7 @@ export class ModelFactory {
     return ModelDescriptions.copy({
       kind: 'Node',
       id: this.createIdentifier(),
-      name: input.name,
+      name: ModelNames.normaliseClassifierName(input.name),
       description: input.description,
       superTypes: [ModelRef.qualify(baseId, input.baseNodeId)],
       attributes: [],
@@ -142,7 +142,7 @@ export class ModelFactory {
     return ModelDescriptions.copy({
       kind: 'DataType',
       id: this.createIdentifier(),
-      name: input.name,
+      name: ModelNames.normaliseClassifierName(input.name),
       description: input.description,
       baseType: input.baseType,
       constraints: structuredClone([...(input.constraints ?? [])]),
@@ -176,7 +176,11 @@ export class ModelFactory {
     return this.createRelationEnd(nodeId, base.bounds);
   }
 
-  /** Deeply duplicates a node and assigns new identifiers to its owned elements. */
+  /**
+   * Deeply duplicates a node and assigns new identifiers to its owned elements.
+   * Uses a Copy suffix without checking name collisions because no owning model is supplied.
+   * Use duplicateConnectedNode() to avoid existing local classifier names, then validate the complete project.
+   */
   public static duplicateNode(node: Node): Node {
     const cloned: Node = structuredClone(node);
     cloned.id = this.createIdentifier();
@@ -196,16 +200,16 @@ export class ModelFactory {
   private static copyName(name: string, ordinal: number = 1): string {
     const suffix: string = ordinal === 1 ? 'Copy' : `Copy${ordinal}`;
     const stem: string = Array.from(ModelNames.toPascalName(name))
-      .slice(0, 40 - suffix.length)
+      .slice(0, ModelNames.CLASSIFIER_MAX_LENGTH - suffix.length)
       .join('');
     return `${stem}${suffix}`;
   }
 
   private static availableCopyName(model: Model, sourceName: string): string {
-    const names: ReadonlySet<string> = new Set(model.classifiers.map((item): string => item.name.toLowerCase()));
+    const names: ReadonlySet<string> = new Set(model.classifiers.map((item): string => ModelNames.foldClassifierName(item.name)));
     let ordinal: number = 1;
     let candidate: string = this.copyName(sourceName, ordinal);
-    while (names.has(candidate.toLowerCase())) {
+    while (names.has(ModelNames.foldClassifierName(candidate))) {
       ordinal += 1;
       candidate = this.copyName(sourceName, ordinal);
     }

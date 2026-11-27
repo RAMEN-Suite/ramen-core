@@ -1,5 +1,6 @@
 import type { Classifier, DataType, Node, Id, Model, Ref } from '../Types.js';
 import type { ProjectGraph, ResolvedElement } from '../graph/ProjectGraph.js';
+import { ModelNames } from '../Names.js';
 import { ModelRef } from '../graph/References.js';
 import { DiagnosticPath, Diagnostics, type Diagnostic } from './Diagnostics.js';
 import { VALIDATION_ERROR, type ValidationCode } from './Codes.js';
@@ -54,7 +55,7 @@ export class ClassifierNames {
   }
 
   private checkCase(target: ResolvedElement<Classifier>, path: DiagnosticPath, ref: Id): readonly Diagnostic[] {
-    const folded: string = target.element.name.toLowerCase();
+    const folded: string = ModelNames.foldClassifierName(target.element.name);
     const previous: ResolvedElement<Classifier> | undefined = this.foldedNames.get(folded);
     if (!previous) {
       this.foldedNames.set(folded, target);
@@ -66,7 +67,7 @@ export class ClassifierNames {
     return [
       Diagnostics.warn({
         code: VALIDATION_ERROR.CLASSIFIER_NAME_CASE_CONFLICT,
-        message: `Classifier names '${previous.element.name}' and '${target.element.name}' differ only in case in model '${this.model.id}'.`,
+        message: `Classifier names '${previous.element.name}' and '${target.element.name}' may collide after Unicode and case normalisation in model '${this.model.id}'.`,
         path,
         ref,
       }),
@@ -74,9 +75,10 @@ export class ClassifierNames {
   }
 
   private register(target: ResolvedElement<Classifier>, path: DiagnosticPath, ref: Id): readonly Diagnostic[] {
-    const previous: ResolvedElement<Classifier> | undefined = this.names.get(target.element.name);
+    const canonical: string = ModelNames.normaliseClassifierName(target.element.name);
+    const previous: ResolvedElement<Classifier> | undefined = this.names.get(canonical);
     if (!previous) {
-      this.names.set(target.element.name, target);
+      this.names.set(canonical, target);
       return this.checkCase(target, path, ref);
     }
     const identity: Ref = ModelRef.qualify(target.modelId, target.element.id);

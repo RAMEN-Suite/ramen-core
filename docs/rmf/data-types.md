@@ -18,11 +18,13 @@ An attribute uses a built-in type or a named {@link model.DataType | DataType}. 
 
 Custom data types use one of these built-in types as their `baseType`. Use a {@link model.Node | Node} instead of `Object` when fields or relationships need their own definitions.
 
-Nodes and named data types share one classifier namespace per model: distinct classifiers declared or explicitly used there must have different names. The same name is allowed in separate models. Names that differ only in case produce a warning because generators or file names may treat them as equal.
+Nodes and named data types share one classifier namespace per model: distinct classifiers declared or explicitly used there must have different names. The same name is allowed in separate models. Names that may collide after case or Unicode compatibility normalisation produce a warning because generators or file names may treat them as equal.
 
-The built-in names `String`, `Boolean`, `Integer`, `Float` and `Object` are reserved for primitive types and cannot be used as named data types, regardless of case.
+The built-in names `String`, `Boolean`, `Integer`, `Float` and `Object` are reserved for primitive types and cannot be used as named data types, including case and Unicode compatibility variants.
 
-Node and data type names must start with a Unicode letter, followed only by letters, numbers or underscores. PascalCase is recommended; use `ModelNames.toPascalName()` to convert labels such as `my status!` to `MyStatus`. Model titles and literal labels can still contain spaces and punctuation.
+Node and data type names contain 1–40 Unicode code points, starting with a letter and followed only by letters, combining marks, numbers or underscores. Creating or editing a classifier stores its name in NFC; comparisons also recognise canonically equivalent spellings. Import preserves the stored spelling, including decomposed Unicode. PascalCase is recommended; use `ModelNames.toPascalName()` to convert labels such as `my status!` to `MyStatus`. Model titles and literal labels can still contain spaces and punctuation.
+
+Core reports invalid names as `CLASSIFIER_NAME_INVALID` at the `name` field. The JSON Schemas check string length; Unicode identifier syntax is checked by Core so the schemas remain usable with validators such as Python `jsonschema`.
 
 ## Limit a string to literals
 

@@ -97,6 +97,28 @@ function compileConsumer(consumer: string): void {
   execFileSync(process.execPath, [compiler, '-p', 'tsconfig.json'], { cwd: consumer, stdio: 'inherit' });
 }
 
+function checkDeclarations(consumer: string): void {
+  const config: object = {
+    compilerOptions: {
+      target: 'ES2022',
+      lib: ['ES2022', 'ES2024.String', 'DOM'],
+      module: 'ESNext',
+      moduleResolution: 'Bundler',
+      strict: true,
+      noEmit: true,
+      skipLibCheck: false,
+      types: [],
+    },
+    include: ['node_modules/@ramen-suite/core/dist/ramen-core/**/*.d.ts'],
+    exclude: [],
+  };
+  writeFileSync(join(consumer, 'declarations.tsconfig.json'), JSON.stringify(config));
+
+  const compiler: string = join(root, 'node_modules/typescript/bin/tsc');
+  execFileSync(process.execPath, [compiler, '-p', 'declarations.tsconfig.json'], { cwd: consumer, stdio: 'inherit' });
+  console.log('All packed declaration files passed strict type checking.');
+}
+
 function runConsumer(consumer: string, entry: string = 'consumer.js'): void {
   const runtimes: readonly string[] = process.argv.length > 2 ? process.argv.slice(2) : [process.execPath];
   for (const runtime of runtimes) {
@@ -160,6 +182,7 @@ try {
   const consumer: string = join(temporary, 'consumer');
   install(join(temporary, file.filename), consumer);
 
+  checkDeclarations(consumer);
   compileConsumer(consumer);
   runConsumer(consumer);
   await bundleBrowserConsumer(consumer);

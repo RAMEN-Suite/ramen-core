@@ -77,7 +77,7 @@ export function buildProjectGraph(input: ProjectGraphInput): ProjectGraphResult 
       reachableIndexes.set(modelId, index);
     }
   }
-  return { ok: true, graph: new ProjectGraph(input.rootModelId, reachableModels, reachableIndexes), diagnostics: [] };
+  return { ok: true, graph: ProjectGraph.create(input.rootModelId, reachableModels, reachableIndexes), diagnostics: [] };
 }
 
 function registerModels(models: readonly Model[], state: GraphBuildState): void {

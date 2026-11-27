@@ -12,6 +12,7 @@
     "isolatedModules": true,
     "noUncheckedIndexedAccess": true,
     "declaration": true,
+    "stripInternal": true,
     "emitDeclarationOnly": true,
     "rootDir": "src",
     "outDir": "dist/ramen-core",

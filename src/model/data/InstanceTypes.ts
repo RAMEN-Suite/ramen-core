@@ -26,13 +26,13 @@ export interface ModelInstanceGraph {
   readonly relations: readonly ModelInstanceRelation[];
 }
 
-/** @internal Resolved instance node and its model type. */
+/** Resolved instance node and its model type. */
 export interface ResolvedInstanceNode {
   readonly instance: ModelInstanceNode;
   readonly type: ResolvedElement<Node>;
 }
 
-/** @internal Resolved instance relation and its model type. */
+/** Resolved instance relation and its model type. */
 export interface ResolvedInstanceRelation {
   readonly instance: ModelInstanceRelation;
   readonly type: ResolvedElement<Relation>;

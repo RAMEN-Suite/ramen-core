@@ -6,6 +6,8 @@ import { DataTypes, Modeller, type ModelFile, type ModelInstanceGraph, type Node
 import { RAMEN_ELEMENT, RamenModel, RamenValidationProfiles } from '@ramen-suite/core/ramen';
 import schema from '@ramen-suite/core/schemas/model-file.schema.json' with { type: 'json' };
 
+type PublicValidator<T> = 'validateWorkspace' extends keyof T ? never : T;
+
 for (const entry of [modelExports, ramenExports]) {
   for (const [name, value] of Object.entries(entry)) {
     if ((rootExports as Record<string, unknown>)[name] !== value) {
@@ -18,6 +20,7 @@ if (!(RootModeller.create('Root identity') instanceof Modeller)) {
 }
 
 const model: Modeller = Modeller.create('Package consumer');
+const validator: PublicValidator<modelExports.ModelValidator> = new modelExports.ModelValidator();
 const document: Node = model.createNode('Document').element;
 model.createAttribute(document, { name: 'title', typeId: DataTypes.String });
 const file: ModelFile = model.export({ name: 'Independent project title', description: 'Preserved project description.' });
@@ -25,14 +28,21 @@ if (Modeller.import(file).getProjectMetadata()?.name !== file.project?.name) {
   throw new Error('Project metadata must survive package exchange independently of model names.');
 }
 
-if (file.$schema !== schema.$id || !Modeller.import(file).validate().valid) {
+const modelValid: boolean = validator.validateProject(model.getModel().id, model.getModels()).valid;
+if (file.$schema !== schema.$id || !Modeller.import(file).validate().valid || !modelValid) {
   throw new Error('The installed RMF package cannot exchange a model using its packaged schema.');
 }
 
 const edition: RamenModel = RamenModel.create('Edition');
+const ramenValidator: PublicValidator<ramenExports.RamenValidator> = new ramenExports.RamenValidator();
 const letter: Node = edition.createNode({ name: 'Letter', refines: RAMEN_ELEMENT.COLLECTION }).element;
 
-if (!RamenModel.import(edition.export()).validate().valid || !RootModeller.create('Root export').validate().valid) {
+const editionValid: boolean = ramenValidator.validateProject(edition.getModel().id, edition.getModels()).valid;
+if (
+  !RamenModel.import(edition.export()).validate().valid ||
+  !RootModeller.create('Root export').validate().valid ||
+  !editionValid
+) {
   throw new Error('The installed RAMEN or root entry point is invalid.');
 }
 

@@ -2,6 +2,7 @@ import { ModelDescriptions } from '../Descriptions.js';
 import type { Id, Model, Ref } from '../Types.js';
 import type { ProjectMetadata } from '../exchange/File.js';
 import { ModelRef } from '../graph/References.js';
+import { DocumentSchemaCache } from '../validation/DocumentSchemaCache.js';
 
 /** Identity of a declaration in the editable model workspace. */
 export interface WorkspaceElement {
@@ -60,6 +61,8 @@ function append(index: Map<string, WorkspaceElement[]>, key: string, item: Works
 
 /** Shared editable models. A modeller exposes one model while edits remain visible to its other levels. */
 export class ModelWorkspace {
+  /** @internal Structural validation state shared by the editable levels. */
+  public readonly schemas: DocumentSchemaCache = new DocumentSchemaCache();
   private readonly models: Map<Id, Model> = new Map<Id, Model>();
   private revision: number = 0;
   private readonly project: ProjectMetadata | undefined;
@@ -177,6 +180,7 @@ export class ModelWorkspace {
     }
 
     for (const model of preview.models) this.models.delete(model.id);
+    this.schemas.retain(this.all());
     this.revision += 1;
   }
 

@@ -3,12 +3,21 @@ import { SchemaFindings } from './SchemaFindings.js';
 import { ModelNames } from '../Names.js';
 import { DiagnosticPath, Diagnostics, type Diagnostic } from './Diagnostics.js';
 import { VALIDATION_ERROR } from './Codes.js';
+import type { DocumentSchemaCache } from './DocumentSchemaCache.js';
 
 /** @internal Reports name errors before schema unions lose the offending field's path. */
 export class ClassifierNameRules {
-  public static validateDocument(schema: SchemaNode, input: unknown, code: string, path: DiagnosticPath): readonly Diagnostic[] {
+  public static validateDocument(
+    schema: SchemaNode,
+    input: unknown,
+    code: string,
+    path: DiagnosticPath,
+    cache?: DocumentSchemaCache,
+  ): readonly Diagnostic[] {
     const names: readonly Diagnostic[] = this.validate(input, path);
-    const structural: readonly Diagnostic[] = SchemaFindings.validate(schema, input, code, path);
+    const structural: readonly Diagnostic[] = cache
+      ? cache.validate(schema, input, code, path)
+      : SchemaFindings.validate(schema, input, code, path);
     if (names.length === 0) return structural;
     if (structural.length === 0) return names;
     if (!this.needsNameRepair(names, structural)) return [...names, ...structural];

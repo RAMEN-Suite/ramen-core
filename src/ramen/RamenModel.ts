@@ -117,7 +117,7 @@ export class RamenModel extends ModelDraft<RamenAdvisor> {
   }
 
   protected check(): ProjectValidationResult {
-    return this.validator.validateProject(this.model.id, this.validationInputs());
+    return this.validator.validateWorkspace(this.model.id, this.validationInputs(), this.workspace.schemas);
   }
 
   protected buildAdvisor(result: ValidProjectResult): RamenAdvisor {

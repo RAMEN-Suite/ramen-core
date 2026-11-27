@@ -26,12 +26,20 @@ export class ProjectGraph {
     readonly ResolvedElement<Relation>[]
   >();
 
-  /** @internal */
-  public constructor(
+  private constructor(
     private readonly rootModelId: Id,
     private readonly modelsById: ReadonlyMap<Id, Model>,
     private readonly indexesByModelId: ReadonlyMap<Id, ModelElementIndex>,
   ) {}
+
+  /** @internal Creates a graph after the builder has checked imports and indexed reachable models. */
+  public static create(
+    rootModelId: Id,
+    modelsById: ReadonlyMap<Id, Model>,
+    indexesByModelId: ReadonlyMap<Id, ModelElementIndex>,
+  ): ProjectGraph {
+    return new ProjectGraph(rootModelId, modelsById, indexesByModelId);
+  }
 
   /** Returns the graph's designated root model. */
   public getRootModel(): Model {
